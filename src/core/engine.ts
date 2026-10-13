@@ -2,8 +2,10 @@ import { stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 
+import { secretsModule } from '../modules/secrets/index.js';
 import { loadConfig, type ResolvedConfig } from './config.js';
 import { walkFiles } from './fileWalker.js';
+import { listStagedFiles } from './git.js';
 import {
   sortFindings,
   summarize,
@@ -32,6 +34,8 @@ export interface ScanOptions {
   modules?: ModuleName[];
   /** Explicit path to fullshield.config.json. */
   configPath?: string;
+  /** Scan only files staged in git (pre-commit mode). */
+  staged?: boolean;
 }
 
 export interface ScanMetadata {
@@ -54,9 +58,9 @@ export interface ScanResult {
 
 /**
  * Scanner modules register here as their phases are built.
- * Phase 1 ships the engine with zero modules (see Section 9 of the spec).
+ * Phase 2: secrets.
  */
-export const builtinModules: readonly ScanModule[] = [];
+export const builtinModules: readonly ScanModule[] = [secretsModule];
 
 export const IMPLEMENTED_MODULES: readonly ModuleName[] = builtinModules.map((m) => m.name);
 
@@ -92,7 +96,11 @@ export async function runScan(
 
   const config = await loadConfig(cwd, options.configPath);
   const modulesRequested = options.modules ?? config.modules;
-  const files = await walkFiles({ cwd, ignore: config.ignore });
+  let files = await walkFiles({ cwd, ignore: config.ignore });
+  if (options.staged === true) {
+    const staged = new Set(await listStagedFiles(cwd));
+    files = files.filter((file) => staged.has(file));
+  }
 
   const available = new Map(modules.map((m) => [m.name, m]));
   const modulesRun = modulesRequested.filter((name) => available.has(name));

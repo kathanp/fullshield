@@ -123,10 +123,10 @@ section('mutation smoke test');
 // ------------------------------------------------------------------ step 6
 section('summary');
 
-function runCliJson(fixtureDir) {
+function runCliJson(fixtureDir, extraArgs = []) {
   const result = spawnSync(
     process.execPath,
-    [join(root, 'dist', 'cli', 'index.js'), 'scan', fixtureDir, '--json'],
+    [join(root, 'dist', 'cli', 'index.js'), 'scan', fixtureDir, '--json', ...extraArgs],
     { cwd: root, encoding: 'utf8' },
   );
   if (result.stdout === '' || result.status === 2) {
@@ -203,6 +203,33 @@ const acceptanceCriteria = {
       }
       console.log(`  ✔ scan ${relative(root, fixture)} exited 0`);
     }
+  },
+  // Phase 2 (spec §9): secrets module detects all seeded secrets in
+  // vulnerable-app; 0 false positives in clean-app; the CI gate exits 1.
+  2: () => {
+    const seeded = ['SECRET-AWS-001', 'SECRET-STRIPE-001', 'SECRET-JWT-001', 'SECRET-DBURL-001', 'SECRET-ENVFILE-001'];
+    const vulnSecrets = runCliJson(vulnerableApp, ['--modules', 'secrets']);
+    const ids = new Set(vulnSecrets.report.findings.map((f) => f.ruleId));
+    for (const id of seeded) {
+      if (!ids.has(id)) fail(`phase 2 acceptance: ${id} not detected in vulnerable-app`);
+    }
+    console.log(`  ✔ all ${seeded.length} seeded secret rule ids detected in vulnerable-app`);
+
+    const cleanSecrets = runCliJson(cleanApp, ['--modules', 'secrets']);
+    if (cleanSecrets.report.summary.total !== 0) {
+      fail(`phase 2 acceptance: ${cleanSecrets.report.summary.total} false positives on clean-app`);
+    }
+    console.log('  ✔ zero secrets findings on clean-app');
+
+    const gated = spawnSync(
+      process.execPath,
+      [join(root, 'dist', 'cli', 'index.js'), 'scan', vulnerableApp, '--modules', 'secrets', '--fail-on', 'high'],
+      { cwd: root, encoding: 'utf8' },
+    );
+    if (gated.status !== 1) {
+      fail(`phase 2 acceptance: --fail-on high exited ${gated.status}, expected 1`);
+    }
+    console.log('  ✔ --fail-on high exits 1 on vulnerable-app');
   },
 };
 

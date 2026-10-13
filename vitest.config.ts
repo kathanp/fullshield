@@ -10,12 +10,15 @@ export default defineConfig({
       // it is exercised by the e2e tests against the built binary.
       exclude: ['src/cli/index.ts'],
       reporter: ['text', 'json-summary', 'lcov'],
-      // Spec 0.1: lines >= 80%, branches >= 75% for src/ (Core).
-      // NOTE: the spec's `src/modules/**` >= 85% threshold will be added in
-      // Phase 2 when the first module exists (an empty glob fails the run).
+      // Spec 0.1: lines >= 80%, branches >= 75% for src/ (Core);
+      // src/modules/** >= 85% (active since Phase 2).
       thresholds: {
         lines: 80,
         branches: 75,
+        'src/modules/**/*.ts': {
+          lines: 85,
+          branches: 75,
+        },
       },
     },
   },

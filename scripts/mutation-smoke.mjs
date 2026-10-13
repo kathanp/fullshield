@@ -22,7 +22,9 @@ const isWindows = process.platform === 'win32';
 
 const RULE_DIRS = [join('src', 'modules', 'sast', 'rules'), join('src', 'modules', 'secrets', 'rules')];
 const REPORT_CALL = 'ctx.report(';
-const DISABLED_CALL = '((..._args) => undefined)(';
+// `void(...)` is a type-safe no-op for any argument list, so the mutant still
+// compiles and the TEST run (not the build) must be what catches it.
+const DISABLED_CALL = 'void(';
 
 function collectRuleFiles() {
   const files = [];

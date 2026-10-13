@@ -33,21 +33,28 @@ function fakeModule(name: ModuleName, findings: Finding[]): ScanModule {
   return { name, run: () => Promise.resolve(findings) };
 }
 
-describe('phase 1 module registry', () => {
-  it('has zero built-in modules (none implemented yet)', () => {
-    expect(builtinModules).toEqual([]);
-    expect(IMPLEMENTED_MODULES).toEqual([]);
+// NOTE (phase 2): these assertions were originally phase-1 snapshots
+// (registry === []). They are rewritten as phase-proof invariants that only
+// get stronger as modules land; the clean-app zero-findings expectation is
+// unchanged and permanent.
+describe('module registry', () => {
+  it('keeps IMPLEMENTED_MODULES consistent with the built-in registry', () => {
+    expect(IMPLEMENTED_MODULES).toEqual(builtinModules.map((m) => m.name));
+    const names = builtinModules.map((m) => m.name);
+    expect(new Set(names).size).toBe(names.length);
   });
 });
 
 describe('runScan', () => {
-  it('scans a fixture with zero modules and returns no findings', async () => {
+  it('scans clean-app with built-in modules and returns no findings (permanent invariant)', async () => {
     const result = await scan({ cwd: cleanApp });
     expect(result.findings).toEqual([]);
     expect(result.summary.total).toBe(0);
     expect(result.metadata.filesScanned).toBeGreaterThanOrEqual(3);
     expect(result.metadata.modulesRequested).toEqual(['deps', 'secrets', 'sast', 'config']);
-    expect(result.metadata.modulesRun).toEqual([]);
+    expect(result.metadata.modulesRun).toEqual(
+      result.metadata.modulesRequested.filter((m) => IMPLEMENTED_MODULES.includes(m)),
+    );
     expect(result.metadata.durationMs).toBeGreaterThanOrEqual(0);
   });
 

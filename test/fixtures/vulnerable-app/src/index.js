@@ -40,6 +40,12 @@ const sessionToken = Math.random().toString(36).slice(2);
 // push protection is not tripped. This is NOT a real credential.
 const AWS_ACCESS_KEY = 'AKIA' + 'IOSFODNN7EXAMPLE';
 
+// SECRET-STRIPE-001 — fake, concatenated.
+const STRIPE_KEY = 'sk_test_' + 'FAKEfakeFAKEfakeFAKE1234';
+
+// SECRET-JWT-001 — hardcoded JWT signing secret (fake).
+const JWT_SECRET = 'super-secret-jwt-signing-key-fixture';
+
 app.listen(3000);
 
-module.exports = { app, sessionToken, AWS_ACCESS_KEY };
+module.exports = { app, sessionToken, AWS_ACCESS_KEY, STRIPE_KEY, JWT_SECRET };

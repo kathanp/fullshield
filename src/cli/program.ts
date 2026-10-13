@@ -30,6 +30,7 @@ interface ScanCliOptions {
   json?: boolean;
   failOn?: string;
   modules?: string;
+  staged?: boolean;
   config?: string;
 }
 
@@ -67,6 +68,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option('--json', 'machine-readable JSON output')
     .option('--fail-on <severity>', 'exit 1 if any finding is at or above this severity')
     .option('--modules <modules>', 'comma-separated subset of modules to run')
+    .option('--staged', 'scan only files staged in git (pre-commit mode)')
     .option('--config <path>', 'path to fullshield.config.json')
     .action(async (path: string, opts: ScanCliOptions) => {
       try {
@@ -77,6 +79,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           cwd: resolve(path),
           modules,
           configPath: opts.config,
+          staged: opts.staged === true,
         });
 
         io.out(opts.json === true ? renderJsonReport(result) : renderConsoleReport(result));

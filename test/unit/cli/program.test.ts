@@ -30,17 +30,20 @@ async function runCli(args: string[]): Promise<{ out: string; err: string }> {
 }
 
 describe('fullshield scan (CLI)', () => {
-  it('scans clean-app with --json and exits 0', async () => {
+  it('scans clean-app with --json and exits 0 (permanent zero-findings invariant)', async () => {
     const { out, err } = await runCli(['scan', cleanApp, '--json']);
     expect(err).toBe('');
     const parsed = JSON.parse(out) as {
       findings: unknown[];
       summary: { total: number };
-      metadata: { modulesRun: string[] };
+      metadata: { modulesRun: string[]; modulesRequested: string[] };
     };
     expect(parsed.findings).toEqual([]);
     expect(parsed.summary.total).toBe(0);
-    expect(parsed.metadata.modulesRun).toEqual([]);
+    // Phase-proof (was a phase-1 [] snapshot): implemented modules run.
+    expect(parsed.metadata.modulesRun.every((m) => parsed.metadata.modulesRequested.includes(m))).toBe(
+      true,
+    );
     expect(process.exitCode ?? 0).toBe(0);
   });
 
@@ -51,11 +54,13 @@ describe('fullshield scan (CLI)', () => {
     expect(process.exitCode ?? 0).toBe(0);
   });
 
-  it('does not fail vulnerable-app in phase 1 (zero modules implemented)', async () => {
+  it('gates vulnerable-app consistently with its own findings (--fail-on high)', async () => {
+    // Phase-proof (was a phase-1 zero-findings snapshot): the exit code must
+    // match the presence of high/critical findings in the same scan.
     const { out } = await runCli(['scan', vulnerableApp, '--fail-on', 'high', '--json']);
-    const parsed = JSON.parse(out) as { summary: { total: number } };
-    expect(parsed.summary.total).toBe(0);
-    expect(process.exitCode ?? 0).toBe(0);
+    const parsed = JSON.parse(out) as { findings: Array<{ severity: string }> };
+    const hasHigh = parsed.findings.some((f) => ['high', 'critical'].includes(f.severity));
+    expect(process.exitCode ?? 0).toBe(hasHigh ? 1 : 0);
   });
 
   it('accepts a --modules subset', async () => {
