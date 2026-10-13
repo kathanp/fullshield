@@ -16,7 +16,7 @@ import { protoRule } from './rules/proto.js';
 import { redirectRule } from './rules/redirect.js';
 import { sqliRule } from './rules/sqli.js';
 import { ssrfRule } from './rules/ssrf.js';
-import { xssRule } from './rules/xss.js';
+import { TEMPLATE_EXT, xssRule } from './rules/xss.js';
 import type { AstNode, RuleContext, SastRule } from './types.js';
 
 export const sastRules: readonly SastRule[] = [
@@ -94,8 +94,43 @@ export function findingsFromAst(filename: string, source: string, ast: AstNode):
   return findings;
 }
 
+function findingsFromTemplate(filename: string, source: string): Finding[] {
+  const findings: Finding[] = [];
+  const ctx: RuleContext = {
+    filename,
+    source,
+    report: ({ node, message }) => {
+      const snippet = source.split(/\r?\n/)[(node.loc?.start.line ?? 1) - 1]?.trim().slice(0, 120) ?? '';
+      findings.push({
+        id: makeFindingId(xssRule.meta.id, filename, `${node.loc?.start.line ?? 0}|${snippet}`),
+        ruleId: xssRule.meta.id,
+        module: 'sast',
+        title: xssRule.meta.title,
+        severity: xssRule.meta.severity,
+        confidence: 'high',
+        cwe: xssRule.meta.cwe,
+        file: filename,
+        line: node.loc?.start.line,
+        column: node.loc?.start.column,
+        snippet,
+        message,
+        remediation: `${xssRule.meta.title}. See ${xssRule.meta.docs}`,
+        references: [xssRule.meta.docs, xssRule.meta.cwe],
+      });
+    },
+    isTainted: () => false,
+    isPathSanitized: () => false,
+    isRequestObject: () => false,
+    functionHasPasswordName: () => false,
+    assignedName: () => undefined,
+  };
+  xssRule.create(ctx);
+  return findings;
+}
+
 /** Parse and scan a single source string (used by unit tests). */
 export async function runSastOnText(filename: string, source: string): Promise<Finding[]> {
+  if (TEMPLATE_EXT.test(filename)) return findingsFromTemplate(filename, source);
   const ast = await parseSource(source);
   return findingsFromAst(filename, source, ast);
 }
@@ -105,7 +140,9 @@ export const sastModule: ScanModule = {
   async run(ctx) {
     const findings: Finding[] = [];
     for (const rel of ctx.files) {
-      if (!SOURCE_EXT.test(rel)) continue;
+      const isSource = SOURCE_EXT.test(rel);
+      const isTemplate = TEMPLATE_EXT.test(rel);
+      if (!isSource && !isTemplate) continue;
       let source: string;
       try {
         source = await readFile(join(ctx.cwd, rel), 'utf8');
@@ -113,6 +150,10 @@ export const sastModule: ScanModule = {
         continue;
       }
       if (source.length > 1024 * 1024 || source.includes('\u0000')) continue;
+      if (isTemplate) {
+        findings.push(...findingsFromTemplate(rel, source));
+        continue;
+      }
       try {
         const ast = await parseSource(source);
         findings.push(...findingsFromAst(rel, source, ast));

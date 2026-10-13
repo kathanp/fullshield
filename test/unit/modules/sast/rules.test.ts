@@ -95,6 +95,16 @@ describe('SAST-EVAL-001', () => {
   it('does not flag eval of a string literal', async () => {
     await expect(has(`eval('1 + 1');`, 'SAST-EVAL-001')).resolves.toBe(false);
   });
+
+  it('flags library eval of a non-literal (mathjs.eval pattern)', async () => {
+    await expect(
+      has(
+        `const mathjs = { eval };\napp.post('/e', (req, res) => { mathjs.eval(req.body.eqn); });`,
+        'SAST-EVAL-001',
+      ),
+    ).resolves.toBe(true);
+    await expect(has(`mathjs.eval('1 + 2');`, 'SAST-EVAL-001')).resolves.toBe(false);
+  });
 });
 
 describe('SAST-JWT-001', () => {

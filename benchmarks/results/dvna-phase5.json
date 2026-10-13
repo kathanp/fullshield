@@ -1,0 +1,158 @@
+{
+  "findings": [
+    {
+      "id": "fdeec6af83b41d43",
+      "ruleId": "SAST-SQLI-001",
+      "module": "sast",
+      "title": "SQL injection via string concatenation",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-89",
+      "file": "core/appHandler.js",
+      "line": 11,
+      "column": 1,
+      "snippet": "db.sequelize.query(query, { model: db.User })",
+      "message": "Tainted input is concatenated into a SQL string passed to query/execute.",
+      "remediation": "SQL injection via string concatenation. See https://cwe.mitre.org/data/definitions/89.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/89.html",
+        "CWE-89"
+      ]
+    },
+    {
+      "id": "12dd9c321d6b2ede",
+      "ruleId": "SAST-CMDI-001",
+      "module": "sast",
+      "title": "Command injection via shell execution",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-78",
+      "file": "core/appHandler.js",
+      "line": 39,
+      "column": 1,
+      "snippet": "exec('ping -c 2 ' + req.body.address, function (err, stdout, stderr) { output = stdout + stderr res.render('app/ping', {",
+      "message": "Tainted input reaches a shell command (exec/execSync/spawn with shell: true).",
+      "remediation": "Command injection via shell execution. See https://cwe.mitre.org/data/definitions/78.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/78.html",
+        "CWE-78"
+      ]
+    },
+    {
+      "id": "1a2889af44946733",
+      "ruleId": "SAST-REDIRECT-001",
+      "module": "sast",
+      "title": "Open redirect",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-601",
+      "file": "core/appHandler.js",
+      "line": 188,
+      "column": 2,
+      "snippet": "res.redirect(req.query.url)",
+      "message": "Tainted input is passed to res.redirect.",
+      "remediation": "Open redirect. See https://cwe.mitre.org/data/definitions/601.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/601.html",
+        "CWE-601"
+      ]
+    },
+    {
+      "id": "c0f7587ebddade13",
+      "ruleId": "CONFIG-DOCKER-ROOT-001",
+      "module": "config",
+      "title": "Dockerfile runs as root",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "Dockerfile",
+      "message": "No USER instruction; the container defaults to root.",
+      "remediation": "Add a non-root USER instruction."
+    },
+    {
+      "id": "58322b74077ffbb6",
+      "ruleId": "CONFIG-HELMET-001",
+      "module": "config",
+      "title": "Express app does not use helmet",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "routes/app.js",
+      "message": "An Express app is created but helmet() is never applied.",
+      "remediation": "Add app.use(helmet()) to set standard security headers."
+    },
+    {
+      "id": "d4fbde79a10cf0a1",
+      "ruleId": "CONFIG-HELMET-001",
+      "module": "config",
+      "title": "Express app does not use helmet",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "routes/main.js",
+      "message": "An Express app is created but helmet() is never applied.",
+      "remediation": "Add app.use(helmet()) to set standard security headers."
+    },
+    {
+      "id": "e3f8678372e743e8",
+      "ruleId": "CONFIG-RATELIMIT-001",
+      "module": "config",
+      "title": "Auth route without a rate limiter",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "routes/main.js",
+      "line": 10,
+      "message": "Route /login looks like an auth endpoint and has no rate limiter.",
+      "remediation": "Apply express-rate-limit (or similar) to login/auth routes."
+    },
+    {
+      "id": "3482e1b5c1952f4e",
+      "ruleId": "CONFIG-RATELIMIT-001",
+      "module": "config",
+      "title": "Auth route without a rate limiter",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "routes/main.js",
+      "line": 51,
+      "message": "Route /login looks like an auth endpoint and has no rate limiter.",
+      "remediation": "Apply express-rate-limit (or similar) to login/auth routes."
+    },
+    {
+      "id": "9bdd8e4c89fbfd1c",
+      "ruleId": "CONFIG-HELMET-001",
+      "module": "config",
+      "title": "Express app does not use helmet",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "server.js",
+      "message": "An Express app is created but helmet() is never applied.",
+      "remediation": "Add app.use(helmet()) to set standard security headers."
+    }
+  ],
+  "summary": {
+    "total": 9,
+    "bySeverity": {
+      "info": 0,
+      "low": 0,
+      "medium": 6,
+      "high": 3,
+      "critical": 0
+    }
+  },
+  "metadata": {
+    "version": "0.1.0",
+    "startedAt": "2026-10-13T22:31:30.477Z",
+    "durationMs": 582.09,
+    "cwd": "/Users/k244p/fullshield-bench/dvna",
+    "filesScanned": 151,
+    "modulesRequested": [
+      "deps",
+      "secrets",
+      "sast",
+      "config"
+    ],
+    "modulesRun": [
+      "deps",
+      "secrets",
+      "sast",
+      "config"
+    ]
+  }
+}

@@ -101,6 +101,15 @@ app.use((err, req, res, next) => {
 const sessionToken = crypto.randomUUID();
 const awsKey = process.env.AWS_ACCESS_KEY_ID;
 
+// Docs-style URI with angle-bracket placeholders — must not flag SECRET-DBURL-001.
+const DOCS_URI = 'mongodb://<username>:<password>@cluster.example.com/db';
+
+// Literal library eval and a fixed URL — must not flag EVAL / SSRF.
+const mathjs = { eval: (s) => s };
+mathjs.eval('1 + 2');
+const needle = { get: (url) => fetch(url) };
+needle.get('https://example.com/health');
+
 app.listen(3000);
 
 module.exports = { app, sessionToken, awsKey };

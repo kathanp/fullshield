@@ -6,6 +6,10 @@ async function has(code: string, ruleId: string): Promise<boolean> {
   return (await runSastOnText('fixture.js', code)).some((f) => f.ruleId === ruleId);
 }
 
+async function hasTemplate(code: string, ruleId: string): Promise<boolean> {
+  return (await runSastOnText('hello.ejs', code)).some((f) => f.ruleId === ruleId);
+}
+
 describe('SAST-NOSQLI-001', () => {
   it('flags a request object passed as a Mongo filter', async () => {
     await expect(
@@ -30,6 +34,18 @@ describe('SAST-SSRF-001', () => {
   it('does not flag fetch of a fixed URL', async () => {
     await expect(
       has(`app.get('/p', (req, res) => { fetch('https://example.com/health'); });`, 'SAST-SSRF-001'),
+    ).resolves.toBe(false);
+  });
+
+  it('flags needle.get of a tainted URL (NodeGoat research pattern)', async () => {
+    await expect(
+      has(
+        `app.get('/r', (req, res) => { const url = req.query.url + req.query.symbol; needle.get(url); });`,
+        'SAST-SSRF-001',
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      has(`app.get('/r', (req, res) => { needle.get('https://example.com'); });`, 'SAST-SSRF-001'),
     ).resolves.toBe(false);
   });
 });
@@ -76,6 +92,13 @@ describe('SAST-XSS-001', () => {
     await expect(
       has(`app.get('/h', (req, res) => { res.json({ name: String(req.query.name) }); });`, 'SAST-XSS-001'),
     ).resolves.toBe(false);
+  });
+
+  it('flags unescaped EJS output and ignores include / escaped tags', async () => {
+    await expect(hasTemplate('<%- name %>', 'SAST-XSS-001')).resolves.toBe(true);
+    await expect(hasTemplate('<%= name %>\n<%- include(\'partial\') %>', 'SAST-XSS-001')).resolves.toBe(
+      false,
+    );
   });
 });
 

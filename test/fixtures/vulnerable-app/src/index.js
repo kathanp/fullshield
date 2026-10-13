@@ -36,6 +36,12 @@ app.get('/calc', (req, res) => {
   res.send(String(eval(req.query.expr)));
 });
 
+// SAST-EVAL-001: library eval (DVNA mathjs.eval pattern)
+const mathjs = { eval };
+app.post('/eqn', (req, res) => {
+  res.send(String(mathjs.eval(req.body.eqn)));
+});
+
 // SAST-CRYPTO-001: Math.random for a token
 const sessionToken = Math.random().toString(36).slice(2);
 
@@ -64,6 +70,13 @@ app.post('/search', (req, res) => {
 // SAST-SSRF-001: tainted URL passed to fetch.
 app.get('/proxy', (req, res) => {
   fetch(req.query.url).then((r) => r.text()).then((t) => res.send(t));
+});
+
+// SAST-SSRF-001: HTTP client other than fetch/axios (NodeGoat needle pattern)
+const needle = { get: (url) => fetch(url) };
+app.get('/research', (req, res) => {
+  const url = req.query.url + req.query.symbol;
+  needle.get(url);
 });
 
 // SAST-REDIRECT-001: tainted open redirect.

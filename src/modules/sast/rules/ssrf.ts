@@ -2,6 +2,7 @@ import { calleeName } from '../ast.js';
 import type { SastRule } from '../types.js';
 
 const SSRF_CALLEES = new Set(['fetch', 'request', 'get', 'post', 'put', 'patch', 'delete']);
+const HTTP_LIBS = /^(axios|http|https|needle|got|request|superagent|undici)$/;
 
 export const ssrfRule: SastRule = {
   meta: {
@@ -21,7 +22,7 @@ export const ssrfRule: SastRule = {
         const isHttpLib =
           node.callee.type === 'MemberExpression' &&
           node.callee.object.type === 'Identifier' &&
-          /^(axios|http|https)$/.test(node.callee.object.name);
+          HTTP_LIBS.test(node.callee.object.name);
         if (!isFetch && !isHttpLib) return;
         const url = node.arguments[0];
         if (url === undefined || url.type === 'SpreadElement') return;

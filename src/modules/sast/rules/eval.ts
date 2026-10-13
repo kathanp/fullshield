@@ -16,7 +16,8 @@ export const evalRule: SastRule = {
       CallExpression(node) {
         if (node.type !== 'CallExpression') return;
         const name = calleeName(node);
-        const isEval = node.callee.type === 'Identifier' && node.callee.name === 'eval';
+        // Bare `eval(...)` and library wrappers (`mathjs.eval(...)`) are both sinks.
+        const isEval = name === 'eval';
         const isVm = name !== undefined && VM_METHODS.has(name);
         if (!isEval && !isVm) return;
         const arg = node.arguments[0];

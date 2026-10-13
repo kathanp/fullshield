@@ -36,14 +36,16 @@ export async function runConfigAstChecks(file: string, source: string): Promise<
   }) as AstNode;
 
   const findings: Finding[] = [];
-  let usesExpress = /require\(\s*['"]express['"]\s*\)|from\s+['"]express['"]/.test(source);
+  let createsApp = false;
   let usesHelmet = false;
 
   walk(ast, (node) => {
     if (node.type === 'CallExpression') {
       const name = calleeName(node);
       if (name === 'helmet') usesHelmet = true;
-      if (name === 'express' && node.callee.type === 'Identifier') usesExpress = true;
+      // `express()` constructs an app. `express.Router()` does not — helmet
+      // belongs on the app, not on every file that imports the package.
+      if (name === 'express' && node.callee.type === 'Identifier') createsApp = true;
 
       if (
         node.callee.type === 'MemberExpression' &&
@@ -140,7 +142,7 @@ export async function runConfigAstChecks(file: string, source: string): Promise<
     }
   });
 
-  if (usesExpress && !usesHelmet) {
+  if (createsApp && !usesHelmet) {
     findings.push(
       configFinding(
         'CONFIG-HELMET-001',

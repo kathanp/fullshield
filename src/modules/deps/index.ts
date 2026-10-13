@@ -15,6 +15,25 @@ function defaultCacheDir(): string {
   return join(homedir(), '.cache', 'fullshield');
 }
 
+const MANIFEST_FIELDS = ['dependencies', 'devDependencies', 'optionalDependencies'] as const;
+
+async function readDirectDependencyNames(cwd: string): Promise<Set<string> | undefined> {
+  try {
+    const raw = await readFile(join(cwd, 'package.json'), 'utf8');
+    const pkg = JSON.parse(raw) as Record<string, unknown>;
+    const names = new Set<string>();
+    for (const field of MANIFEST_FIELDS) {
+      const block = pkg[field];
+      if (block !== null && typeof block === 'object' && !Array.isArray(block)) {
+        for (const name of Object.keys(block)) names.add(name);
+      }
+    }
+    return names;
+  } catch {
+    return undefined;
+  }
+}
+
 function vulnFinding(lockFile: string, pkg: LockedPackage, vuln: OsvVuln): Finding {
   const snippet = `${pkg.name}@${pkg.version}`;
   const aliases = (vuln.aliases ?? []).filter((a) => a.startsWith('CVE-'));
@@ -95,8 +114,9 @@ export const depsModule: ScanModule = {
 
     const packages = parseLockfile(lockFile, contents);
     const findings: Finding[] = [];
+    const directNames = await readDirectDependencyNames(ctx.cwd);
 
-    for (const hit of findTyposquats(packages)) {
+    for (const hit of findTyposquats(packages, { directNames })) {
       findings.push(typosquatFinding(lockFile, hit));
     }
     for (const pkg of packages) {

@@ -5,6 +5,7 @@
   "description": "Safe mirror of vulnerable-app. Must produce zero high/critical findings.",
   "dependencies": {
     "express": "^4.21.0",
-    "helmet": "^8.0.0"
+    "helmet": "^8.0.0",
+    "tmp": "^0.2.3"
   }
 }

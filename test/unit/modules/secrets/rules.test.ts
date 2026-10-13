@@ -143,6 +143,13 @@ describe('SECRET-DBURL-001 (connection string with inline password)', () => {
     expect(
       findingsFor('SECRET-DBURL-001', 'a.js', 'const u = `postgres://admin:${password}@db/app`;'),
     ).toHaveLength(0);
+    expect(
+      findingsFor(
+        'SECRET-DBURL-001',
+        'README.md',
+        'mongodb://<username>:<password>@cluster.example.com/db',
+      ),
+    ).toHaveLength(0);
   });
 });
 

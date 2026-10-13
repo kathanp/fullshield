@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { scan } from '../../../../src/core/engine.js';
+import { runConfigAstChecks } from '../../../../src/modules/config/astChecks.js';
 import { scanDockerfile } from '../../../../src/modules/config/dockerfile.js';
 
 const vulnerableApp = join(process.cwd(), 'test', 'fixtures', 'vulnerable-app');
@@ -50,5 +51,17 @@ describe('scanDockerfile', () => {
   it('does not flag a pinned image with a non-root USER', () => {
     const findings = scanDockerfile('Dockerfile', 'FROM node:20-bookworm-slim\nUSER node\n');
     expect(findings).toEqual([]);
+  });
+});
+
+describe('CONFIG-HELMET-001', () => {
+  it('flags express() without helmet and ignores Router-only files', async () => {
+    const app = await runConfigAstChecks('server.js', `const express = require('express');\nconst app = express();\n`);
+    expect(app.some((f) => f.ruleId === 'CONFIG-HELMET-001')).toBe(true);
+    const router = await runConfigAstChecks(
+      'router.js',
+      `const express = require('express');\nconst router = express.Router();\n`,
+    );
+    expect(router.filter((f) => f.ruleId === 'CONFIG-HELMET-001')).toEqual([]);
   });
 });

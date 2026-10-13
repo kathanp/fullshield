@@ -20,6 +20,7 @@
     { "module": "sast", "ruleId": "SAST-REDIRECT-001", "file": "src/index.js" },
     { "module": "sast", "ruleId": "SAST-PROTO-001", "file": "src/index.js" },
     { "module": "sast", "ruleId": "SAST-XSS-001", "file": "src/index.js" },
+    { "module": "sast", "ruleId": "SAST-XSS-001", "file": "views/hello.ejs" },
     { "module": "sast", "ruleId": "SAST-AUTH-001", "file": "src/index.js" },
     { "module": "config", "ruleId": "CONFIG-HELMET-001", "file": "src/index.js" },
     { "module": "config", "ruleId": "CONFIG-BODYLIMIT-001", "file": "src/index.js" },

@@ -138,3 +138,30 @@ routes / install-script info, not missed detections.
 feature (the CLI flag already exists from Phase 1), baseline, and inline
 suppression — all Phase 6. **Stopped here per the mandatory Phase 5 review
 gate; Core phases 6–10 not started.**
+
+## bench-1 — real-world benchmark + in-scope fixes
+
+Cloned OWASP NodeGoat and appsecco/dvna into `~/fullshield-bench/` (outside
+this repo). Scan-only; never installed or started. Phase 5 CLI JSON saved at
+`benchmarks/results/{nodegoat,dvna}-phase5.json`. Honest write-up:
+`benchmarks/REPORT.md`.
+
+**Phase 5 baseline:** NodeGoat 392 findings (eval×3, redirect, 320 OSV, helmet,
+rate-limit, err.stack, committed TLS key). DVNA 9 findings (SQLi, CMDi,
+redirect, helmet×3, rate-limit, docker-root). Missed in-scope: NodeGoat
+`needle.get` SSRF; DVNA `mathjs.eval` and EJS `<%-`. False positives: README
+`<password>` DB URLs, 18 typosquat collisions, helmet on `express.Router()`
+files. Out-of-scope misses (cross-file `$where`, IDOR, CSRF, XXE,
+deserialization, Swig `{{ }}`) listed under Known misses only.
+
+**Fixes (new fixtures only; existing expectations not weakened):**
+- `SAST-EVAL-001` matches callee name `eval` (library wrappers).
+- `SAST-SSRF-001` HTTP libs include needle/got/request/superagent/undici.
+- `SAST-XSS-001` scans `.ejs`/`.hbs`/`.njk` for `<%-` / `{{{` (not `include`).
+- `SECRET-DBURL-001` skips `<placeholder>` / `{placeholder}` passwords.
+- Typosquat: direct `package.json` deps only, min length 4, hyphen-normalized
+  equality skipped, small legit-collision set.
+- `CONFIG-HELMET-001` requires an `express()` app factory.
+
+**After bench-1 re-scan:** NodeGoat 372 (−20), DVNA 14 (+5). In-scope misses
+from the baseline are now detected. clean-app remains 0 findings.
