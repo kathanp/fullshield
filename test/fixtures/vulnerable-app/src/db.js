@@ -5,4 +5,7 @@ module.exports = {
     const cb = typeof paramsOrCb === 'function' ? paramsOrCb : maybeCb;
     if (cb) cb(null, []);
   },
+  find(filter, cb) {
+    if (cb) cb(null, []);
+  },
 };

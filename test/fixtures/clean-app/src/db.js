@@ -4,4 +4,7 @@ module.exports = {
   query(sql, params, cb) {
     if (cb) cb(null, []);
   },
+  find(filter, cb) {
+    if (cb) cb(null, []);
+  },
 };

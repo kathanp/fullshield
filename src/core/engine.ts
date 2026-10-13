@@ -2,6 +2,7 @@ import { stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 
+import { configModule } from '../modules/config/index.js';
 import { depsModule } from '../modules/deps/index.js';
 import { sastModule } from '../modules/sast/index.js';
 import { secretsModule } from '../modules/secrets/index.js';
@@ -62,9 +63,9 @@ export interface ScanResult {
 
 /**
  * Scanner modules register here as their phases are built.
- * Phase 4: deps + secrets + sast (first 6 rules).
+ * Phase 5: deps + secrets + sast + config.
  */
-export const builtinModules: readonly ScanModule[] = [depsModule, secretsModule, sastModule];
+export const builtinModules: readonly ScanModule[] = [depsModule, secretsModule, sastModule, configModule];
 
 export const IMPLEMENTED_MODULES: readonly ModuleName[] = builtinModules.map((m) => m.name);
 

@@ -15,7 +15,19 @@
     { "module": "sast", "ruleId": "SAST-EVAL-001", "file": "src/index.js" },
     { "module": "sast", "ruleId": "SAST-CRYPTO-001", "file": "src/index.js" },
     { "module": "sast", "ruleId": "SAST-JWT-001", "file": "src/index.js" },
+    { "module": "sast", "ruleId": "SAST-NOSQLI-001", "file": "src/index.js" },
+    { "module": "sast", "ruleId": "SAST-SSRF-001", "file": "src/index.js" },
+    { "module": "sast", "ruleId": "SAST-REDIRECT-001", "file": "src/index.js" },
+    { "module": "sast", "ruleId": "SAST-PROTO-001", "file": "src/index.js" },
+    { "module": "sast", "ruleId": "SAST-XSS-001", "file": "src/index.js" },
+    { "module": "sast", "ruleId": "SAST-AUTH-001", "file": "src/index.js" },
     { "module": "config", "ruleId": "CONFIG-HELMET-001", "file": "src/index.js" },
-    { "module": "config", "ruleId": "CONFIG-BODYLIMIT-001", "file": "src/index.js" }
+    { "module": "config", "ruleId": "CONFIG-BODYLIMIT-001", "file": "src/index.js" },
+    { "module": "config", "ruleId": "CONFIG-CORS-001", "file": "src/index.js" },
+    { "module": "config", "ruleId": "CONFIG-RATELIMIT-001", "file": "src/index.js" },
+    { "module": "config", "ruleId": "CONFIG-ERRSTACK-001", "file": "src/index.js" },
+    { "module": "config", "ruleId": "CONFIG-DOCKER-LATEST-001", "file": "Dockerfile" },
+    { "module": "config", "ruleId": "CONFIG-DOCKER-ROOT-001", "file": "Dockerfile" },
+    { "module": "config", "ruleId": "CONFIG-DOCKER-ENV-001", "file": "Dockerfile" }
   ]
 }

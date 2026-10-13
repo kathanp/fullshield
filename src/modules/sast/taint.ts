@@ -4,6 +4,7 @@ import {
   enclosingScope,
   isFunctionNode,
   isPathResolveCall,
+  isRequestObjectNode,
   isTaintSource,
   propName,
   walk,
@@ -14,6 +15,8 @@ export interface ScopeFacts {
   tainted: Set<string>;
   pathSanitized: Set<string>;
   hasPasswordName: boolean;
+  /** Identifiers bound to req.body/query/params themselves (not a property). */
+  requestObjects: Set<string>;
 }
 
 function exprIsTainted(node: AstNode | undefined, tainted: Set<string>): boolean {
@@ -124,7 +127,17 @@ function analyzeScope(scope: AstNode): ScopeFacts {
     hasPasswordName = true;
   }
 
-  return { tainted, pathSanitized, hasPasswordName };
+  const requestObjects = new Set<string>();
+  walkScope(scope, (node) => {
+    if (node.type === 'VariableDeclarator' && node.init !== null && isRequestObjectNode(node.init)) {
+      for (const name of boundNames(node.id)) requestObjects.add(name);
+    }
+    if (node.type === 'AssignmentExpression' && isRequestObjectNode(node.right)) {
+      for (const name of boundNames(node.left)) requestObjects.add(name);
+    }
+  });
+
+  return { tainted, pathSanitized, hasPasswordName, requestObjects };
 }
 
 export function analyzeFile(ast: AstNode): WeakMap<AstNode, ScopeFacts> {
@@ -138,7 +151,14 @@ export function analyzeFile(ast: AstNode): WeakMap<AstNode, ScopeFacts> {
 }
 
 export function factsFor(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): ScopeFacts {
-  return map.get(enclosingScope(node)) ?? { tainted: new Set(), pathSanitized: new Set(), hasPasswordName: false };
+  return (
+    map.get(enclosingScope(node)) ?? {
+      tainted: new Set(),
+      pathSanitized: new Set(),
+      hasPasswordName: false,
+      requestObjects: new Set(),
+    }
+  );
 }
 
 export function nodeIsTainted(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): boolean {
@@ -148,4 +168,10 @@ export function nodeIsTainted(node: AstNode, map: WeakMap<AstNode, ScopeFacts>):
 export function nodeIsPathSanitized(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): boolean {
   if (node.type !== 'Identifier') return false;
   return factsFor(node, map).pathSanitized.has(node.name);
+}
+
+export function nodeIsRequestObject(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): boolean {
+  if (isRequestObjectNode(node)) return true;
+  if (node.type === 'Identifier') return factsFor(node, map).requestObjects.has(node.name);
+  return false;
 }

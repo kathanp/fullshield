@@ -276,6 +276,41 @@ const acceptanceCriteria = {
     }
     console.log('  ✔ zero sast findings on clean-app (parameterized queries not flagged)');
   },
+  // Phase 5 (spec §9): remaining SAST + config; clean-app 0 high/critical.
+  5: () => {
+    const seeded = [
+      'SAST-NOSQLI-001',
+      'SAST-SSRF-001',
+      'SAST-REDIRECT-001',
+      'SAST-PROTO-001',
+      'SAST-XSS-001',
+      'SAST-AUTH-001',
+      'CONFIG-HELMET-001',
+      'CONFIG-BODYLIMIT-001',
+      'CONFIG-CORS-001',
+      'CONFIG-RATELIMIT-001',
+      'CONFIG-ERRSTACK-001',
+      'CONFIG-DOCKER-LATEST-001',
+      'CONFIG-DOCKER-ROOT-001',
+      'CONFIG-DOCKER-ENV-001',
+    ];
+    const vuln = runCliJson(vulnerableApp);
+    const ids = new Set(vuln.report.findings.map((f) => f.ruleId));
+    for (const id of seeded) {
+      if (!ids.has(id)) fail(`phase 5 acceptance: ${id} not detected in vulnerable-app`);
+    }
+    console.log(`  ✔ all ${seeded.length} Phase-5 rule ids detected in vulnerable-app`);
+
+    const clean = runCliJson(cleanApp, ['--fail-on', 'high']);
+    const high = clean.report.findings.filter((f) => ['high', 'critical'].includes(f.severity));
+    if (high.length > 0) {
+      fail(`phase 5 acceptance: clean-app has ${high.length} high/critical findings`);
+    }
+    if (clean.status !== 0) {
+      fail(`phase 5 acceptance: clean-app --fail-on high exited ${clean.status}`);
+    }
+    console.log('  ✔ clean-app has 0 high/critical findings');
+  },
 };
 
 if (phase !== null) {

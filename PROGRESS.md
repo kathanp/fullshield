@@ -107,3 +107,34 @@ optional per §0.1 and not required in CI.
 
 **Deferred:** remaining SAST rules (NOSQLI, SSRF, REDIRECT, PROTO, XSS, AUTH)
 and the `config` module are Phase 5.
+
+## Phase 5 — remaining SAST + config module
+
+**Built:**
+- Remaining §4.3 SAST rules: NOSQLI (raw `req.body`/`req.query` as Mongo
+  filter), SSRF (`fetch`/`axios`/`http` + tainted URL), REDIRECT, PROTO
+  (unguarded recursive merge; a comment mentioning `__proto__` is not a
+  guard), XSS (tainted HTML `res.send`), AUTH (data-touching route with no
+  auth-named middleware; low severity).
+- `config` module: missing helmet, `express.json()` without `limit`,
+  `cors({ origin:'*', credentials:true })`, auth routes without a rate
+  limiter, `err.stack` leaked to the client, Dockerfile `:latest` / missing
+  USER / `ENV *_SECRET=`, lockfile `hasInstallScript` (info).
+- clean-app updated with the safe mirrors (`requireAuth`, allow-listed CORS,
+  rate limiter, pinned Dockerfile `USER node`). Permanent zero-findings
+  invariant on clean-app still holds.
+
+**Verify summary (`npm run verify:phase 5`, full run PASSED):**
+
+| phase | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|
+| 5 | 94.44% | 84.19% | deps,secrets,sast,config | 28 | 28 | 30 | 0 |
+
+Mutation-smoke verified 23 SAST+secrets rules (suite failed each time a rule
+was disabled). Extra findings beyond the 28 expected IDs are additional AUTH
+routes / install-script info, not missed detections.
+
+**Deferred:** SARIF / markdown / HTML reporters, `--fail-on` as a Phase-6
+feature (the CLI flag already exists from Phase 1), baseline, and inline
+suppression — all Phase 6. **Stopped here per the mandatory Phase 5 review
+gate; Core phases 6–10 not started.**

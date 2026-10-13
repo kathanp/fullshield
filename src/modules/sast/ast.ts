@@ -120,6 +120,17 @@ export function isTaintSource(node: AstNode): boolean {
   return false;
 }
 
+/** `req.body` / `req.query` / `req.params` — the object, not a nested property. */
+export function isRequestObjectNode(node: AstNode): boolean {
+  if (node.type !== 'MemberExpression') return false;
+  const name = propName(node);
+  return (
+    node.object.type === 'Identifier' &&
+    node.object.name === 'req' &&
+    (name === 'body' || name === 'query' || name === 'params')
+  );
+}
+
 export function isPathResolveCall(node: AstNode): boolean {
   if (node.type !== 'CallExpression') return false;
   if (node.callee.type !== 'MemberExpression') return false;

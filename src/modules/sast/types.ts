@@ -23,6 +23,7 @@ export interface RuleContext {
   report(report: SastReport): void;
   isTainted(node: AstNode): boolean;
   isPathSanitized(node: AstNode): boolean;
+  isRequestObject(node: AstNode): boolean;
   functionHasPasswordName(node: AstNode): boolean;
   assignedName(node: AstNode): string | undefined;
 }

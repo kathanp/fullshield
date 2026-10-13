@@ -2,12 +2,15 @@
 // INTENTIONALLY VULNERABLE fixture app. Every vulnerability here is seeded on
 // purpose so FullShield rules can detect it. Never run or deploy this code.
 const express = require('express');
+const cors = require('cors');
 const { exec } = require('child_process');
 const db = require('./db');
 
 const app = express();
 // no helmet() -> CONFIG-HELMET-001
 app.use(express.json()); // no size limit -> CONFIG-BODYLIMIT-001
+// CONFIG-CORS-001: wildcard origin with credentials
+app.use(cors({ origin: '*', credentials: true }));
 
 // SAST-SQLI-001: tainted input concatenated into SQL
 app.get('/user', (req, res) => {
@@ -51,6 +54,48 @@ const jwt = require('jsonwebtoken');
 app.get('/profile', (req, res) => {
   const payload = jwt.decode(req.headers.authorization);
   res.json(payload);
+});
+
+// SAST-NOSQLI-001: request object passed straight into a Mongo-style filter.
+app.post('/search', (req, res) => {
+  db.find(req.body);
+});
+
+// SAST-SSRF-001: tainted URL passed to fetch.
+app.get('/proxy', (req, res) => {
+  fetch(req.query.url).then((r) => r.text()).then((t) => res.send(t));
+});
+
+// SAST-REDIRECT-001: tainted open redirect.
+app.get('/go', (req, res) => {
+  res.redirect(req.query.next);
+});
+
+// SAST-PROTO-001: recursive merge of a tainted object with no __proto__ guard.
+function merge(a, b) {
+  for (const k of Object.keys(b)) {
+    if (b[k] && typeof b[k] === 'object') merge(a[k] || {}, b[k]);
+    else a[k] = b[k];
+  }
+  return a;
+}
+app.post('/settings', (req, res) => {
+  res.json(merge({}, req.body));
+});
+
+// SAST-XSS-001: tainted input interpolated into an HTML response.
+app.get('/hello', (req, res) => {
+  res.send('<h1>Hello ' + req.query.name + '</h1>');
+});
+
+// CONFIG-RATELIMIT-001: login route with no rate limiter.
+app.post('/login', (req, res) => {
+  res.json({ ok: true, user: req.body.user });
+});
+
+// CONFIG-ERRSTACK-001: error handler leaks stack traces.
+app.use((err, req, res, next) => {
+  res.status(500).send(err.stack);
 });
 
 app.listen(3000);

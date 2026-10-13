@@ -4,13 +4,19 @@ import { join } from 'node:path';
 import type { ScanModule } from '../../core/engine.js';
 import { makeFindingId, type Finding } from '../../core/finding.js';
 import { assignedNameOf, walk } from './ast.js';
-import { analyzeFile, factsFor, nodeIsPathSanitized, nodeIsTainted } from './taint.js';
-import { cryptoRule } from './rules/crypto.js';
+import { analyzeFile, factsFor, nodeIsPathSanitized, nodeIsRequestObject, nodeIsTainted } from './taint.js';
+import { authRule } from './rules/auth.js';
 import { cmdiRule } from './rules/cmdi.js';
+import { cryptoRule } from './rules/crypto.js';
 import { evalRule } from './rules/eval.js';
 import { jwtRule } from './rules/jwt.js';
+import { nosqliRule } from './rules/nosqli.js';
 import { pathRule } from './rules/path.js';
+import { protoRule } from './rules/proto.js';
+import { redirectRule } from './rules/redirect.js';
 import { sqliRule } from './rules/sqli.js';
+import { ssrfRule } from './rules/ssrf.js';
+import { xssRule } from './rules/xss.js';
 import type { AstNode, RuleContext, SastRule } from './types.js';
 
 export const sastRules: readonly SastRule[] = [
@@ -20,6 +26,12 @@ export const sastRules: readonly SastRule[] = [
   evalRule,
   jwtRule,
   cryptoRule,
+  nosqliRule,
+  ssrfRule,
+  redirectRule,
+  protoRule,
+  xssRule,
+  authRule,
 ];
 
 const SOURCE_EXT = /\.[cm]?[jt]sx?$/;
@@ -70,6 +82,7 @@ export function findingsFromAst(filename: string, source: string, ast: AstNode):
       },
       isTainted: (node) => nodeIsTainted(node, facts),
       isPathSanitized: (node) => nodeIsPathSanitized(node, facts),
+      isRequestObject: (node) => nodeIsRequestObject(node, facts),
       functionHasPasswordName: (node) => factsFor(node, facts).hasPasswordName,
       assignedName: (node) => assignedNameOf(node),
     };
