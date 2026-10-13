@@ -46,6 +46,13 @@ const STRIPE_KEY = 'sk_test_' + 'FAKEfakeFAKEfakeFAKE1234';
 // SECRET-JWT-001 — hardcoded JWT signing secret (fake).
 const JWT_SECRET = 'super-secret-jwt-signing-key-fixture';
 
+// SAST-JWT-001: decode used as authentication (verify is missing).
+const jwt = require('jsonwebtoken');
+app.get('/profile', (req, res) => {
+  const payload = jwt.decode(req.headers.authorization);
+  res.json(payload);
+});
+
 app.listen(3000);
 
 module.exports = { app, sessionToken, AWS_ACCESS_KEY, STRIPE_KEY, JWT_SECRET };

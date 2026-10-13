@@ -40,6 +40,15 @@ app.post('/run', (req, res) => {
   });
 });
 
+// jwt.verify with an explicit algorithm allow-list (must NOT flag SAST-JWT-001).
+const jwt = require('jsonwebtoken');
+app.get('/profile', (req, res) => {
+  const payload = jwt.verify(String(req.headers.authorization), process.env.JWT_SECRET, {
+    algorithms: ['HS256'],
+  });
+  res.json(payload);
+});
+
 // Cryptographically secure token; secrets come from the environment.
 const sessionToken = crypto.randomUUID();
 const awsKey = process.env.AWS_ACCESS_KEY_ID;

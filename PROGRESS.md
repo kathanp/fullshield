@@ -81,3 +81,29 @@ time the rule was disabled).
 lists deprecated packages; we only flag a `deprecated` field already present
 in the lockfile so we never invent registry data. A `test:live` OSV script is
 optional per §0.1 and not required in CI.
+
+## Phase 4 — SAST engine + first 6 rules
+
+**Built:**
+- Taint-lite engine (`src/modules/sast/`) using `@typescript-eslint/typescript-estree`
+  (dynamic `import()` at scan time). Sources: `req.query/body/params/headers`,
+  `process.argv`. Propagation: assignment, concat, template literals, within
+  one function only.
+- Rules (each with positive + negative tests, mutation-smoke verified):
+  SQLI, CMDI, PATH (cleared by `path.resolve` + `startsWith`), EVAL, JWT
+  (`decode` / `algorithms: none` / verify without allow-list), CRYPTO
+  (`Math.random` for tokens; md5/sha1 near password).
+- Parameterized `query(sql, [params])` is not flagged. clean-app stays at 0
+  SAST findings. Seeded JWT `decode` in vulnerable-app (`SAST-JWT-001` added
+  to expected-findings as a finalization, not a weakening).
+
+**Verify summary (`npm run verify:phase 4`, full run PASSED):**
+
+| phase | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|
+| 4 | 95.03% | 83.07% | deps,secrets,sast | 14 | 14 | 14 | 0 |
+
+140 tests. Mutation-smoke verified 17 rules (6 SAST + 11 secrets).
+
+**Deferred:** remaining SAST rules (NOSQLI, SSRF, REDIRECT, PROTO, XSS, AUTH)
+and the `config` module are Phase 5.

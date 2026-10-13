@@ -253,6 +253,29 @@ const acceptanceCriteria = {
     }
     console.log('  ✔ zero deps findings on clean-app');
   },
+  // Phase 4 (spec §9): first 6 SAST rules; parameterized queries not flagged.
+  4: () => {
+    const seeded = [
+      'SAST-SQLI-001',
+      'SAST-CMDI-001',
+      'SAST-PATH-001',
+      'SAST-EVAL-001',
+      'SAST-JWT-001',
+      'SAST-CRYPTO-001',
+    ];
+    const vulnSast = runCliJson(vulnerableApp, ['--modules', 'sast']);
+    const ids = new Set(vulnSast.report.findings.map((f) => f.ruleId));
+    for (const id of seeded) {
+      if (!ids.has(id)) fail(`phase 4 acceptance: ${id} not detected in vulnerable-app`);
+    }
+    console.log(`  ✔ all ${seeded.length} Phase-4 SAST rules detected in vulnerable-app`);
+
+    const cleanSast = runCliJson(cleanApp, ['--modules', 'sast']);
+    if (cleanSast.report.summary.total !== 0) {
+      fail(`phase 4 acceptance: ${cleanSast.report.summary.total} sast findings on clean-app`);
+    }
+    console.log('  ✔ zero sast findings on clean-app (parameterized queries not flagged)');
+  },
 };
 
 if (phase !== null) {

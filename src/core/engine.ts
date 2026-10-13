@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 
 import { depsModule } from '../modules/deps/index.js';
+import { sastModule } from '../modules/sast/index.js';
 import { secretsModule } from '../modules/secrets/index.js';
 import { loadConfig, type ResolvedConfig } from './config.js';
 import { walkFiles } from './fileWalker.js';
@@ -61,9 +62,9 @@ export interface ScanResult {
 
 /**
  * Scanner modules register here as their phases are built.
- * Phase 3: deps + secrets.
+ * Phase 4: deps + secrets + sast (first 6 rules).
  */
-export const builtinModules: readonly ScanModule[] = [depsModule, secretsModule];
+export const builtinModules: readonly ScanModule[] = [depsModule, secretsModule, sastModule];
 
 export const IMPLEMENTED_MODULES: readonly ModuleName[] = builtinModules.map((m) => m.name);
 

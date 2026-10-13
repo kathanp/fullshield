@@ -36,6 +36,7 @@
     "verify:phase": "node scripts/verify.mjs --phase"
   },
   "dependencies": {
+    "@typescript-eslint/typescript-estree": "^8.71.2",
     "commander": "^12.1.0",
     "ignore": "^5.3.2",
     "picocolors": "^1.1.1"
