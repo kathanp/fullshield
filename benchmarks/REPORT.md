@@ -126,3 +126,10 @@ DVNA: +1 `SAST-EVAL-001` on `mathjs.eval`; +6 `SAST-XSS-001` on `views/app/produ
 In-scope known-vuln recall after bench-1: NodeGoat eval + redirect + SSRF + A9 deps + helmet/rate-limit/err.stack/privkey. DVNA SQLi + CMDi + redirect + eval + XSS + helmet/rate-limit/docker-root.
 
 This table is updated again after Phase 7 and Phase 10.
+
+### After Phase 7
+
+| App | Phase 5 | bench-1 | Phase 7 | Notes |
+|---|---|---|---|---|
+| NodeGoat | 392 | 372 | 372 | Fixer does not change detection. Rule mix unchanged vs bench-1. |
+| DVNA | 9 | 14 | 14 | Same as bench-1. |

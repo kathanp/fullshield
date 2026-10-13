@@ -39,6 +39,8 @@ export { walkFiles } from './core/fileWalker.js';
 export type { WalkOptions } from './core/fileWalker.js';
 
 export { packageVersion } from './core/version.js';
+export { runFix } from './fixer/index.js';
+export type { FixOptions, FixPatch, FixResult } from './fixer/index.js';
 export { applyBaseline, readBaseline, writeBaseline } from './core/baseline.js';
 export type { BaselineFile } from './core/baseline.js';
 export { applyInlineSuppressions, parseIgnore } from './core/suppression.js';

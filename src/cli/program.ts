@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { Command } from 'commander';
 
 import { scan } from '../core/engine.js';
+import { runFix } from '../fixer/index.js';
 import {
   MODULE_NAMES,
   SEVERITIES,
@@ -113,6 +114,55 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         const failOn = failOnOverride ?? result.config.failOn;
         if (result.findings.some((f) => meetsThreshold(f.severity, failOn))) {
           process.exitCode = 1;
+        }
+      } catch (error) {
+        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('fix')
+    .description('Propose or apply safe auto-fixes (dry-run by default)')
+    .argument('[path]', 'directory to fix', '.')
+    .option('--apply', 'write safe fixes (requires a clean git tree)')
+    .option('--force', 'apply even if the tree is dirty or not a git repo')
+    .option('--unsafe', 'include major-version bumps and code patches marked unsafe')
+    .option('--no-branch', 'do not create a fullshield/fixes-* branch')
+    .option('--modules <modules>', 'comma-separated subset of modules to scan')
+    .action(async (path: string, opts: {
+      apply?: boolean;
+      force?: boolean;
+      unsafe?: boolean;
+      branch?: boolean;
+      modules?: string;
+    }) => {
+      try {
+        const modules = opts.modules !== undefined ? parseModules(opts.modules) : undefined;
+        const result = await runFix({
+          cwd: resolve(path),
+          modules,
+          apply: opts.apply === true,
+          force: opts.force === true,
+          unsafe: opts.unsafe === true,
+          noBranch: opts.branch === false,
+        });
+        if (result.patches.length === 0) {
+          io.out('No safe fixes available.');
+        } else {
+          for (const patch of result.patches) {
+            io.out(`# ${patch.ruleId} ${patch.file}${patch.safe ? '' : ' (unsafe)'}`);
+            io.out(patch.diff);
+            io.out('');
+          }
+        }
+        if (result.reverted) {
+          io.err('fullshield: project tests failed; fixes were reverted');
+          process.exitCode = 1;
+        } else if (opts.apply === true && result.applied) {
+          io.out(`Applied ${result.patches.length} fix(es)${result.branch !== undefined ? ` on ${result.branch}` : ''}.`);
+        } else if (opts.apply !== true) {
+          io.out('Dry run. Re-run with --apply to write safe fixes.');
         }
       } catch (error) {
         io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);

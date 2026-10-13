@@ -370,6 +370,70 @@ const acceptanceCriteria = {
       rmSync(tmp, { recursive: true, force: true });
     }
   },
+  // Phase 7 (spec §9): safe fixes on a copy of vulnerable-app; tests revert on failure.
+  7: () => {
+    const tmp = join(root, '.fullshield-verify-phase7');
+    rmSync(tmp, { recursive: true, force: true });
+    mkdirSync(tmp, { recursive: true });
+    try {
+      const copy = join(tmp, 'vulnerable-app');
+      const copyResult = spawnSync('cp', ['-R', vulnerableApp, copy], { encoding: 'utf8' });
+      if (copyResult.status !== 0) fail('phase 7 acceptance: could not copy vulnerable-app');
+      const git = (args) => spawnSync('git', args, { cwd: copy, encoding: 'utf8' });
+      git(['init']);
+      git(['config', 'user.email', 'verify@test.local']);
+      git(['config', 'user.name', 'Verify']);
+      git(['add', '.']);
+      git(['commit', '-m', 'copy']);
+      const cli = join(root, 'dist', 'cli', 'index.js');
+      const applied = spawnSync(
+        process.execPath,
+        [cli, 'fix', copy, '--apply', '--no-branch', '--modules', 'config'],
+        { cwd: root, encoding: 'utf8' },
+      );
+      if (applied.status !== 0) {
+        fail(`phase 7 acceptance: fix --apply exited ${applied.status}: ${applied.stderr}`);
+      }
+      const src = readFileSync(join(copy, 'src', 'index.js'), 'utf8');
+      if (!src.includes('helmet')) fail('phase 7 acceptance: helmet() was not applied on the copy');
+      if (!src.includes("express.json({ limit: '100kb' })")) {
+        fail('phase 7 acceptance: body limit was not applied on the copy');
+      }
+      console.log('  ✔ safe fixes applied on a git copy of vulnerable-app');
+
+      const failApp = join(tmp, 'fail-app');
+      mkdirSync(failApp, { recursive: true });
+      writeFileSync(
+        join(failApp, 'app.js'),
+        "const express = require('express');\nconst app = express();\napp.use(express.json());\n",
+      );
+      writeFileSync(
+        join(failApp, 'package.json'),
+        JSON.stringify({ name: 'fail-app', private: true, scripts: { test: 'node -e "process.exit(1)"' } }),
+      );
+      const gitFail = (args) => spawnSync('git', args, { cwd: failApp, encoding: 'utf8' });
+      gitFail(['init']);
+      gitFail(['config', 'user.email', 'verify@test.local']);
+      gitFail(['config', 'user.name', 'Verify']);
+      gitFail(['add', '.']);
+      gitFail(['commit', '-m', 'init']);
+      const before = readFileSync(join(failApp, 'app.js'), 'utf8');
+      const reverted = spawnSync(
+        process.execPath,
+        [cli, 'fix', failApp, '--apply', '--no-branch', '--modules', 'config'],
+        { cwd: root, encoding: 'utf8' },
+      );
+      if (reverted.status !== 1) {
+        fail(`phase 7 acceptance: failing tests should exit 1 (got ${reverted.status})`);
+      }
+      if (readFileSync(join(failApp, 'app.js'), 'utf8') !== before) {
+        fail('phase 7 acceptance: files were not reverted after test failure');
+      }
+      console.log('  ✔ failing project tests revert applied fixes');
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  },
 };
 
 if (phase !== null) {

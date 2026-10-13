@@ -188,3 +188,26 @@ from the baseline are now detected. clean-app remains 0 findings.
 176 tests. Mutation-smoke verified all 23 SAST+secrets rules.
 
 **Deferred:** `fix` command (Phase 7).
+
+## Phase 7 — fix engine
+
+**Built:**
+- `fullshield fix` (dry-run) prints unified diffs. `--apply` requires a clean
+  git tree (unless `--force`), optionally creates `fullshield/fixes-<ts>`,
+  writes only `safe: true` patches, runs `npm test` if present, and
+  `git checkout --` reverts on failure. Never deletes user files.
+- Safe v1 patches: `helmet()`, `express.json({ limit: '100kb' })`,
+  `Math.random` token → `crypto.randomUUID()`, `.env` in `.gitignore`,
+  same-major dep bumps already attached on findings, secret literal →
+  `process.env.X` plus a rotate comment.
+
+**Verify summary (`npm run verify:phase 7`, full run PASSED):**
+
+| phase | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|
+| 7 | 92.23% | 81.81% | deps,secrets,sast,config | 29 | 29 | 33 | 0 |
+
+186 tests. Mutation-smoke verified all 23 rules. Benchmark re-scan: NodeGoat
+372, DVNA 14 (unchanged vs bench-1).
+
+**Deferred:** runtime middleware (Phase 8).
