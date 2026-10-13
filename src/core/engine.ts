@@ -1,14 +1,16 @@
-import { stat } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { readFile, stat } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 
 import { configModule } from '../modules/config/index.js';
 import { depsModule } from '../modules/deps/index.js';
 import { sastModule } from '../modules/sast/index.js';
 import { secretsModule } from '../modules/secrets/index.js';
+import { applyBaseline, readBaseline, writeBaseline } from './baseline.js';
 import { loadConfig, type ResolvedConfig } from './config.js';
 import { walkFiles } from './fileWalker.js';
 import { listStagedFiles } from './git.js';
+import { applyInlineSuppressions } from './suppression.js';
 import {
   sortFindings,
   summarize,
@@ -41,6 +43,8 @@ export interface ScanOptions {
   staged?: boolean;
   /** Cache-only OSV lookups (no network). */
   offline?: boolean;
+  /** Write the current (post-suppression) findings to the baseline file. */
+  updateBaseline?: boolean;
 }
 
 export interface ScanMetadata {
@@ -122,7 +126,20 @@ export async function runScan(
     }
   }
 
-  const findings = sortFindings(dedupe(collected));
+  const sources: Record<string, string> = {};
+  for (const file of new Set(collected.map((f) => f.file).filter((f): f is string => f !== undefined))) {
+    try {
+      sources[file] = await readFile(join(cwd, file), 'utf8');
+    } catch {
+      // Finding file disappeared between walk and filter; keep the finding.
+    }
+  }
+  const unsuppressed = applyInlineSuppressions(dedupe(collected), sources);
+  const baselinePath = resolve(cwd, config.baseline);
+  if (options.updateBaseline === true) {
+    await writeBaseline(baselinePath, unsuppressed);
+  }
+  const findings = sortFindings(applyBaseline(unsuppressed, await readBaseline(baselinePath)));
   return {
     findings,
     summary: summarize(findings),

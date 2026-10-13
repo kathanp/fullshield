@@ -2,6 +2,7 @@ node_modules/
 dist/
 coverage/
 .fullshield/
+.fullshield-verify-phase6/
 *.tsbuildinfo
 .DS_Store
 .env

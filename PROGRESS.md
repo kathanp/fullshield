@@ -165,3 +165,26 @@ deserialization, Swig `{{ }}`) listed under Known misses only.
 
 **After bench-1 re-scan:** NodeGoat 372 (−20), DVNA 14 (+5). In-scope misses
 from the baseline are now detected. clean-app remains 0 findings.
+
+## Phase 6 — reporters, --fail-on, baseline, inline suppression
+
+**Built:**
+- SARIF 2.1.0 (`--sarif`), Markdown (`--markdown`), and standalone HTML
+  (`--html`) reporters. HTML escapes finding text; secrets stay masked.
+- `--update-baseline` writes `config.baseline` (default
+  `.fullshield-baseline.json`). Subsequent scans drop matching finding ids;
+  new ids still fail `--fail-on`.
+- Inline `// fullshield-ignore RULE-ID: reason` (reason required) suppresses
+  the next or same line. Missing reason does not suppress.
+- `--fail-on` (from Phase 1) is the CI gate; Phase 6 acceptance locks SARIF
+  validity + baseline new-vs-old behavior.
+
+**Verify summary (`npm run verify:phase 6`, full run PASSED):**
+
+| phase | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|
+| 6 | 93.97% | 83.13% | deps,secrets,sast,config | 29 | 29 | 33 | 0 |
+
+176 tests. Mutation-smoke verified all 23 SAST+secrets rules.
+
+**Deferred:** `fix` command (Phase 7).

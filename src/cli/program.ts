@@ -1,3 +1,4 @@
+import { writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import { Command } from 'commander';
@@ -14,7 +15,10 @@ import {
 } from '../core/finding.js';
 import { packageVersion } from '../core/version.js';
 import { renderConsoleReport } from '../reporters/console.js';
+import { renderHtmlReport } from '../reporters/html.js';
 import { renderJsonReport } from '../reporters/json.js';
+import { renderMarkdownReport } from '../reporters/markdown.js';
+import { renderSarifReport } from '../reporters/sarif.js';
 
 export interface ProgramIO {
   out(text: string): void;
@@ -33,6 +37,10 @@ interface ScanCliOptions {
   staged?: boolean;
   offline?: boolean;
   config?: string;
+  sarif?: string;
+  markdown?: string;
+  html?: string;
+  updateBaseline?: boolean;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -72,6 +80,10 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option('--staged', 'scan only files staged in git (pre-commit mode)')
     .option('--offline', 'use the OSV cache only (no network)')
     .option('--config <path>', 'path to fullshield.config.json')
+    .option('--sarif <file>', 'write a SARIF 2.1.0 report to this path')
+    .option('--markdown <file>', 'write a Markdown report to this path')
+    .option('--html <file>', 'write an HTML report to this path')
+    .option('--update-baseline', 'record current findings as accepted (CI fails only on new ones)')
     .action(async (path: string, opts: ScanCliOptions) => {
       try {
         const failOnOverride = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;
@@ -83,7 +95,18 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           configPath: opts.config,
           staged: opts.staged === true,
           offline: opts.offline === true,
+          updateBaseline: opts.updateBaseline === true,
         });
+
+        if (opts.sarif !== undefined) {
+          await writeFile(resolve(opts.sarif), renderSarifReport(result), 'utf8');
+        }
+        if (opts.markdown !== undefined) {
+          await writeFile(resolve(opts.markdown), renderMarkdownReport(result), 'utf8');
+        }
+        if (opts.html !== undefined) {
+          await writeFile(resolve(opts.html), renderHtmlReport(result), 'utf8');
+        }
 
         io.out(opts.json === true ? renderJsonReport(result) : renderConsoleReport(result));
 

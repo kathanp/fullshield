@@ -10,7 +10,7 @@
  *   6. summary table (+ per-phase acceptance criteria with --phase N)
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -135,7 +135,7 @@ function runCliJson(fixtureDir, extraArgs = []) {
   return { status: result.status, report: JSON.parse(result.stdout) };
 }
 
-const { IMPLEMENTED_MODULES } = await import(
+const { IMPLEMENTED_MODULES, validateSarif21 } = await import(
   pathToFileURL(join(root, 'dist', 'index.js')).href
 );
 
@@ -310,6 +310,65 @@ const acceptanceCriteria = {
       fail(`phase 5 acceptance: clean-app --fail-on high exited ${clean.status}`);
     }
     console.log('  ✔ clean-app has 0 high/critical findings');
+  },
+  // Phase 6 (spec §9): SARIF validates; baseline suppresses existing, new ones fail.
+  6: () => {
+    const tmp = join(root, '.fullshield-verify-phase6');
+    mkdirSync(tmp, { recursive: true });
+    try {
+      const sarifPath = join(tmp, 'out.sarif');
+      const sarifRun = spawnSync(
+        process.execPath,
+        [join(root, 'dist', 'cli', 'index.js'), 'scan', vulnerableApp, '--sarif', sarifPath, '--modules', 'sast'],
+        { cwd: root, encoding: 'utf8' },
+      );
+      if (!existsSync(sarifPath)) fail('phase 6 acceptance: --sarif did not write a file');
+      const errors = validateSarif21(JSON.parse(readFileSync(sarifPath, 'utf8')));
+      if (errors.length > 0) fail(`phase 6 acceptance: SARIF schema errors: ${errors.join('; ')}`);
+      console.log('  ✔ --sarif writes a valid SARIF 2.1.0 document');
+      if (sarifRun.status !== 1) {
+        fail(`phase 6 acceptance: sast scan of vulnerable-app exited ${sarifRun.status}, expected 1`);
+      }
+
+      const app = join(tmp, 'app');
+      mkdirSync(app, { recursive: true });
+      writeFileSync(
+        join(app, 'app.js'),
+        "app.get('/c', (req, res) => { eval(req.query.x); });\n",
+      );
+      const cli = join(root, 'dist', 'cli', 'index.js');
+      const update = spawnSync(
+        process.execPath,
+        [cli, 'scan', app, '--modules', 'sast', '--update-baseline', '--fail-on', 'high'],
+        { cwd: root, encoding: 'utf8' },
+      );
+      if (update.status !== 0) {
+        fail(`phase 6 acceptance: --update-baseline exited ${update.status}, expected 0`);
+      }
+      const again = spawnSync(
+        process.execPath,
+        [cli, 'scan', app, '--modules', 'sast', '--fail-on', 'high'],
+        { cwd: root, encoding: 'utf8' },
+      );
+      if (again.status !== 0) {
+        fail(`phase 6 acceptance: baselined findings still fail the gate (exit ${again.status})`);
+      }
+      writeFileSync(
+        join(app, 'app.js'),
+        "app.get('/c', (req, res) => { eval(req.query.x); });\napp.get('/r', (req, res) => { res.redirect(req.query.next); });\n",
+      );
+      const newer = spawnSync(
+        process.execPath,
+        [cli, 'scan', app, '--modules', 'sast', '--fail-on', 'high', '--json'],
+        { cwd: root, encoding: 'utf8' },
+      );
+      if (newer.status !== 1) {
+        fail(`phase 6 acceptance: new finding after baseline exited ${newer.status}, expected 1`);
+      }
+      console.log('  ✔ baseline suppresses existing findings; new ones fail --fail-on');
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
   },
 };
 

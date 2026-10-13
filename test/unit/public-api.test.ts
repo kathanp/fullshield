@@ -10,6 +10,10 @@ describe('public API surface', () => {
     expect(typeof fullshield.walkFiles).toBe('function');
     expect(typeof fullshield.renderConsoleReport).toBe('function');
     expect(typeof fullshield.renderJsonReport).toBe('function');
+    expect(typeof fullshield.renderSarifReport).toBe('function');
+    expect(typeof fullshield.renderMarkdownReport).toBe('function');
+    expect(typeof fullshield.renderHtmlReport).toBe('function');
+    expect(typeof fullshield.validateSarif21).toBe('function');
     expect(typeof fullshield.makeFindingId).toBe('function');
     expect(typeof fullshield.meetsThreshold).toBe('function');
     expect(typeof fullshield.packageVersion).toBe('function');

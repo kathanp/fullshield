@@ -39,5 +39,11 @@ export { walkFiles } from './core/fileWalker.js';
 export type { WalkOptions } from './core/fileWalker.js';
 
 export { packageVersion } from './core/version.js';
+export { applyBaseline, readBaseline, writeBaseline } from './core/baseline.js';
+export type { BaselineFile } from './core/baseline.js';
+export { applyInlineSuppressions, parseIgnore } from './core/suppression.js';
 export { renderConsoleReport } from './reporters/console.js';
+export { renderHtmlReport } from './reporters/html.js';
 export { renderJsonReport } from './reporters/json.js';
+export { renderMarkdownReport } from './reporters/markdown.js';
+export { renderSarifReport, validateSarif21 } from './reporters/sarif.js';
