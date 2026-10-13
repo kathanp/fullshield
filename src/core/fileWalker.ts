@@ -15,7 +15,7 @@ export interface WalkOptions {
 }
 
 /** Always ignored regardless of .gitignore/config. */
-const ALWAYS_IGNORED = ['.git/', 'node_modules/'];
+const ALWAYS_IGNORED = ['.git/', 'node_modules/', '.fullshield/'];
 
 /**
  * Recursively list files under `cwd`, respecting the project's .gitignore and

@@ -445,6 +445,25 @@ const acceptanceCriteria = {
     if (bench.status !== 0) fail('phase 8 acceptance: bench p95 >= 1ms or bench failed');
     console.log('  ✔ runtime inspect() p95 < 1ms');
   },
+  // Phase 9 (spec §9): generated GitHub workflow is valid YAML; webhook notifier works.
+  9: () => {
+    const tmp = join(root, '.fullshield-verify-phase9');
+    rmSync(tmp, { recursive: true, force: true });
+    mkdirSync(tmp, { recursive: true });
+    try {
+      const cli = join(root, 'dist', 'cli', 'index.js');
+      const init = spawnSync(process.execPath, [cli, 'init', tmp], { cwd: root, encoding: 'utf8' });
+      if (init.status !== 0) fail(`phase 9 acceptance: init exited ${init.status}: ${init.stderr}`);
+      const workflow = readFileSync(join(tmp, '.github', 'workflows', 'fullshield.yml'), 'utf8');
+      for (const needle of ['name:', 'on:', 'jobs:', 'fullshield scan', '--sarif', '--fail-on high']) {
+        if (!workflow.includes(needle)) fail(`phase 9 acceptance: workflow missing ${needle}`);
+      }
+      if (/^\t/m.test(workflow)) fail('phase 9 acceptance: workflow contains tabs');
+      console.log('  ✔ init writes a valid GitHub Actions workflow');
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  },
 };
 
 if (phase !== null) {

@@ -31,6 +31,13 @@ describe('walkFiles', () => {
     expect(files).toEqual(['b.txt', 'src/deep/nested.ts', 'src/index.ts']);
   });
 
+  it('always ignores the .fullshield cache directory', async () => {
+    await seed('.fullshield/last-scan.json', '{}');
+    await seed('app.ts');
+    const files = await walkFiles({ cwd: dir });
+    expect(files).toEqual(['app.ts']);
+  });
+
   it('always ignores node_modules and .git', async () => {
     await seed('node_modules/pkg/index.js');
     await seed('.git/HEAD');

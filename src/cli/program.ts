@@ -4,7 +4,10 @@ import { resolve } from 'node:path';
 import { Command } from 'commander';
 
 import { scan } from '../core/engine.js';
+import { writeLastScan } from '../core/lastScan.js';
 import { runFix } from '../fixer/index.js';
+import { runInit } from './commands/init.js';
+import { formatSummary, loadLastScan, notifyEmail, notifySlack, notifyWebhook } from '../notifiers/index.js';
 import {
   MODULE_NAMES,
   SEVERITIES,
@@ -109,6 +112,8 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           await writeFile(resolve(opts.html), renderHtmlReport(result), 'utf8');
         }
 
+        await writeLastScan(resolve(path), result);
+
         io.out(opts.json === true ? renderJsonReport(result) : renderConsoleReport(result));
 
         const failOn = failOnOverride ?? result.config.failOn;
@@ -164,6 +169,62 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         } else if (opts.apply !== true) {
           io.out('Dry run. Re-run with --apply to write safe fixes.');
         }
+      } catch (error) {
+        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('init')
+    .description('Write fullshield.config.json, CI workflows, and a pre-commit hook')
+    .argument('[path]', 'project directory', '.')
+    .option('--force', 'overwrite existing generated files')
+    .action(async (path: string, opts: { force?: boolean }) => {
+      try {
+        const result = await runInit({ cwd: resolve(path), force: opts.force === true });
+        if (result.written.length === 0) {
+          io.out('Nothing to write (files already exist). Pass --force to overwrite.');
+        } else {
+          io.out(`Wrote ${result.written.join(', ')}`);
+        }
+      } catch (error) {
+        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('notify')
+    .description('Send a summary of the last scan (Slack, webhook, or SMTP)')
+    .argument('[path]', 'project directory that was scanned', '.')
+    .option('--slack [url]', 'Slack incoming webhook (or $FULLSHIELD_SLACK_WEBHOOK)')
+    .option('--webhook <url>', 'generic JSON webhook')
+    .option('--email', 'SMTP using FULLSHIELD_SMTP_* env vars')
+    .action(async (path: string, opts: { slack?: string | true; webhook?: string; email?: boolean }) => {
+      try {
+        const summary = await loadLastScan(resolve(path));
+        if (opts.slack !== undefined) {
+          const url = opts.slack === true ? process.env.FULLSHIELD_SLACK_WEBHOOK : opts.slack;
+          if (url === undefined || url.length === 0) {
+            throw new Error('Slack webhook URL missing (pass --slack URL or set FULLSHIELD_SLACK_WEBHOOK)');
+          }
+          await notifySlack(url, summary);
+        }
+        if (opts.webhook !== undefined) {
+          await notifyWebhook(opts.webhook, summary);
+        }
+        if (opts.email === true) {
+          const host = process.env.FULLSHIELD_SMTP_HOST;
+          const port = Number(process.env.FULLSHIELD_SMTP_PORT ?? '25');
+          const from = process.env.FULLSHIELD_SMTP_FROM;
+          const to = process.env.FULLSHIELD_NOTIFY_EMAIL;
+          if (host === undefined || from === undefined || to === undefined) {
+            throw new Error('email notify requires FULLSHIELD_SMTP_HOST, FULLSHIELD_SMTP_FROM, FULLSHIELD_NOTIFY_EMAIL');
+          }
+          await notifyEmail({ host, port, from, to, summary });
+        }
+        io.out(formatSummary(summary));
       } catch (error) {
         io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
         process.exitCode = 2;

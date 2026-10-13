@@ -4,6 +4,7 @@ coverage/
 .fullshield/
 .fullshield-verify-phase6/
 .fullshield-verify-phase7/
+.fullshield-verify-phase9/
 *.tsbuildinfo
 .DS_Store
 .env

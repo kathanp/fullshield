@@ -1,0 +1,11 @@
+fullshield:
+  image: node:20
+  script:
+    - npm ci
+    - npx fullshield scan --json --fail-on high
+  artifacts:
+    when: always
+    paths:
+      - fullshield-report.json
+    reports:
+      sast: fullshield-report.json
