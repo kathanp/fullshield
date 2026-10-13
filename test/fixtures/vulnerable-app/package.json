@@ -1,0 +1,11 @@
+{
+  "name": "vulnerable-app-fixture",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Intentionally vulnerable Express app used as a FullShield test fixture. Never run this.",
+  "dependencies": {
+    "express": "^4.18.0",
+    "lodash": "4.17.11",
+    "minimist": "1.2.0"
+  }
+}

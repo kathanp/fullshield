@@ -1,0 +1,96 @@
+import { createHash } from 'node:crypto';
+
+export const SEVERITIES = ['info', 'low', 'medium', 'high', 'critical'] as const;
+export type Severity = (typeof SEVERITIES)[number];
+
+export const MODULE_NAMES = ['deps', 'secrets', 'sast', 'config'] as const;
+export type ModuleName = (typeof MODULE_NAMES)[number];
+
+export type Confidence = 'low' | 'medium' | 'high';
+
+export interface FixProposal {
+  kind: 'dependency-bump' | 'code-patch' | 'config-add';
+  /** Only safe fixes apply without --unsafe. */
+  safe: boolean;
+  /** Unified diff. */
+  diff: string;
+}
+
+export interface Finding {
+  /** Stable hash of ruleId + file + normalized snippet. */
+  id: string;
+  /** e.g. "SAST-SQLI-001" */
+  ruleId: string;
+  module: ModuleName;
+  title: string;
+  severity: Severity;
+  confidence: Confidence;
+  /** e.g. "CWE-89" */
+  cwe?: string;
+  file?: string;
+  line?: number;
+  column?: number;
+  /** Secrets MUST be masked: first 4 chars + **** */
+  snippet?: string;
+  /** What's wrong, in plain English. */
+  message: string;
+  /** How to fix. */
+  remediation: string;
+  fix?: FixProposal;
+  /** OSV id, CVE, docs. */
+  references?: string[];
+}
+
+export interface FindingSummary {
+  total: number;
+  bySeverity: Record<Severity, number>;
+}
+
+export function isSeverity(value: string): value is Severity {
+  return (SEVERITIES as readonly string[]).includes(value);
+}
+
+export function isModuleName(value: string): value is ModuleName {
+  return (MODULE_NAMES as readonly string[]).includes(value);
+}
+
+export function severityRank(severity: Severity): number {
+  return SEVERITIES.indexOf(severity);
+}
+
+/** True when `severity` is at or above `threshold`. */
+export function meetsThreshold(severity: Severity, threshold: Severity): boolean {
+  return severityRank(severity) >= severityRank(threshold);
+}
+
+/** Stable finding id: sha256 of ruleId + file + whitespace-normalized snippet. */
+export function makeFindingId(
+  ruleId: string,
+  file: string | undefined,
+  snippet: string | undefined,
+): string {
+  const normalized = (snippet ?? '').replace(/\s+/g, ' ').trim();
+  return createHash('sha256')
+    .update(`${ruleId}\u0000${file ?? ''}\u0000${normalized}`)
+    .digest('hex')
+    .slice(0, 16);
+}
+
+/** Sort by severity (desc), then file, line, ruleId for stable output. */
+export function sortFindings(findings: readonly Finding[]): Finding[] {
+  return [...findings].sort(
+    (a, b) =>
+      severityRank(b.severity) - severityRank(a.severity) ||
+      (a.file ?? '').localeCompare(b.file ?? '') ||
+      (a.line ?? 0) - (b.line ?? 0) ||
+      a.ruleId.localeCompare(b.ruleId),
+  );
+}
+
+export function summarize(findings: readonly Finding[]): FindingSummary {
+  const bySeverity = Object.fromEntries(SEVERITIES.map((s) => [s, 0])) as Record<Severity, number>;
+  for (const finding of findings) {
+    bySeverity[finding.severity] += 1;
+  }
+  return { total: findings.length, bySeverity };
+}

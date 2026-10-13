@@ -1,0 +1,16 @@
+{
+  "comment": "Expected rule IDs per module for the vulnerable-app fixture. The e2e suite and scripts/verify.mjs assert that every entry whose module is implemented appears in scan output. Rule IDs for modules that are not implemented yet are provisional and are finalized (never weakened) in the phase that implements the module. Never edit an entry to make a failing test pass.",
+  "expected": [
+    { "module": "secrets", "ruleId": "SECRET-AWS-001", "file": "src/index.js" },
+    { "module": "secrets", "ruleId": "SECRET-ENVFILE-001", "file": ".env" },
+    { "module": "deps", "ruleId": "DEPS-VULN-001", "package": "lodash" },
+    { "module": "deps", "ruleId": "DEPS-VULN-001", "package": "minimist" },
+    { "module": "sast", "ruleId": "SAST-SQLI-001", "file": "src/index.js" },
+    { "module": "sast", "ruleId": "SAST-PATH-001", "file": "src/index.js" },
+    { "module": "sast", "ruleId": "SAST-CMDI-001", "file": "src/index.js" },
+    { "module": "sast", "ruleId": "SAST-EVAL-001", "file": "src/index.js" },
+    { "module": "sast", "ruleId": "SAST-CRYPTO-001", "file": "src/index.js" },
+    { "module": "config", "ruleId": "CONFIG-HELMET-001", "file": "src/index.js" },
+    { "module": "config", "ruleId": "CONFIG-BODYLIMIT-001", "file": "src/index.js" }
+  ]
+}

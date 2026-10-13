@@ -1,0 +1,14 @@
+---
+description: FullShield permanent project rules
+alwaysApply: true
+---
+
+# FullShield project rules
+
+- `SECURITY_SCANNER_SPEC.md` is the source of truth; follow Section 0 and 0.1 on every task.
+- Build only the phase I name. Never start the next phase.
+- Write fixtures and failing tests before implementation (red → green).
+- Never modify existing tests or `expected-findings.json` to make them pass; stop and explain instead so the human can decide.
+- Never use `.only`, `.skip`, or stubbed "not implemented" code.
+- At the end of every phase, run `npm run verify:phase N`, paste the full output in your summary, and list anything incomplete.
+- Never run sudo. Never delete files outside this project.

@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+.fullshield/
+*.tsbuildinfo
+.DS_Store
+.env
+.env.*
+!.env.example
+# Fixture .env files are intentionally committed (fake values only)
+!test/fixtures/**/.env
