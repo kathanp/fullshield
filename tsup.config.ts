@@ -4,6 +4,9 @@ export default defineConfig({
   entry: {
     index: 'src/index.ts',
     'cli/index': 'src/cli/index.ts',
+    'runtime/index': 'src/runtime/index.ts',
+    'runtime/express': 'src/runtime/express.ts',
+    'runtime/fastify': 'src/runtime/fastify.ts',
   },
   format: ['esm'],
   platform: 'node',
@@ -12,4 +15,5 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   treeshake: true,
+  splitting: false,
 });

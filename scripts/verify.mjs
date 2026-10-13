@@ -434,6 +434,17 @@ const acceptanceCriteria = {
       rmSync(tmp, { recursive: true, force: true });
     }
   },
+  // Phase 8 (spec §9): runtime blocks the payload suite; p95 overhead < 1ms.
+  8: () => {
+    const bench = spawnSync(process.execPath, [join(root, 'scripts', 'bench.mjs')], {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    process.stdout.write(bench.stdout);
+    process.stderr.write(bench.stderr);
+    if (bench.status !== 0) fail('phase 8 acceptance: bench p95 >= 1ms or bench failed');
+    console.log('  ✔ runtime inspect() p95 < 1ms');
+  },
 };
 
 if (phase !== null) {

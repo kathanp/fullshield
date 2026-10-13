@@ -17,7 +17,19 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./runtime": "./dist/runtime/index.js",
+    "./runtime/express": "./dist/runtime/express.js",
+    "./runtime/fastify": "./dist/runtime/fastify.js",
+    "./cli": "./dist/cli/index.js",
     "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "express": "*",
+    "fastify": "*"
+  },
+  "peerDependenciesMeta": {
+    "express": { "optional": true },
+    "fastify": { "optional": true }
   },
   "files": [
     "dist",

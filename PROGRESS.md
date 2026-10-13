@@ -211,3 +211,24 @@ from the baseline are now detected. clean-app remains 0 findings.
 372, DVNA 14 (unchanged vs bench-1).
 
 **Deferred:** runtime middleware (Phase 8).
+
+## Phase 8 — runtime middleware + benchmark
+
+**Built:**
+- `fullshield/runtime` inspector (SQLi/XSS/path signatures, auth-route
+  sliding-window rate limit, oversized-body guard). Default mode `monitor`.
+  `block` returns 403. Events never include the raw body.
+- Express middleware and Fastify plugin (`fullshield/runtime/express`,
+  `.../fastify`). Optional peer deps. Separate tsup entries, no scanner
+  imports, combined runtime JS < 50 KB.
+- `scripts/bench.mjs`: inspect() p95 ≈ 0.001ms on a typical JSON request.
+
+**Verify summary (`npm run verify:phase 8`, full run PASSED):**
+
+| phase | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|
+| 8 | 92.23% | 81.79% | deps,secrets,sast,config | 29 | 29 | 33 | 0 |
+
+193 tests. Mutation-smoke verified all 23 rules. bench p95 0.0013ms.
+
+**Deferred:** `init` + notifiers (Phase 9).
