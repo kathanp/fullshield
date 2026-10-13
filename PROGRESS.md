@@ -51,3 +51,33 @@ No detection expectation was weakened. Files: `test/unit/core/engine.test.ts`,
 
 **Deferred:** none for this phase. (`init`-generated pre-commit hook template
 is Phase 9 per spec; Phase 2 only required the staged scan mode.)
+
+## Phase 3 — deps module
+
+**Built:**
+- Lockfile parsers for npm `package-lock.json` (v2/v3, plus a dependencies-tree
+  fallback), yarn classic, and pnpm (scoped names + peer suffixes).
+- OSV `/v1/querybatch` + per-id detail fetch, 24h file cache under
+  `{cacheDir}/osv/`, `--offline` / `deps.offline` cache-only mode. Network is
+  mocked in unit tests; vulnerable-app e2e uses a committed fixture cache so CI
+  never contacts OSV.
+- Typosquat check (Levenshtein ≤ 1 vs a static popular-package list) →
+  `DEPS-TYPOSQUAT-001` (medium, low confidence).
+- Vulnerability findings `DEPS-VULN-001` with OSV/CVE references and a
+  same-major bump `FixProposal` (apply lands in Phase 7). Deprecated lockfile
+  entries emit `DEPS-DEPRECATED-001` (info) when the lockfile carries a notice.
+- Seeded fixture: old `lodash@4.17.11`, `minimist@1.2.0`, typosquat `expresss`.
+
+**Verify summary (`npm run verify:phase 3`, full run PASSED):**
+
+| phase | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|
+| 3 | 96.46% | 85.37% | deps,secrets | 8 | 8 | 8 | 0 |
+
+123 tests. Mutation-smoke re-verified all 11 secrets rules (suite failed each
+time the rule was disabled).
+
+**Deferred:** live `npm audit` / npm-registry deprecated lookup. Spec §4.1
+lists deprecated packages; we only flag a `deprecated` field already present
+in the lockfile so we never invent registry data. A `test:live` OSV script is
+optional per §0.1 and not required in CI.

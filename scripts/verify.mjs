@@ -231,6 +231,28 @@ const acceptanceCriteria = {
     }
     console.log('  ✔ --fail-on high exits 1 on vulnerable-app');
   },
+  // Phase 3 (spec §9): deps module detects seeded lodash/minimist vulns
+  // and the expresss typosquat; OSV is not contacted (fixture cache + --offline).
+  3: () => {
+    const vulnDeps = runCliJson(vulnerableApp, ['--modules', 'deps', '--offline']);
+    const blob = JSON.stringify(vulnDeps.report.findings);
+    for (const needle of ['DEPS-VULN-001', 'lodash@4.17.11', 'minimist@1.2.0', 'DEPS-TYPOSQUAT-001', 'expresss']) {
+      if (!blob.includes(needle)) {
+        fail(`phase 3 acceptance: ${needle} not present in vulnerable-app deps scan`);
+      }
+    }
+    console.log('  ✔ seeded lodash/minimist vulns and expresss typosquat detected');
+    if (vulnDeps.status !== 1) {
+      fail(`phase 3 acceptance: deps --fail-on (default high) exited ${vulnDeps.status}, expected 1`);
+    }
+    console.log('  ✔ vulnerable-app deps scan exits 1 (critical lodash vuln)');
+
+    const cleanDeps = runCliJson(cleanApp, ['--modules', 'deps']);
+    if (cleanDeps.report.summary.total !== 0) {
+      fail(`phase 3 acceptance: ${cleanDeps.report.summary.total} deps findings on clean-app`);
+    }
+    console.log('  ✔ zero deps findings on clean-app');
+  },
 };
 
 if (phase !== null) {

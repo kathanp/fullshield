@@ -92,4 +92,13 @@ describe('fullshield scan (CLI)', () => {
     expect(err).toContain('cannot read config file');
     expect(process.exitCode).toBe(2);
   });
+
+  it('accepts --offline (deps cache-only mode)', async () => {
+    const { out, err } = await runCli(['scan', cleanApp, '--offline', '--modules', 'deps', '--json']);
+    expect(err).toBe('');
+    const parsed = JSON.parse(out) as { findings: unknown[] };
+    expect(parsed.findings).toEqual([]);
+    expect(process.exitCode ?? 0).toBe(0);
+  });
 });
+

@@ -2,6 +2,7 @@ import { stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 
+import { depsModule } from '../modules/deps/index.js';
 import { secretsModule } from '../modules/secrets/index.js';
 import { loadConfig, type ResolvedConfig } from './config.js';
 import { walkFiles } from './fileWalker.js';
@@ -36,6 +37,8 @@ export interface ScanOptions {
   configPath?: string;
   /** Scan only files staged in git (pre-commit mode). */
   staged?: boolean;
+  /** Cache-only OSV lookups (no network). */
+  offline?: boolean;
 }
 
 export interface ScanMetadata {
@@ -58,9 +61,9 @@ export interface ScanResult {
 
 /**
  * Scanner modules register here as their phases are built.
- * Phase 2: secrets.
+ * Phase 3: deps + secrets.
  */
-export const builtinModules: readonly ScanModule[] = [secretsModule];
+export const builtinModules: readonly ScanModule[] = [depsModule, secretsModule];
 
 export const IMPLEMENTED_MODULES: readonly ModuleName[] = builtinModules.map((m) => m.name);
 
@@ -94,7 +97,10 @@ export async function runScan(
     throw new Error(`scan path is not a directory: ${cwd}`);
   }
 
-  const config = await loadConfig(cwd, options.configPath);
+  let config = await loadConfig(cwd, options.configPath);
+  if (options.offline === true) {
+    config = { ...config, deps: { ...config.deps, offline: true } };
+  }
   const modulesRequested = options.modules ?? config.modules;
   let files = await walkFiles({ cwd, ignore: config.ignore });
   if (options.staged === true) {

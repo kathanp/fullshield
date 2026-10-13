@@ -13,7 +13,7 @@ export type {
 } from './core/engine.js';
 
 export { CONFIG_FILE_NAME, ConfigError, DEFAULT_CONFIG, loadConfig } from './core/config.js';
-export type { NotifyConfig, ResolvedConfig } from './core/config.js';
+export type { DepsConfig, NotifyConfig, ResolvedConfig } from './core/config.js';
 
 export {
   MODULE_NAMES,

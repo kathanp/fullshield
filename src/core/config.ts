@@ -15,12 +15,20 @@ export interface NotifyConfig {
   slackWebhookEnv: string;
 }
 
+export interface DepsConfig {
+  /** When true, OSV is never contacted; cache only. */
+  offline: boolean;
+  /** Cache root (contains an `osv/` directory). Relative paths are resolved from cwd. */
+  cacheDir?: string;
+}
+
 export interface ResolvedConfig {
   modules: ModuleName[];
   failOn: Severity;
   ignore: string[];
   baseline: string;
   notify: NotifyConfig;
+  deps: DepsConfig;
 }
 
 export const DEFAULT_CONFIG: ResolvedConfig = {
@@ -29,11 +37,12 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
   ignore: ['dist/**', '**/*.test.ts'],
   baseline: '.fullshield-baseline.json',
   notify: { slackWebhookEnv: 'FULLSHIELD_SLACK_WEBHOOK' },
+  deps: { offline: false },
 };
 
 export class ConfigError extends Error {}
 
-const KNOWN_KEYS = new Set(['modules', 'failOn', 'ignore', 'baseline', 'notify']);
+const KNOWN_KEYS = new Set(['modules', 'failOn', 'ignore', 'baseline', 'notify', 'deps']);
 
 function validate(raw: unknown, source: string): Partial<ResolvedConfig> {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
@@ -96,6 +105,26 @@ function validate(raw: unknown, source: string): Partial<ResolvedConfig> {
       );
     }
     out.notify = { slackWebhookEnv: (notify as { slackWebhookEnv: string }).slackWebhookEnv };
+  }
+  if (record.deps !== undefined) {
+    if (typeof record.deps !== 'object' || record.deps === null || Array.isArray(record.deps)) {
+      throw new ConfigError(`${source}: "deps" must be an object`);
+    }
+    const rawDeps = record.deps as Record<string, unknown>;
+    const deps: DepsConfig = { offline: false };
+    if (rawDeps.offline !== undefined) {
+      if (typeof rawDeps.offline !== 'boolean') {
+        throw new ConfigError(`${source}: "deps.offline" must be a boolean`);
+      }
+      deps.offline = rawDeps.offline;
+    }
+    if (rawDeps.cacheDir !== undefined) {
+      if (typeof rawDeps.cacheDir !== 'string') {
+        throw new ConfigError(`${source}: "deps.cacheDir" must be a string`);
+      }
+      deps.cacheDir = rawDeps.cacheDir;
+    }
+    out.deps = deps;
   }
   return out;
 }

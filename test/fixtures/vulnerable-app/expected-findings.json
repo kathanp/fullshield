@@ -8,6 +8,7 @@
     { "module": "secrets", "ruleId": "SECRET-ENVFILE-001", "file": ".env" },
     { "module": "deps", "ruleId": "DEPS-VULN-001", "package": "lodash" },
     { "module": "deps", "ruleId": "DEPS-VULN-001", "package": "minimist" },
+    { "module": "deps", "ruleId": "DEPS-TYPOSQUAT-001", "package": "expresss" },
     { "module": "sast", "ruleId": "SAST-SQLI-001", "file": "src/index.js" },
     { "module": "sast", "ruleId": "SAST-PATH-001", "file": "src/index.js" },
     { "module": "sast", "ruleId": "SAST-CMDI-001", "file": "src/index.js" },

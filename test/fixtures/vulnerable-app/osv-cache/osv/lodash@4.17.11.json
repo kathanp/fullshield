@@ -1,0 +1,25 @@
+{
+  "fetchedAt": "2026-10-13T00:00:00.000Z",
+  "vulns": [
+    {
+      "id": "GHSA-jf85-cpcp-j695",
+      "summary": "Prototype Pollution in lodash",
+      "aliases": ["CVE-2019-10744"],
+      "database_specific": { "severity": "CRITICAL" },
+      "affected": [
+        {
+          "package": { "ecosystem": "npm", "name": "lodash" },
+          "ranges": [
+            {
+              "type": "SEMVER",
+              "events": [{ "introduced": "0" }, { "fixed": "4.17.12" }]
+            }
+          ]
+        }
+      ],
+      "references": [
+        { "type": "ADVISORY", "url": "https://github.com/advisories/GHSA-jf85-cpcp-j695" }
+      ]
+    }
+  ]
+}

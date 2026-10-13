@@ -80,4 +80,19 @@ describe('loadConfig', () => {
     await writeFile(join(dir, 'fullshield.config.json'), JSON.stringify({ notify: { slack: true } }));
     await expect(loadConfig(dir)).rejects.toThrow(/"notify" must be an object/);
   });
+
+  it('merges a deps block over defaults', async () => {
+    await writeFile(
+      join(dir, 'fullshield.config.json'),
+      JSON.stringify({ deps: { offline: true, cacheDir: 'osv-cache' } }),
+    );
+    const config = await loadConfig(dir);
+    expect(config.deps).toEqual({ offline: true, cacheDir: 'osv-cache' });
+  });
+
+  it('throws ConfigError when deps.offline is not a boolean', async () => {
+    await writeFile(join(dir, 'fullshield.config.json'), JSON.stringify({ deps: { offline: 'yes' } }));
+    await expect(loadConfig(dir)).rejects.toThrow(/"deps.offline"/);
+  });
 });
+
