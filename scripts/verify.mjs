@@ -464,6 +464,26 @@ const acceptanceCriteria = {
       rmSync(tmp, { recursive: true, force: true });
     }
   },
+  // Phase 10 (spec §9): npm pack has no tests/fixtures; README states non-goals.
+  10: () => {
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!/non-goals/i.test(readme)) fail('phase 10 acceptance: README must state non-goals');
+    const packed = spawnSync(isWindows ? 'npm.cmd' : 'npm', ['pack', '--dry-run', '--json'], {
+      cwd: root,
+      encoding: 'utf8',
+      shell: isWindows,
+    });
+    if (packed.status !== 0) fail(`phase 10 acceptance: npm pack failed: ${packed.stderr}`);
+    const listing = JSON.parse(packed.stdout);
+    const paths = (listing[0]?.files ?? []).map((f) => f.path);
+    if (paths.some((p) => p.startsWith('test/') || p.includes('fixtures/'))) {
+      fail('phase 10 acceptance: npm pack includes tests or fixtures');
+    }
+    if (!paths.some((p) => p === 'README.md' || p.endsWith('README.md'))) {
+      fail('phase 10 acceptance: npm pack missing README.md');
+    }
+    console.log('  ✔ npm pack excludes tests/fixtures; README states non-goals');
+  },
 };
 
 if (phase !== null) {

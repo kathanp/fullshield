@@ -133,3 +133,12 @@ This table is updated again after Phase 7 and Phase 10.
 |---|---|---|---|---|
 | NodeGoat | 392 | 372 | 372 | Fixer does not change detection. Rule mix unchanged vs bench-1. |
 | DVNA | 9 | 14 | 14 | Same as bench-1. |
+
+### After Phase 10 (end of Core)
+
+| App | Phase 5 | bench-1 | Phase 7 | Phase 10 |
+|---|---|---|---|---|
+| NodeGoat | 392 | 372 | 372 | 372 |
+| DVNA | 9 | 14 | 14 | 14 |
+
+Phases 8–10 added runtime, init/notify, and docs. They do not change static detection. JSON: `results/*-phase10.json`.

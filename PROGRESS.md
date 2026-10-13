@@ -232,3 +232,41 @@ from the baseline are now detected. clean-app remains 0 findings.
 193 tests. Mutation-smoke verified all 23 rules. bench p95 0.0013ms.
 
 **Deferred:** `init` + notifiers (Phase 9).
+
+## Phase 9 — init + notifiers
+
+**Built:**
+- `fullshield init` writes `fullshield.config.json`, `.github/workflows/fullshield.yml`
+  (SARIF upload, `--fail-on high`), `.gitlab-ci.yml`, and
+  `.fullshield/pre-commit.sh` (`scan --modules secrets --staged`).
+- `fullshield notify --slack|--webhook|--email` sends the last scan summary
+  (written to `.fullshield/last-scan.json`). Slack/generic webhooks tested
+  against a local HTTP mock; SMTP against a local net mock. `.fullshield/`
+  is always ignored by the file walker.
+
+**Verify summary (`npm run verify:phase 9`, full run PASSED):**
+
+| phase | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|
+| 9 | 91.53% | 81.82% | deps,secrets,sast,config | 29 | 29 | 33 | 0 |
+
+199 tests. Mutation-smoke verified all 23 rules.
+
+**Deferred:** README / rule docs / CHANGELOG / npm pack (Phase 10).
+
+## Phase 10 — docs + npm pack
+
+**Built:**
+- README (0.x/alpha, coverage map, **non-goals**, commands, runtime).
+- `rules/*.md` for every Core rule id. CHANGELOG. MIT LICENSE.
+- `package.json` `files` ships `dist`, README, LICENSE, CHANGELOG, templates,
+  rules — not `test/` or fixtures. `publishConfig.provenance` is true.
+
+**Verify summary (`npm run verify:phase 10`, full run PASSED):**
+
+| phase | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|
+| 10 | 91.53% | 81.84% | deps,secrets,sast,config | 29 | 29 | 33 | 0 |
+
+200 tests. Mutation-smoke verified all 23 rules. **Core (phases 1–10) complete.**
+Pro (11–16) not started. Nothing was pushed to GitHub.
