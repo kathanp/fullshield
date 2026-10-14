@@ -196,6 +196,7 @@ function graphFromManifest(manifest: Record<string, unknown>): LockfileGraph {
     edges: new Map(),
     directProd: keys('dependencies'),
     directDev: keys('devDependencies'),
+    edgesKnown: false,
   };
 }
 

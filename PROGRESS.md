@@ -473,3 +473,15 @@ marked LFP. Logic: 2 wrong-class hits on vulnerable-app, **0** on NodeGoat
 rejected both). Details: `benchmarks/AI-REPORT.md`.
 
 Recorded fixtures were not changed.
+
+## harden-4-2 — yarn / pnpm edges + reachability-unknown
+
+`parseLockfileGraph` now extracts yarn classic / pnpm package dependency
+links (`edgesKnown: true`). Manifest-only and unknown lockfile names stay
+`edgesKnown: false`. `classifyReachability` then returns `reachability-unknown`
+and **does not** drop severity. Yarn and pnpm fixtures:
+`test/fixtures/{yarn,pnpm}-reachability-app` (express → … → minimist via-dep;
+unused lodash not-imported).
+
+**Re-scan:** NodeGoat 373 / high+critical **59** unchanged (npm lockfile).
+DVNA 19 unchanged. JSON: `benchmarks/results/*-harden4.json`.

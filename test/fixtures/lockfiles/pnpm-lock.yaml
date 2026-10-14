@@ -13,6 +13,8 @@ importers:
 packages:
   'lodash@4.17.11':
     resolution: { integrity: sha512-fixture }
+    dependencies:
+      minimist: 1.2.0
 
   '@scope/pkg@1.2.3':
     resolution: { integrity: sha512-fixture }

@@ -44,6 +44,11 @@ export interface LockfileGraph {
   edges: Map<string, Set<string>>;
   directProd: Set<string>;
   directDev: Set<string>;
+  /**
+   * False when this lockfile format has no parsed dependency links.
+   * Callers must not treat missing paths as `not-imported`.
+   */
+  edgesKnown: boolean;
 }
 
 function objectKeys(value: unknown): string[] {
@@ -108,49 +113,168 @@ function yarnNameFromKey(key: string): string | undefined {
   return at === -1 ? first : first.slice(0, at);
 }
 
-function parseYarnLock(contents: string): LockedPackage[] {
-  const out: LockedPackage[] = [];
-  let currentKey: string | undefined;
+function parseYarnGraph(contents: string): Omit<LockfileGraph, 'directProd' | 'directDev'> & {
+  directProd: Set<string>;
+  directDev: Set<string>;
+} {
+  const packages: LockedPackage[] = [];
+  const edges = new Map<string, Set<string>>();
+  let currentName: string | undefined;
+  let inDeps = false;
   for (const raw of contents.split(/\r?\n/)) {
-    if (raw.startsWith('#') || raw.trim() === '') continue;
-    if (!raw.startsWith(' ') && raw.endsWith(':')) {
-      currentKey = raw.slice(0, -1).trim();
+    if (raw.startsWith('#')) continue;
+    if (raw.trim() === '') {
+      inDeps = false;
       continue;
     }
-    const versionMatch = /^\s+version\s+"([^"]+)"/.exec(raw);
-    if (versionMatch?.[1] !== undefined && currentKey !== undefined) {
-      const name = yarnNameFromKey(currentKey);
-      if (name !== undefined) {
-        out.push({ name, version: versionMatch[1], path: `yarn:${name}` });
+    if (!raw.startsWith(' ') && raw.trimEnd().endsWith(':')) {
+      currentName = yarnNameFromKey(raw.slice(0, -1).trim());
+      inDeps = false;
+      continue;
+    }
+    const versionClassic = /^\s+version\s+"([^"]+)"/.exec(raw);
+    const versionBerry = /^\s+version:\s+["']?([^"'\s]+)["']?/.exec(raw);
+    const ver = versionClassic?.[1] ?? versionBerry?.[1];
+    if (ver !== undefined && currentName !== undefined && !inDeps) {
+      packages.push({ name: currentName, version: ver, path: `yarn:${currentName}` });
+      continue;
+    }
+    if (/^\s+dependencies:\s*$/.test(raw)) {
+      inDeps = true;
+      continue;
+    }
+    if (inDeps && currentName !== undefined) {
+      const depClassic = /^\s{4}(?:"([^"]+)"|(@?[^\s]+))\s+"[^"]+"/.exec(raw);
+      const depBerry = /^\s{4}(?:"([^"]+)"|(@?[\w./-]+)):/.exec(raw);
+      const depName = depClassic?.[1] ?? depClassic?.[2] ?? depBerry?.[1] ?? depBerry?.[2];
+      if (depName !== undefined) {
+        addEdge(edges, currentName, depName);
+        continue;
       }
-      currentKey = undefined;
+      if (/^\s{2}\S/.test(raw)) inDeps = false;
     }
   }
-  return dedupe(out);
+  return {
+    packages: dedupe(packages),
+    edges,
+    directProd: new Set<string>(),
+    directDev: new Set<string>(),
+    edgesKnown: true,
+  };
 }
 
 const PNPM_KEY =
   /^ {2}['"]?(?:\/)?(@?[^'"@\s/]+(?:\/[^'"@\s/]+)?)@([^'"(\s:]+)(?:\([^)]*\))?['"]?:\s*$/;
 
-function parsePnpmLock(contents: string): LockedPackage[] {
-  const out: LockedPackage[] = [];
-  let inPackages = false;
+function pnpmNameFromKey(key: string): string | undefined {
+  let k = key.trim().replace(/^['"]|['"]$/g, '').replace(/^\//, '');
+  k = k.replace(/\([^)]*\)$/, '');
+  if (k.startsWith('@')) {
+    const match = /^(@[^@/]+\/[^@/]+)@/.exec(k);
+    return match?.[1];
+  }
+  const at = k.indexOf('@');
+  return at <= 0 ? k : k.slice(0, at);
+}
+
+function pnpmVersionFromKey(key: string): string | undefined {
+  let k = key.trim().replace(/^['"]|['"]$/g, '').replace(/^\//, '');
+  k = k.replace(/\([^)]*\)$/, '');
+  if (k.startsWith('@')) {
+    const match = /^@[^@/]+\/[^@/]+@([^(\s]+)/.exec(k);
+    return match?.[1];
+  }
+  const at = k.indexOf('@');
+  return at <= 0 ? undefined : k.slice(at + 1);
+}
+
+function parsePnpmGraph(contents: string): LockfileGraph {
+  const packages: LockedPackage[] = [];
+  const edges = new Map<string, Set<string>>();
+  const directProd = new Set<string>();
+  const directDev = new Set<string>();
+  let section: 'none' | 'importers' | 'packages' = 'none';
+  let importerField: 'prod' | 'dev' | undefined;
+  let currentPkg: string | undefined;
+  let inPkgDeps = false;
+
   for (const raw of contents.split(/\r?\n/)) {
+    if (/^importers:\s*$/.test(raw)) {
+      section = 'importers';
+      continue;
+    }
     if (/^packages:\s*$/.test(raw)) {
-      inPackages = true;
+      section = 'packages';
+      currentPkg = undefined;
+      inPkgDeps = false;
       continue;
     }
-    if (inPackages && raw.length > 0 && !raw.startsWith(' ') && !raw.startsWith('\t')) {
-      inPackages = /^packages:\s*$/.test(raw);
+    if (raw.length > 0 && !raw.startsWith(' ') && !raw.startsWith('\t')) {
+      if (!/^importers:\s*$/.test(raw) && !/^packages:\s*$/.test(raw)) section = 'none';
       continue;
     }
-    if (!inPackages) continue;
-    const match = PNPM_KEY.exec(raw);
-    if (match?.[1] !== undefined && match[2] !== undefined) {
-      out.push({ name: match[1], version: match[2], path: `pnpm:${match[1]}` });
+
+    if (section === 'importers') {
+      if (/^    dependencies:\s*$/.test(raw)) {
+        importerField = 'prod';
+        continue;
+      }
+      if (/^    devDependencies:\s*$/.test(raw)) {
+        importerField = 'dev';
+        continue;
+      }
+      const depName = /^      (?:'([^']+)'|"([^"]+)"|([^:]+)):/.exec(raw);
+      const name = depName?.[1] ?? depName?.[2] ?? depName?.[3];
+      if (name !== undefined && importerField !== undefined) {
+        if (importerField === 'prod') directProd.add(name);
+        else directDev.add(name);
+      }
+      continue;
+    }
+
+    if (section === 'packages') {
+      const keyLine = /^ {2}['"]?(.+?)['"]?:\s*$/.exec(raw);
+      if (keyLine?.[1] !== undefined && !raw.startsWith('    ')) {
+        currentPkg = pnpmNameFromKey(keyLine[1]);
+        const ver = pnpmVersionFromKey(keyLine[1]);
+        if (currentPkg !== undefined && ver !== undefined) {
+          packages.push({ name: currentPkg, version: ver, path: `pnpm:${currentPkg}` });
+        }
+        inPkgDeps = false;
+        continue;
+      }
+      if (/^    dependencies:\s*$/.test(raw)) {
+        inPkgDeps = true;
+        continue;
+      }
+      if (inPkgDeps && currentPkg !== undefined) {
+        const dep = /^      (?:'([^']+)'|"([^"]+)"|([^:]+)):/.exec(raw);
+        const depName = dep?.[1] ?? dep?.[2] ?? dep?.[3];
+        if (depName !== undefined) {
+          addEdge(edges, currentPkg, depName);
+          continue;
+        }
+        if (/^    \S/.test(raw)) inPkgDeps = false;
+      }
     }
   }
-  return dedupe(out);
+
+  if (packages.length === 0) {
+    for (const raw of contents.split(/\r?\n/)) {
+      const match = PNPM_KEY.exec(raw);
+      if (match?.[1] !== undefined && match[2] !== undefined) {
+        packages.push({ name: match[1], version: match[2], path: `pnpm:${match[1]}` });
+      }
+    }
+  }
+
+  return {
+    packages: dedupe(packages),
+    edges,
+    directProd,
+    directDev,
+    edgesKnown: true,
+  };
 }
 
 /** Parse an npm / yarn / pnpm lockfile into `{name, version, path}` entries. */
@@ -189,17 +313,18 @@ function graphFromDependenciesTree(
   }
 }
 
-/** Packages plus the dependency graph (npm lockfiles). Yarn/pnpm have no edges. */
+/** Packages plus the dependency graph. Yarn/pnpm include real edges when listed. */
 export function parseLockfileGraph(filename: string, contents: string): LockfileGraph {
   const name = basename(filename);
-  const empty = {
-    packages: [] as LockedPackage[],
-    edges: new Map<string, Set<string>>(),
-    directProd: new Set<string>(),
-    directDev: new Set<string>(),
+  const empty: LockfileGraph = {
+    packages: [],
+    edges: new Map(),
+    directProd: new Set(),
+    directDev: new Set(),
+    edgesKnown: false,
   };
-  if (name === 'yarn.lock') return { ...empty, packages: parseYarnLock(contents) };
-  if (name === 'pnpm-lock.yaml') return { ...empty, packages: parsePnpmLock(contents) };
+  if (name === 'yarn.lock') return parseYarnGraph(contents);
+  if (name === 'pnpm-lock.yaml') return parsePnpmGraph(contents);
   if (name !== 'package-lock.json') return empty;
 
   try {
@@ -209,7 +334,7 @@ export function parseLockfileGraph(filename: string, contents: string): Lockfile
     };
     if (json.packages !== undefined && typeof json.packages === 'object') {
       const meta = graphFromPackagesTable(json.packages);
-      return { packages: fromPackagesTable(json.packages), ...meta };
+      return { packages: fromPackagesTable(json.packages), ...meta, edgesKnown: true };
     }
     if (json.dependencies !== undefined && typeof json.dependencies === 'object') {
       const edges = new Map<string, Set<string>>();
@@ -219,6 +344,7 @@ export function parseLockfileGraph(filename: string, contents: string): Lockfile
         edges,
         directProd: new Set(Object.keys(json.dependencies)),
         directDev: new Set<string>(),
+        edgesKnown: true,
       };
     }
   } catch {

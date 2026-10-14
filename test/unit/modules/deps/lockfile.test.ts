@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { parseLockfile } from '../../../../src/modules/deps/lockfile.js';
+import { parseLockfile, parseLockfileGraph } from '../../../../src/modules/deps/lockfile.js';
 
 const fixtures = join(process.cwd(), 'test', 'fixtures', 'lockfiles');
 
@@ -33,6 +33,12 @@ describe('parseLockfile (yarn classic)', () => {
     const keys = packages.map((p) => `${p.name}@${p.version}`).sort();
     expect(keys).toEqual(['@scope/pkg@1.2.3', 'lodash@4.17.11', 'minimist@1.2.0']);
   });
+
+  it('builds real dependency edges and marks them known', () => {
+    const graph = parseLockfileGraph('yarn.lock', read('yarn.lock'));
+    expect(graph.edgesKnown).toBe(true);
+    expect([...graph.edges.get('lodash') ?? []]).toContain('minimist');
+  });
 });
 
 describe('parseLockfile (pnpm)', () => {
@@ -40,6 +46,13 @@ describe('parseLockfile (pnpm)', () => {
     const packages = parseLockfile('pnpm-lock.yaml', read('pnpm-lock.yaml'));
     const keys = packages.map((p) => `${p.name}@${p.version}`).sort();
     expect(keys).toEqual(['@scope/pkg@1.2.3', 'lodash@4.17.11', 'minimist@1.2.0']);
+  });
+
+  it('builds real dependency edges from packages and importers', () => {
+    const graph = parseLockfileGraph('pnpm-lock.yaml', read('pnpm-lock.yaml'));
+    expect(graph.edgesKnown).toBe(true);
+    expect(graph.directProd.has('lodash')).toBe(true);
+    expect([...graph.edges.get('lodash') ?? []]).toContain('minimist');
   });
 });
 
@@ -75,6 +88,12 @@ describe('parseLockfile (unknown)', () => {
   it('returns an empty list for unknown lockfile names', () => {
     const packages = parseLockfile('Cargo.lock', '');
     expect(packages).toEqual([]);
+  });
+
+  it('does not claim edges are known for an unrecognized lockfile', () => {
+    const graph = parseLockfileGraph('Cargo.lock', '');
+    expect(graph.edgesKnown).toBe(false);
+    expect(graph.packages).toEqual([]);
   });
 });
 

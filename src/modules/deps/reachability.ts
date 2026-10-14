@@ -141,12 +141,16 @@ export function classifyReachability(
   if (hit?.imported === true) {
     return { reachability: hit.called ? 'reachable' : 'imported-not-called' };
   }
-  if (graph !== undefined) {
+  if (graph !== undefined && graph.edgesKnown) {
     const roots = importedDirectNames(productionUsage, graph);
     const path = shortestDependencyPath(pkgName, roots, graph.edges);
     if (path !== undefined && path.length >= 2) {
       return { reachability: 'reachable-via-dependency', path };
     }
+    return { reachability: 'not-imported' };
+  }
+  if (graph !== undefined && !graph.edgesKnown) {
+    return { reachability: 'reachability-unknown' };
   }
   return { reachability: 'not-imported' };
 }
@@ -156,7 +160,13 @@ export function classifyReachability(
  * imports loads this package. imported-not-called is −1; not-imported is −2.
  */
 export function reachabilitySteps(reachability: Reachability): number {
-  if (reachability === 'reachable' || reachability === 'reachable-via-dependency') return 0;
+  if (
+    reachability === 'reachable' ||
+    reachability === 'reachable-via-dependency' ||
+    reachability === 'reachability-unknown'
+  ) {
+    return 0;
+  }
   if (reachability === 'imported-not-called') return 1;
   return 2;
 }
@@ -168,7 +178,10 @@ export function downgradeSeverity(severity: Severity, steps: number): Severity {
 
 function isDevOnly(pkgName: string, ctx: ReachabilityContext): boolean {
   if (ctx.productionUsage.get(pkgName)?.imported === true) return false;
-  const { directProd, directDev, edges } = ctx.graph;
+  const { directProd, directDev, edges, edgesKnown } = ctx.graph;
+  if (!edgesKnown) {
+    return directDev.has(pkgName) && !directProd.has(pkgName);
+  }
   const inProd = reachableFrom(pkgName, directProd, edges);
   if (inProd) return false;
   return directDev.has(pkgName) || reachableFrom(pkgName, directDev, edges);

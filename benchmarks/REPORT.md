@@ -222,3 +222,11 @@ False-positive change vs Phase 13: **none** (same finding set; severities of rea
 ### After Phases 14–16
 
 AI is opt-in and fixture-only in CI. Default `scan` of NodeGoat/DVNA does not call a model and does not add `source: ai` findings. NodeGoat 373 / DVNA 19 unchanged vs harden-3. High+critical remains **59** (honest harden-3 correction).
+
+### After harden-4
+
+Yarn and pnpm lockfiles now parse real dependency edges. Formats without parsed edges stay `reachability-unknown` (severity kept) instead of being downgraded as `not-imported`.
+
+**NodeGoat 373 / high+critical 59 unchanged** (npm `package-lock.json`, same 320 OSV hits: reachable 12, imported-not-called 4, reachable-via-dependency 84, not-imported 220). **DVNA 19 unchanged** (no lockfile). JSON: `results/*-harden4.json`.
+
+Live Ollama smoke (not this default scan) is in [`AI-REPORT.md`](AI-REPORT.md).
