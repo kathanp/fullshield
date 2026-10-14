@@ -287,4 +287,17 @@ Threat-model / incremental / dashboard are experimental and do not change defaul
 
 Compliance mapping and IaC are experimental CLI (`report --compliance`, `fullshield iac`) and are not part of default `scan`. Default NodeGoat/DVNA findings unchanged vs Phase 22.
 
-**NodeGoat 373 / high+critical 60. DVNA 19 unchanged.** JSON: `results/*-phase23.json` (same class as phase22 until the post-24 rescan).
+**NodeGoat 373 / high+critical 60. DVNA 19 unchanged.** JSON: `results/*-phase22.json` (re-scanned as phase24; default `scan` does not run IaC).
+
+### After Phase 24
+
+The remediation agent is experimental CLI (localhost mock GitHub + local bare repo only) and does not change default `scan` findings.
+
+**Re-scan 2026-10-14** (`node dist/cli/index.js scan --json --offline`):
+
+| App | Findings | high+critical | Notes | JSON |
+|---|---|---|---|---|
+| NodeGoat | **373** | **60** (critical 11, high 49) | Extra critical vs pre-harden-6: `DEPS-MALICIOUS-001` `fsevents@1.2.9` (`950580ae0d3a3929`, OSV `MAL-2023-462`). `DEPS-VULN-001` 319 (one reclassified). | `results/nodegoat-phase24.json` |
+| DVNA | **19** | **14** (critical 3, high 11) | Unchanged vs Phase 22. | `results/dvna-phase24.json` |
+
+Default scan still does not run experimental LLM / IaC / agent / confirm. RASP corpus unchanged: attack **173/181 (95.6%)**, benign **0/621**.

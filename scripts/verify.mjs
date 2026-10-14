@@ -941,6 +941,22 @@ s.listen(0, '127.0.0.1', () => {
     }
     console.log('  ✔ compliance disclaimer; RULE_MAP; IaC positive/negative; experimental fail-closed');
   },
+  // Phase 24 (spec §20.8 / §22): agent opens a PR against a mock API + local bare repo.
+  24: async () => {
+    const agent = await import(pathToFileURL(join(root, 'dist', 'agent.js')).href);
+    try {
+      agent.assertLocalAgentApi('https://api.github.com');
+      fail('phase 24 acceptance: agent allowed api.github.com');
+    } catch {
+      // expected
+    }
+    if (agent.assertLocalAgentApi('http://127.0.0.1:9') !== true) {
+      fail('phase 24 acceptance: 127.0.0.1 API should be allowed');
+    }
+    const skipped = await agent.runAgent({ cwd: join(root, 'test', 'fixtures', 'clean-app'), apiBase: 'http://127.0.0.1:9' });
+    if (skipped.skipped !== true) fail('phase 24 acceptance: agent ran without experimental');
+    console.log('  ✔ agent localhost-only API; experimental fail-closed; never real GitHub');
+  },
 };
 
 if (phase !== null) {

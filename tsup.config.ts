@@ -21,6 +21,7 @@ export default defineConfig({
     workspaces: 'src/workspaces/index.ts',
     compliance: 'src/compliance/index.ts',
     iac: 'src/iac/index.ts',
+    agent: 'src/agent/index.ts',
   },
   format: ['esm'],
   platform: 'node',

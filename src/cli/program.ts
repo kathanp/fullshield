@@ -541,6 +541,32 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     });
 
   program
+    .command('agent')
+    .description('Experimental remediation agent (FULLSHIELD_EXPERIMENTAL_AGENT=1). Mock/localhost API + local git only.')
+    .argument('[path]', 'project directory', '.')
+    .option('--max-prs <n>', 'maximum pull requests to open', '3')
+    .action(async (path: string, opts: { maxPrs?: string }) => {
+      try {
+        if (process.env.FULLSHIELD_EXPERIMENTAL_AGENT !== '1') {
+          throw new Error('agent requires FULLSHIELD_EXPERIMENTAL_AGENT=1');
+        }
+        const { runAgent } = await import('../agent/index.js');
+        const result = await runAgent({
+          cwd: resolve(path),
+          experimental: true,
+          maxPrs: Number(opts.maxPrs ?? 3),
+          apiBase: process.env.FULLSHIELD_AGENT_API,
+          repo: process.env.FULLSHIELD_AGENT_REPO,
+          token: process.env.FULLSHIELD_AGENT_TOKEN,
+        });
+        io.out(JSON.stringify({ prs: result.prs, stoppedOnTestFailure: result.stoppedOnTestFailure, merged: result.merged }));
+      } catch (error) {
+        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 2;
+      }
+    });
+
+  program
     .command('honey')
     .description('Experimental honeytokens (requires FULLSHIELD_EXPERIMENTAL_HONEY=1)')
     .command('init')

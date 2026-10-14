@@ -18,6 +18,7 @@ All notable changes to FullShield are documented here.
 
 ### Frontier (experimental)
 
+- **Phase 24:** remediation agent (`FULLSHIELD_EXPERIMENTAL_AGENT=1`). Opens PRs via a localhost mock API against a local bare repo only. Never merges, never pushes to protected branches, stops on test failure.
 - **Phase 23:** compliance mapping (OWASP/CWE/ASVS/PCI; every report says not a certification or audit) and light IaC (`FULLSHIELD_EXPERIMENTAL_COMPLIANCE=1` / `FULLSHIELD_EXPERIMENTAL_IAC=1`).
 - **Phase 22:** threat-model, incremental `--changed`/`--since`, workspaces, local dashboard (`FULLSHIELD_EXPERIMENTAL_PLATFORM=1`). Dashboard binds 127.0.0.1 and validates Host.
 - **Phase 21:** MCP server (`FULLSHIELD_EXPERIMENTAL_MCP=1`, read-only; `propose_fix` returns diffs only) and LLM-app rules `LLM-001`–`LLM-005` (`FULLSHIELD_EXPERIMENTAL_LLM=1`).

@@ -615,3 +615,13 @@ MCP: official `@modelcontextprotocol/sdk` (`fullshield mcp --stdio`). SDK client
 Shared `/g` secret regexes now reset `lastIndex` per line (`everyMatch`) so extra compliance scans cannot poison later files. Vitest forks capped at 4 so RASP p95 and coverage do not starve each other.
 
 **Re-scan:** deferred to the post-Phase-24 NodeGoat/DVNA pass (default `scan` does not run IaC). Expected still 373 / high+crit 60 from `DEPS-MALICIOUS-001` on `fsevents@1.2.9`.
+
+## Phase 24 — remediation agent
+
+**Tests: 407** (was 401).
+
+`fullshield agent --max-prs 3` requires `FULLSHIELD_EXPERIMENTAL_AGENT=1`. Picks highest-severity findings with **safe** rule-based fixes, applies at most N files per PR, runs project tests, opens a PR via a **127.0.0.1/localhost** API only (refuses `api.github.com` and any non-loopback host). Git push is to a local bare remote on `fullshield/agent-*` branches. Never merges. Never pushes `main`/`master`/`develop`. Stops the whole run on the first test failure.
+
+**Re-scan:** NodeGoat 373 / high+critical **60** (`DEPS-MALICIOUS-001` `fsevents@1.2.9`). DVNA 19 / high+crit 14. JSON: `benchmarks/results/*-phase24.json`. Live Ollama 768s, exit 0 — see `benchmarks/AI-REPORT.md` (still not good enough to advertise).
+
+**MANDATORY STOP after Phase 24.** Do not start a next phase. Nothing pushed. Nothing published.

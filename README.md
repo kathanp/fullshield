@@ -23,6 +23,13 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 | Live app-layer attacks | `runtime` (`fullshield/runtime/express` or `/fastify`); **experimental** RASP sink hooks via `--import fullshield/runtime/register` |
 | Edge/DDoS layer | `edge` checks that a CDN/WAF **exists** (headers only). Actual DDoS mitigation is the CDN. |
 | AI assist (opt-in, **experimental**) | `scan --ai explain` and `fix --ai` only. Off by default: zero AI network calls. Explain never shows a verdict. Triage and logic hunter are not shipped. |
+| LLM-app code (opt-in, **experimental**) | `LLM-001`–`LLM-005` (`FULLSHIELD_EXPERIMENTAL_LLM=1`). Phrase/AST heuristics, not a jailbreak defense. |
+| Supply-chain install (opt-in, **experimental**) | `fullshield install` — static only; never executes packages. |
+| Exploit confirm (opt-in, **experimental**) | `fullshield confirm` — localhost / 127.0.0.1 / FullShield-started container only. |
+| Editor MCP (opt-in, **experimental**) | `fullshield mcp --stdio` — read-only; `propose_fix` returns diffs, never writes. |
+| Threat model / dashboard (opt-in, **experimental**) | STRIDE+Mermaid sketch; dashboard binds 127.0.0.1 and locks `Host`. |
+| Compliance / IaC (opt-in, **experimental**) | Mapping is **not a certification or audit**. IaC is ~10 high-value rules, not a full IaC scanner. |
+| Remediation agent (opt-in, **experimental**) | Localhost mock GitHub API + local git only. Never merges, never pushes to `main`/`master`. |
 
 ## What it detects (Core)
 
@@ -40,6 +47,14 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 - Cross-file taint follows `require`/`import` and method calls up to 5 hops and records a `trace` (also SARIF `codeFlows`). Nested closures and some dynamic dispatch are still missed.
 - Runtime v1 is **signature-based** (payload regex + rate limit + body-size guard). It is a **stopgap**. Prefer **`mode: 'monitor'`** in production until you have measured false-positive rate. Sink-hooking RASP is **experimental** (off by default; see below).
 - Only scan hosts and repos you own or are authorized to test.
+- **Experimental features are off by default and are not product claims:**
+  - RASP / virtual patches / honeytokens / threat auto-block: fail-open hooks; decoy-route hits are low and never auto-block; auto-block is opt-in (shared-IP / NAT risk).
+  - `install` / supply-chain: static heuristics only; never a substitute for `npm audit` policy or a malware sandbox.
+  - `confirm`: harmless canaries on localhost only; fail-open (`unconfirmed` is not a pass).
+  - MCP / LLM-app rules: editor glue and shallow AST/phrase checks. Not a prompt-injection or tool-abuse guarantee.
+  - Threat-model / incremental / dashboard: a route sketch and a local history UI. Not a STRIDE workshop or a hosted SOC.
+  - `report --compliance` / `iac`: evidence-style mapping and a short IaC ruleset. **Not a certification or audit.**
+  - `agent`: opens PRs against a **mock/localhost API and a local git remote**. It never talks to real GitHub, never merges, never pushes to protected branches.
 
 ## Quick start
 
@@ -91,6 +106,7 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | `report --serve` | **Experimental** local dashboard (`FULLSHIELD_EXPERIMENTAL_PLATFORM=1`). Binds **127.0.0.1 only** and rejects any `Host` other than localhost/127.0.0.1 (DNS rebinding). No state-changing GET. |
 | `report --compliance pci` | **Experimental** evidence-style mapping (`FULLSHIELD_EXPERIMENTAL_COMPLIANCE=1`). **Not a certification or audit.** |
 | `iac` | **Experimental** light IaC (`FULLSHIELD_EXPERIMENTAL_IAC=1`): GHA, Terraform, Kubernetes, docker-compose. Not a full IaC scanner. |
+| `agent` | **Experimental** remediation agent (`FULLSHIELD_EXPERIMENTAL_AGENT=1`). Mock/localhost GitHub API + local git remote only — never a real network. Never merges, never pushes to `main`/`master`. `--max-prs` (default 3). |
 | `scan --changed` / `--since` | **Experimental** incremental scan (`FULLSHIELD_EXPERIMENTAL_PLATFORM=1`). |
 
 Inline ignore (reason required): `// fullshield-ignore SAST-SQLI-001: reviewed`

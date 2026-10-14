@@ -86,3 +86,34 @@ The Phase 14–16 code called the provider and then applied `fixtureTriage` / `f
 ## Takeaway
 
 The AI layer is now a working local-model path, and it is **not** good enough to advertise. Mark `--ai` experimental. Do not quote fixture “precision 1.00” as model quality.
+
+---
+
+## Phase 24 re-run (2026-10-14)
+
+Same command: `npm run test:live-ai`. Same model `qwen2.5-coder:7b` at `http://127.0.0.1:11434`. Wall clock **768s**. Exit 0. Raw job JSON: [`ai-live-raw.json`](ai-live-raw.json) (NodeGoat `fix --ai` PEM diff redacted again before commit).
+
+### Time per job
+
+| Job | Time | Outcome |
+|---|---|---|
+| vulnerable-app `--ai triage` | 190.3s | 8/34 labeled: 3 TP / 3 LFP / 2 needs-review |
+| vulnerable-app `--ai explain` | 101.5s | 8/34 explained |
+| vulnerable-app `--ai logic` | 41.0s | +2 `source:ai` (`AI-IDOR-001`, `AI-MASSASSIGN-001`) |
+| vulnerable-app `fix --ai` | 4.9s | **no accepted patch** (2 attempts, targeted `.env`) |
+| NodeGoat `--ai triage` | 190.8s | 8/14 labeled: 1 TP / 3 LFP / 4 needs-review |
+| NodeGoat `--ai explain` | 179.4s | 8/14 explained |
+| NodeGoat `--ai logic` | 33.1s | **0** logic findings |
+| NodeGoat `fix --ai` | 24.0s | **no accepted patch** (2 attempts; proposed deleting `server.key`) |
+
+### Honest call vs harden-4
+
+vulnerable-app triage still misses true positives (`SECRET-ENVFILE-001` LFP, `CONFIG-DOCKER-ENV-001` LFP, cross-file `SAST-SQLI-001` LFP because it claimed parameterized queries). 3/8 TP is **worse than** the harden-4 4/8 on this budget.
+
+NodeGoat triage improved slightly: `SAST-NOSQLI-001` is now TP (was LFP). The three `eval` hits are still LFP (model believed a comment “fixed” them). Privkey / redirect / SSRF / err.stack are needs-review. **1/8 TP.** Still not a reliable triage layer.
+
+Logic hunter: same two wrong-class hits on vulnerable-app; NodeGoat still **misses** the known A4 IDOR.
+
+`fix --ai`: verify loop still rejects both targets. Trees untouched.
+
+**Unchanged takeaway:** live Ollama is a working path and is **not** good enough to advertise. `--ai` stays experimental.

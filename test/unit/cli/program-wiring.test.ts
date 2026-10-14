@@ -343,6 +343,19 @@ describe('CLI wiring (in-process)', () => {
     }
   });
 
+  it('agent refuses without FULLSHIELD_EXPERIMENTAL_AGENT', async () => {
+    const prev = process.env.FULLSHIELD_EXPERIMENTAL_AGENT;
+    delete process.env.FULLSHIELD_EXPERIMENTAL_AGENT;
+    try {
+      const { err } = await runCli(['agent', cleanApp, '--max-prs', '1']);
+      expect(err).toMatch(/FULLSHIELD_EXPERIMENTAL_AGENT/);
+      expect(process.exitCode).toBe(2);
+    } finally {
+      if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_AGENT;
+      else process.env.FULLSHIELD_EXPERIMENTAL_AGENT = prev;
+    }
+  });
+
   it('iac refuses without FULLSHIELD_EXPERIMENTAL_IAC', async () => {
     const prev = process.env.FULLSHIELD_EXPERIMENTAL_IAC;
     delete process.env.FULLSHIELD_EXPERIMENTAL_IAC;
