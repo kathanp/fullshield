@@ -46,6 +46,7 @@ export async function runInit(options: InitOptions): Promise<InitResult> {
   const files: Array<[string, string]> = [
     ['fullshield.config.json', join(templates, 'fullshield.config.json')],
     ['.github/workflows/fullshield.yml', join(templates, 'github-workflow.yml')],
+    ['.github/workflows/fullshield-watch.yml', join(templates, 'github-watch.yml')],
     ['.gitlab-ci.yml', join(templates, 'gitlab-ci.yml')],
     ['.fullshield/pre-commit.sh', join(templates, 'pre-commit.sh')],
   ];

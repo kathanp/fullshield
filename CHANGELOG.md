@@ -2,6 +2,11 @@
 
 All notable changes to FullShield are documented here.
 
+## Unreleased — phase-11
+
+- `fullshield watch` rescans dependencies and alerts only on new OSV findings vs last scan.
+- `init` writes `.github/workflows/fullshield-watch.yml` (daily cron).
+
 ## Unreleased — harden-3
 
 - Transitive OSV hits on a lockfile path from an imported direct dependency are `reachable-via-dependency` (severity kept; path recorded). `not-imported` (−2) only when no such path exists.

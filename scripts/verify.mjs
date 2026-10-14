@@ -520,11 +520,11 @@ const acceptanceCriteria = {
       `  ✔ unreachable vulnerable deps downgraded (${unused.length} not-imported; lodash stays critical)`,
     );
 
-    const tmp = join(root, '.fullshield-verify-phase13');
-    rmSync(tmp, { recursive: true, force: true });
-    mkdirSync(tmp, { recursive: true });
+    const tmp13 = join(root, '.fullshield-verify-phase13');
+    rmSync(tmp13, { recursive: true, force: true });
+    mkdirSync(tmp13, { recursive: true });
     try {
-      const out = join(tmp, 'bom.json');
+      const out = join(tmp13, 'bom.json');
       const sbom = spawnSync(
         process.execPath,
         [join(root, 'dist', 'cli', 'index.js'), 'sbom', vulnerableApp, '--format', 'cyclonedx', '--out', out],
@@ -539,6 +539,60 @@ const acceptanceCriteria = {
         fail('phase 13 acceptance: SBOM is not CycloneDX 1.5');
       }
       console.log('  ✔ SBOM validates against CycloneDX 1.5');
+    } finally {
+      rmSync(tmp13, { recursive: true, force: true });
+    }
+  },
+  // Phase 11 (spec §9): daily watch workflow; second run with no changes sends no alert.
+  11: () => {
+    const tmp = join(root, '.fullshield-verify-phase11');
+    rmSync(tmp, { recursive: true, force: true });
+    mkdirSync(tmp, { recursive: true });
+    try {
+      const cli = join(root, 'dist', 'cli', 'index.js');
+      const init = spawnSync(process.execPath, [cli, 'init', tmp], { cwd: root, encoding: 'utf8' });
+      if (init.status !== 0) fail(`phase 11 acceptance: init exited ${init.status}: ${init.stderr}`);
+      const watchYml = readFileSync(join(tmp, '.github', 'workflows', 'fullshield-watch.yml'), 'utf8');
+      for (const needle of ['schedule:', 'cron:', 'fullshield watch']) {
+        if (!watchYml.includes(needle)) fail(`phase 11 acceptance: watch workflow missing ${needle}`);
+      }
+      if (/^\t/m.test(watchYml)) fail('phase 11 acceptance: watch workflow contains tabs');
+      console.log('  ✔ init writes a daily GitHub Action for fullshield watch');
+
+      const app = join(tmp, 'app');
+      mkdirSync(app, { recursive: true });
+      writeFileSync(join(app, 'package.json'), JSON.stringify({ name: 'w', private: true, dependencies: { lodash: '4.17.11' } }));
+      writeFileSync(
+        join(app, 'package-lock.json'),
+        JSON.stringify({
+          name: 'w',
+          lockfileVersion: 3,
+          packages: {
+            '': { dependencies: { lodash: '4.17.11' } },
+            'node_modules/lodash': { version: '4.17.11' },
+          },
+        }),
+      );
+      writeFileSync(
+        join(app, 'fullshield.config.json'),
+        JSON.stringify({ deps: { offline: true, cacheDir: join(vulnerableApp, 'osv-cache') } }),
+      );
+      writeFileSync(join(app, 'index.js'), "const lodash = require('lodash');\nlodash.get({}, 'x');\n");
+      const first = spawnSync(process.execPath, [cli, 'watch', app, '--offline'], {
+        cwd: root,
+        encoding: 'utf8',
+      });
+      if (!/new/i.test(first.stdout)) {
+        fail(`phase 11 acceptance: first watch should report new vulns: ${first.stdout}`);
+      }
+      const second = spawnSync(process.execPath, [cli, 'watch', app, '--offline'], {
+        cwd: root,
+        encoding: 'utf8',
+      });
+      if (!/no new/i.test(second.stdout)) {
+        fail(`phase 11 acceptance: second watch should send no alert: ${second.stdout}`);
+      }
+      console.log('  ✔ second watch with no changes reports no new vulnerabilities');
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }

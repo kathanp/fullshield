@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { ScanResult } from './engine.js';
@@ -14,6 +14,7 @@ export async function writeLastScan(cwd: string, result: ScanResult): Promise<vo
         summary: result.summary,
         metadata: result.metadata,
         findings: result.findings.map((f) => ({
+          id: f.id,
           ruleId: f.ruleId,
           severity: f.severity,
           file: f.file,
@@ -27,4 +28,19 @@ export async function writeLastScan(cwd: string, result: ScanResult): Promise<vo
     ),
     'utf8',
   );
+}
+
+export async function readLastScanIds(cwd: string): Promise<Set<string>> {
+  try {
+    const raw = JSON.parse(await readFile(join(cwd, '.fullshield', 'last-scan.json'), 'utf8')) as {
+      findings?: Array<{ id?: string; ruleId?: string; snippet?: string }>;
+    };
+    const ids = new Set<string>();
+    for (const f of raw.findings ?? []) {
+      if (typeof f.id === 'string' && f.id.length > 0) ids.add(f.id);
+    }
+    return ids;
+  } catch {
+    return new Set();
+  }
 }

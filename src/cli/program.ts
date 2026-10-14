@@ -4,7 +4,8 @@ import { resolve } from 'node:path';
 import { Command } from 'commander';
 
 import { scan } from '../core/engine.js';
-import { writeLastScan } from '../core/lastScan.js';
+import { readLastScanIds, writeLastScan } from '../core/lastScan.js';
+import { diffNewFindings } from '../core/watch.js';
 import { runFix } from '../fixer/index.js';
 import { runInit } from './commands/init.js';
 import { formatSummary, loadLastScan, notifyEmail, notifySlack, notifyWebhook } from '../notifiers/index.js';
@@ -254,6 +255,49 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         } else {
           io.out(json);
         }
+      } catch (error) {
+        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('watch')
+    .description('Rescan dependencies and alert only on NEW vulnerabilities')
+    .argument('[path]', 'project directory', '.')
+    .option('--offline', 'use the OSV cache only (no network)')
+    .option('--webhook <url>', 'POST only when there are new findings')
+    .option('--fail-on <severity>', 'exit 1 if a new finding is at or above this severity')
+    .action(async (path: string, opts: { offline?: boolean; webhook?: string; failOn?: string }) => {
+      try {
+        const cwd = resolve(path);
+        const failOn = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;
+        const previous = await readLastScanIds(cwd);
+        const result = await scan({
+          cwd,
+          modules: ['deps'],
+          offline: opts.offline === true,
+        });
+        const fresh = diffNewFindings(
+          result.findings.filter((f) => f.ruleId === 'DEPS-VULN-001'),
+          previous,
+        );
+        await writeLastScan(cwd, result);
+        if (fresh.length === 0) {
+          io.out('No new vulnerabilities.');
+          return;
+        }
+        io.out(`${fresh.length} new vulnerabilit${fresh.length === 1 ? 'y' : 'ies'}.`);
+        if (opts.webhook !== undefined) {
+          await notifyWebhook(opts.webhook, {
+            total: fresh.length,
+            bySeverity: result.summary.bySeverity,
+            version: result.metadata.version,
+            cwd,
+          });
+        }
+        const gate = failOn ?? result.config.failOn;
+        if (fresh.some((f) => meetsThreshold(f.severity, gate))) process.exitCode = 1;
       } catch (error) {
         io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
         process.exitCode = 2;

@@ -17,7 +17,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 | Layer | Covered by |
 |---|---|
 | Code vulnerabilities | `sast` (intra-function + cross-file taint, depth 5) |
-| Dependencies (now + new CVEs later) | `deps` (OSV + **reachability**) |
+| Dependencies (now + new CVEs later) | `deps` (OSV + **reachability**) + `watch` |
 | Secrets | `secrets` + `scan --staged` / pre-commit hook |
 | App/server config | `config` |
 | Live app-layer attacks | `runtime` (`fullshield/runtime/express` or `/fastify`) |
@@ -76,6 +76,7 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | `init` | Config + GitHub/GitLab CI + pre-commit hook |
 | `notify` | Slack / generic webhook / SMTP summary of the last scan |
 | `sbom` | CycloneDX 1.5 JSON (`--format cyclonedx`, `--out file`) |
+| `watch` | Rescan dependencies; alert (webhook / exit 1) only on **new** OSV hits vs last scan. `init` writes a daily GitHub Action. |
 
 Inline ignore (reason required): `// fullshield-ignore SAST-SQLI-001: reviewed`
 
