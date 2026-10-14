@@ -16,7 +16,7 @@ export const redirectRule: SastRule = {
         if (calleeName(node) !== 'redirect') return;
         const target = node.arguments[0];
         if (target === undefined || target.type === 'SpreadElement') return;
-        if (!ctx.isTainted(target)) return;
+        if (!ctx.isTainted(target) || ctx.isSanitizedFor(target, 'url')) return;
         ctx.report({
           node,
           message: 'Tainted input is passed to res.redirect.',

@@ -26,7 +26,11 @@ export function renderMarkdownReport(result: ScanResult): string {
       lines.push('');
       lines.push(`- **Where:** \`${location(finding)}\``);
       if (finding.reachability !== undefined) {
-        lines.push(`- **Reachability:** \`${finding.reachability}\``);
+        const path =
+          finding.dependencyPath !== undefined && finding.dependencyPath.length > 0
+            ? ` (\`${finding.dependencyPath.join(' > ')}\`)`
+            : '';
+        lines.push(`- **Reachability:** \`${finding.reachability}\`${path}`);
       }
       lines.push(`- **Issue:** ${finding.message}`);
       lines.push(`- **Fix:** ${finding.remediation}`);

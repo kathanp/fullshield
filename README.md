@@ -2,7 +2,7 @@
 
 **v0.1.0 / alpha.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → prevent (CI gate + runtime guard).
 
-**Headline: dependency reachability.** A lockfile CVE is not the same as an exploitable import. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1 severity), or `not-imported` (−2 severity, still listed). That is how hundreds of transitive alerts become the handful that matter. Pair it with `fullshield sbom --format cyclonedx` for a CycloneDX 1.5 inventory.
+**Headline: dependency reachability.** A lockfile CVE is not the same as an unused package. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (lockfile path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), or `not-imported` (−2, only when no such path exists). DevDependency-only vulns are `info` with a `dev-only` note unless production sources import the package. Pair it with `fullshield sbom --format cyclonedx`.
 
 ```bash
 npx fullshield scan
@@ -27,7 +27,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 
 - **SAST:** SQL/NoSQL injection, command injection, path traversal, `eval`/`new Function`/`vm`, SSRF, open redirects, JWT `decode`/`none`, weak crypto, prototype pollution, XSS (`res.send` HTML and `<%-` / `{{{` templates), missing auth middleware (low confidence).
 - **Secrets:** AWS, Stripe, GitHub, Slack, Google, AI keys, PEM keys, DB URLs with passwords, hardcoded JWT secrets, committed `.env`.
-- **Deps:** OSV vulnerabilities with reachability (`reachable` / `imported-not-called` / `not-imported`), lockfile deprecation notices, typosquat-suspicious *direct* dependency names. `DEPS-NOLOCK-001` when there is a manifest but no lockfile; exact `package.json` pins are still queried.
+- **Deps:** OSV vulnerabilities with reachability (`reachable` / `imported-not-called` / `reachable-via-dependency` / `not-imported`), `dev-only` info for unused devDependencies, lockfile deprecation notices, typosquat-suspicious *direct* dependency names. `DEPS-NOLOCK-001` when there is a manifest but no lockfile; exact `package.json` pins are still queried.
 - **Config:** missing helmet, `express.json()` without a limit, CORS `*` + credentials, auth routes without a rate limiter, `err.stack` leaks, risky Dockerfiles, install scripts.
 
 ## Non-goals (honesty is a feature)

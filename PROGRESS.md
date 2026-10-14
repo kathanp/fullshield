@@ -1,3 +1,4 @@
+#/Users/k244p/fullshield/PROGRESS.md
 # FullShield build progress
 
 One entry per phase (spec §9). Each entry records what was built, the
@@ -364,3 +365,23 @@ See `benchmarks/REPORT.md`.
 
 **Stopped here per the mandatory Phase 13 review gate.** Phases 11, 12, 14–16
 not started. Nothing was pushed to GitHub.
+
+## harden-3 — transitive reachability, sink-specific sanitizers, dev-only
+
+**Built:**
+- `reachable-via-dependency` when a lockfile path connects a vuln to a
+  **production-imported** direct dependency. Severity **kept**. Path on the
+  finding (`express > body-parser > qs`). `not-imported` (−2) only when no
+  such path exists. Test-file imports are not roots.
+- DevDependency-only vulns (dev tree, no production import) → `info` +
+  `dev-only`. Production import of a listed devDependency keeps severity.
+- Sanitizers are sink-specific: `JSON.parse` / generic `parse` never clear
+  taint; `encodeURIComponent` is URL/redirect only; HTML `escape`/`sanitize`
+  is XSS only; zod/joi/yup clear taint only for the validated result.
+  `db.query("…" + JSON.parse(req.body).id)` is flagged.
+- Fixtures: `reachability-app`, `devdep-app`, `devdep-imported-app`.
+
+**Benchmark (honest; high+critical went up):** NodeGoat 373 unchanged count.
+OSV 320: 12 reachable, 4 imported-not-called, **84 via-dependency (severity
+kept)**, 220 not-imported. 129 also `dev-only` → info. High+critical
+**16 → 59**. DVNA 19 unchanged. See `benchmarks/REPORT.md`.

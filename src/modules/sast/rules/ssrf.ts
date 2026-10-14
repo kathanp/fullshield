@@ -26,7 +26,7 @@ export const ssrfRule: SastRule = {
         if (!isFetch && !isHttpLib) return;
         const url = node.arguments[0];
         if (url === undefined || url.type === 'SpreadElement') return;
-        if (!ctx.isTainted(url)) return;
+        if (!ctx.isTainted(url) || ctx.isSanitizedFor(url, 'url')) return;
         ctx.report({
           node,
           message: 'Tainted URL is passed to fetch/axios/http.request.',

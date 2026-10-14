@@ -2,6 +2,12 @@
 
 All notable changes to FullShield are documented here.
 
+## Unreleased — harden-3
+
+- Transitive OSV hits on a lockfile path from an imported direct dependency are `reachable-via-dependency` (severity kept; path recorded). `not-imported` (−2) only when no such path exists.
+- DevDependency-only vulns are downgraded to info with a `dev-only` note unless production sources import the package.
+- Sanitizers are sink-specific: `JSON.parse` / generic `parse` never clear taint; `encodeURIComponent` is URL/redirect only; HTML escape is XSS only; zod/joi/yup clear taint only for the validated result.
+
 ## Unreleased — phase-13
 
 - Cross-file taint (call graph, depth 5) records `Finding.trace` and SARIF `codeFlows`.

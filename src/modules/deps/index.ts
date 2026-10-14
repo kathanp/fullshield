@@ -4,10 +4,10 @@ import { join, resolve } from 'node:path';
 
 import type { ScanModule } from '../../core/engine.js';
 import { makeFindingId, type Finding } from '../../core/finding.js';
-import { parseLockfile, type LockedPackage } from './lockfile.js';
+import { parseLockfileGraph, type LockedPackage, type LockfileGraph } from './lockfile.js';
 import { queryOsv, type OsvVuln } from './osv.js';
 import { exactPinsFromManifest } from './pins.js';
-import { applyReachability, indexPackageUsage } from './reachability.js';
+import { applyReachability, indexPackageUsage, isProductionSource } from './reachability.js';
 import { minFixedVersion, osvSeverity, sameMajor } from './semver.js';
 import { findTyposquats, type TyposquatHit } from './typosquat.js';
 
@@ -149,7 +149,7 @@ export const depsModule: ScanModule = {
           findings.push(vulnFinding('package.json', hit.pkg, vuln));
         }
       }
-      return applyReachability(findings, await usageFrom(ctx.cwd, ctx.files));
+      return applyReachability(findings, await reachabilityCtx(ctx.cwd, ctx.files, graphFromManifest(manifest)));
     }
 
     let contents: string;
@@ -159,7 +159,8 @@ export const depsModule: ScanModule = {
       return [];
     }
 
-    const packages = parseLockfile(lockFile, contents);
+    const graph = parseLockfileGraph(lockFile, contents);
+    const packages = graph.packages;
     const findings: Finding[] = [];
     const directNames = await readDirectDependencyNames(ctx.cwd);
 
@@ -178,19 +179,40 @@ export const depsModule: ScanModule = {
         findings.push(vulnFinding(lockFile, hit.pkg, vuln));
       }
     }
-    return applyReachability(findings, await usageFrom(ctx.cwd, ctx.files));
+    return applyReachability(findings, await reachabilityCtx(ctx.cwd, ctx.files, graph));
   },
 };
 
-async function usageFrom(cwd: string, files: readonly string[]): Promise<Map<string, { imported: boolean; called: boolean }>> {
-  const sources = new Map<string, string>();
+function graphFromManifest(manifest: Record<string, unknown>): LockfileGraph {
+  const keys = (field: string): Set<string> => {
+    const block = manifest[field];
+    if (block !== null && typeof block === 'object' && !Array.isArray(block)) {
+      return new Set(Object.keys(block));
+    }
+    return new Set();
+  };
+  return {
+    packages: [],
+    edges: new Map(),
+    directProd: keys('dependencies'),
+    directDev: keys('devDependencies'),
+  };
+}
+
+async function reachabilityCtx(
+  cwd: string,
+  files: readonly string[],
+  graph: LockfileGraph,
+): Promise<{ productionUsage: Map<string, { imported: boolean; called: boolean }>; graph: LockfileGraph }> {
+  const prodSources = new Map<string, string>();
   for (const rel of files) {
     if (!/\.[cm]?[jt]sx?$/.test(rel)) continue;
+    if (!isProductionSource(rel)) continue;
     try {
-      sources.set(rel, await readFile(join(cwd, rel), 'utf8'));
+      prodSources.set(rel, await readFile(join(cwd, rel), 'utf8'));
     } catch {
       // skip
     }
   }
-  return indexPackageUsage(sources);
+  return { productionUsage: indexPackageUsage(prodSources), graph };
 }

@@ -60,7 +60,7 @@ export const xssRule: SastRule = {
         if (name !== 'send' && name !== 'write') return;
         const arg = node.arguments[0];
         if (arg === undefined || arg.type === 'SpreadElement') return;
-        if (!ctx.isTainted(arg)) return;
+        if (!ctx.isTainted(arg) || ctx.isSanitizedFor(arg, 'xss')) return;
         if (!containsHtml(arg) && !/\{\{\{/.test(ctx.source) && !/<%-/.test(ctx.source)) return;
         ctx.report({
           node,

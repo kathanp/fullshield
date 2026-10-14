@@ -25,7 +25,11 @@ function renderFinding(finding: Finding): string[] {
     lines.splice(1, 0, `    ${pc.dim(finding.snippet)}`);
   }
   if (finding.reachability !== undefined) {
-    lines.push(`    ${pc.dim(`reachability: ${finding.reachability}`)}`);
+    const path =
+      finding.dependencyPath !== undefined && finding.dependencyPath.length > 0
+        ? ` (${finding.dependencyPath.join(' > ')})`
+        : '';
+    lines.push(`    ${pc.dim(`reachability: ${finding.reachability}${path}`)}`);
   }
   if (finding.trace !== undefined && finding.trace.length > 0) {
     lines.push(

@@ -12,24 +12,63 @@ import {
 } from './ast.js';
 import type { AstNode } from './types.js';
 
+export type SinkSanitizer = 'url' | 'xss';
+
 export interface ScopeFacts {
   tainted: Set<string>;
   pathSanitized: Set<string>;
+  urlSanitized: Set<string>;
+  xssSanitized: Set<string>;
   hasPasswordName: boolean;
   /** Identifiers bound to req.body/query/params themselves (not a property). */
   requestObjects: Set<string>;
 }
 
-function isSanitizerCall(node: AstNode | undefined): boolean {
+const SCHEMA_ROOT = /^(z|zod|joi|yup|schema)$/i;
+
+function objectChainMentions(node: AstNode, pattern: RegExp): boolean {
+  let current: AstNode | undefined = node;
+  for (let i = 0; i < 8 && current !== undefined; i += 1) {
+    if (current.type === 'Identifier' && pattern.test(current.name)) return true;
+    if (current.type === 'CallExpression') {
+      current = current.callee;
+      continue;
+    }
+    if (current.type === 'MemberExpression') {
+      current = current.object;
+      continue;
+    }
+    break;
+  }
+  return false;
+}
+
+/** zod / joi / yup `.parse()` / `.validate()` only — never JSON.parse or a bare parse(). */
+export function isSchemaValidatorCall(node: AstNode | undefined): boolean {
   if (node === undefined || node.type !== 'CallExpression') return false;
   const name = calleeName(node);
-  return (
-    name === 'parse' ||
-    name === 'validate' ||
-    name === 'encodeURIComponent' ||
-    name === 'sanitize' ||
-    name === 'escape'
-  );
+  if (name !== 'parse' && name !== 'validate' && name !== 'safeParse') return false;
+  if (node.callee.type === 'MemberExpression') {
+    if (node.callee.object.type === 'Identifier' && node.callee.object.name === 'JSON') return false;
+    return objectChainMentions(node.callee.object, SCHEMA_ROOT);
+  }
+  return false;
+}
+
+export function isUrlSanitizerCall(node: AstNode | undefined): boolean {
+  if (node === undefined || node.type !== 'CallExpression') return false;
+  const name = calleeName(node);
+  return name === 'encodeURIComponent' || name === 'encodeURI';
+}
+
+export function isXssSanitizerCall(node: AstNode | undefined): boolean {
+  if (node === undefined || node.type !== 'CallExpression') return false;
+  const name = calleeName(node);
+  if (name === 'escape' || name === 'sanitize') return true;
+  if (node.callee.type === 'MemberExpression' && node.callee.object.type === 'Identifier') {
+    return /^(DOMPurify|he|validator)$/.test(node.callee.object.name) && (name === 'sanitize' || name === 'escape');
+  }
+  return false;
 }
 
 function exprIsTainted(node: AstNode | undefined, tainted: Set<string>): boolean {
@@ -41,7 +80,7 @@ function exprIsTainted(node: AstNode | undefined, tainted: Set<string>): boolean
     case 'MemberExpression':
       return exprIsTainted(node.object, tainted);
     case 'CallExpression':
-      if (isSanitizerCall(node)) return false;
+      if (isSchemaValidatorCall(node)) return false;
       return node.arguments.some((arg) => arg.type !== 'SpreadElement' && exprIsTainted(arg, tainted));
     case 'NewExpression':
       return node.arguments.some((arg) => arg.type !== 'SpreadElement' && exprIsTainted(arg, tainted));
@@ -64,6 +103,34 @@ function exprIsTainted(node: AstNode | undefined, tainted: Set<string>): boolean
     default:
       return false;
   }
+}
+
+function exprIsSanitized(
+  node: AstNode | undefined,
+  tainted: Set<string>,
+  names: Set<string>,
+  isCall: (n: AstNode | undefined) => boolean,
+): boolean {
+  if (node === undefined) return true;
+  if (isCall(node)) return true;
+  if (node.type === 'Identifier') return names.has(node.name) || !tainted.has(node.name);
+  if (!exprIsTainted(node, tainted)) return true;
+  if (node.type === 'BinaryExpression' && node.operator === '+') {
+    return (
+      exprIsSanitized(node.left, tainted, names, isCall) &&
+      exprIsSanitized(node.right, tainted, names, isCall)
+    );
+  }
+  if (node.type === 'TemplateLiteral') {
+    return node.expressions.every((expr) => exprIsSanitized(expr, tainted, names, isCall));
+  }
+  if (node.type === 'ConditionalExpression') {
+    return (
+      exprIsSanitized(node.consequent, tainted, names, isCall) &&
+      exprIsSanitized(node.alternate, tainted, names, isCall)
+    );
+  }
+  return false;
 }
 
 /** Walk a scope without descending into nested functions (taint is intra-function). */
@@ -90,13 +157,22 @@ function walkScope(scope: AstNode, visit: (n: AstNode) => void): void {
 
 function analyzeScope(scope: AstNode, seed: Iterable<string> = []): ScopeFacts {
   const tainted = new Set<string>(seed);
+  const urlSanitized = new Set<string>();
+  const xssSanitized = new Set<string>();
   let changed = true;
   while (changed) {
     changed = false;
     walkScope(scope, (node) => {
       if (node.type === 'VariableDeclarator') {
-        if (isSanitizerCall(node.init ?? undefined)) return;
-        if (exprIsTainted(node.init ?? undefined, tainted)) {
+        const init = node.init ?? undefined;
+        if (isSchemaValidatorCall(init)) return;
+        if (isUrlSanitizerCall(init)) {
+          for (const name of boundNames(node.id)) urlSanitized.add(name);
+        }
+        if (isXssSanitizerCall(init)) {
+          for (const name of boundNames(node.id)) xssSanitized.add(name);
+        }
+        if (exprIsTainted(init, tainted)) {
           for (const name of boundNames(node.id)) {
             if (!tainted.has(name)) {
               tainted.add(name);
@@ -106,7 +182,13 @@ function analyzeScope(scope: AstNode, seed: Iterable<string> = []): ScopeFacts {
         }
       }
       if (node.type === 'AssignmentExpression') {
-        if (isSanitizerCall(node.right)) return;
+        if (isSchemaValidatorCall(node.right)) return;
+        if (isUrlSanitizerCall(node.right)) {
+          for (const name of boundNames(node.left)) urlSanitized.add(name);
+        }
+        if (isXssSanitizerCall(node.right)) {
+          for (const name of boundNames(node.left)) xssSanitized.add(name);
+        }
         if (exprIsTainted(node.right, tainted)) {
           for (const name of boundNames(node.left)) {
             if (!tainted.has(name)) {
@@ -158,7 +240,7 @@ function analyzeScope(scope: AstNode, seed: Iterable<string> = []): ScopeFacts {
     }
   });
 
-  return { tainted, pathSanitized, hasPasswordName, requestObjects };
+  return { tainted, pathSanitized, urlSanitized, xssSanitized, hasPasswordName, requestObjects };
 }
 
 export function analyzeFile(ast: AstNode): WeakMap<AstNode, ScopeFacts> {
@@ -177,13 +259,15 @@ export function analyzeFunctionWithSeed(fn: AstNode, seed: Iterable<string>): Sc
   return analyzeScope(fn, seed);
 }
 
-export { exprIsTainted, isSanitizerCall };
+export { exprIsTainted };
 
 export function factsFor(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): ScopeFacts {
   return (
     map.get(enclosingScope(node)) ?? {
       tainted: new Set(),
       pathSanitized: new Set(),
+      urlSanitized: new Set(),
+      xssSanitized: new Set(),
       hasPasswordName: false,
       requestObjects: new Set(),
     }
@@ -197,6 +281,16 @@ export function nodeIsTainted(node: AstNode, map: WeakMap<AstNode, ScopeFacts>):
 export function nodeIsPathSanitized(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): boolean {
   if (node.type !== 'Identifier') return false;
   return factsFor(node, map).pathSanitized.has(node.name);
+}
+
+export function nodeIsSanitizedFor(
+  node: AstNode,
+  map: WeakMap<AstNode, ScopeFacts>,
+  kind: SinkSanitizer,
+): boolean {
+  const facts = factsFor(node, map);
+  if (kind === 'url') return exprIsSanitized(node, facts.tainted, facts.urlSanitized, isUrlSanitizerCall);
+  return exprIsSanitized(node, facts.tainted, facts.xssSanitized, isXssSanitizerCall);
 }
 
 export function nodeIsRequestObject(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): boolean {

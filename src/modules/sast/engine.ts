@@ -5,7 +5,7 @@ import type { ScanModule } from '../../core/engine.js';
 import { makeFindingId, type Finding } from '../../core/finding.js';
 import { assignedNameOf, walk } from './ast.js';
 import { runInterproc, type ParsedSource } from './interproc.js';
-import { analyzeFile, factsFor, nodeIsPathSanitized, nodeIsRequestObject, nodeIsTainted } from './taint.js';
+import { analyzeFile, factsFor, nodeIsPathSanitized, nodeIsRequestObject, nodeIsSanitizedFor, nodeIsTainted } from './taint.js';
 import { authRule } from './rules/auth.js';
 import { cmdiRule } from './rules/cmdi.js';
 import { cryptoRule } from './rules/crypto.js';
@@ -83,6 +83,7 @@ export function findingsFromAst(filename: string, source: string, ast: AstNode):
       },
       isTainted: (node) => nodeIsTainted(node, facts),
       isPathSanitized: (node) => nodeIsPathSanitized(node, facts),
+      isSanitizedFor: (node, kind) => nodeIsSanitizedFor(node, facts, kind),
       isRequestObject: (node) => nodeIsRequestObject(node, facts),
       functionHasPasswordName: (node) => factsFor(node, facts).hasPasswordName,
       assignedName: (node) => assignedNameOf(node),
@@ -121,6 +122,7 @@ function findingsFromTemplate(filename: string, source: string): Finding[] {
     },
     isTainted: () => false,
     isPathSanitized: () => false,
+    isSanitizedFor: () => false,
     isRequestObject: () => false,
     functionHasPasswordName: () => false,
     assignedName: () => undefined,

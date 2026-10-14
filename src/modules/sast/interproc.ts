@@ -2,7 +2,7 @@ import { posix } from 'node:path';
 
 import { makeFindingId, type Finding } from '../../core/finding.js';
 import { assignedNameOf, attachParents, boundNames, calleeName, isFunctionNode, literalString, propName, walk } from './ast.js';
-import { analyzeFile, analyzeFunctionWithSeed, exprIsTainted, isSanitizerCall, nodeIsTainted } from './taint.js';
+import { analyzeFile, analyzeFunctionWithSeed, exprIsTainted, isSchemaValidatorCall, nodeIsTainted } from './taint.js';
 import type { AstNode } from './types.js';
 
 const MAX_HOPS = 5;
@@ -227,7 +227,7 @@ export function runInterproc(parsed: readonly ParsedSource[]): Finding[] {
       if (target === undefined) return;
       node.arguments.forEach((arg, i) => {
         if (arg.type === 'SpreadElement') return;
-        if (arg.type === 'CallExpression' && isSanitizerCall(arg)) return;
+        if (arg.type === 'CallExpression' && isSchemaValidatorCall(arg)) return;
         if (!nodeIsTainted(arg, facts)) return;
         queue.push({
           file: target.file,
@@ -304,7 +304,7 @@ export function runInterproc(parsed: readonly ParsedSource[]): Finding[] {
       if (target === undefined) return;
       node.arguments.forEach((arg, i) => {
         if (arg.type === 'SpreadElement') return;
-        if (arg.type === 'CallExpression' && isSanitizerCall(arg)) return;
+        if (arg.type === 'CallExpression' && isSchemaValidatorCall(arg)) return;
         if (!exprIsTainted(arg, facts.tainted)) return;
         queue.push({
           file: target.file,

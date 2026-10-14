@@ -93,7 +93,7 @@ A2 broken auth, A3 sensitive data, A4 XXE (`libxmljs` `noent:true`), A5 IDOR / b
 - **Template XSS that is not `{{{` / `<%-`:** NodeGoat Swig `{{ }}` (auto-escaped) and URL-context encoding.
 - **XXE, insecure deserialization, ReDoS, log injection** — no Core rule id.
 - **HTTP clients beyond the SSRF allow-list after the bench-1 fix** still will not invent a generic `*.get(url)` rule (`Map.get` / `cache.get` would explode FPs).
-- **Dependency reachability:** Phase 13 classifies each `DEPS-VULN-001`. See After Phase 13 for counts. Affected-function lists from OSV/GHSA are not yet used (import+any-call ≈ reachable).
+- **Dependency reachability:** harden-3 classifies transitives on a lockfile path from a production-imported direct dep as `reachable-via-dependency` (severity kept). Affected-function lists from OSV/GHSA are not yet used (import+any-call ≈ reachable). See After harden-3.
 
 ---
 
@@ -189,3 +189,24 @@ Cross-file taint (call graph, depth 5) + dependency reachability + CycloneDX 1.5
 | DVNA | 19 | 19 | Unchanged count; pin vulns stay reachable. |
 
 False-positive change vs harden-2: **none**. JSON: `results/*-phase13.json`.
+
+### After harden-3
+
+Phase 13 treated every non-imported package as `not-imported` (−2), including transitives of packages the app actually loads. That was wrong: `qs` runs when `express` runs.
+
+**Corrected NodeGoat `DEPS-VULN-001` ×320** (same OSV hits; path roots are production sources only, not `test/`):
+
+| Class | Count | Severity | Why |
+|---|---|---|---|
+| `reachable` | 12 | kept | production import + call (`express`, `marked`, `mongodb`, `swig`, `needle`, …) |
+| `imported-not-called` | 4 | −1 | `underscore` imported in app code, no call |
+| `reachable-via-dependency` | 84 | **kept** | lockfile path from an imported direct dep (e.g. `express > qs`, `swig > optimist > minimist`, `mongodb > mongodb-core > bson`) |
+| `not-imported` | 220 | −2 | no path from any production-imported direct dep (Cypress/Grunt/selenium trees, unused directs, orphans) |
+
+129 of the 320 are also **dev-only** (devDependency tree, no production import) → forced to **info** with a `dev-only` note. That overlay applies after reachability.
+
+Whole-scan high+critical: Phase 13 **16 → 59**. The increase is the intended correction: 52 remaining high/critical `DEPS-VULN-001` (9 critical + 43 high), plus the same 1 secret + 6 SAST highs. Total findings stay 373. `async` drops out of `reachable` because only tests import it.
+
+**DVNA 19 unchanged.** Four exact-pin vulns stay `reachable`. No lockfile graph.
+
+False-positive change vs Phase 13: **none** (same finding set; severities of real runtime transitives went *up*). JSON: `results/*-harden3.json`.

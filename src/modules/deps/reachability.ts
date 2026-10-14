@@ -1,10 +1,17 @@
 import { severityRank, SEVERITIES, type Finding, type Severity } from '../../core/finding.js';
+import type { LockfileGraph } from './lockfile.js';
 
 export type Reachability = NonNullable<Finding['reachability']>;
 
 export interface PackageUsage {
   imported: boolean;
   called: boolean;
+}
+
+export interface ReachabilityContext {
+  /** Imports from production sources only (not test/spec files). */
+  productionUsage: Map<string, PackageUsage>;
+  graph: LockfileGraph;
 }
 
 /** `name@version` or `@scope/name@version` from a DEPS-VULN-001 snippet. */
@@ -29,6 +36,13 @@ function packageNameFromSpec(spec: string): string | undefined {
 function localIsCalled(source: string, local: string): boolean {
   const re = new RegExp(`\\b${local.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*[.(]`);
   return re.test(source);
+}
+
+export function isProductionSource(rel: string): boolean {
+  const n = rel.replace(/\\/g, '/');
+  if (/(^|\/)(__tests__|tests|test)(\/|$)/.test(n)) return false;
+  if (/\.(test|spec)\.[cm]?[jt]sx?$/.test(n)) return false;
+  return true;
 }
 
 /** Best-effort: which npm packages the scanned sources import and call. */
@@ -76,10 +90,75 @@ export function indexPackageUsage(sources: ReadonlyMap<string, string>): Map<str
   return usage;
 }
 
-export function classifyReachability(pkgName: string, usage: Map<string, PackageUsage>): Reachability {
-  const hit = usage.get(pkgName);
-  if (hit === undefined || !hit.imported) return 'not-imported';
-  return hit.called ? 'reachable' : 'imported-not-called';
+/** Shortest lockfile path from any `starts` name to `target`, inclusive. */
+export function shortestDependencyPath(
+  target: string,
+  starts: Iterable<string>,
+  edges: Map<string, Set<string>>,
+): string[] | undefined {
+  const queue: string[][] = [];
+  const seen = new Set<string>();
+  for (const start of starts) {
+    queue.push([start]);
+    seen.add(start);
+  }
+  while (queue.length > 0) {
+    const path = queue.shift();
+    if (path === undefined) continue;
+    const last = path[path.length - 1];
+    if (last === undefined) continue;
+    if (last === target) return path;
+    for (const next of edges.get(last) ?? []) {
+      if (seen.has(next)) continue;
+      seen.add(next);
+      queue.push([...path, next]);
+    }
+  }
+  return undefined;
+}
+
+function reachableFrom(target: string, roots: Set<string>, edges: Map<string, Set<string>>): boolean {
+  if (roots.has(target)) return true;
+  return shortestDependencyPath(target, roots, edges) !== undefined;
+}
+
+function importedDirectNames(usage: Map<string, PackageUsage>, graph: LockfileGraph): Set<string> {
+  const directs = new Set([...graph.directProd, ...graph.directDev]);
+  const out = new Set<string>();
+  for (const [name, hit] of usage) {
+    if (!hit.imported) continue;
+    if (directs.size === 0 || directs.has(name)) out.add(name);
+  }
+  return out;
+}
+
+export function classifyReachability(
+  pkgName: string,
+  productionUsage: Map<string, PackageUsage>,
+  graph?: LockfileGraph,
+): { reachability: Reachability; path?: string[] } {
+  const hit = productionUsage.get(pkgName);
+  if (hit?.imported === true) {
+    return { reachability: hit.called ? 'reachable' : 'imported-not-called' };
+  }
+  if (graph !== undefined) {
+    const roots = importedDirectNames(productionUsage, graph);
+    const path = shortestDependencyPath(pkgName, roots, graph.edges);
+    if (path !== undefined && path.length >= 2) {
+      return { reachability: 'reachable-via-dependency', path };
+    }
+  }
+  return { reachability: 'not-imported' };
+}
+
+/**
+ * reachable-via-dependency keeps OSV severity: the parent that the app
+ * imports loads this package. imported-not-called is −1; not-imported is −2.
+ */
+export function reachabilitySteps(reachability: Reachability): number {
+  if (reachability === 'reachable' || reachability === 'reachable-via-dependency') return 0;
+  if (reachability === 'imported-not-called') return 1;
+  return 2;
 }
 
 export function downgradeSeverity(severity: Severity, steps: number): Severity {
@@ -87,17 +166,38 @@ export function downgradeSeverity(severity: Severity, steps: number): Severity {
   return SEVERITIES[next] ?? 'info';
 }
 
-export function applyReachability(findings: Finding[], usage: Map<string, PackageUsage>): Finding[] {
+function isDevOnly(pkgName: string, ctx: ReachabilityContext): boolean {
+  if (ctx.productionUsage.get(pkgName)?.imported === true) return false;
+  const { directProd, directDev, edges } = ctx.graph;
+  const inProd = reachableFrom(pkgName, directProd, edges);
+  if (inProd) return false;
+  return directDev.has(pkgName) || reachableFrom(pkgName, directDev, edges);
+}
+
+export function applyReachability(findings: Finding[], ctx: ReachabilityContext): Finding[] {
   return findings.map((finding) => {
     if (finding.ruleId !== 'DEPS-VULN-001' || finding.snippet === undefined) return finding;
     const pkg = packageNameFromSnippet(finding.snippet);
     if (pkg === undefined || pkg.length === 0) return finding;
-    const reachability = classifyReachability(pkg, usage);
-    const steps = reachability === 'reachable' ? 0 : reachability === 'imported-not-called' ? 1 : 2;
+    const classified = classifyReachability(pkg, ctx.productionUsage, ctx.graph);
+    const steps = reachabilitySteps(classified.reachability);
+    let severity = steps === 0 ? finding.severity : downgradeSeverity(finding.severity, steps);
+    let message = finding.message;
+    if (classified.path !== undefined) {
+      const shown = classified.path.join(' > ');
+      message = `${message} Reachable via ${shown}.`;
+    }
+    const devOnly = isDevOnly(pkg, ctx);
+    if (devOnly) {
+      severity = 'info';
+      message = `${message} (dev-only)`;
+    }
     return {
       ...finding,
-      reachability,
-      severity: steps === 0 ? finding.severity : downgradeSeverity(finding.severity, steps),
+      reachability: classified.reachability,
+      ...(classified.path !== undefined ? { dependencyPath: classified.path } : {}),
+      severity,
+      message,
     };
   });
 }

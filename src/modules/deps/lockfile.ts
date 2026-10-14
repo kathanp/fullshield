@@ -34,6 +34,29 @@ interface NpmPackageEntry {
   version?: unknown;
   deprecated?: unknown;
   dependencies?: unknown;
+  optionalDependencies?: unknown;
+  devDependencies?: unknown;
+}
+
+export interface LockfileGraph {
+  packages: LockedPackage[];
+  /** package name → names it depends on (union across nested copies). */
+  edges: Map<string, Set<string>>;
+  directProd: Set<string>;
+  directDev: Set<string>;
+}
+
+function objectKeys(value: unknown): string[] {
+  if (value === undefined || value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return [];
+  }
+  return Object.keys(value);
+}
+
+function addEdge(edges: Map<string, Set<string>>, from: string, to: string): void {
+  const set = edges.get(from) ?? new Set<string>();
+  set.add(to);
+  edges.set(from, set);
 }
 
 function fromPackagesTable(packages: Record<string, NpmPackageEntry>): LockedPackage[] {
@@ -72,20 +95,6 @@ function fromDependenciesTree(
     }
   }
   return dedupe(out);
-}
-
-function parseNpmLock(contents: string): LockedPackage[] {
-  const json = JSON.parse(contents) as {
-    packages?: Record<string, NpmPackageEntry>;
-    dependencies?: Record<string, NpmPackageEntry>;
-  };
-  if (json.packages !== undefined && typeof json.packages === 'object') {
-    return fromPackagesTable(json.packages);
-  }
-  if (json.dependencies !== undefined && typeof json.dependencies === 'object') {
-    return fromDependenciesTree(json.dependencies, '');
-  }
-  return [];
 }
 
 function yarnNameFromKey(key: string): string | undefined {
@@ -146,9 +155,74 @@ function parsePnpmLock(contents: string): LockedPackage[] {
 
 /** Parse an npm / yarn / pnpm lockfile into `{name, version, path}` entries. */
 export function parseLockfile(filename: string, contents: string): LockedPackage[] {
+  return parseLockfileGraph(filename, contents).packages;
+}
+
+function graphFromPackagesTable(packages: Record<string, NpmPackageEntry>): Pick<
+  LockfileGraph,
+  'edges' | 'directProd' | 'directDev'
+> {
+  const edges = new Map<string, Set<string>>();
+  const root = packages[''] ?? {};
+  const directProd = new Set(objectKeys(root.dependencies));
+  const directDev = new Set(objectKeys(root.devDependencies));
+  for (const [key, value] of Object.entries(packages)) {
+    const name = key === '' ? '' : nameFromPackagesKey(key);
+    if (name === undefined || name.length === 0) continue;
+    for (const dep of [...objectKeys(value.dependencies), ...objectKeys(value.optionalDependencies)]) {
+      addEdge(edges, name, dep);
+    }
+  }
+  return { edges, directProd, directDev };
+}
+
+function graphFromDependenciesTree(
+  deps: Record<string, NpmPackageEntry>,
+  edges: Map<string, Set<string>>,
+): void {
+  for (const [name, value] of Object.entries(deps)) {
+    const child = value.dependencies;
+    if (child === undefined || typeof child !== 'object' || child === null) continue;
+    const nested = child as Record<string, NpmPackageEntry>;
+    for (const childName of Object.keys(nested)) addEdge(edges, name, childName);
+    graphFromDependenciesTree(nested, edges);
+  }
+}
+
+/** Packages plus the dependency graph (npm lockfiles). Yarn/pnpm have no edges. */
+export function parseLockfileGraph(filename: string, contents: string): LockfileGraph {
   const name = basename(filename);
-  if (name === 'package-lock.json') return parseNpmLock(contents);
-  if (name === 'yarn.lock') return parseYarnLock(contents);
-  if (name === 'pnpm-lock.yaml') return parsePnpmLock(contents);
-  return [];
+  const empty = {
+    packages: [] as LockedPackage[],
+    edges: new Map<string, Set<string>>(),
+    directProd: new Set<string>(),
+    directDev: new Set<string>(),
+  };
+  if (name === 'yarn.lock') return { ...empty, packages: parseYarnLock(contents) };
+  if (name === 'pnpm-lock.yaml') return { ...empty, packages: parsePnpmLock(contents) };
+  if (name !== 'package-lock.json') return empty;
+
+  try {
+    const json = JSON.parse(contents) as {
+      packages?: Record<string, NpmPackageEntry>;
+      dependencies?: Record<string, NpmPackageEntry>;
+    };
+    if (json.packages !== undefined && typeof json.packages === 'object') {
+      const meta = graphFromPackagesTable(json.packages);
+      return { packages: fromPackagesTable(json.packages), ...meta };
+    }
+    if (json.dependencies !== undefined && typeof json.dependencies === 'object') {
+      const edges = new Map<string, Set<string>>();
+      graphFromDependenciesTree(json.dependencies, edges);
+      return {
+        packages: fromDependenciesTree(json.dependencies, ''),
+        edges,
+        directProd: new Set(Object.keys(json.dependencies)),
+        directDev: new Set<string>(),
+      };
+    }
+  } catch {
+    return empty;
+  }
+  return empty;
 }

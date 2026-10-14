@@ -41,8 +41,10 @@ export interface Finding {
   references?: string[];
   /** Cross-file taint steps (Phase 13). */
   trace?: Array<{ file: string; line?: number; note: string }>;
-  /** Dependency reachability (Phase 13). */
-  reachability?: 'reachable' | 'imported-not-called' | 'not-imported';
+  /** Dependency reachability (Phase 13 / harden-3). */
+  reachability?: 'reachable' | 'imported-not-called' | 'reachable-via-dependency' | 'not-imported';
+  /** Lockfile path from an imported direct dependency, e.g. express > body-parser > qs. */
+  dependencyPath?: string[];
 }
 
 export interface FindingSummary {
