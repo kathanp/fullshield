@@ -64,6 +64,7 @@ const PREVIOUS_PHASE_TESTS = {
   18: 324,
   19: 341,
   20: 356,
+  21: 374,
 };
 
 function listFilesRecursive(dir, out = []) {
@@ -875,6 +876,30 @@ s.listen(0, '127.0.0.1', () => {
     const skipped = await confirm.confirmTarget('http://127.0.0.1:1/', { routes: [] });
     if (!skipped.skipped) fail('phase 20 acceptance: confirm ran without experimental flag');
     console.log('  ✔ scope lock refuses non-local (incl. public DNS + IPv6); canaries harmless; off without experimental');
+  },
+  // Phase 21 (spec §20.1–20.2 / §22): MCP tools + LLM positive/negative fixtures.
+  21: async () => {
+    const mcpUrl = pathToFileURL(join(root, 'dist', 'mcp.js')).href;
+    const llmUrl = pathToFileURL(join(root, 'dist', 'llm.js')).href;
+    const mcp = await import(mcpUrl);
+    const llm = await import(llmUrl);
+    const names = mcp.listMcpTools().map((t) => t.name);
+    for (const n of ['scan', 'get_findings', 'explain_finding', 'propose_fix', 'verify_fix']) {
+      if (!names.includes(n)) fail(`phase 21 acceptance: missing MCP tool ${n}`);
+    }
+    const bad = llm.scanLlmApp(join(root, 'test', 'fixtures', 'llm-app'), { experimental: true });
+    for (const id of ['LLM-001', 'LLM-002', 'LLM-003', 'LLM-004', 'LLM-005']) {
+      if (!bad.some((f) => f.ruleId === id)) fail(`phase 21 acceptance: missing ${id} on llm-app`);
+    }
+    const good = llm.scanLlmApp(join(root, 'test', 'fixtures', 'llm-clean'), { experimental: true });
+    if (good.length !== 0) fail(`phase 21 acceptance: llm-clean produced ${good.map((f) => f.ruleId).join(',')}`);
+    if (llm.scanLlmApp(join(root, 'test', 'fixtures', 'llm-app')).length !== 0) {
+      fail('phase 21 acceptance: LLM rules ran without experimental flag');
+    }
+    const session = mcp.createMcpSession();
+    const skipped = await mcp.callMcpTool(session, 'scan', { path: join(root, 'test', 'fixtures', 'clean-app') });
+    if (!skipped.skipped) fail('phase 21 acceptance: MCP scan ran without experimental flag');
+    console.log('  ✔ MCP tools listed; LLM-001..005 positive/negative; off without experimental');
   },
 };
 

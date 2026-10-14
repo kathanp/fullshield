@@ -264,3 +264,9 @@ Supply-chain / `install-guard` is experimental CLI, not a scan module. Default `
 Exploit confirm is experimental CLI (localhost / 127.0.0.1 / FullShield-started container only) and does not change default `scan` findings.
 
 **NodeGoat 373 / high+critical 59 unchanged. DVNA 19 unchanged.** JSON: `results/*-phase20.json`.
+
+### After Phase 21
+
+MCP and LLM-app rules are experimental and are not part of default `scan`. Default NodeGoat/DVNA findings unchanged.
+
+**NodeGoat 373 / high+critical 59 unchanged. DVNA 19 unchanged.** JSON: `results/*-phase21.json`.

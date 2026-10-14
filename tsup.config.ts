@@ -13,6 +13,8 @@ export default defineConfig({
     'runtime/rasp/loader': 'src/runtime/rasp/loader.ts',
     supply: 'src/supply/index.ts',
     confirm: 'src/confirm/index.ts',
+    mcp: 'src/mcp/index.ts',
+    llm: 'src/llm/index.ts',
   },
   format: ['esm'],
   platform: 'node',

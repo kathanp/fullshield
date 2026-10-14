@@ -184,6 +184,16 @@ const EXTRA_TARGETS = [
       );
     },
   },
+  {
+    name: 'LLM-001',
+    file: join(root, 'src', 'llm', 'index.ts'),
+    apply: (src) => {
+      if (!src.includes("'LLM-001'")) {
+        throw new Error('LLM-001 site missing');
+      }
+      return src.replaceAll("'LLM-001'", "'LLM-DISABLED'");
+    },
+  },
 ];
 
 for (const extra of EXTRA_TARGETS) {

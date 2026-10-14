@@ -378,6 +378,36 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     });
 
   program
+    .command('mcp')
+    .description('Experimental MCP server (read-only; requires FULLSHIELD_EXPERIMENTAL_MCP=1)')
+    .option('--list-tools', 'print tool names and exit')
+    .action(async (opts: { listTools?: boolean }) => {
+      try {
+        if (process.env.FULLSHIELD_EXPERIMENTAL_MCP !== '1') {
+          throw new Error('mcp requires FULLSHIELD_EXPERIMENTAL_MCP=1');
+        }
+        const { createMcpSession, handleMcpRequest, listMcpTools } = await import('../mcp/index.js');
+        if (opts.listTools) {
+          io.out(listMcpTools().map((t) => t.name).join('\n'));
+          return;
+        }
+        const session = createMcpSession({ experimental: true });
+        const chunks: Buffer[] = [];
+        for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
+        const text = Buffer.concat(chunks).toString('utf8').trim();
+        if (!text) {
+          io.out(JSON.stringify({ tools: listMcpTools() }));
+          return;
+        }
+        const req = JSON.parse(text) as { jsonrpc?: string; id?: number; method?: string };
+        io.out(JSON.stringify(await handleMcpRequest(session, req)));
+      } catch (error) {
+        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 2;
+      }
+    });
+
+  program
     .command('confirm')
     .description('Experimental exploit confirm (localhost/127.0.0.1/FullShield container only)')
     .argument('<url>', 'target base URL')

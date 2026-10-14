@@ -571,3 +571,15 @@ Static only: never executes or installs analyzed packages. `fullshield install` 
 Harmless canaries only (`UNION SELECT` marker, `echo` token, planted canary file). Destructive payloads (`DROP`, `rm`, `dd`) are rejected. Seeded local app: SQLi / CMDi / path / IDOR all `confirmed` with `curl` proofs. Fail-open: missing routes stay `unconfirmed`.
 
 **Re-scan:** NodeGoat 373 / high+critical **59** unchanged. DVNA 19 unchanged. JSON: `benchmarks/results/*-phase20.json`.
+
+## Phase 21 — MCP server + LLM-app rules
+
+**Tests: 374** (was 356).
+
+`fullshield mcp` requires `FULLSHIELD_EXPERIMENTAL_MCP=1`. Tools: `scan`, `get_findings`, `explain_finding`, `propose_fix` (unified diff, `wrote: false`), `verify_fix` (temp copy only). JSON-RPC `tools/list` / `tools/call`.
+
+LLM-app rules (`FULLSHIELD_EXPERIMENTAL_LLM=1`): `LLM-001` system-prompt concat, `LLM-002` model output → sink, `LLM-003` dangerous tool without confirm, `LLM-004` key in public/client bundle, `LLM-005` no `max_tokens`. Positive `llm-app` / negative `llm-clean`.
+
+**Re-scan:** NodeGoat 373 / high+critical **59** unchanged. DVNA 19 unchanged. JSON: `benchmarks/results/*-phase21.json`.
+
+**Stopped after Phase 21 (mandatory).** Do not start Phase 22. Nothing pushed. Nothing published.

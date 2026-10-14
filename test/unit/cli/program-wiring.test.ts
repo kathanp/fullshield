@@ -260,6 +260,32 @@ describe('CLI wiring (in-process)', () => {
     }
   });
 
+  it('mcp refuses without FULLSHIELD_EXPERIMENTAL_MCP', async () => {
+    const prev = process.env.FULLSHIELD_EXPERIMENTAL_MCP;
+    delete process.env.FULLSHIELD_EXPERIMENTAL_MCP;
+    try {
+      const { err } = await runCli(['mcp', '--list-tools']);
+      expect(err).toMatch(/FULLSHIELD_EXPERIMENTAL_MCP/);
+      expect(process.exitCode).toBe(2);
+    } finally {
+      if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_MCP;
+      else process.env.FULLSHIELD_EXPERIMENTAL_MCP = prev;
+    }
+  });
+
+  it('mcp --list-tools prints propose_fix', async () => {
+    const prev = process.env.FULLSHIELD_EXPERIMENTAL_MCP;
+    process.env.FULLSHIELD_EXPERIMENTAL_MCP = '1';
+    try {
+      const { out, err } = await runCli(['mcp', '--list-tools']);
+      expect(err).toBe('');
+      expect(out).toMatch(/propose_fix/);
+    } finally {
+      if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_MCP;
+      else process.env.FULLSHIELD_EXPERIMENTAL_MCP = prev;
+    }
+  });
+
   it('confirm refuses without FULLSHIELD_EXPERIMENTAL_CONFIRM', async () => {
     const prev = process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM;
     delete process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM;

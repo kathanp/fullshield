@@ -85,6 +85,7 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | `edge` | GET/HEAD posture check on a URL you pass: CDN/WAF, HTTPS redirect, security headers, `/.env` / `/.git` exposure. No crawl, no payloads. |
 | `install` | **Experimental** install-guard (`FULLSHIELD_EXPERIMENTAL_SUPPLY=1`). Static analysis only; never runs package scripts. Registry reads are `registry.npmjs.org` only. |
 | `confirm` | **Experimental** exploit confirm (`FULLSHIELD_EXPERIMENTAL_CONFIRM=1`). localhost / 127.0.0.1 / FullShield-started container only. Harmless canaries only. |
+| `mcp` | **Experimental** MCP server (`FULLSHIELD_EXPERIMENTAL_MCP=1`). Read-only tools: `scan`, `get_findings`, `explain_finding`, `propose_fix` (diff only, never writes), `verify_fix` (temp copy). |
 | `honey init` | **Experimental** honeytokens (`FULLSHIELD_EXPERIMENTAL_HONEY=1`). |
 
 Inline ignore (reason required): `// fullshield-ignore SAST-SQLI-001: reviewed`
