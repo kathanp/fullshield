@@ -39,6 +39,10 @@ export interface Finding {
   fix?: FixProposal;
   /** OSV id, CVE, docs. */
   references?: string[];
+  /** Cross-file taint steps (Phase 13). */
+  trace?: Array<{ file: string; line?: number; note: string }>;
+  /** Dependency reachability (Phase 13). */
+  reachability?: 'reachable' | 'imported-not-called' | 'not-imported';
 }
 
 export interface FindingSummary {

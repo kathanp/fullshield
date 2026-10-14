@@ -2,6 +2,8 @@
 
 **v0.1.0 / alpha.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → prevent (CI gate + runtime guard).
 
+**Headline: dependency reachability.** A lockfile CVE is not the same as an exploitable import. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1 severity), or `not-imported` (−2 severity, still listed). That is how hundreds of transitive alerts become the handful that matter. Pair it with `fullshield sbom --format cyclonedx` for a CycloneDX 1.5 inventory.
+
 ```bash
 npx fullshield scan
 npx fullshield scan --json --fail-on high
@@ -14,8 +16,8 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 
 | Layer | Covered by |
 |---|---|
-| Code vulnerabilities | `sast` (intra-function taint) |
-| Dependencies (now + new CVEs later) | `deps` (OSV) |
+| Code vulnerabilities | `sast` (intra-function + cross-file taint, depth 5) |
+| Dependencies (now + new CVEs later) | `deps` (OSV + **reachability**) |
 | Secrets | `secrets` + `scan --staged` / pre-commit hook |
 | App/server config | `config` |
 | Live app-layer attacks | `runtime` (`fullshield/runtime/express` or `/fastify`) |
@@ -25,7 +27,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 
 - **SAST:** SQL/NoSQL injection, command injection, path traversal, `eval`/`new Function`/`vm`, SSRF, open redirects, JWT `decode`/`none`, weak crypto, prototype pollution, XSS (`res.send` HTML and `<%-` / `{{{` templates), missing auth middleware (low confidence).
 - **Secrets:** AWS, Stripe, GitHub, Slack, Google, AI keys, PEM keys, DB URLs with passwords, hardcoded JWT secrets, committed `.env`.
-- **Deps:** OSV vulnerabilities, lockfile deprecation notices, typosquat-suspicious *direct* dependency names.
+- **Deps:** OSV vulnerabilities with reachability (`reachable` / `imported-not-called` / `not-imported`), lockfile deprecation notices, typosquat-suspicious *direct* dependency names. `DEPS-NOLOCK-001` when there is a manifest but no lockfile; exact `package.json` pins are still queried.
 - **Config:** missing helmet, `express.json()` without a limit, CORS `*` + credentials, auth routes without a rate limiter, `err.stack` leaks, risky Dockerfiles, install scripts.
 
 ## Non-goals (honesty is a feature)
@@ -34,7 +36,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 - Does **not** replace a penetration test.
 - Does **not** auto-delete code. `fix --apply` writes patches on a clean git tree. If project tests fail, each written file is restored from a byte-for-byte snapshot taken before the write — never `git checkout --`. `--force` on a dirty tree still refuses to touch files that have uncommitted changes.
 - v1 is **JS/TS only**. Other languages are out of scope.
-- Taint is **intra-function**. Cross-file flows (route → DAO) are a known miss until Pro (Phase 13).
+- Cross-file taint follows `require`/`import` and method calls up to 5 hops and records a `trace` (also SARIF `codeFlows`). Nested closures and some dynamic dispatch are still missed.
 - Runtime v1 is **signature-based** (payload regex + rate limit + body-size guard). It is a **stopgap**. Prefer **`mode: 'monitor'`** in production until you have measured false-positive rate. Sink-hooking RASP is Phase 17 (Frontier), not Core.
 - Only scan hosts and repos you own or are authorized to test.
 
@@ -73,6 +75,7 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | `fix` | Dry-run patches (unsafe suggestions included). `--apply` writes only `safe: true` patches on a clean git tree. `--unsafe` is required for `helmet()` insertion and secret → `process.env` replacement. `--force` skips files with uncommitted changes. |
 | `init` | Config + GitHub/GitLab CI + pre-commit hook |
 | `notify` | Slack / generic webhook / SMTP summary of the last scan |
+| `sbom` | CycloneDX 1.5 JSON (`--format cyclonedx`, `--out file`) |
 
 Inline ignore (reason required): `// fullshield-ignore SAST-SQLI-001: reviewed`
 

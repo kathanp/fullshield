@@ -25,8 +25,16 @@ export function renderMarkdownReport(result: ScanResult): string {
       lines.push(`### ${finding.ruleId} — ${finding.title}`);
       lines.push('');
       lines.push(`- **Where:** \`${location(finding)}\``);
+      if (finding.reachability !== undefined) {
+        lines.push(`- **Reachability:** \`${finding.reachability}\``);
+      }
       lines.push(`- **Issue:** ${finding.message}`);
       lines.push(`- **Fix:** ${finding.remediation}`);
+      if (finding.trace !== undefined && finding.trace.length > 0) {
+        lines.push(
+          `- **Trace:** ${finding.trace.map((s) => `\`${s.file}${s.line !== undefined ? `:${s.line}` : ''}\``).join(' → ')}`,
+        );
+      }
       lines.push('');
     }
   }

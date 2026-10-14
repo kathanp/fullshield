@@ -1,6 +1,7 @@
 import {
   attachParents,
   boundNames,
+  calleeName,
   enclosingScope,
   isFunctionNode,
   isPathResolveCall,
@@ -19,6 +20,18 @@ export interface ScopeFacts {
   requestObjects: Set<string>;
 }
 
+function isSanitizerCall(node: AstNode | undefined): boolean {
+  if (node === undefined || node.type !== 'CallExpression') return false;
+  const name = calleeName(node);
+  return (
+    name === 'parse' ||
+    name === 'validate' ||
+    name === 'encodeURIComponent' ||
+    name === 'sanitize' ||
+    name === 'escape'
+  );
+}
+
 function exprIsTainted(node: AstNode | undefined, tainted: Set<string>): boolean {
   if (node === undefined) return false;
   if (isTaintSource(node)) return true;
@@ -28,6 +41,8 @@ function exprIsTainted(node: AstNode | undefined, tainted: Set<string>): boolean
     case 'MemberExpression':
       return exprIsTainted(node.object, tainted);
     case 'CallExpression':
+      if (isSanitizerCall(node)) return false;
+      return node.arguments.some((arg) => arg.type !== 'SpreadElement' && exprIsTainted(arg, tainted));
     case 'NewExpression':
       return node.arguments.some((arg) => arg.type !== 'SpreadElement' && exprIsTainted(arg, tainted));
     case 'TemplateLiteral':
@@ -73,25 +88,31 @@ function walkScope(scope: AstNode, visit: (n: AstNode) => void): void {
   inner(scope);
 }
 
-function analyzeScope(scope: AstNode): ScopeFacts {
-  const tainted = new Set<string>();
+function analyzeScope(scope: AstNode, seed: Iterable<string> = []): ScopeFacts {
+  const tainted = new Set<string>(seed);
   let changed = true;
   while (changed) {
     changed = false;
     walkScope(scope, (node) => {
-      if (node.type === 'VariableDeclarator' && exprIsTainted(node.init ?? undefined, tainted)) {
-        for (const name of boundNames(node.id)) {
-          if (!tainted.has(name)) {
-            tainted.add(name);
-            changed = true;
+      if (node.type === 'VariableDeclarator') {
+        if (isSanitizerCall(node.init ?? undefined)) return;
+        if (exprIsTainted(node.init ?? undefined, tainted)) {
+          for (const name of boundNames(node.id)) {
+            if (!tainted.has(name)) {
+              tainted.add(name);
+              changed = true;
+            }
           }
         }
       }
-      if (node.type === 'AssignmentExpression' && exprIsTainted(node.right, tainted)) {
-        for (const name of boundNames(node.left)) {
-          if (!tainted.has(name)) {
-            tainted.add(name);
-            changed = true;
+      if (node.type === 'AssignmentExpression') {
+        if (isSanitizerCall(node.right)) return;
+        if (exprIsTainted(node.right, tainted)) {
+          for (const name of boundNames(node.left)) {
+            if (!tainted.has(name)) {
+              tainted.add(name);
+              changed = true;
+            }
           }
         }
       }
@@ -149,6 +170,14 @@ export function analyzeFile(ast: AstNode): WeakMap<AstNode, ScopeFacts> {
   });
   return facts;
 }
+
+/** Analyze one function with extra tainted names (cross-file parameter taint). */
+export function analyzeFunctionWithSeed(fn: AstNode, seed: Iterable<string>): ScopeFacts {
+  attachParents(fn);
+  return analyzeScope(fn, seed);
+}
+
+export { exprIsTainted, isSanitizerCall };
 
 export function factsFor(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): ScopeFacts {
   return (

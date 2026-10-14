@@ -23,6 +23,8 @@ import { renderHtmlReport } from '../reporters/html.js';
 import { renderJsonReport } from '../reporters/json.js';
 import { renderMarkdownReport } from '../reporters/markdown.js';
 import { renderSarifReport } from '../reporters/sarif.js';
+import { buildSbom } from '../sbom/index.js';
+import { validateCycloneDx15 } from '../sbom/cyclonedx.js';
 
 export interface ProgramIO {
   out(text: string): void;
@@ -225,6 +227,33 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           await notifyEmail({ host, port, from, to, summary });
         }
         io.out(formatSummary(summary));
+      } catch (error) {
+        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('sbom')
+    .description('Write a CycloneDX 1.5 SBOM for the project')
+    .argument('[path]', 'project directory', '.')
+    .option('--format <format>', 'sbom format', 'cyclonedx')
+    .option('--out <file>', 'write to this file instead of stdout')
+    .action(async (path: string, opts: { format?: string; out?: string }) => {
+      try {
+        if (opts.format !== undefined && opts.format !== 'cyclonedx') {
+          throw new Error(`unsupported SBOM format "${opts.format}" (valid: cyclonedx)`);
+        }
+        const doc = await buildSbom(resolve(path));
+        const errors = validateCycloneDx15(doc);
+        if (errors.length > 0) throw new Error(`invalid SBOM: ${errors.join('; ')}`);
+        const json = JSON.stringify(doc, null, 2);
+        if (opts.out !== undefined) {
+          await writeFile(resolve(opts.out), json, 'utf8');
+          io.out(`Wrote CycloneDX 1.5 SBOM to ${opts.out}`);
+        } else {
+          io.out(json);
+        }
       } catch (error) {
         io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
         process.exitCode = 2;

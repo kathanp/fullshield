@@ -54,11 +54,32 @@ export function renderSarifReport(result: ScanResult): string {
                   },
                 ]
               : [];
+          const codeFlows =
+            finding.trace !== undefined && finding.trace.length > 0
+              ? [
+                  {
+                    threadFlows: [
+                      {
+                        locations: finding.trace.map((step) => ({
+                          location: {
+                            message: { text: step.note },
+                            physicalLocation: {
+                              artifactLocation: { uri: uri(step.file) },
+                              ...(step.line !== undefined ? { region: { startLine: step.line } } : {}),
+                            },
+                          },
+                        })),
+                      },
+                    ],
+                  },
+                ]
+              : undefined;
           return {
             ruleId: finding.ruleId,
             level: sarifLevel(finding.severity),
             message: { text: finding.message },
             locations: location,
+            ...(codeFlows !== undefined ? { codeFlows } : {}),
           };
         }),
       },

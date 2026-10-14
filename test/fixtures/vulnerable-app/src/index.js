@@ -5,6 +5,8 @@ const express = require('express');
 const cors = require('cors');
 const { exec } = require('child_process');
 const db = require('./db');
+const lodash = require('lodash');
+lodash.get({}, 'x');
 
 const app = express();
 // no helmet() -> CONFIG-HELMET-001

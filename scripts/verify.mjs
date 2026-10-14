@@ -135,7 +135,7 @@ function runCliJson(fixtureDir, extraArgs = []) {
   return { status: result.status, report: JSON.parse(result.stdout) };
 }
 
-const { IMPLEMENTED_MODULES, validateSarif21 } = await import(
+const { IMPLEMENTED_MODULES, validateSarif21, validateCycloneDx15 } = await import(
   pathToFileURL(join(root, 'dist', 'index.js')).href
 );
 
@@ -485,6 +485,63 @@ const acceptanceCriteria = {
       fail('phase 10 acceptance: npm pack missing README.md');
     }
     console.log('  ✔ npm pack excludes tests/fixtures; README states non-goals');
+  },
+  // Phase 13 (spec §9 / §15): cross-file taint, unreachable deps downgraded, CycloneDX 1.5 SBOM.
+  13: () => {
+    const vulnSast = runCliJson(vulnerableApp, ['--modules', 'sast']);
+    const cross = vulnSast.report.findings.find(
+      (f) => f.ruleId === 'SAST-SQLI-001' && f.file === 'src/data/alloc-dao.js',
+    );
+    if (cross === undefined) {
+      fail('phase 13 acceptance: 3-file SQLI chain not detected on alloc-dao.js');
+    }
+    const files = new Set((cross.trace ?? []).map((s) => s.file));
+    for (const need of ['src/routes/alloc.js', 'src/services/alloc.js', 'src/data/alloc-dao.js']) {
+      if (!files.has(need)) fail(`phase 13 acceptance: taint trace missing ${need}`);
+    }
+    if (files.size < 3) fail(`phase 13 acceptance: trace spans ${files.size} files, expected ≥ 3`);
+    console.log('  ✔ taint traced across 3+ files in fixtures');
+
+    const vulnDeps = runCliJson(vulnerableApp, ['--modules', 'deps', '--offline']);
+    const lodash = vulnDeps.report.findings.filter(
+      (f) => f.ruleId === 'DEPS-VULN-001' && (f.snippet ?? '').startsWith('lodash@'),
+    );
+    if (!lodash.some((f) => f.reachability === 'reachable' && f.severity === 'critical')) {
+      fail('phase 13 acceptance: imported+called lodash must stay reachable/critical');
+    }
+    const unused = vulnDeps.report.findings.filter(
+      (f) => f.ruleId === 'DEPS-VULN-001' && f.reachability === 'not-imported',
+    );
+    if (unused.length === 0) fail('phase 13 acceptance: expected unused lockfile vulns to be classified not-imported');
+    if (unused.some((f) => ['high', 'critical'].includes(f.severity))) {
+      fail('phase 13 acceptance: not-imported vulns must be downgraded below high');
+    }
+    console.log(
+      `  ✔ unreachable vulnerable deps downgraded (${unused.length} not-imported; lodash stays critical)`,
+    );
+
+    const tmp = join(root, '.fullshield-verify-phase13');
+    rmSync(tmp, { recursive: true, force: true });
+    mkdirSync(tmp, { recursive: true });
+    try {
+      const out = join(tmp, 'bom.json');
+      const sbom = spawnSync(
+        process.execPath,
+        [join(root, 'dist', 'cli', 'index.js'), 'sbom', vulnerableApp, '--format', 'cyclonedx', '--out', out],
+        { cwd: root, encoding: 'utf8' },
+      );
+      if (sbom.status !== 0) fail(`phase 13 acceptance: sbom exited ${sbom.status}: ${sbom.stderr}`);
+      if (!existsSync(out)) fail('phase 13 acceptance: sbom --out did not write a file');
+      const doc = JSON.parse(readFileSync(out, 'utf8'));
+      const errors = validateCycloneDx15(doc);
+      if (errors.length > 0) fail(`phase 13 acceptance: CycloneDX errors: ${errors.join('; ')}`);
+      if (doc.bomFormat !== 'CycloneDX' || doc.specVersion !== '1.5') {
+        fail('phase 13 acceptance: SBOM is not CycloneDX 1.5');
+      }
+      console.log('  ✔ SBOM validates against CycloneDX 1.5');
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
   },
 };
 

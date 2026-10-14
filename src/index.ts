@@ -49,3 +49,6 @@ export { renderHtmlReport } from './reporters/html.js';
 export { renderJsonReport } from './reporters/json.js';
 export { renderMarkdownReport } from './reporters/markdown.js';
 export { renderSarifReport, validateSarif21 } from './reporters/sarif.js';
+export { buildSbom } from './sbom/index.js';
+export { renderCycloneDx, validateCycloneDx15 } from './sbom/cyclonedx.js';
+export type { SbomComponent, SbomInput } from './sbom/cyclonedx.js';

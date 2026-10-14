@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import type { ScanModule } from '../../core/engine.js';
 import { makeFindingId, type Finding } from '../../core/finding.js';
 import { assignedNameOf, walk } from './ast.js';
+import { runInterproc, type ParsedSource } from './interproc.js';
 import { analyzeFile, factsFor, nodeIsPathSanitized, nodeIsRequestObject, nodeIsTainted } from './taint.js';
 import { authRule } from './rules/auth.js';
 import { cmdiRule } from './rules/cmdi.js';
@@ -139,6 +140,7 @@ export const sastModule: ScanModule = {
   name: 'sast',
   async run(ctx) {
     const findings: Finding[] = [];
+    const parsed: ParsedSource[] = [];
     for (const rel of ctx.files) {
       const isSource = SOURCE_EXT.test(rel);
       const isTemplate = TEMPLATE_EXT.test(rel);
@@ -156,11 +158,13 @@ export const sastModule: ScanModule = {
       }
       try {
         const ast = await parseSource(source);
+        parsed.push({ file: rel, source, ast });
         findings.push(...findingsFromAst(rel, source, ast));
       } catch {
         // Unparseable file: skip. A scanner must not execute or crash on user code.
       }
     }
+    findings.push(...runInterproc(parsed));
     return findings;
   },
 };

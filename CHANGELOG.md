@@ -2,6 +2,12 @@
 
 All notable changes to FullShield are documented here.
 
+## Unreleased — phase-13
+
+- Cross-file taint (call graph, depth 5) records `Finding.trace` and SARIF `codeFlows`.
+- Dependency reachability: `reachable` / `imported-not-called` (−1) / `not-imported` (−2).
+- `fullshield sbom --format cyclonedx` emits CycloneDX 1.5 JSON with vuln references.
+
 ## Unreleased — harden-2
 
 - `DEPS-NOLOCK-001` (info) when `package.json` exists without a lockfile; exact pins are still queried on OSV.

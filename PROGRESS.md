@@ -326,3 +326,41 @@ Nothing was pushed to GitHub.
 
 **Benchmark:** NodeGoat 372 (unchanged). DVNA 14 → 19 (+1 NOLOCK info, +4
 OSV on exact `mathjs` / `node-serialize` pins). Typosquat FP delta: 0.
+
+## Phase 13 — cross-file taint, reachability, CycloneDX SBOM
+
+**Built:**
+- Call-graph taint (`src/modules/sast/interproc.ts`): relative `require`/`import`,
+  `require(x).Export`, `new Ctor()` method calls, `this.method = fn`, same-file
+  calls. Depth 5. Sanitizers (`parse`/`validate`/`encodeURIComponent`/`sanitize`/
+  `escape`) clear taint. Sinks: SQL `query`/`execute`, cmd `exec`/`spawn*`,
+  NoSQL `$where`. Findings include `trace`; SARIF `codeFlows`.
+- Fixture: 3-file chain `routes/alloc.js` → `services/alloc.js` →
+  `data/alloc-dao.js` (parameterized negative on clean-app).
+- Dependency reachability on `DEPS-VULN-001`: `reachable` / `imported-not-called`
+  (−1) / `not-imported` (−2). lodash in vulnerable-app stays called+critical.
+- `fullshield sbom --format cyclonedx` → CycloneDX 1.5 JSON with vuln refs.
+
+**Not done / deferred:**
+- License policy (GPL/AGPL vs proprietary): lockfiles we parse do not include
+  SPDX licenses; SBOM `license` is optional when supplied. No invented licenses.
+- TS path aliases; OSV “affected functions” (any call ≈ reachable).
+- NodeGoat `$where` trace is 2 files (route + DAO), not 3.
+
+**Verify (`npm run verify:phase 13`, PASSED):**
+
+| phase | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|
+| 13 | 95.22% | 83.37% | deps,secrets,sast,config | 30 | 30 | 34 | 0 |
+
+245 tests. Mutation-smoke verified all 23 rules. Acceptance: 3-file SQLI trace;
+1 not-imported vuln downgraded on vulnerable-app; lodash stays critical; SBOM
+validates as CycloneDX 1.5.
+
+**Benchmark:** NodeGoat 372 → 373 (+1 `$where` TP). 320 OSV hits: 13 reachable,
+4 imported-not-called (−1), 303 not-imported (−2) — **307 alerts downgraded**.
+High+critical 210 → 16. DVNA 19 unchanged (4 pin vulns reachable). FP delta: 0.
+See `benchmarks/REPORT.md`.
+
+**Stopped here per the mandatory Phase 13 review gate.** Phases 11, 12, 14–16
+not started. Nothing was pushed to GitHub.

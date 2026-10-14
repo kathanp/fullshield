@@ -7,6 +7,7 @@ import { makeFindingId, type Finding } from '../../core/finding.js';
 import { parseLockfile, type LockedPackage } from './lockfile.js';
 import { queryOsv, type OsvVuln } from './osv.js';
 import { exactPinsFromManifest } from './pins.js';
+import { applyReachability, indexPackageUsage } from './reachability.js';
 import { minFixedVersion, osvSeverity, sameMajor } from './semver.js';
 import { findTyposquats, type TyposquatHit } from './typosquat.js';
 
@@ -148,7 +149,7 @@ export const depsModule: ScanModule = {
           findings.push(vulnFinding('package.json', hit.pkg, vuln));
         }
       }
-      return findings;
+      return applyReachability(findings, await usageFrom(ctx.cwd, ctx.files));
     }
 
     let contents: string;
@@ -177,6 +178,19 @@ export const depsModule: ScanModule = {
         findings.push(vulnFinding(lockFile, hit.pkg, vuln));
       }
     }
-    return findings;
+    return applyReachability(findings, await usageFrom(ctx.cwd, ctx.files));
   },
 };
+
+async function usageFrom(cwd: string, files: readonly string[]): Promise<Map<string, { imported: boolean; called: boolean }>> {
+  const sources = new Map<string, string>();
+  for (const rel of files) {
+    if (!/\.[cm]?[jt]sx?$/.test(rel)) continue;
+    try {
+      sources.set(rel, await readFile(join(cwd, rel), 'utf8'));
+    } catch {
+      // skip
+    }
+  }
+  return indexPackageUsage(sources);
+}

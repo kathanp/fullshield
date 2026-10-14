@@ -24,6 +24,14 @@ function renderFinding(finding: Finding): string[] {
   if (finding.snippet !== undefined) {
     lines.splice(1, 0, `    ${pc.dim(finding.snippet)}`);
   }
+  if (finding.reachability !== undefined) {
+    lines.push(`    ${pc.dim(`reachability: ${finding.reachability}`)}`);
+  }
+  if (finding.trace !== undefined && finding.trace.length > 0) {
+    lines.push(
+      `    ${pc.dim(`trace: ${finding.trace.map((s) => `${s.file}${s.line !== undefined ? `:${s.line}` : ''}`).join(' → ')}`)}`,
+    );
+  }
   return lines;
 }
 

@@ -149,6 +149,36 @@ describe('CLI wiring (in-process)', () => {
     expect(process.exitCode).toBe(2);
   });
 
+  it('sbom --format cyclonedx writes a CycloneDX 1.5 document', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'fullshield-cli-sbom-'));
+    dirs.push(dir);
+    const out = join(dir, 'bom.json');
+    const { out: stdout, err } = await runCli([
+      'sbom',
+      vulnerableApp,
+      '--format',
+      'cyclonedx',
+      '--out',
+      out,
+    ]);
+    expect(err).toBe('');
+    expect(stdout).toContain('Wrote CycloneDX 1.5 SBOM');
+    const doc = JSON.parse(await readFile(out, 'utf8')) as {
+      bomFormat: string;
+      specVersion: string;
+      components: unknown[];
+    };
+    expect(doc.bomFormat).toBe('CycloneDX');
+    expect(doc.specVersion).toBe('1.5');
+    expect(Array.isArray(doc.components)).toBe(true);
+  });
+
+  it('sbom rejects an unsupported format', async () => {
+    const { err } = await runCli(['sbom', vulnerableApp, '--format', 'spdx']);
+    expect(err).toMatch(/unsupported SBOM format/i);
+    expect(process.exitCode).toBe(2);
+  });
+
   it('notify --email without SMTP env exits 2', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'fullshield-cli-email-'));
     dirs.push(dir);

@@ -88,12 +88,12 @@ A2 broken auth, A3 sensitive data, A4 XXE (`libxmljs` `noent:true`), A5 IDOR / b
 
 ## Known misses (out of scope — do not tune Core rules for these)
 
-- **Cross-file taint:** NodeGoat allocations `$where` (`req.query.threshold` in the route, interpolated in `allocations-dao.js`). Needs Phase 13 call-graph taint.
+- **Cross-file taint:** NodeGoat allocations `$where` is detected as of Phase 13 (`SAST-NOSQLI-001` on `app/data/allocations-dao.js:77`, trace spans the route + DAO). Remaining misses: dynamic/`eval`-built callees, TS path aliases, hops > 5.
 - **Business logic / access control:** IDOR, missing function-level access, CSRF, session fixation, password policy, broken auth.
 - **Template XSS that is not `{{{` / `<%-`:** NodeGoat Swig `{{ }}` (auto-escaped) and URL-context encoding.
 - **XXE, insecure deserialization, ReDoS, log injection** — no Core rule id.
 - **HTTP clients beyond the SSRF allow-list after the bench-1 fix** still will not invent a generic `*.get(url)` rule (`Map.get` / `cache.get` would explode FPs).
-- **Dependency reachability:** NodeGoat's 320 OSV findings are untriaged; most are transitive / dev (Cypress, Grunt). Phase 13.
+- **Dependency reachability:** Phase 13 classifies each `DEPS-VULN-001`. See After Phase 13 for counts. Affected-function lists from OSV/GHSA are not yet used (import+any-call ≈ reachable).
 
 ---
 
@@ -164,3 +164,28 @@ False-positive change vs Phase 10: **none**. False-positive change vs Phase 5: s
 | DVNA | 14 | 19 | +1 `DEPS-NOLOCK-001` (info, true: no lockfile). +4 `DEPS-VULN-001` on exact pins: `mathjs@3.10.1` ×3, `node-serialize@0.0.4` ×1 (true positives; previously skipped). No new typosquat FPs. |
 
 Typosquat false-positive change vs harden-1: **none**. JSON: `results/*-harden2.json`.
+
+### After Phase 13
+
+Cross-file taint (call graph, depth 5) + dependency reachability + CycloneDX 1.5 SBOM.
+
+**NodeGoat 372 → 373.** The extra finding is a true positive: `SAST-NOSQLI-001` on `app/data/allocations-dao.js:77` (`$where` interpolates `req.query.threshold` from `app/routes/allocations.js`). Trace spans 2 files (route → DAO method on a `new AllocationsDAO()` instance). No new false positives.
+
+**Reachability (NodeGoat `DEPS-VULN-001` ×320, same OSV hits as harden-2):**
+
+| Class | Count | Severity change | Why |
+|---|---|---|---|
+| `reachable` (imported and called) | 13 | none | `async`, `body-parser`, `marked`, `mongodb`, `swig`, `express` |
+| `imported-not-called` | 4 | −1 | `underscore` is imported but no call was found |
+| `not-imported` | 303 | −2 | transitive / unused lockfile packages (Cypress, Grunt, …) |
+
+307 of 320 dependency alerts were downgraded. High+critical on the whole scan: **210 → 16** (1 critical: committed TLS key; 6 SAST/high; 9 remaining high `DEPS-VULN-001`, of which 7 are reachable and 2 are `underscore` after −1 from critical). `DEPS-VULN-001` severity mix: critical 33 / high 171 / medium 98 / low 18 → high 9 / medium 37 / low 164 / info 110.
+
+**DVNA 19 → 19.** The 4 exact-pin `DEPS-VULN-001` (`mathjs@3.10.1` ×3, `node-serialize@0.0.4`) are `reachable` (the app imports them), so they were not downgraded. SQLI/CMDI stay intra-function TPs. No new FPs.
+
+| App | harden-2 | Phase 13 | Notes |
+|---|---|---|---|
+| NodeGoat | 372 | 373 | +1 `$where` TP. 303 not-imported OSV hits −2 severity; 4 imported-not-called −1. |
+| DVNA | 19 | 19 | Unchanged count; pin vulns stay reachable. |
+
+False-positive change vs harden-2: **none**. JSON: `results/*-phase13.json`.

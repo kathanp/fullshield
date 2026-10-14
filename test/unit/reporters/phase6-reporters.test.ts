@@ -59,6 +59,24 @@ describe('SARIF 2.1.0 reporter', () => {
     expect(sarif.runs[0]?.results[0]?.message.text).toContain('Tainted input');
   });
 
+  it('emits SARIF codeFlows from finding.trace', () => {
+    const traced: Finding = {
+      ...finding,
+      trace: [
+        { file: 'src/routes/alloc.js', line: 6, note: 'tainted argument 0 passed to getAlloc()' },
+        { file: 'src/data/alloc-dao.js', line: 5, note: 'tainted value reaches query' },
+      ],
+    };
+    const doc = JSON.parse(renderSarifReport(mkResult([traced]))) as {
+      runs: Array<{
+        results: Array<{
+          codeFlows?: Array<{ threadFlows: Array<{ locations: unknown[] }> }>;
+        }>;
+      }>;
+    };
+    expect(doc.runs[0]?.results[0]?.codeFlows?.[0]?.threadFlows[0]?.locations).toHaveLength(2);
+  });
+
   it('maps severity to SARIF level and omits location when file is missing', () => {
     const medium: Finding = { ...finding, id: 'm', severity: 'medium', file: undefined, line: undefined };
     const info: Finding = { ...finding, id: 'i', ruleId: 'DEPS-NOLOCK-001', severity: 'info', column: 0 };
