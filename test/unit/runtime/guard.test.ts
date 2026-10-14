@@ -56,6 +56,45 @@ describe('runtime payload blocking', () => {
     expect(probe.event?.sample).toBe('new-param');
   });
 
+  it('keeps the IP map and per-route param maps bounded under a 100k flood', () => {
+    const maxKeys = 512;
+    const maxRoutes = 64;
+    const maxParamNames = 128;
+    const inspect = createInspector({
+      authRoutes: ['/login'],
+      rateLimit: { windowMs: 60_000, max: 20, maxKeys },
+      anomaly: { learnMinutes: 60, maxRoutes, maxParamNames },
+    });
+    const before = process.memoryUsage().heapUsed;
+    for (let i = 0; i < 100_000; i += 1) {
+      inspect({
+        path: '/login',
+        ip: `203.${(i >>> 16) & 255}.${(i >>> 8) & 255}.${i & 255}`,
+        query: { user: 'a' },
+      });
+    }
+    expect(inspect.limiterSize).toBeLessThanOrEqual(maxKeys);
+    expect(inspect.limiterSize).toBe(maxKeys);
+
+    for (let i = 0; i < 100_000; i += 1) {
+      inspect({
+        path: '/api',
+        ip: '198.51.100.10',
+        body: { [`p${i}`]: '1' },
+      });
+    }
+    expect(inspect.paramCount('/api')).toBeLessThanOrEqual(maxParamNames);
+    expect(inspect.paramCount('/api')).toBe(maxParamNames);
+
+    for (let i = 0; i < 100_000; i += 1) {
+      inspect({ path: `/r${i}`, ip: '198.51.100.11', query: { q: '1' } });
+    }
+    expect(inspect.routeCount).toBeLessThanOrEqual(maxRoutes);
+
+    const after = process.memoryUsage().heapUsed;
+    expect(after - before).toBeLessThan(80 * 1024 * 1024);
+  });
+
   it('does not log the raw request body on events', () => {
     const onEvent = vi.fn();
     const inspect = createInspector({ mode: 'block', onEvent });

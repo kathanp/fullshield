@@ -1,5 +1,6 @@
 import { flattenValues, inspectValues, type AttackKind } from './signatures.js';
-import { createRateLimiter } from './rateLimit.js';
+import { LruMap } from './lru.js';
+import { createRateLimiter, type RateLimitOptions } from './rateLimit.js';
 
 export type GuardMode = 'monitor' | 'block';
 
@@ -13,7 +14,7 @@ export interface GuardEvent {
 export interface GuardOptions {
   mode?: GuardMode;
   authRoutes?: string[];
-  rateLimit?: { windowMs: number; max: number };
+  rateLimit?: RateLimitOptions;
   maxBodyBytes?: number;
   maxBodyDepth?: number;
   maxBodyKeys?: number;
@@ -24,6 +25,10 @@ export interface GuardOptions {
     learnMinutes: number;
     now?: () => number;
     onAnomaly?: (event: GuardEvent) => void;
+    /** Hard cap on tracked routes. Default 1_000. */
+    maxRoutes?: number;
+    /** Hard cap on learned param names per route. Default 200. */
+    maxParamNames?: number;
   };
 }
 
@@ -74,10 +79,20 @@ export interface InspectResult {
 interface RouteBaseline {
   count: number;
   bodySum: number;
-  paramNames: Set<string>;
+  paramNames: LruMap<string, true>;
   status401: number;
   status404: number;
   recent404: number;
+}
+
+const DEFAULT_MAX_ROUTES = 1_000;
+const DEFAULT_MAX_PARAM_NAMES = 200;
+
+export interface Inspector {
+  (req: IncomingRequest): InspectResult;
+  readonly limiterSize: number;
+  readonly routeCount: number;
+  paramCount(path: string): number;
 }
 
 function keysOf(value: unknown): string[] {
@@ -85,7 +100,7 @@ function keysOf(value: unknown): string[] {
   return Object.keys(value);
 }
 
-export function createInspector(options: GuardOptions = {}) {
+export function createInspector(options: GuardOptions = {}): Inspector {
   const mode = options.mode ?? 'monitor';
   const authRoutes = new Set(options.authRoutes ?? ['/login']);
   const limiter = createRateLimiter(options.rateLimit ?? { windowMs: 60_000, max: 20 });
@@ -93,10 +108,12 @@ export function createInspector(options: GuardOptions = {}) {
   const maxBodyDepth = options.maxBodyDepth ?? 8;
   const maxBodyKeys = options.maxBodyKeys ?? 200;
   const anomaly = options.anomaly;
-  const routes = new Map<string, RouteBaseline>();
+  const maxRoutes = anomaly?.maxRoutes ?? DEFAULT_MAX_ROUTES;
+  const maxParamNames = anomaly?.maxParamNames ?? DEFAULT_MAX_PARAM_NAMES;
+  const routes = new LruMap<string, RouteBaseline>(maxRoutes);
   let windowStart: number | undefined;
 
-  return function inspect(req: IncomingRequest): InspectResult {
+  const inspect = ((req: IncomingRequest): InspectResult => {
     const path = req.path ?? req.url?.split('?')[0] ?? '/';
     const ip = req.ip ?? 'unknown';
     const emit = (ruleId: string, sample: string, shouldBlock: boolean): InspectResult => {
@@ -132,7 +149,14 @@ export function createInspector(options: GuardOptions = {}) {
       const learning = t - windowStart < anomaly.learnMinutes * 60_000;
       let baseline = routes.get(path);
       if (baseline === undefined) {
-        baseline = { count: 0, bodySum: 0, paramNames: new Set(), status401: 0, status404: 0, recent404: 0 };
+        baseline = {
+          count: 0,
+          bodySum: 0,
+          paramNames: new LruMap(maxParamNames),
+          status401: 0,
+          status404: 0,
+          recent404: 0,
+        };
         routes.set(path, baseline);
       }
       const names = [...keysOf(req.query), ...keysOf(req.body), ...keysOf(req.params)];
@@ -140,7 +164,7 @@ export function createInspector(options: GuardOptions = {}) {
       if (learning) {
         baseline.count += 1;
         baseline.bodySum += stats.bytes;
-        for (const n of names) baseline.paramNames.add(n);
+        for (const n of names) baseline.paramNames.set(n, true);
         if (status === 401) baseline.status401 += 1;
         if (status === 404) baseline.status404 += 1;
       } else {
@@ -164,5 +188,10 @@ export function createInspector(options: GuardOptions = {}) {
     }
 
     return { block: false };
-  };
+  }) as Inspector;
+
+  Object.defineProperty(inspect, 'limiterSize', { get: () => limiter.size });
+  Object.defineProperty(inspect, 'routeCount', { get: () => routes.size });
+  inspect.paramCount = (path: string): number => routes.get(path)?.paramNames.size ?? 0;
+  return inspect;
 }

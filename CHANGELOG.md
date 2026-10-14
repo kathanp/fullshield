@@ -2,6 +2,10 @@
 
 All notable changes to FullShield are documented here.
 
+## Unreleased — harden-4-3
+
+- Runtime rate-limiter IP map and anomaly per-route / per-param maps are LRU-capped (configurable). A 100k unique-IP / unique-param flood keeps heap bounded.
+
 ## Unreleased — harden-4-2
 
 - Yarn and pnpm lockfiles build real dependency edges. Until a lockfile format has parsed edges, transitive OSV hits are `reachability-unknown` (severity kept), never `not-imported`.

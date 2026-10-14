@@ -485,3 +485,12 @@ unused lodash not-imported).
 
 **Re-scan:** NodeGoat 373 / high+critical **59** unchanged (npm lockfile).
 DVNA 19 unchanged. JSON: `benchmarks/results/*-harden4.json`.
+
+## harden-4-3 — runtime memory caps
+
+`LruMap` on the rate-limiter key map (default 10_000) and anomaly route map
+(default 1_000) / param-name map (default 200). Configurable via
+`rateLimit.maxKeys`, `anomaly.maxRoutes`, `anomaly.maxParamNames`.
+
+Test: 100_000 unique IPs + 100_000 unique param names + 100_000 routes; map
+sizes stay at the cap; heap delta < 80MB.
