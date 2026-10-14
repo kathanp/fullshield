@@ -87,6 +87,9 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | `confirm` | **Experimental** exploit confirm (`FULLSHIELD_EXPERIMENTAL_CONFIRM=1`). localhost / 127.0.0.1 / FullShield-started container only. Harmless canaries only. |
 | `mcp` | **Experimental** MCP server (`FULLSHIELD_EXPERIMENTAL_MCP=1`). Official `@modelcontextprotocol/sdk` stdio: `fullshield mcp --stdio`. Read-only tools: `scan`, `get_findings`, `explain_finding`, `propose_fix` (diff only, never writes), `verify_fix` (temp copy). |
 | `honey init` | **Experimental** honeytokens (`FULLSHIELD_EXPERIMENTAL_HONEY=1`). Decoy routes are **low** severity and aggregated per IP; only use of a canary **credential** is critical. Auto-block is off unless `threatAutoBlock` is set (shared-IP / NAT risk; max duration applies). Decoys are fake values added to `.gitignore`. |
+| `threat-model` | **Experimental** STRIDE + Mermaid (`FULLSHIELD_EXPERIMENTAL_PLATFORM=1`). |
+| `report --serve` | **Experimental** local dashboard (`FULLSHIELD_EXPERIMENTAL_PLATFORM=1`). Binds **127.0.0.1 only** and rejects any `Host` other than localhost/127.0.0.1 (DNS rebinding). No state-changing GET. |
+| `scan --changed` / `--since` | **Experimental** incremental scan (`FULLSHIELD_EXPERIMENTAL_PLATFORM=1`). |
 
 Inline ignore (reason required): `// fullshield-ignore SAST-SQLI-001: reviewed`
 

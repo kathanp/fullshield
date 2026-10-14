@@ -55,6 +55,8 @@ interface ScanCliOptions {
   updateBaseline?: boolean;
   ai?: string | true;
   emitVirtualPatches?: boolean | string;
+  changed?: boolean;
+  since?: string;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -111,6 +113,8 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option('--update-baseline', 'record current findings as accepted (CI fails only on new ones)')
     .option('--ai [mode]', 'experimental: explain findings (off = zero AI network calls)')
     .option('--emit-virtual-patches [file]', 'experimental: write .fullshield/vpatches.json')
+    .option('--changed', 'experimental: scan git staged/changed files only')
+    .option('--since <ref>', 'experimental: scan files changed since a git ref')
     .action(async (path: string, opts: ScanCliOptions) => {
       try {
         const failOnOverride = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;
@@ -125,6 +129,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           offline: opts.offline === true,
           updateBaseline: opts.updateBaseline === true,
           ai,
+          changed: opts.changed === true,
+          since: opts.since,
+          experimentalIncremental: process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM === '1',
         });
 
         if (opts.sarif !== undefined) {
@@ -371,6 +378,47 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
         const gate = failOn ?? result.config.failOn;
         if (fresh.some((f) => meetsThreshold(f.severity, gate))) process.exitCode = 1;
+      } catch (error) {
+        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('threat-model')
+    .description('Experimental STRIDE + Mermaid threat model (FULLSHIELD_EXPERIMENTAL_PLATFORM=1)')
+    .argument('[path]', 'project directory', '.')
+    .action(async (path: string) => {
+      try {
+        if (process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM !== '1') {
+          throw new Error('threat-model requires FULLSHIELD_EXPERIMENTAL_PLATFORM=1');
+        }
+        const { buildThreatModel } = await import('../threat/index.js');
+        const model = buildThreatModel(resolve(path), { experimental: true });
+        io.out(JSON.stringify({ routes: model.routes.length, stride: model.stride, mermaid: model.mermaid }));
+      } catch (error) {
+        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('report')
+    .description('Reports (experimental --serve dashboard binds 127.0.0.1 only)')
+    .option('--serve', 'local dashboard (FULLSHIELD_EXPERIMENTAL_PLATFORM=1)')
+    .argument('[path]', 'project directory', '.')
+    .action(async (path: string, opts: { serve?: boolean }) => {
+      try {
+        if (opts.serve !== true) {
+          io.out('pass --serve for the local dashboard');
+          return;
+        }
+        if (process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM !== '1') {
+          throw new Error('report --serve requires FULLSHIELD_EXPERIMENTAL_PLATFORM=1');
+        }
+        const { startDashboard } = await import('../dashboard/index.js');
+        const started = await startDashboard({ dir: resolve(path), experimental: true });
+        io.out(`dashboard listening on http://127.0.0.1:${started.port} (Host must be localhost or 127.0.0.1)`);
       } catch (error) {
         io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
         process.exitCode = 2;

@@ -50,6 +50,11 @@ export interface ScanOptions {
   updateBaseline?: boolean;
   /** Opt-in AI: `true` enables the client; a string selects a mode. */
   ai?: boolean | 'triage' | 'explain' | 'logic';
+  /** Phase 22 incremental (requires experimentalIncremental or FULLSHIELD_EXPERIMENTAL_PLATFORM=1). */
+  changed?: boolean;
+  since?: string;
+  experimentalIncremental?: boolean;
+  changedFiles?: string[];
 }
 
 export interface ScanMetadata {
@@ -124,6 +129,22 @@ export async function runScan(
   if (options.staged === true) {
     const staged = new Set(await listStagedFiles(cwd));
     files = files.filter((file) => staged.has(file));
+  }
+  const incrementalOn =
+    options.experimentalIncremental === true || process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM === '1';
+  if (incrementalOn && (options.changed === true || options.since !== undefined || options.changedFiles)) {
+    const { resolveChangedFiles } = await import('../incremental/index.js');
+    const listed =
+      options.changedFiles ??
+      resolveChangedFiles(cwd, {
+        changed: options.changed,
+        since: options.since,
+        experimental: true,
+      });
+    if (listed.length > 0) {
+      const allow = new Set(listed);
+      files = files.filter((file) => allow.has(file));
+    }
   }
 
   const available = new Map(modules.map((m) => [m.name, m]));

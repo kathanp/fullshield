@@ -260,6 +260,24 @@ describe('CLI wiring (in-process)', () => {
     }
   });
 
+  it('threat-model and report --serve refuse without FULLSHIELD_EXPERIMENTAL_PLATFORM', async () => {
+    const prev = process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM;
+    delete process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM;
+    try {
+      process.exitCode = undefined;
+      const threat = await runCli(['threat-model', cleanApp]);
+      expect(threat.err).toMatch(/FULLSHIELD_EXPERIMENTAL_PLATFORM/);
+      expect(process.exitCode).toBe(2);
+      process.exitCode = undefined;
+      const dash = await runCli(['report', cleanApp, '--serve']);
+      expect(dash.err).toMatch(/FULLSHIELD_EXPERIMENTAL_PLATFORM/);
+      expect(process.exitCode).toBe(2);
+    } finally {
+      if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM;
+      else process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM = prev;
+    }
+  });
+
   it('mcp refuses without FULLSHIELD_EXPERIMENTAL_MCP', async () => {
     const prev = process.env.FULLSHIELD_EXPERIMENTAL_MCP;
     delete process.env.FULLSHIELD_EXPERIMENTAL_MCP;

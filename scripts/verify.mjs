@@ -65,6 +65,7 @@ const PREVIOUS_PHASE_TESTS = {
   19: 341,
   20: 356,
   21: 383,
+  22: 392,
 };
 
 function listFilesRecursive(dir, out = []) {
@@ -900,6 +901,20 @@ s.listen(0, '127.0.0.1', () => {
     const skipped = await mcp.callMcpTool(session, 'scan', { path: join(root, 'test', 'fixtures', 'clean-app') });
     if (!skipped.skipped) fail('phase 21 acceptance: MCP scan ran without experimental flag');
     console.log('  ✔ MCP tools listed; LLM-001..005 positive/negative; off without experimental');
+  },
+  // Phase 22 (spec §20.3–20.5 / §22): threat model + incremental + dashboard host lock.
+  22: async () => {
+    const threat = await import(pathToFileURL(join(root, 'dist', 'threat.js')).href);
+    const dash = await import(pathToFileURL(join(root, 'dist', 'dashboard.js')).href);
+    const model = threat.buildThreatModel(join(root, 'test', 'fixtures', 'vulnerable-app'), { experimental: true });
+    if (!model.routes.some((r) => r.path === '/user')) fail('phase 22 acceptance: threat model missed /user');
+    if (!String(model.mermaid).includes('flowchart')) fail('phase 22 acceptance: missing Mermaid map');
+    if (dash.assertDashboardHost('evil.example') !== false) fail('phase 22 acceptance: Host lock failed');
+    if (dash.assertDashboardHost('127.0.0.1') !== true) fail('phase 22 acceptance: 127.0.0.1 Host should pass');
+    if (threat.buildThreatModel(join(root, 'test', 'fixtures', 'vulnerable-app')).skipped !== true) {
+      fail('phase 22 acceptance: threat-model ran without experimental');
+    }
+    console.log('  ✔ threat model STRIDE/Mermaid; dashboard Host lock; experimental fail-closed');
   },
 };
 

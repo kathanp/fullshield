@@ -597,3 +597,11 @@ Phase 18 extras: vpatch only the targeted route/sink and reverts when the findin
 MCP: official `@modelcontextprotocol/sdk` (`fullshield mcp --stdio`). SDK client test lists and calls every tool. Cursor `mcp.json` in README.
 
 **Re-scan:** NodeGoat 373 / high+critical **59** unchanged. DVNA 19 unchanged. JSON: `benchmarks/results/*-harden6.json`.
+
+## Phase 22 — threat model, incremental, dashboard
+
+**Tests: 392** (was 383).
+
+`FULLSHIELD_EXPERIMENTAL_PLATFORM=1`. `threat-model` extracts Express routes → STRIDE + Mermaid. `scan --changed` / `--since` filters the walk (fail-closed without the flag). Workspaces from `package.json`. `report --serve` binds **127.0.0.1 only**, rejects any Host except localhost/127.0.0.1, GET `/api/ingest` is 405. History in `.fullshield/history.db` (node:sqlite).
+
+**Re-scan:** NodeGoat 373 / high+critical **59** unchanged. DVNA 19 unchanged. JSON: `benchmarks/results/*-phase22.json`.

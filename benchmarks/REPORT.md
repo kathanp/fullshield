@@ -276,3 +276,9 @@ MCP and LLM-app rules are experimental and are not part of default `scan`. Defau
 `DEPS-MALICIOUS-001` and MCP/honey policy changes do not alter default NodeGoat/DVNA findings (no MAL- advisories in those lockfiles).
 
 **NodeGoat 373 / high+critical 59 unchanged. DVNA 19 unchanged.** JSON: `results/*-harden6.json`.
+
+### After Phase 22
+
+Threat-model / incremental / dashboard are experimental and do not change default `scan` findings.
+
+**NodeGoat 373 / high+critical 59 unchanged. DVNA 19 unchanged.** JSON: `results/*-phase22.json`.
