@@ -61,6 +61,7 @@ function countVitestTests() {
 const PREVIOUS_PHASE_TESTS = {
   16: 291,
   17: 318,
+  18: 324,
 };
 
 function listFilesRecursive(dir, out = []) {
@@ -769,6 +770,44 @@ s.listen(0, '127.0.0.1', () => {
     if (rasp.isRaspEnabled()) fail('phase 17 acceptance: rasp enabled without experimental flag');
     rasp.disableRasp();
     console.log('  ✔ experimental RASP off by default; attack ≥95%; benign 0');
+  },
+  // Phase 18 (spec §17.3–17.6 / §22): vpatch forces block; honeytoken alert.
+  18: async () => {
+    const raspUrl = pathToFileURL(join(root, 'dist', 'runtime', 'rasp.js')).href;
+    const rasp = await import(raspUrl);
+    const tmp = join(root, '.fullshield-verify-p18');
+    mkdirSync(tmp, { recursive: true });
+    try {
+      const out = join(tmp, 'vpatches.json');
+      rasp.emitVirtualPatches(
+        [{ ruleId: 'SAST-SQLI-001', file: 'app/routes/login.js', line: 1, message: 'on /login' }],
+        out,
+      );
+      const patches = rasp.loadVirtualPatches(out);
+      if (!rasp.patchForcesBlock(patches, '/login', 'sql')) {
+        fail('phase 18 acceptance: vpatch did not force block on /login sql');
+      }
+      rasp.enableRasp({ experimental: true, mode: 'monitor', virtualPatches: patches });
+      if (rasp.raspModeFor('/login', 'sql') !== 'block') {
+        fail('phase 18 acceptance: raspModeFor /login sql is not block');
+      }
+      rasp.disableRasp();
+      const canaries = rasp.honeyInit(tmp);
+      if (!rasp.isHoneyRoute('/admin.php') || !rasp.isHoneyCanary(canaries.awsKey)) {
+        fail('phase 18 acceptance: honeytoken not registered');
+      }
+      rasp.enableRasp({ experimental: true, mode: 'monitor' });
+      const events = [];
+      rasp.enableRasp({ experimental: true, mode: 'monitor', onEvent: (e) => events.push(e) });
+      rasp.raspContext()({ path: '/admin.php', ip: '203.0.113.1' }, { status() { return { json() {} }; } }, () => {});
+      if (!events.some((e) => e.ruleId === 'RASP-HONEY-001') && !rasp.getRaspEvents().some((e) => e.ruleId === 'RASP-HONEY-001')) {
+        fail('phase 18 acceptance: decoy route did not emit RASP-HONEY-001');
+      }
+      rasp.disableRasp();
+      console.log('  ✔ vpatch forces block; honeytoken hit emits RASP-HONEY-001');
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
   },
 };
 

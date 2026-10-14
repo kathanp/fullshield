@@ -1,5 +1,7 @@
 import { contextFromRequest, enterRaspContext, type IncomingLike } from './context.js';
-import { emitRaspEvent, raspMode, runDecide } from './enable.js';
+import { emitRaspEvent, raspMode, raspModeFor, runDecide } from './enable.js';
+import { isHoneyCanary, isHoneyRoute } from './honey.js';
+import { addThreat } from './threat.js';
 import { RASP_FAIL_OPEN, RaspBlockedError } from './types.js';
 
 interface ExpressLikeRes {
@@ -16,6 +18,25 @@ export function raspContext() {
   ): void {
     const ctx = contextFromRequest(req);
     try {
+      const honeyHit = isHoneyRoute(ctx.path) || ctx.strings.some((s) => isHoneyCanary(s));
+      if (honeyHit) {
+        addThreat(ctx.ip, 'honey');
+        emitRaspEvent({
+          ruleId: 'RASP-HONEY-001',
+          path: ctx.path,
+          ip: ctx.ip,
+          sample: 'honeytoken',
+        });
+        if (raspMode() === 'block') {
+          if (typeof res.status === 'function') {
+            res.status(403).json({ error: 'blocked', ruleId: 'RASP-HONEY-001' });
+            return;
+          }
+          res.statusCode = 403;
+          res.end?.(JSON.stringify({ error: 'blocked', ruleId: 'RASP-HONEY-001' }));
+          return;
+        }
+      }
       const proto = runDecide('proto', null, ctx);
       if (proto.block && proto.ruleId) {
         emitRaspEvent({
@@ -24,7 +45,7 @@ export function raspContext() {
           ip: ctx.ip,
           sample: 'prototype-key',
         });
-        if (raspMode() === 'block') {
+        if (raspModeFor(ctx.path, 'proto') === 'block') {
           if (typeof res.status === 'function') {
             res.status(403).json({ error: 'blocked', ruleId: proto.ruleId });
             return;

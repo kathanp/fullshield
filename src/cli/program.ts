@@ -54,6 +54,7 @@ interface ScanCliOptions {
   html?: string;
   updateBaseline?: boolean;
   ai?: string | true;
+  emitVirtualPatches?: boolean | string;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -109,6 +110,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option('--html <file>', 'write an HTML report to this path')
     .option('--update-baseline', 'record current findings as accepted (CI fails only on new ones)')
     .option('--ai [mode]', 'experimental: explain findings (off = zero AI network calls)')
+    .option('--emit-virtual-patches [file]', 'experimental: write .fullshield/vpatches.json')
     .action(async (path: string, opts: ScanCliOptions) => {
       try {
         const failOnOverride = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;
@@ -136,6 +138,19 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
 
         await writeLastScan(resolve(path), result);
+
+        if (opts.emitVirtualPatches !== undefined) {
+          if (process.env.FULLSHIELD_EXPERIMENTAL_VPATCH !== '1') {
+            throw new Error('--emit-virtual-patches requires FULLSHIELD_EXPERIMENTAL_VPATCH=1');
+          }
+          const { emitVirtualPatches } = await import('../runtime/rasp/vpatch.js');
+          const out =
+            typeof opts.emitVirtualPatches === 'string'
+              ? resolve(opts.emitVirtualPatches)
+              : resolve(path, '.fullshield', 'vpatches.json');
+          emitVirtualPatches(result.findings, out);
+          io.err(`wrote virtual patches ${out}`);
+        }
 
         io.out(opts.json === true ? renderJsonReport(result) : renderConsoleReport(result));
 
@@ -356,6 +371,26 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
         const gate = failOn ?? result.config.failOn;
         if (fresh.some((f) => meetsThreshold(f.severity, gate))) process.exitCode = 1;
+      } catch (error) {
+        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('honey')
+    .description('Experimental honeytokens (requires FULLSHIELD_EXPERIMENTAL_HONEY=1)')
+    .command('init')
+    .argument('[path]', 'project directory', '.')
+    .action(async (path: string) => {
+      try {
+        if (process.env.FULLSHIELD_EXPERIMENTAL_HONEY !== '1') {
+          throw new Error('honey init requires FULLSHIELD_EXPERIMENTAL_HONEY=1');
+        }
+        const { honeyInit } = await import('../runtime/rasp/honey.js');
+        const canaries = honeyInit(resolve(path));
+        io.out(`wrote honeytokens (.env.backup). decoys: /admin.php /.git/config /wp-login.php`);
+        io.out(`canary prefix ${canaries.awsKey.slice(0, 4)}****`);
       } catch (error) {
         io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
         process.exitCode = 2;

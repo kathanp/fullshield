@@ -543,3 +543,13 @@ SSRF `normalizeHost` / `hostIsBlocked`: strip IPv6 brackets, `::ffff:` mapped, d
 Attack corpus replaced with vendored PayloadsAllTheThings lists (`test/fixtures/rasp/payloads/`, MIT attribution). **173/181 = 95.6%** blocked (sql 40/44, shell 43/47, path 51/51, ssrf 39/39). Benign **0/621**. See `RASP-SINKS.md` for hooked vs not covered.
 
 **Re-scan:** NodeGoat 373 / high+critical **59** unchanged. DVNA 19 unchanged. JSON: `benchmarks/results/*-harden5.json`.
+
+## Phase 18 — virtual patches, egress, honeytokens
+
+**Tests: 324** (was 318).
+
+Experimental: `scan --emit-virtual-patches` writes `{ruleId,file,line,sink,route}` and runtime `virtualPatches` forces **block** on that route/sink while global mode stays monitor. `egress.allow` (exact + `*.suffix`). `honey init` writes decoy `.env.backup` + routes `/admin.php`, `/.git/config`, `/wp-login.php`; hits emit `RASP-HONEY-001`. Threat score: log / challenge / block.
+
+Off without `FULLSHIELD_EXPERIMENTAL_VPATCH` / `FULLSHIELD_EXPERIMENTAL_HONEY`.
+
+**Re-scan:** NodeGoat 373 / high+critical **59** unchanged. DVNA 19 unchanged. JSON: `benchmarks/results/*-phase18.json`.

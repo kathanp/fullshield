@@ -1,6 +1,9 @@
 import { decideSink } from './decide.js';
 import { installHooks, restoreHooks } from './hooks.js';
+import { clearCanaries } from './honey.js';
 import { setSsrfLookup } from './ssrf.js';
+import { clearThreats } from './threat.js';
+import { patchForcesBlock, type VirtualPatch } from './vpatch.js';
 import type { Decision, RaspEvent, RaspRequestContext, SinkKind } from './types.js';
 
 export type RaspMode = 'monitor' | 'block';
@@ -10,6 +13,8 @@ export interface RaspOptions {
   mode?: RaspMode;
   onEvent?: (event: RaspEvent) => void;
   decide?: (kind: SinkKind, sink: unknown, ctx: RaspRequestContext) => Decision;
+  virtualPatches?: VirtualPatch[];
+  egress?: { allow: string[] };
 }
 
 let enabled = false;
@@ -23,6 +28,15 @@ export function isRaspEnabled(): boolean {
 
 export function raspMode(): RaspMode {
   return options.mode ?? 'monitor';
+}
+
+export function raspModeFor(route: string, kind: SinkKind): RaspMode {
+  if (patchForcesBlock(options.virtualPatches ?? [], route, kind)) return 'block';
+  return raspMode();
+}
+
+export function raspEgressAllow(): readonly string[] | undefined {
+  return options.egress?.allow;
 }
 
 export function runDecide(kind: SinkKind, sink: unknown, ctx: RaspRequestContext, base?: string): Decision {
@@ -61,6 +75,8 @@ export function disableRasp(): void {
   enabled = false;
   options = {};
   setSsrfLookup(undefined);
+  clearCanaries();
+  clearThreats();
 }
 
 export function enableRaspFromEnv(): void {

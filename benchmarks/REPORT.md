@@ -246,3 +246,9 @@ SSRF host normalization + PayloadsAllTheThings corpora. Default scan unchanged.
 **NodeGoat 373 / high+critical 59 unchanged. DVNA 19 unchanged.** JSON: `results/*-harden5.json`.
 
 RASP corpus: attack **173/181 (95.6%)** — sql 40/44, shell 43/47, path 51/51, ssrf 39/39. Benign **0/621**. Inventory: [`RASP-SINKS.md`](../RASP-SINKS.md).
+
+### After Phase 18
+
+Virtual patches / honey / egress are experimental runtime/CLI and do not change default `scan` findings.
+
+**NodeGoat 373 / high+critical 59 unchanged. DVNA 19 unchanged.** JSON: `results/*-phase18.json`.

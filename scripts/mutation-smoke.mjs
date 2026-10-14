@@ -151,6 +151,16 @@ const EXTRA_TARGETS = [
       return src.replace('const hit = detectStructureChange', 'const hit = false && detectStructureChange');
     },
   },
+  {
+    name: 'RASP-HONEY-001',
+    file: join(root, 'src', 'runtime', 'rasp', 'honey.ts'),
+    apply: (src) => {
+      if (!src.includes('return (DECOY_ROUTES as readonly string[]).includes(p);')) {
+        throw new Error('honey route site missing');
+      }
+      return src.replace('return (DECOY_ROUTES as readonly string[]).includes(p);', 'return false;');
+    },
+  },
 ];
 
 for (const extra of EXTRA_TARGETS) {

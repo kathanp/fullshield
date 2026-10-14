@@ -1,7 +1,9 @@
 import { createRequire } from 'node:module';
 
 import { currentRaspContext } from './context.js';
-import { emitRaspEvent, raspMode, runDecide } from './enable.js';
+import { emitRaspEvent, raspEgressAllow, raspModeFor, runDecide } from './enable.js';
+import { egressAllowed } from './egress.js';
+import { addThreat } from './threat.js';
 import { raspContext } from './middleware.js';
 import { fetchUrl, urlFromHttpArgs } from './ssrf.js';
 import { RASP_FAIL_OPEN, RaspBlockedError, type SinkKind } from './types.js';
@@ -42,7 +44,8 @@ function guardSink(kind: SinkKind, sink: unknown, base?: string): void {
           ip: ctx.ip,
           sample: sampleOf(sink),
         });
-        if (raspMode() === 'block') throw new RaspBlockedError(decision.ruleId);
+        addThreat(ctx.ip, 'block');
+        if (raspModeFor(ctx.path, kind) === 'block') throw new RaspBlockedError(decision.ruleId);
       }
     }
   } catch (err) {
@@ -122,10 +125,34 @@ function wrapFsPath(obj: object, key: string): void {
   });
 }
 
+function checkEgress(url: string): void {
+  const allow = raspEgressAllow();
+  if (!allow || allow.length === 0) return;
+  let host = '';
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    return;
+  }
+  if (host && !egressAllowed(host, allow)) {
+    const ctx = currentRaspContext();
+    emitRaspEvent({
+      ruleId: 'RASP-EGRESS-001',
+      path: ctx?.path ?? '/',
+      ip: ctx?.ip ?? 'unknown',
+      sample: host.slice(0, 40),
+    });
+    if (ctx) addThreat(ctx.ip, 'block');
+    if (raspModeFor(ctx?.path ?? '/', 'ssrf') === 'block') throw new RaspBlockedError('RASP-EGRESS-001');
+  }
+}
+
 function wrapSsrf(obj: object, key: string, urlOf: (args: unknown[]) => string): void {
   patchMethod(obj, key, (orig) => {
     return function (this: unknown, ...args: unknown[]) {
-      return applySink('ssrf', urlOf(args), undefined, () => orig.call(this, ...(args as never[])));
+      const url = urlOf(args);
+      checkEgress(url);
+      return applySink('ssrf', url, undefined, () => orig.call(this, ...(args as never[])));
     };
   });
 }
@@ -201,6 +228,7 @@ function wrapBuiltins(): void {
     const origFetch = globalThis.fetch;
     globalThis.fetch = function (this: unknown, input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) {
       const start = fetchUrl(input);
+      checkEgress(start);
       const mode = init?.redirect ?? 'follow';
       if (mode !== 'follow') {
         return applySink('ssrf', start, undefined, () => origFetch.call(this, input, init));
