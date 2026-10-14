@@ -3,6 +3,10 @@ import { cpSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { z } from 'zod';
+
 import { scan } from '../core/engine.js';
 import type { Finding, ModuleName } from '../core/finding.js';
 import { proposeFix, applyUnifiedDiff } from '../fixer/patches.js';
@@ -132,4 +136,63 @@ export async function handleMcpRequest(session: McpSession, req: JsonRpcRequest)
     return { jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: JSON.stringify(result) }] } };
   }
   return { jsonrpc: '2.0', id, error: { code: -32601, message: `unknown method ${req.method}` } };
+}
+
+function textResult(value: unknown): { content: Array<{ type: 'text'; text: string }> } {
+  return { content: [{ type: 'text', text: JSON.stringify(value) }] };
+}
+
+/** Official MCP SDK server (stdio / in-memory). Tools stay read-only. */
+export function createOfficialMcpServer(opts: { experimental?: boolean } = {}): McpServer {
+  const session = createMcpSession(opts);
+  const server = new McpServer({ name: 'fullshield', version: '0.1.0' });
+  const modulesSchema = z.array(z.enum(['deps', 'secrets', 'sast', 'config'])).optional();
+  server.registerTool(
+    'scan',
+    {
+      description: 'Run a FullShield scan (read-only)',
+      inputSchema: {
+        path: z.string().optional(),
+        offline: z.boolean().optional(),
+        modules: modulesSchema,
+      },
+    },
+    async (args) => textResult(await callMcpTool(session, 'scan', args)),
+  );
+  server.registerTool(
+    'get_findings',
+    { description: 'Return findings from the last scan in this session', inputSchema: {} },
+    async () => textResult(await callMcpTool(session, 'get_findings', {})),
+  );
+  server.registerTool(
+    'explain_finding',
+    {
+      description: 'Explain a finding by ruleId (text only)',
+      inputSchema: { ruleId: z.string() },
+    },
+    async (args) => textResult(await callMcpTool(session, 'explain_finding', args)),
+  );
+  server.registerTool(
+    'propose_fix',
+    {
+      description: 'Return a unified diff; never writes files',
+      inputSchema: { ruleId: z.string() },
+    },
+    async (args) => textResult(await callMcpTool(session, 'propose_fix', args)),
+  );
+  server.registerTool(
+    'verify_fix',
+    {
+      description: 'Apply the diff in a temp copy and rescan; original tree untouched',
+      inputSchema: { ruleId: z.string() },
+    },
+    async (args) => textResult(await callMcpTool(session, 'verify_fix', args)),
+  );
+  return server;
+}
+
+export async function startMcpStdio(opts: { experimental?: boolean } = {}): Promise<void> {
+  const server = createOfficialMcpServer(opts);
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
 }

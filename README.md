@@ -28,7 +28,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 
 - **SAST:** SQL/NoSQL injection, command injection, path traversal, `eval`/`new Function`/`vm`, SSRF, open redirects, JWT `decode`/`none`, weak crypto, prototype pollution, XSS (`res.send` HTML and `<%-` / `{{{` templates), missing auth middleware (low confidence). `AI-INJECT-001` is a **basic phrase heuristic** (three exact comment phrases: "ignore previous", "mark as safe", "AI reviewer") — not a prompt-injection defense.
 - **Secrets:** AWS, Stripe, GitHub, Slack, Google, AI keys, PEM keys, DB URLs with passwords, hardcoded JWT secrets, committed `.env`.
-- **Deps:** OSV vulnerabilities with reachability (`reachable` / `imported-not-called` / `reachable-via-dependency` / `not-imported` / `reachability-unknown`), `dev-only` info for unused devDependencies, lockfile deprecation notices, typosquat-suspicious *direct* dependency names. `DEPS-NOLOCK-001` when there is a manifest but no lockfile; exact `package.json` pins are still queried.
+- **Deps:** OSV vulnerabilities with reachability (`reachable` / `imported-not-called` / `reachable-via-dependency` / `not-imported` / `reachability-unknown`), `dev-only` info for unused devDependencies, lockfile deprecation notices, typosquat-suspicious *direct* dependency names. `DEPS-MALICIOUS-001` for OSV `MAL-` / malicious-classified advisories is **always critical** and is never downgraded (install scripts run at `npm install`). `DEPS-NOLOCK-001` when there is a manifest but no lockfile; exact `package.json` pins are still queried.
 - **Config:** missing helmet, `express.json()` without a limit, CORS `*` + credentials, auth routes without a rate limiter, `err.stack` leaks, risky Dockerfiles, install scripts.
 
 ## Non-goals (honesty is a feature)
@@ -85,8 +85,8 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | `edge` | GET/HEAD posture check on a URL you pass: CDN/WAF, HTTPS redirect, security headers, `/.env` / `/.git` exposure. No crawl, no payloads. |
 | `install` | **Experimental** install-guard (`FULLSHIELD_EXPERIMENTAL_SUPPLY=1`). Static analysis only; never runs package scripts. Registry reads are `registry.npmjs.org` only. |
 | `confirm` | **Experimental** exploit confirm (`FULLSHIELD_EXPERIMENTAL_CONFIRM=1`). localhost / 127.0.0.1 / FullShield-started container only. Harmless canaries only. |
-| `mcp` | **Experimental** MCP server (`FULLSHIELD_EXPERIMENTAL_MCP=1`). Read-only tools: `scan`, `get_findings`, `explain_finding`, `propose_fix` (diff only, never writes), `verify_fix` (temp copy). |
-| `honey init` | **Experimental** honeytokens (`FULLSHIELD_EXPERIMENTAL_HONEY=1`). |
+| `mcp` | **Experimental** MCP server (`FULLSHIELD_EXPERIMENTAL_MCP=1`). Official `@modelcontextprotocol/sdk` stdio: `fullshield mcp --stdio`. Read-only tools: `scan`, `get_findings`, `explain_finding`, `propose_fix` (diff only, never writes), `verify_fix` (temp copy). |
+| `honey init` | **Experimental** honeytokens (`FULLSHIELD_EXPERIMENTAL_HONEY=1`). Decoy routes are **low** severity and aggregated per IP; only use of a canary **credential** is critical. Auto-block is off unless `threatAutoBlock` is set (shared-IP / NAT risk; max duration applies). Decoys are fake values added to `.gitignore`. |
 
 Inline ignore (reason required): `// fullshield-ignore SAST-SQLI-001: reviewed`
 
@@ -97,6 +97,22 @@ See [`rules/README.md`](rules/README.md).
 ## Benchmarks
 
 Honest NodeGoat / DVNA results (what we found and what we missed) live in [`benchmarks/REPORT.md`](benchmarks/REPORT.md). Live Ollama smoke results (not CI) live in [`benchmarks/AI-REPORT.md`](benchmarks/AI-REPORT.md).
+
+### Cursor MCP (`mcp.json`)
+
+```json
+{
+  "mcpServers": {
+    "fullshield": {
+      "command": "npx",
+      "args": ["fullshield", "mcp", "--stdio"],
+      "env": { "FULLSHIELD_EXPERIMENTAL_MCP": "1" }
+    }
+  }
+}
+```
+
+`propose_fix` returns a diff only. It never writes your tree.
 
 See [`SECURITY.md`](SECURITY.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), and [`RELEASING.md`](RELEASING.md).
 

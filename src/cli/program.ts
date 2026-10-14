@@ -381,14 +381,19 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .command('mcp')
     .description('Experimental MCP server (read-only; requires FULLSHIELD_EXPERIMENTAL_MCP=1)')
     .option('--list-tools', 'print tool names and exit')
-    .action(async (opts: { listTools?: boolean }) => {
+    .option('--stdio', 'official MCP SDK stdio transport (initialize handshake)')
+    .action(async (opts: { listTools?: boolean; stdio?: boolean }) => {
       try {
         if (process.env.FULLSHIELD_EXPERIMENTAL_MCP !== '1') {
           throw new Error('mcp requires FULLSHIELD_EXPERIMENTAL_MCP=1');
         }
-        const { createMcpSession, handleMcpRequest, listMcpTools } = await import('../mcp/index.js');
+        const { createMcpSession, handleMcpRequest, listMcpTools, startMcpStdio } = await import('../mcp/index.js');
         if (opts.listTools) {
           io.out(listMcpTools().map((t) => t.name).join('\n'));
+          return;
+        }
+        if (opts.stdio) {
+          await startMcpStdio({ experimental: true });
           return;
         }
         const session = createMcpSession({ experimental: true });

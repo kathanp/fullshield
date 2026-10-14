@@ -1,0 +1,24 @@
+{
+  "fetchedAt": "2026-10-14T00:00:00.000Z",
+  "comment": "Recorded OSV response (offline). Schema matches api.osv.dev malicious-package advisories (MAL- id + database_specific.malicious). Not fetched at test time.",
+  "vulns": [
+    {
+      "id": "MAL-2024-0111",
+      "summary": "Malicious code in color-names-typo (npm)",
+      "aliases": [],
+      "database_specific": {
+        "malicious": {
+          "published": "2024-01-11T00:00:00Z",
+          "sources": ["osv"]
+        },
+        "severity": "MODERATE"
+      },
+      "affected": [
+        {
+          "package": { "ecosystem": "npm", "name": "color-names-typo" },
+          "versions": ["1.0.0"]
+        }
+      ]
+    }
+  ]
+}

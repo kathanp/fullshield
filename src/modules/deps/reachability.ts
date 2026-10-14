@@ -189,6 +189,18 @@ function isDevOnly(pkgName: string, ctx: ReachabilityContext): boolean {
 
 export function applyReachability(findings: Finding[], ctx: ReachabilityContext): Finding[] {
   return findings.map((finding) => {
+    if (finding.ruleId === 'DEPS-MALICIOUS-001') {
+      if (finding.snippet === undefined) return finding;
+      const pkg = packageNameFromSnippet(finding.snippet);
+      if (pkg === undefined || pkg.length === 0) return finding;
+      const classified = classifyReachability(pkg, ctx.productionUsage, ctx.graph);
+      return {
+        ...finding,
+        severity: 'critical',
+        reachability: classified.reachability,
+        ...(classified.path !== undefined ? { dependencyPath: classified.path } : {}),
+      };
+    }
     if (finding.ruleId !== 'DEPS-VULN-001' || finding.snippet === undefined) return finding;
     const pkg = packageNameFromSnippet(finding.snippet);
     if (pkg === undefined || pkg.length === 0) return finding;

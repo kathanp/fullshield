@@ -270,3 +270,9 @@ Exploit confirm is experimental CLI (localhost / 127.0.0.1 / FullShield-started 
 MCP and LLM-app rules are experimental and are not part of default `scan`. Default NodeGoat/DVNA findings unchanged.
 
 **NodeGoat 373 / high+critical 59 unchanged. DVNA 19 unchanged.** JSON: `results/*-phase21.json`.
+
+### After harden-6
+
+`DEPS-MALICIOUS-001` and MCP/honey policy changes do not alter default NodeGoat/DVNA findings (no MAL- advisories in those lockfiles).
+
+**NodeGoat 373 / high+critical 59 unchanged. DVNA 19 unchanged.** JSON: `results/*-harden6.json`.

@@ -17,6 +17,8 @@ export interface RaspEvent {
   path: string;
   ip: string;
   sample: string;
+  severity?: 'low' | 'medium' | 'high' | 'critical';
+  count?: number;
 }
 
 export const RASP_RULE: Record<SinkKind, string> = {

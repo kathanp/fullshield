@@ -7,8 +7,8 @@ export { clearRaspEvents, disableRasp, enableRasp, enableRaspFromEnv, getRaspEve
 export { emitVirtualPatches, loadVirtualPatches, patchForcesBlock } from './vpatch.js';
 export type { VirtualPatch } from './vpatch.js';
 export { egressAllowed } from './egress.js';
-export { honeyInit, isHoneyCanary, isHoneyRoute } from './honey.js';
-export { addThreat, decideResponse, threatScore } from './threat.js';
+export { honeyInit, isHoneyCanary, isHoneyRoute, noteHoneyRouteHit } from './honey.js';
+export { addThreat, clearThreats, decideResponse, isIpBlocked, threatScore } from './threat.js';
 export type { RaspOptions } from './enable.js';
 export { wrapKnownPackage } from './hooks.js';
 export { RaspBlockedError } from './types.js';

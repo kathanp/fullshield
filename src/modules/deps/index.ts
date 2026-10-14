@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 import type { ScanModule } from '../../core/engine.js';
 import { makeFindingId, type Finding } from '../../core/finding.js';
 import { parseLockfileGraph, type LockedPackage, type LockfileGraph } from './lockfile.js';
-import { queryOsv, type OsvVuln } from './osv.js';
+import { isMaliciousAdvisory, queryOsv, type OsvVuln } from './osv.js';
 import { exactPinsFromManifest } from './pins.js';
 import { applyReachability, indexPackageUsage, isProductionSource } from './reachability.js';
 import { minFixedVersion, osvSeverity, sameMajor } from './semver.js';
@@ -65,6 +65,26 @@ function vulnFinding(lockFile: string, pkg: LockedPackage, vuln: OsvVuln): Findi
     };
   }
   return finding;
+}
+
+const MALICIOUS_REMEDIATION =
+  'Remove the package from package.json and the lockfile, delete node_modules, reinstall, and rotate any credentials on machines that installed it. Install scripts run at npm install regardless of whether application code imports the package.';
+
+function maliciousFinding(lockFile: string, pkg: LockedPackage, vuln: OsvVuln): Finding {
+  const snippet = `${pkg.name}@${pkg.version}`;
+  return {
+    id: makeFindingId('DEPS-MALICIOUS-001', lockFile, `${snippet}|${vuln.id}`),
+    ruleId: 'DEPS-MALICIOUS-001',
+    module: 'deps',
+    title: `Malicious dependency ${snippet}`,
+    severity: 'critical',
+    confidence: 'high',
+    file: lockFile,
+    snippet,
+    message: `${snippet} is flagged malicious by OSV (${vuln.id}${vuln.summary ? `: ${vuln.summary}` : ''}).`,
+    remediation: MALICIOUS_REMEDIATION,
+    references: [vuln.id, ...(vuln.aliases ?? [])],
+  };
 }
 
 function typosquatFinding(lockFile: string, hit: TyposquatHit): Finding {
@@ -146,7 +166,11 @@ export const depsModule: ScanModule = {
       const osvHits = await queryOsv(pins, osvOpts);
       for (const hit of osvHits) {
         for (const vuln of hit.vulns) {
-          findings.push(vulnFinding('package.json', hit.pkg, vuln));
+          findings.push(
+            isMaliciousAdvisory(vuln)
+              ? maliciousFinding('package.json', hit.pkg, vuln)
+              : vulnFinding('package.json', hit.pkg, vuln),
+          );
         }
       }
       return applyReachability(findings, await reachabilityCtx(ctx.cwd, ctx.files, graphFromManifest(manifest)));
@@ -176,7 +200,11 @@ export const depsModule: ScanModule = {
     const osvHits = await queryOsv(packages, osvOpts);
     for (const hit of osvHits) {
       for (const vuln of hit.vulns) {
-        findings.push(vulnFinding(lockFile, hit.pkg, vuln));
+        findings.push(
+          isMaliciousAdvisory(vuln)
+            ? maliciousFinding(lockFile, hit.pkg, vuln)
+            : vulnFinding(lockFile, hit.pkg, vuln),
+        );
       }
     }
     return applyReachability(findings, await reachabilityCtx(ctx.cwd, ctx.files, graph));

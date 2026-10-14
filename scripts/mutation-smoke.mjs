@@ -185,6 +185,16 @@ const EXTRA_TARGETS = [
     },
   },
   {
+    name: 'DEPS-MALICIOUS-001',
+    file: join(root, 'src', 'modules', 'deps', 'index.ts'),
+    apply: (src) => {
+      if (!src.includes('isMaliciousAdvisory(vuln)')) {
+        throw new Error('DEPS-MALICIOUS-001 site missing');
+      }
+      return src.replaceAll('isMaliciousAdvisory(vuln)', 'false && isMaliciousAdvisory(vuln)');
+    },
+  },
+  {
     name: 'LLM-001',
     file: join(root, 'src', 'llm', 'index.ts'),
     apply: (src) => {

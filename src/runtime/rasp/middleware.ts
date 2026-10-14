@@ -1,7 +1,7 @@
 import { contextFromRequest, enterRaspContext, type IncomingLike } from './context.js';
-import { emitRaspEvent, raspMode, raspModeFor, runDecide } from './enable.js';
-import { isHoneyCanary, isHoneyRoute } from './honey.js';
-import { addThreat } from './threat.js';
+import { emitRaspEvent, raspModeFor, runDecide } from './enable.js';
+import { isHoneyCanary, isHoneyRoute, noteHoneyRouteHit } from './honey.js';
+import { addThreat, isIpBlocked } from './threat.js';
 import { RASP_FAIL_OPEN, RaspBlockedError } from './types.js';
 
 interface ExpressLikeRes {
@@ -18,16 +18,29 @@ export function raspContext() {
   ): void {
     const ctx = contextFromRequest(req);
     try {
-      const honeyHit = isHoneyRoute(ctx.path) || ctx.strings.some((s) => isHoneyCanary(s));
-      if (honeyHit) {
+      const credHit = ctx.strings.some((s) => isHoneyCanary(s));
+      const routeHit = isHoneyRoute(ctx.path);
+      if (routeHit && !credHit) {
+        const count = noteHoneyRouteHit(ctx.ip);
         addThreat(ctx.ip, 'honey');
         emitRaspEvent({
           ruleId: 'RASP-HONEY-001',
           path: ctx.path,
           ip: ctx.ip,
           sample: 'honeytoken',
+          severity: 'low',
+          count,
         });
-        if (raspMode() === 'block') {
+      } else if (credHit) {
+        addThreat(ctx.ip, 'honey');
+        emitRaspEvent({
+          ruleId: 'RASP-HONEY-001',
+          path: ctx.path,
+          ip: ctx.ip,
+          sample: 'canary-credential',
+          severity: 'critical',
+        });
+        if (isIpBlocked(ctx.ip)) {
           if (typeof res.status === 'function') {
             res.status(403).json({ error: 'blocked', ruleId: 'RASP-HONEY-001' });
             return;

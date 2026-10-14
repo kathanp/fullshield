@@ -12,7 +12,7 @@ export interface OsvVuln {
   id: string;
   summary?: string;
   aliases?: string[];
-  database_specific?: { severity?: string };
+  database_specific?: { severity?: string; malicious?: unknown };
   severity?: Array<{ type?: string; score?: string }>;
   affected?: Array<{
     package?: { ecosystem?: string; name?: string };
@@ -35,6 +35,16 @@ export interface OsvHit {
 }
 
 export type FetchLike = (input: string | URL, init?: RequestInit) => Promise<Response>;
+
+/** MAL- OSV ids or database_specific.malicious — install-time malware, not a CVE. */
+export function isMaliciousAdvisory(vuln: Pick<OsvVuln, 'id' | 'database_specific' | 'aliases'>): boolean {
+  if (vuln.id.startsWith('MAL-')) return true;
+  if ((vuln.aliases ?? []).some((a) => a.startsWith('MAL-'))) return true;
+  const flag = vuln.database_specific?.malicious;
+  if (flag === true) return true;
+  if (flag !== null && typeof flag === 'object') return true;
+  return false;
+}
 
 export interface QueryOsvOptions {
   cacheDir: string;

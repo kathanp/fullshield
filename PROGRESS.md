@@ -583,3 +583,17 @@ LLM-app rules (`FULLSHIELD_EXPERIMENTAL_LLM=1`): `LLM-001` system-prompt concat,
 **Re-scan:** NodeGoat 373 / high+critical **59** unchanged. DVNA 19 unchanged. JSON: `benchmarks/results/*-phase21.json`.
 
 **Stopped after Phase 21 (mandatory).** Do not start Phase 22. Nothing pushed. Nothing published.
+
+## harden-6 — malicious OSV, honeytoken policy, official MCP
+
+**Tests: 383** (was 374).
+
+`DEPS-MALICIOUS-001`: OSV `MAL-` ids or `database_specific.malicious` are always **critical**. Reachability / dev-only never downgrade them (install scripts run at `npm install`). Remediation: remove the package, delete `node_modules`, reinstall, rotate credentials. Fixture: recorded `MAL-2024-0111` for unused `color-names-typo@1.0.0`.
+
+Honeytokens: decoy-route hits are **low** and counted per IP per window; never 403 on route hits alone. Only canary **credential** use is critical. Threat auto-block is **off** unless `threatAutoBlock: true`, with `threatMaxBlockMs` (default 15m). Shared-IP / NAT risk documented. `honey init` writes `FULLSHIELD-HONEY-CANARY-NOT-A-CLOUD-KEY` / `fullshield-honey-db-canary://local` (secrets module + GitHub push protection stay quiet) and appends `.env.backup` / `.fullshield-honey.json` to `.gitignore`. `.env.backup` is excluded from `SECRET-ENVFILE-001`.
+
+Phase 18 extras: vpatch only the targeted route/sink and reverts when the finding list is empty; egress wildcard is subdomain-only (apex + suffix-confusion denied) plus IP literals; threat log→challenge→block with expiry.
+
+MCP: official `@modelcontextprotocol/sdk` (`fullshield mcp --stdio`). SDK client test lists and calls every tool. Cursor `mcp.json` in README.
+
+**Re-scan:** NodeGoat 373 / high+critical **59** unchanged. DVNA 19 unchanged. JSON: `benchmarks/results/*-harden6.json`.

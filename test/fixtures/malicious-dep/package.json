@@ -1,0 +1,7 @@
+{
+  "name": "malicious-dep-fixture",
+  "version": "1.0.0",
+  "devDependencies": {
+    "color-names-typo": "1.0.0"
+  }
+}

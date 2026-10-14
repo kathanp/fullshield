@@ -2,7 +2,7 @@ import { decideSink } from './decide.js';
 import { installHooks, restoreHooks } from './hooks.js';
 import { clearCanaries } from './honey.js';
 import { setSsrfLookup } from './ssrf.js';
-import { clearThreats } from './threat.js';
+import { clearThreats, configureThreat } from './threat.js';
 import { patchForcesBlock, type VirtualPatch } from './vpatch.js';
 import type { Decision, RaspEvent, RaspRequestContext, SinkKind } from './types.js';
 
@@ -15,6 +15,10 @@ export interface RaspOptions {
   decide?: (kind: SinkKind, sink: unknown, ctx: RaspRequestContext) => Decision;
   virtualPatches?: VirtualPatch[];
   egress?: { allow: string[] };
+  /** Off by default. Shared-IP (NAT/carrier) risk — see README. */
+  threatAutoBlock?: boolean;
+  /** Max auto-block duration in ms (default 15 minutes). */
+  threatMaxBlockMs?: number;
 }
 
 let enabled = false;
@@ -63,6 +67,7 @@ export function enableRasp(opts: RaspOptions = {}): void {
     return;
   }
   options = { ...opts, experimental: true };
+  configureThreat({ autoBlock: opts.threatAutoBlock === true, maxBlockMs: opts.threatMaxBlockMs });
   if (!enabled) {
     installHooks();
     enabled = true;

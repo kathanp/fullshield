@@ -10,6 +10,12 @@ All notable changes to FullShield are documented here.
 - Attack corpus from PayloadsAllTheThings (vendored, attributed). Benign corpus ≥ 300. Per-category rates printed in verify.
 - `RASP-SINKS.md` inventory. Async ALS tests (fs/promises, exec/spawn, sqlite, fetch, http). pg/mysql2 mocked query hooks.
 
+### harden-6
+
+- `DEPS-MALICIOUS-001` for OSV `MAL-` / malicious classification: always critical, never downgraded by reachability or dev-only.
+- Honeytokens: decoy-route hits are low + aggregated; only canary credential use is critical. Threat auto-block is opt-in with a max duration (shared-IP / NAT risk). `honey init` writes fake values that secrets do not flag and appends them to `.gitignore`.
+- Official MCP SDK stdio (`fullshield mcp --stdio`) plus SDK-client tests.
+
 ### Frontier (experimental)
 
 - **Phase 21:** MCP server (`FULLSHIELD_EXPERIMENTAL_MCP=1`, read-only; `propose_fix` returns diffs only) and LLM-app rules `LLM-001`–`LLM-005` (`FULLSHIELD_EXPERIMENTAL_LLM=1`).

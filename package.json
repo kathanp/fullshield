@@ -63,10 +63,12 @@
     "verify:phase": "node scripts/verify.mjs --phase"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "@typescript-eslint/typescript-estree": "^8.71.2",
     "commander": "^12.1.0",
     "ignore": "^5.3.2",
-    "picocolors": "^1.1.1"
+    "picocolors": "^1.1.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.14.0",

@@ -4,7 +4,7 @@ export function egressAllowed(host: string, allow: readonly string[]): boolean {
     const r = rule.toLowerCase();
     if (r.startsWith('*.')) {
       const suffix = r.slice(1);
-      if (h.endsWith(suffix) || h === r.slice(2)) return true;
+      if (h.endsWith(suffix) && h !== r.slice(2)) return true;
     } else if (h === r) {
       return true;
     }
