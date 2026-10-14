@@ -45,6 +45,12 @@ export interface Finding {
   reachability?: 'reachable' | 'imported-not-called' | 'reachable-via-dependency' | 'not-imported';
   /** Lockfile path from an imported direct dependency, e.g. express > body-parser > qs. */
   dependencyPath?: string[];
+  /** Deterministic (default) vs AI-added. AI findings never fail CI. */
+  source?: 'deterministic' | 'ai';
+  aiVerdict?: 'true-positive' | 'likely-false-positive' | 'needs-review';
+  aiReasoning?: string;
+  exploitScenario?: string;
+  explanation?: string;
 }
 
 export interface FindingSummary {
@@ -67,6 +73,12 @@ export function severityRank(severity: Severity): number {
 /** True when `severity` is at or above `threshold`. */
 export function meetsThreshold(severity: Severity, threshold: Severity): boolean {
   return severityRank(severity) >= severityRank(threshold);
+}
+
+/** CI gate: deterministic findings only. `source: 'ai'` never fails a build. */
+export function failsCi(finding: Finding, threshold: Severity): boolean {
+  if (finding.source === 'ai') return false;
+  return meetsThreshold(finding.severity, threshold);
 }
 
 /** Stable finding id: sha256 of ruleId + file + whitespace-normalized snippet. */

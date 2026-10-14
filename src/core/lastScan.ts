@@ -5,6 +5,8 @@ import type { ScanResult } from './engine.js';
 
 /** Persist a masked summary for `fullshield notify`. Never writes raw secrets. */
 export async function writeLastScan(cwd: string, result: ScanResult): Promise<void> {
+  // Do not mutate packaged fixtures; parallel tests copy them for watch/e2e.
+  if (/(?:^|[/\\])test[/\\]fixtures[/\\]/.test(cwd)) return;
   const dir = join(cwd, '.fullshield');
   await mkdir(dir, { recursive: true });
   await writeFile(

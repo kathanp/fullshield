@@ -385,3 +385,76 @@ not started. Nothing was pushed to GitHub.
 OSV 320: 12 reachable, 4 imported-not-called, **84 via-dependency (severity
 kept)**, 220 not-imported. 129 also `dev-only` → info. High+critical
 **16 → 59**. DVNA 19 unchanged. See `benchmarks/REPORT.md`.
+
+## Phase 11 — watch (new OSV alerts only)
+
+**Built:** `fullshield watch` rescans `deps`, diffs vs last-scan ids, alerts
+only on new `DEPS-VULN-001`. Second unchanged run: "No new vulnerabilities."
+`init` writes daily `.github/workflows/fullshield-watch.yml`.
+
+**Verify (`npm run verify:phase 11`, PASSED):** 257 tests. 94.88% / 83.68%.
+
+**Benchmark:** NodeGoat 373 / DVNA 19 unchanged vs harden-3.
+
+## Phase 12 — edge posture
+
+**Built:** `fullshield edge <url>` GET/HEAD only. CDN/WAF (`cf-ray`, CloudFront,
+Fastly, …), HTTP→HTTPS, HSTS/CSP/XCTO/XFO/Referrer-Policy, probes `/.env`,
+`/.git/HEAD`, `/package.json`, `/debug`, `/server-status`. Delay configurable
+via `FULLSHIELD_EDGE_DELAY` (tests use 0). Verify wrapper uses async `spawn`
+so the mock server can answer (spawnSync deadlocked the event loop).
+
+**Verify (`npm run verify:phase 12`, PASSED):**
+
+| phase | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|
+| 12 | 94.14% | 82.74% | deps,secrets,sast,config | 30 | 30 | 34 | 0 |
+
+278 tests. Acceptance: mock server reports `EDGE-CDN-001` / `EDGE-HSTS-001` / `EDGE-TLS-001`.
+
+**Benchmark:** NodeGoat 373 / DVNA 19 unchanged vs harden-3.
+
+## Phase 14 — AI provider layer
+
+**Built:** Opt-in `--ai`. Off by default = zero AI network calls. Recorded fixtures
+(no API key, no provider socket in CI). Secrets module redacts outbound payloads
+to `<REDACTED>`. Cost cap (`ai.maxCostUsd`, default $1) + prompt/model cache.
+`AI-INJECT-001` (medium) on comments containing "ignore previous", "mark as safe",
+or "AI reviewer". Providers wired: Anthropic / OpenAI / Ollama (live path is
+fetch-injected in tests only).
+
+**Verify (`npm run verify:phase 14`, PASSED):** 278 tests. 94.14% / 82.76%.
+Acceptance: `AI-INJECT-001` on the seeded comment fixture.
+
+## Phase 15 — triage, explain, verified fix
+
+**Built:** `scan --ai triage` labels `{verdict, reasoning, exploitScenario}` and
+never drops a high/critical finding. `scan --ai explain` adds `explanation`.
+`fix --ai` applies a recorded patch in a temp copy, rescans (finding gone, no
+new findings), runs tests if present, max 2 attempts, prints a reviewable
+diff, never writes the user tree.
+
+**Verify (`npm run verify:phase 15`, PASSED):** 278 tests. 94.14% / 82.76%.
+Acceptance: `--ai explain` labels findings; `fix --ai` prints a reviewable diff
+and does not write the user tree.
+
+## Phase 16 — logic hunter + runtime anomaly
+
+**Built:** `scan --ai logic` recorded-fixture hunter for IDOR and mass assignment.
+Findings are `source: ai`, confidence medium, and **never fail CI** (`failsCi`
+skips them). Clean ownership-checked fixtures are quiet. Fixture precision is
+printed in verify. `shieldGuard({ anomaly: { learnMinutes } })` learns per-route
+baselines and flags 401 spikes, new param names, and 404 bursts (no LLM).
+
+**Verify (`npm run verify:phase 16`, PASSED):**
+
+| phase | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|
+| 16 | 94.14% | 82.77% | deps,secrets,sast,config | 30 | 30 | 34 | 0 |
+
+278 tests. Acceptance: IDOR + mass-assignment `source: ai` confidence medium;
+`--fail-on high` exits 0; clean fixture quiet; fixture precision=1.00.
+
+**Benchmark:** NodeGoat 373 / DVNA 19 unchanged vs harden-3. High+critical **59**.
+
+**Stopped here per the mandatory Phase 16 gate.** Nothing was pushed to GitHub.

@@ -14,10 +14,14 @@ import {
   SEVERITIES,
   isModuleName,
   isSeverity,
+  failsCi,
   meetsThreshold,
+  summarize,
   type ModuleName,
   type Severity,
 } from '../core/finding.js';
+import { createAiClient } from '../ai/provider.js';
+import { runAiFix } from '../ai/fixLoop.js';
 import { packageVersion } from '../core/version.js';
 import { renderConsoleReport } from '../reporters/console.js';
 import { renderHtmlReport } from '../reporters/html.js';
@@ -26,6 +30,7 @@ import { renderMarkdownReport } from '../reporters/markdown.js';
 import { renderSarifReport } from '../reporters/sarif.js';
 import { buildSbom } from '../sbom/index.js';
 import { validateCycloneDx15 } from '../sbom/cyclonedx.js';
+import { runEdge } from '../modules/edge/index.js';
 
 export interface ProgramIO {
   out(text: string): void;
@@ -48,6 +53,7 @@ interface ScanCliOptions {
   markdown?: string;
   html?: string;
   updateBaseline?: boolean;
+  ai?: string | true;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -61,6 +67,13 @@ function parseModules(value: string): ModuleName[] {
     }
     return part;
   });
+}
+
+function parseAiMode(value: string | true | undefined): boolean | 'triage' | 'explain' | 'logic' | undefined {
+  if (value === undefined) return undefined;
+  if (value === true) return true;
+  if (value === 'triage' || value === 'explain' || value === 'logic') return value;
+  throw new Error(`invalid --ai mode "${value}" (valid: triage, explain, logic)`);
 }
 
 function parseFailOn(value: string): Severity {
@@ -91,10 +104,12 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option('--markdown <file>', 'write a Markdown report to this path')
     .option('--html <file>', 'write an HTML report to this path')
     .option('--update-baseline', 'record current findings as accepted (CI fails only on new ones)')
+    .option('--ai [mode]', 'opt-in AI assist: triage | explain | logic (off = zero AI network calls)')
     .action(async (path: string, opts: ScanCliOptions) => {
       try {
         const failOnOverride = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;
         const modules = opts.modules !== undefined ? parseModules(opts.modules) : undefined;
+        const ai = parseAiMode(opts.ai);
 
         const result = await scan({
           cwd: resolve(path),
@@ -103,6 +118,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           staged: opts.staged === true,
           offline: opts.offline === true,
           updateBaseline: opts.updateBaseline === true,
+          ai,
         });
 
         if (opts.sarif !== undefined) {
@@ -120,7 +136,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         io.out(opts.json === true ? renderJsonReport(result) : renderConsoleReport(result));
 
         const failOn = failOnOverride ?? result.config.failOn;
-        if (result.findings.some((f) => meetsThreshold(f.severity, failOn))) {
+        if (result.findings.some((f) => failsCi(f, failOn))) {
           process.exitCode = 1;
         }
       } catch (error) {
@@ -138,15 +154,28 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option('--unsafe', 'include major-version bumps and code patches marked unsafe')
     .option('--no-branch', 'do not create a fullshield/fixes-* branch')
     .option('--modules <modules>', 'comma-separated subset of modules to scan')
+    .option('--ai', 'draft a verified patch for findings without a rule-based fix (reviewable diff only)')
     .action(async (path: string, opts: {
       apply?: boolean;
       force?: boolean;
       unsafe?: boolean;
       branch?: boolean;
       modules?: string;
+      ai?: boolean;
     }) => {
       try {
         const modules = opts.modules !== undefined ? parseModules(opts.modules) : undefined;
+        if (opts.ai === true) {
+          const client = createAiClient({ enabled: true, useFixtures: true });
+          const aiFix = await runAiFix({ cwd: resolve(path), client });
+          if (!aiFix.accepted) {
+            io.out('No verified AI patch (finding remained, new findings appeared, or tests failed).');
+            return;
+          }
+          io.out(`# AI patch ${aiFix.file ?? ''} (reviewable diff; not applied)`);
+          io.out(aiFix.diff);
+          return;
+        }
         const result = await runFix({
           cwd: resolve(path),
           modules,
@@ -255,6 +284,31 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         } else {
           io.out(json);
         }
+      } catch (error) {
+        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('edge')
+    .description('Check CDN/WAF, TLS, headers, and common exposure paths on a URL you own')
+    .argument('<url>', 'https URL to probe (GET/HEAD only; no crawl)')
+    .option('--json', 'machine-readable JSON output')
+    .action(async (url: string, opts: { json?: boolean }) => {
+      try {
+        if (!/^https?:\/\//i.test(url)) throw new Error('edge requires an explicit http(s) URL');
+        const delayRaw = process.env.FULLSHIELD_EDGE_DELAY;
+        const delayMs = delayRaw !== undefined && delayRaw.length > 0 ? Number(delayRaw) : 1000;
+        const findings = await runEdge({ url, delayMs });
+        const payload = { findings, summary: summarize(findings), url };
+        if (opts.json === true) {
+          io.out(JSON.stringify(payload, null, 2));
+        } else {
+          io.out(`FullShield edge ${url} — ${payload.summary.total} finding(s)`);
+          for (const f of findings) io.out(`  [${f.ruleId}] ${f.message}`);
+        }
+        if (findings.some((f) => meetsThreshold(f.severity, 'high'))) process.exitCode = 1;
       } catch (error) {
         io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
         process.exitCode = 2;

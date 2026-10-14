@@ -21,7 +21,8 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 | Secrets | `secrets` + `scan --staged` / pre-commit hook |
 | App/server config | `config` |
 | Live app-layer attacks | `runtime` (`fullshield/runtime/express` or `/fastify`) |
-| Edge/DDoS layer | **not in Core** — use a CDN/WAF |
+| Edge/DDoS layer | `edge` checks that a CDN/WAF **exists** (headers only). Actual DDoS mitigation is the CDN. |
+| AI assist (opt-in) | `--ai triage\|explain\|logic` and `fix --ai`. Off by default: zero AI network calls. Recorded fixtures in CI. AI findings never fail CI. |
 
 ## What it detects (Core)
 
@@ -71,12 +72,13 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 
 | Command | Purpose |
 |---|---|
-| `scan` | Run deps, secrets, sast, config. `--json`, `--sarif`, `--markdown`, `--html`, `--fail-on`, `--offline`, `--staged`, `--update-baseline` |
-| `fix` | Dry-run patches (unsafe suggestions included). `--apply` writes only `safe: true` patches on a clean git tree. `--unsafe` is required for `helmet()` insertion and secret → `process.env` replacement. `--force` skips files with uncommitted changes. |
+| `scan` | Run deps, secrets, sast, config. `--json`, `--sarif`, `--markdown`, `--html`, `--fail-on`, `--offline`, `--staged`, `--update-baseline`, `--ai triage\|explain\|logic` (off by default; zero AI network calls) |
+| `fix` | Dry-run patches (unsafe suggestions included). `--apply` writes only `safe: true` patches on a clean git tree. `--unsafe` is required for `helmet()` insertion and secret → `process.env` replacement. `--force` skips files with uncommitted changes. `--ai` drafts a verified, reviewable diff for findings without a rule-based fix (never auto-merged). |
 | `init` | Config + GitHub/GitLab CI + pre-commit hook |
 | `notify` | Slack / generic webhook / SMTP summary of the last scan |
 | `sbom` | CycloneDX 1.5 JSON (`--format cyclonedx`, `--out file`) |
 | `watch` | Rescan dependencies; alert (webhook / exit 1) only on **new** OSV hits vs last scan. `init` writes a daily GitHub Action. |
+| `edge` | GET/HEAD posture check on a URL you pass: CDN/WAF, HTTPS redirect, security headers, `/.env` / `/.git` exposure. No crawl, no payloads. |
 
 Inline ignore (reason required): `// fullshield-ignore SAST-SQLI-001: reviewed`
 

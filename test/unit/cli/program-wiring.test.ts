@@ -197,4 +197,26 @@ describe('CLI wiring (in-process)', () => {
     expect(err).toContain('email notify requires');
     expect(process.exitCode).toBe(2);
   });
+
+  it('scan --ai logic on the IDOR fixture exits 0 under --fail-on high', async () => {
+    const logicApp = join(process.cwd(), 'test', 'fixtures', 'ai-logic-app');
+    process.exitCode = undefined;
+    const { out, err } = await runCli(['scan', logicApp, '--json', '--offline', '--ai', 'logic', '--fail-on', 'high']);
+    expect(err).toBe('');
+    const parsed = JSON.parse(out) as { findings: Array<{ ruleId: string; source?: string }> };
+    expect(parsed.findings.some((f) => f.ruleId === 'AI-IDOR-001' && f.source === 'ai')).toBe(true);
+    expect(process.exitCode).not.toBe(1);
+  });
+
+  it('scan --ai with an unknown mode exits 2', async () => {
+    const { err } = await runCli(['scan', cleanApp, '--ai', 'dance']);
+    expect(err).toMatch(/invalid --ai mode/i);
+    expect(process.exitCode).toBe(2);
+  });
+
+  it('fix --ai prints a reviewable diff and does not apply it', async () => {
+    const inject = join(process.cwd(), 'test', 'fixtures', 'ai-inject-app');
+    const { out } = await runCli(['fix', inject, '--ai']);
+    expect(out).toMatch(/reviewable diff|AI patch/i);
+  });
 });

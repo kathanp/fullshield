@@ -6,6 +6,9 @@ import { configModule } from '../modules/config/index.js';
 import { depsModule } from '../modules/deps/index.js';
 import { sastModule } from '../modules/sast/index.js';
 import { secretsModule } from '../modules/secrets/index.js';
+import { applyExplain, applyTriage } from '../ai/triage.js';
+import { runLogicHunt } from '../ai/logic.js';
+import { createAiClient } from '../ai/provider.js';
 import { applyBaseline, readBaseline, writeBaseline } from './baseline.js';
 import { loadConfig, type ResolvedConfig } from './config.js';
 import { walkFiles } from './fileWalker.js';
@@ -45,6 +48,8 @@ export interface ScanOptions {
   offline?: boolean;
   /** Write the current (post-suppression) findings to the baseline file. */
   updateBaseline?: boolean;
+  /** Opt-in AI: `true` enables the client; a string selects a mode. */
+  ai?: boolean | 'triage' | 'explain' | 'logic';
 }
 
 export interface ScanMetadata {
@@ -139,7 +144,26 @@ export async function runScan(
   if (options.updateBaseline === true) {
     await writeBaseline(baselinePath, unsuppressed);
   }
-  const findings = sortFindings(applyBaseline(unsuppressed, await readBaseline(baselinePath)));
+  let findings = sortFindings(applyBaseline(unsuppressed, await readBaseline(baselinePath)));
+
+  const aiMode = options.ai;
+  const aiEnabled =
+    aiMode === true ||
+    aiMode === 'triage' ||
+    aiMode === 'explain' ||
+    aiMode === 'logic' ||
+    config.ai.enabled;
+  if (aiEnabled) {
+    const client = createAiClient({ enabled: true, config: { ...config.ai, enabled: true } });
+    const mode = typeof aiMode === 'string' ? aiMode : undefined;
+    if (mode === 'triage') {
+      findings = await applyTriage(findings, client, config.ai, sources);
+    } else if (mode === 'explain') {
+      findings = await applyExplain(findings, client, config.ai, sources);
+    } else if (mode === 'logic') {
+      findings = sortFindings([...findings, ...(await runLogicHunt(cwd, files, client))]);
+    }
+  }
   return {
     findings,
     summary: summarize(findings),

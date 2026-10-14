@@ -22,6 +22,15 @@ export interface DepsConfig {
   cacheDir?: string;
 }
 
+export interface AiConfig {
+  /** Off by default. Also enabled by `--ai`. */
+  enabled: boolean;
+  /** Hard cap per scan (spec §16.1). */
+  maxCostUsd: number;
+  /** Highest-severity findings sent to the model first. */
+  maxFindings: number;
+}
+
 export interface ResolvedConfig {
   modules: ModuleName[];
   failOn: Severity;
@@ -29,6 +38,7 @@ export interface ResolvedConfig {
   baseline: string;
   notify: NotifyConfig;
   deps: DepsConfig;
+  ai: AiConfig;
 }
 
 export const DEFAULT_CONFIG: ResolvedConfig = {
@@ -38,11 +48,12 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
   baseline: '.fullshield-baseline.json',
   notify: { slackWebhookEnv: 'FULLSHIELD_SLACK_WEBHOOK' },
   deps: { offline: false },
+  ai: { enabled: false, maxCostUsd: 1, maxFindings: 50 },
 };
 
 export class ConfigError extends Error {}
 
-const KNOWN_KEYS = new Set(['modules', 'failOn', 'ignore', 'baseline', 'notify', 'deps']);
+const KNOWN_KEYS = new Set(['modules', 'failOn', 'ignore', 'baseline', 'notify', 'deps', 'ai']);
 
 function validate(raw: unknown, source: string): Partial<ResolvedConfig> {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
@@ -125,6 +136,32 @@ function validate(raw: unknown, source: string): Partial<ResolvedConfig> {
       deps.cacheDir = rawDeps.cacheDir;
     }
     out.deps = deps;
+  }
+  if (record.ai !== undefined) {
+    if (typeof record.ai !== 'object' || record.ai === null || Array.isArray(record.ai)) {
+      throw new ConfigError(`${source}: "ai" must be an object`);
+    }
+    const rawAi = record.ai as Record<string, unknown>;
+    const ai: AiConfig = { enabled: false, maxCostUsd: 1, maxFindings: 50 };
+    if (rawAi.enabled !== undefined) {
+      if (typeof rawAi.enabled !== 'boolean') {
+        throw new ConfigError(`${source}: "ai.enabled" must be a boolean`);
+      }
+      ai.enabled = rawAi.enabled;
+    }
+    if (rawAi.maxCostUsd !== undefined) {
+      if (typeof rawAi.maxCostUsd !== 'number' || rawAi.maxCostUsd < 0) {
+        throw new ConfigError(`${source}: "ai.maxCostUsd" must be a non-negative number`);
+      }
+      ai.maxCostUsd = rawAi.maxCostUsd;
+    }
+    if (rawAi.maxFindings !== undefined) {
+      if (typeof rawAi.maxFindings !== 'number' || rawAi.maxFindings < 1) {
+        throw new ConfigError(`${source}: "ai.maxFindings" must be a positive number`);
+      }
+      ai.maxFindings = rawAi.maxFindings;
+    }
+    out.ai = ai;
   }
   return out;
 }

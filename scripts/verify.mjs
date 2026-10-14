@@ -597,6 +597,130 @@ const acceptanceCriteria = {
       rmSync(tmp, { recursive: true, force: true });
     }
   },
+  // Phase 12 (spec §9 / §13): mock-server edge checks; GET/HEAD only.
+  12: () => {
+    const tmp = join(root, '.fullshield-verify-phase12');
+    rmSync(tmp, { recursive: true, force: true });
+    mkdirSync(tmp, { recursive: true });
+    const wrapper = join(tmp, 'run.mjs');
+    const cli = join(root, 'dist', 'cli', 'index.js');
+    writeFileSync(
+      wrapper,
+      `import { createServer } from 'node:http';
+import { spawn } from 'node:child_process';
+const s = createServer((req, res) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') { res.statusCode = 405; res.end(); return; }
+  res.statusCode = 200; res.end('ok');
+});
+s.listen(0, '127.0.0.1', () => {
+  const { port } = s.address();
+  const child = spawn(process.execPath, [${JSON.stringify(cli)}, 'edge', 'http://127.0.0.1:' + port, '--json'], {
+    env: { ...process.env, FULLSHIELD_EDGE_DELAY: '0' },
+  });
+  let out = '';
+  child.stdout.setEncoding('utf8');
+  child.stderr.setEncoding('utf8');
+  child.stdout.on('data', (d) => { out += d; });
+  const timer = setTimeout(() => { child.kill(); process.exit(2); }, 20000);
+  child.on('close', (code) => {
+    clearTimeout(timer);
+    process.stdout.write(out);
+    s.close();
+    process.exit(code === 2 ? 2 : 0);
+  });
+});
+`,
+    );
+    try {
+      const run = spawnSync(process.execPath, [wrapper], { cwd: root, encoding: 'utf8' });
+      if (run.stdout === '') fail(`phase 12 acceptance: edge produced no output: ${run.stderr}`);
+      const report = JSON.parse(run.stdout);
+      const ids = new Set(report.findings.map((f) => f.ruleId));
+      for (const id of ['EDGE-CDN-001', 'EDGE-HSTS-001', 'EDGE-TLS-001']) {
+        if (!ids.has(id)) fail(`phase 12 acceptance: missing ${id} in ${run.stdout}`);
+      }
+      console.log('  ✔ edge mock server reports CDN/HSTS/TLS findings (GET/HEAD only)');
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  },
+  // Phase 14 (spec §16.1–16.2): injection finding; --ai off is the default.
+  14: () => {
+    const cli = join(root, 'dist', 'cli', 'index.js');
+    const inject = join(root, 'test', 'fixtures', 'ai-inject-app');
+    const run = spawnSync(process.execPath, [cli, 'scan', inject, '--json', '--offline'], {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    const report = JSON.parse(run.stdout);
+    if (!report.findings.some((f) => f.ruleId === 'AI-INJECT-001')) {
+      fail(`phase 14 acceptance: missing AI-INJECT-001: ${run.stdout}`);
+    }
+    console.log('  ✔ AI-INJECT-001 flagged on the seeded comment fixture');
+  },
+  // Phase 15: triage labels; fix --ai is a reviewable diff.
+  15: () => {
+    const cli = join(root, 'dist', 'cli', 'index.js');
+    const inject = join(root, 'test', 'fixtures', 'ai-inject-app');
+    const explained = spawnSync(
+      process.execPath,
+      [cli, 'scan', inject, '--json', '--offline', '--ai', 'explain'],
+      { cwd: root, encoding: 'utf8' },
+    );
+    const report = JSON.parse(explained.stdout);
+    const hit = report.findings.find((f) => f.ruleId === 'AI-INJECT-001');
+    if (hit === undefined || typeof hit.explanation !== 'string') {
+      fail(`phase 15 acceptance: explain did not label AI-INJECT-001: ${explained.stdout}`);
+    }
+    const fix = spawnSync(process.execPath, [cli, 'fix', inject, '--ai'], {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    if (!/reviewable diff|AI patch/i.test(fix.stdout)) {
+      fail(`phase 15 acceptance: fix --ai should print a reviewable diff: ${fix.stdout}`);
+    }
+    const src = readFileSync(join(inject, 'src', 'index.js'), 'utf8');
+    if (!src.includes('ignore previous')) {
+      fail('phase 15 acceptance: fix --ai must not write the user tree');
+    }
+    console.log('  ✔ --ai explain labels findings; fix --ai is a reviewable diff');
+  },
+  // Phase 16: logic hunter + fail-on ignores source:ai; precision on fixtures.
+  16: () => {
+    const cli = join(root, 'dist', 'cli', 'index.js');
+    const logic = join(root, 'test', 'fixtures', 'ai-logic-app');
+    const clean = join(root, 'test', 'fixtures', 'ai-logic-clean');
+    const dirty = spawnSync(
+      process.execPath,
+      [cli, 'scan', logic, '--json', '--offline', '--ai', 'logic', '--fail-on', 'high'],
+      { cwd: root, encoding: 'utf8' },
+    );
+    if (dirty.status === 1) {
+      fail('phase 16 acceptance: AI findings must not fail CI');
+    }
+    const report = JSON.parse(dirty.stdout);
+    const ai = report.findings.filter((f) => f.source === 'ai');
+    const ids = new Set(ai.map((f) => f.ruleId));
+    if (!ids.has('AI-IDOR-001') || !ids.has('AI-MASSASSIGN-001')) {
+      fail(`phase 16 acceptance: missing IDOR/mass-assignment: ${dirty.stdout}`);
+    }
+    if (ai.some((f) => f.confidence !== 'medium')) {
+      fail('phase 16 acceptance: AI confidence must be medium');
+    }
+    const ok = spawnSync(
+      process.execPath,
+      [cli, 'scan', clean, '--json', '--offline', '--ai', 'logic', '--fail-on', 'high'],
+      { cwd: root, encoding: 'utf8' },
+    );
+    const cleanReport = JSON.parse(ok.stdout);
+    if (cleanReport.findings.some((f) => f.ruleId === 'AI-IDOR-001' || f.ruleId === 'AI-MASSASSIGN-001')) {
+      fail(`phase 16 acceptance: clean logic fixture should be quiet: ${ok.stdout}`);
+    }
+    const expected = new Set(['AI-IDOR-001', 'AI-MASSASSIGN-001']);
+    const tp = ai.filter((f) => expected.has(f.ruleId)).length;
+    const precision = ai.length === 0 ? 1 : tp / ai.length;
+    console.log(`  ✔ AI logic hunter; CI ignores source:ai; fixture precision=${precision.toFixed(2)}`);
+  },
 };
 
 if (phase !== null) {

@@ -2,6 +2,24 @@
 
 All notable changes to FullShield are documented here.
 
+## Unreleased — phase-16
+
+- `scan --ai logic`: recorded-fixture IDOR / mass-assignment hunter. Findings are `source: ai`, confidence medium, and never fail CI.
+- Runtime `shieldGuard({ anomaly: { learnMinutes } })`: per-route baseline, 401 spikes, new params, 404 bursts (no LLM).
+
+## Unreleased — phase-15
+
+- `scan --ai triage` / `--ai explain`: labels and explanations from recorded fixtures. Never removes high/critical findings.
+- `fix --ai`: verify loop in a temp copy (rescan + tests, max 2 attempts). Reviewable diff only; never writes the user tree.
+
+## Unreleased — phase-14
+
+- AI provider layer (Anthropic / OpenAI / Ollama), off by default. Secrets redacted from outbound payloads. Cost cap + response cache. `AI-INJECT-001` for comments that try to manipulate AI reviewers.
+
+## Unreleased — phase-12
+
+- `fullshield edge <url>`: CDN/WAF, HTTPS redirect, security headers, exposure probes (GET/HEAD only).
+
 ## Unreleased — phase-11
 
 - `fullshield watch` rescans dependencies and alerts only on new OSV findings vs last scan.

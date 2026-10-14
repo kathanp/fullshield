@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   SEVERITIES,
+  failsCi,
   isModuleName,
   isSeverity,
   makeFindingId,
@@ -41,6 +42,12 @@ describe('severity utilities', () => {
     expect(meetsThreshold('medium', 'high')).toBe(false);
     expect(meetsThreshold('info', 'low')).toBe(false);
     expect(meetsThreshold('low', 'info')).toBe(true);
+  });
+
+  it('failsCi ignores source:ai even when severity is high', () => {
+    expect(failsCi(mkFinding({ severity: 'high' }), 'high')).toBe(true);
+    expect(failsCi(mkFinding({ severity: 'high', source: 'ai' }), 'high')).toBe(false);
+    expect(failsCi(mkFinding({ severity: 'medium', source: 'deterministic' }), 'high')).toBe(false);
   });
 
   it('validates severity and module names', () => {

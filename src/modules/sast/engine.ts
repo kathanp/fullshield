@@ -19,6 +19,7 @@ import { sqliRule } from './rules/sqli.js';
 import { ssrfRule } from './rules/ssrf.js';
 import { TEMPLATE_EXT, xssRule } from './rules/xss.js';
 import type { AstNode, RuleContext, SastRule } from './types.js';
+import { scanPromptInjection } from '../../ai/injection.js';
 
 export const sastRules: readonly SastRule[] = [
   sqliRule,
@@ -93,6 +94,7 @@ export function findingsFromAst(filename: string, source: string, ast: AstNode):
       visitors[node.type]?.(node);
     });
   }
+  findings.push(...scanPromptInjection(filename, source));
   return findings;
 }
 

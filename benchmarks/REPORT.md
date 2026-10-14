@@ -210,3 +210,15 @@ Whole-scan high+critical: Phase 13 **16 → 59**. The increase is the intended c
 **DVNA 19 unchanged.** Four exact-pin vulns stay `reachable`. No lockfile graph.
 
 False-positive change vs Phase 13: **none** (same finding set; severities of real runtime transitives went *up*). JSON: `results/*-harden3.json`.
+
+### After Phase 11
+
+`watch` does not change static detection. NodeGoat 373 / DVNA 19 unchanged vs harden-3.
+
+### After Phase 12
+
+`edge` is a live-URL command, not a repo scan. NodeGoat 373 / DVNA 19 unchanged vs harden-3.
+
+### After Phases 14–16
+
+AI is opt-in and fixture-only in CI. Default `scan` of NodeGoat/DVNA does not call a model and does not add `source: ai` findings. NodeGoat 373 / DVNA 19 unchanged vs harden-3. High+critical remains **59** (honest harden-3 correction).

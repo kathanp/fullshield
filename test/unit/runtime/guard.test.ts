@@ -35,6 +35,27 @@ describe('runtime payload blocking', () => {
     expect(inspect({ path: '/login', ip: '1.1.1.1' }).event?.ruleId).toBe('RUNTIME-RATELIMIT-001');
   });
 
+  it('flags a 401 spike and a new param after the anomaly learning window', () => {
+    let now = 0;
+    const events: string[] = [];
+    const inspect = createInspector({
+      anomaly: {
+        learnMinutes: 1,
+        now: () => now,
+        onAnomaly: (e) => events.push(e.sample),
+      },
+    });
+    for (let i = 0; i < 10; i += 1) {
+      inspect({ path: '/login', query: { user: 'a' }, statusCode: 200 });
+    }
+    now = 61_000;
+    const spike = inspect({ path: '/login', query: { user: 'a' }, statusCode: 401 });
+    expect(spike.event?.ruleId).toBe('RUNTIME-ANOMALY-001');
+    expect(events).toContain('401-spike');
+    const probe = inspect({ path: '/login', query: { user: 'a', admin: '1' }, statusCode: 200 });
+    expect(probe.event?.sample).toBe('new-param');
+  });
+
   it('does not log the raw request body on events', () => {
     const onEvent = vi.fn();
     const inspect = createInspector({ mode: 'block', onEvent });
