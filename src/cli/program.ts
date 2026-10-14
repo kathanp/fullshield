@@ -404,13 +404,27 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
 
   program
     .command('report')
-    .description('Reports (experimental --serve dashboard binds 127.0.0.1 only)')
+    .description('Reports (experimental --serve dashboard; --compliance mapping)')
     .option('--serve', 'local dashboard (FULLSHIELD_EXPERIMENTAL_PLATFORM=1)')
+    .option('--compliance <standard>', 'evidence-style mapping (pci). Not a certification or audit.')
     .argument('[path]', 'project directory', '.')
-    .action(async (path: string, opts: { serve?: boolean }) => {
+    .action(async (path: string, opts: { serve?: boolean; compliance?: string }) => {
       try {
+        if (opts.compliance !== undefined) {
+          if (process.env.FULLSHIELD_EXPERIMENTAL_COMPLIANCE !== '1') {
+            throw new Error('report --compliance requires FULLSHIELD_EXPERIMENTAL_COMPLIANCE=1');
+          }
+          const result = await scan({ cwd: resolve(path), offline: true });
+          const { scanIac } = await import('../iac/index.js');
+          const iac = scanIac(resolve(path), {
+            experimental: process.env.FULLSHIELD_EXPERIMENTAL_IAC === '1',
+          });
+          const { renderCompliance } = await import('../compliance/index.js');
+          io.out(renderCompliance([...result.findings, ...iac], opts.compliance));
+          return;
+        }
         if (opts.serve !== true) {
-          io.out('pass --serve for the local dashboard');
+          io.out('pass --serve or --compliance <standard>');
           return;
         }
         if (process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM !== '1') {
@@ -419,6 +433,24 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         const { startDashboard } = await import('../dashboard/index.js');
         const started = await startDashboard({ dir: resolve(path), experimental: true });
         io.out(`dashboard listening on http://127.0.0.1:${started.port} (Host must be localhost or 127.0.0.1)`);
+      } catch (error) {
+        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('iac')
+    .description('Experimental IaC scan (FULLSHIELD_EXPERIMENTAL_IAC=1)')
+    .argument('[path]', 'project directory', '.')
+    .action(async (path: string) => {
+      try {
+        if (process.env.FULLSHIELD_EXPERIMENTAL_IAC !== '1') {
+          throw new Error('iac requires FULLSHIELD_EXPERIMENTAL_IAC=1');
+        }
+        const { scanIac } = await import('../iac/index.js');
+        const findings = scanIac(resolve(path), { experimental: true });
+        io.out(JSON.stringify({ findings }));
       } catch (error) {
         io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
         process.exitCode = 2;

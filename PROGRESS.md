@@ -604,4 +604,14 @@ MCP: official `@modelcontextprotocol/sdk` (`fullshield mcp --stdio`). SDK client
 
 `FULLSHIELD_EXPERIMENTAL_PLATFORM=1`. `threat-model` extracts Express routes → STRIDE + Mermaid. `scan --changed` / `--since` filters the walk (fail-closed without the flag). Workspaces from `package.json`. `report --serve` binds **127.0.0.1 only**, rejects any Host except localhost/127.0.0.1, GET `/api/ingest` is 405. History in `.fullshield/history.db` (node:sqlite).
 
-**Re-scan:** NodeGoat 373 / high+critical **59** unchanged. DVNA 19 unchanged. JSON: `benchmarks/results/*-phase22.json`.
+**Re-scan:** NodeGoat 373 / high+critical **60** (was 59). The extra critical is `DEPS-MALICIOUS-001` on `fsevents@1.2.9` (OSV `MAL-` in the NodeGoat lockfile cache) — intended harden-6 behavior, first seen after a rebuild. `DEPS-VULN` count dropped by one (same package reclassified). DVNA 19 / high+crit 14 unchanged. JSON: `benchmarks/results/*-phase22.json`.
+
+## Phase 23 — compliance mapping + IaC
+
+**Tests: 401** (was 392).
+
+`FULLSHIELD_EXPERIMENTAL_COMPLIANCE=1` / `FULLSHIELD_EXPERIMENTAL_IAC=1`. Every shipped rule id maps to OWASP / CWE / ASVS / PCI (test walks `src/` and fails on a missing row). `report --compliance pci` prints the mapping twice-wrapped with **“This is not a certification or audit.”** Light IaC: unpinned GHA, `pull_request_target`, write-all perms, secrets in logs, public S3, `0.0.0.0/0` on 22/3306/5432, unencrypted storage, privileged/hostNetwork k8s, privileged compose. Positive `iac-app` / negative `iac-clean`. Off without the experimental flag.
+
+Shared `/g` secret regexes now reset `lastIndex` per line (`everyMatch`) so extra compliance scans cannot poison later files. Vitest forks capped at 4 so RASP p95 and coverage do not starve each other.
+
+**Re-scan:** deferred to the post-Phase-24 NodeGoat/DVNA pass (default `scan` does not run IaC). Expected still 373 / high+crit 60 from `DEPS-MALICIOUS-001` on `fsevents@1.2.9`.

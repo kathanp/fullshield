@@ -273,12 +273,18 @@ MCP and LLM-app rules are experimental and are not part of default `scan`. Defau
 
 ### After harden-6
 
-`DEPS-MALICIOUS-001` and MCP/honey policy changes do not alter default NodeGoat/DVNA findings (no MAL- advisories in those lockfiles).
+`DEPS-MALICIOUS-001` is always critical. The harden-6 JSON snapshot was taken with a stale `dist` (59). After rebuild, NodeGoat's OSV cache includes a `MAL-` advisory for `fsevents@1.2.9`.
 
-**NodeGoat 373 / high+critical 59 unchanged. DVNA 19 unchanged.** JSON: `results/*-harden6.json`.
+**Honest post-rebuild:** NodeGoat 373 / high+critical **60** (`DEPS-MALICIOUS-001` on `fsevents@1.2.9`; one fewer `DEPS-VULN-001`). DVNA 19 unchanged. JSON: `results/*-harden6.json` is the stale 59 snapshot; `results/*-phase22.json` is the first rebuilt scan.
 
 ### After Phase 22
 
-Threat-model / incremental / dashboard are experimental and do not change default `scan` findings.
+Threat-model / incremental / dashboard are experimental and do not change default `scan` findings. The rebuilt scanner now classifies `fsevents@1.2.9` as `DEPS-MALICIOUS-001`.
 
-**NodeGoat 373 / high+critical 59 unchanged. DVNA 19 unchanged.** JSON: `results/*-phase22.json`.
+**NodeGoat 373 / high+critical 60. DVNA 19 unchanged.** Extra finding: `950580ae0d3a3929` `DEPS-MALICIOUS-001` `package-lock.json` `fsevents@1.2.9`. JSON: `results/*-phase22.json`.
+
+### After Phase 23
+
+Compliance mapping and IaC are experimental CLI (`report --compliance`, `fullshield iac`) and are not part of default `scan`. Default NodeGoat/DVNA findings unchanged vs Phase 22.
+
+**NodeGoat 373 / high+critical 60. DVNA 19 unchanged.** JSON: `results/*-phase23.json` (same class as phase22 until the post-24 rescan).

@@ -1,3 +1,4 @@
+import { everyMatch } from '../mask.js';
 import type { SecretsRule } from '../types.js';
 
 // Anthropic-style first (sk-ant-...), then generic OpenAI-style sk-... keys.
@@ -13,7 +14,7 @@ export const aiKeyRule: SecretsRule = {
   },
   check(ctx) {
     ctx.lines.forEach((line, index) => {
-      for (const match of line.matchAll(PATTERN)) {
+      for (const match of everyMatch(PATTERN, line)) {
         ctx.report({ line: index + 1, secret: match[0] });
       }
     });

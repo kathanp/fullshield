@@ -1,0 +1,4 @@
+services:
+  app:
+    image: example/app:1.2.3
+    privileged: false

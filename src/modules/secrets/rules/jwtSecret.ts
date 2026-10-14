@@ -1,3 +1,4 @@
+import { everyMatch } from '../mask.js';
 import type { SecretsRule } from '../types.js';
 
 const PATTERN =
@@ -13,7 +14,7 @@ export const jwtSecretRule: SecretsRule = {
   },
   check(ctx) {
     ctx.lines.forEach((line, index) => {
-      for (const match of line.matchAll(PATTERN)) {
+      for (const match of everyMatch(PATTERN, line)) {
         const secret = match[1];
         if (secret !== undefined) {
           ctx.report({ line: index + 1, secret });

@@ -1,3 +1,4 @@
+import { everyMatch } from '../mask.js';
 import type { SecretsRule } from '../types.js';
 
 const PATTERN = /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/g;
@@ -12,7 +13,7 @@ export const slackRule: SecretsRule = {
   },
   check(ctx) {
     ctx.lines.forEach((line, index) => {
-      for (const match of line.matchAll(PATTERN)) {
+      for (const match of everyMatch(PATTERN, line)) {
         ctx.report({ line: index + 1, secret: match[0] });
       }
     });

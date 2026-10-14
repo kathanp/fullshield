@@ -304,6 +304,58 @@ describe('CLI wiring (in-process)', () => {
     }
   });
 
+  it('report --compliance refuses without FULLSHIELD_EXPERIMENTAL_COMPLIANCE', async () => {
+    const prev = process.env.FULLSHIELD_EXPERIMENTAL_COMPLIANCE;
+    delete process.env.FULLSHIELD_EXPERIMENTAL_COMPLIANCE;
+    try {
+      const { err } = await runCli(['report', cleanApp, '--compliance', 'pci']);
+      expect(err).toMatch(/FULLSHIELD_EXPERIMENTAL_COMPLIANCE/);
+      expect(process.exitCode).toBe(2);
+    } finally {
+      if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_COMPLIANCE;
+      else process.env.FULLSHIELD_EXPERIMENTAL_COMPLIANCE = prev;
+    }
+  });
+
+  it('report --compliance pci states not a certification or audit', async () => {
+    const prev = process.env.FULLSHIELD_EXPERIMENTAL_COMPLIANCE;
+    process.env.FULLSHIELD_EXPERIMENTAL_COMPLIANCE = '1';
+    try {
+      const { out } = await runCli(['report', cleanApp, '--compliance', 'pci']);
+      expect(out).toMatch(/not a certification or audit/i);
+    } finally {
+      if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_COMPLIANCE;
+      else process.env.FULLSHIELD_EXPERIMENTAL_COMPLIANCE = prev;
+    }
+  });
+
+  it('iac reports seeded fixtures when experimental is on', async () => {
+    const prev = process.env.FULLSHIELD_EXPERIMENTAL_IAC;
+    process.env.FULLSHIELD_EXPERIMENTAL_IAC = '1';
+    try {
+      const dir = join(process.cwd(), 'test', 'fixtures', 'iac-app');
+      const { out } = await runCli(['iac', dir]);
+      expect(out).toMatch(/IAC-GHA-PRTARGET-001/);
+      expect(out).toMatch(/IAC-TF-S3PUBLIC-001/);
+    } finally {
+      if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_IAC;
+      else process.env.FULLSHIELD_EXPERIMENTAL_IAC = prev;
+    }
+  });
+
+  it('iac refuses without FULLSHIELD_EXPERIMENTAL_IAC', async () => {
+    const prev = process.env.FULLSHIELD_EXPERIMENTAL_IAC;
+    delete process.env.FULLSHIELD_EXPERIMENTAL_IAC;
+    try {
+      const { err } = await runCli(['iac', cleanApp]);
+      expect(err).toMatch(/FULLSHIELD_EXPERIMENTAL_IAC/);
+      expect(process.exitCode).toBe(2);
+    } finally {
+      if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_IAC;
+      else process.env.FULLSHIELD_EXPERIMENTAL_IAC = prev;
+    }
+  });
+
   it('confirm refuses without FULLSHIELD_EXPERIMENTAL_CONFIRM', async () => {
     const prev = process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM;
     delete process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM;

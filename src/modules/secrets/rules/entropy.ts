@@ -1,4 +1,4 @@
-import { shannonEntropy } from '../mask.js';
+import { everyMatch, shannonEntropy } from '../mask.js';
 import type { SecretsRule } from '../types.js';
 
 const ASSIGNMENT = /\b([A-Za-z_$][\w$]*)\s*[:=]\s*["'`]([^"'`]{20,})["'`]/g;
@@ -15,7 +15,7 @@ export const entropyRule: SecretsRule = {
   },
   check(ctx) {
     ctx.lines.forEach((line, index) => {
-      for (const match of line.matchAll(ASSIGNMENT)) {
+      for (const match of everyMatch(ASSIGNMENT, line)) {
         const [, name, value] = match;
         if (name === undefined || value === undefined) continue;
         if (!SECRET_NAME.test(name)) continue;

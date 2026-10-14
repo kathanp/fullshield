@@ -19,6 +19,8 @@ export default defineConfig({
     dashboard: 'src/dashboard/index.ts',
     incremental: 'src/incremental/index.ts',
     workspaces: 'src/workspaces/index.ts',
+    compliance: 'src/compliance/index.ts',
+    iac: 'src/iac/index.ts',
   },
   format: ['esm'],
   platform: 'node',

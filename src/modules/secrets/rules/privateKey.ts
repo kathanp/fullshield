@@ -12,7 +12,7 @@ export const privateKeyRule: SecretsRule = {
   },
   check(ctx) {
     ctx.lines.forEach((line, index) => {
-      if (PATTERN.test(line)) {
+      if (line.match(PATTERN) !== null) {
         ctx.report({
           line: index + 1,
           message: 'A PEM private key block is committed to the repository.',

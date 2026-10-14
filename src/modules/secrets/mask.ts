@@ -1,3 +1,9 @@
+/** Reset lastIndex so a shared `/g` regex cannot skip the next file or line. */
+export function everyMatch(re: RegExp, text: string): RegExpExecArray[] {
+  re.lastIndex = 0;
+  return [...text.matchAll(re)] as RegExpExecArray[];
+}
+
 /** Mask a secret for display: first 4 chars + '****' (spec §4.2). */
 export function maskSecret(secret: string): string {
   return `${secret.slice(0, 4)}****`;

@@ -1,3 +1,4 @@
+import { everyMatch } from '../mask.js';
 import type { SecretsRule } from '../types.js';
 
 const PATTERN =
@@ -20,7 +21,7 @@ export const dbUrlRule: SecretsRule = {
   },
   check(ctx) {
     ctx.lines.forEach((line, index) => {
-      for (const match of line.matchAll(PATTERN)) {
+      for (const match of everyMatch(PATTERN, line)) {
         const password = match[2];
         // Template placeholders (`:${password}@`) and docs tokens (`<password>`)
         // are not hardcoded secrets.

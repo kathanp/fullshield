@@ -66,6 +66,7 @@ const PREVIOUS_PHASE_TESTS = {
   20: 356,
   21: 383,
   22: 392,
+  23: 401,
 };
 
 function listFilesRecursive(dir, out = []) {
@@ -915,6 +916,30 @@ s.listen(0, '127.0.0.1', () => {
       fail('phase 22 acceptance: threat-model ran without experimental');
     }
     console.log('  ✔ threat model STRIDE/Mermaid; dashboard Host lock; experimental fail-closed');
+  },
+  // Phase 23 (spec §20.6–20.7 / §22): every rule mapped; IaC fixtures; disclaimer.
+  23: async () => {
+    const compliance = await import(pathToFileURL(join(root, 'dist', 'compliance.js')).href);
+    const iac = await import(pathToFileURL(join(root, 'dist', 'iac.js')).href);
+    const report = compliance.renderCompliance([{ ruleId: 'SAST-SQLI-001' }], 'pci');
+    if (!/not a certification or audit/i.test(report)) {
+      fail('phase 23 acceptance: compliance report missing certification disclaimer');
+    }
+    const mapped = new Set(compliance.RULE_MAP.map((r) => r.ruleId));
+    for (const id of ['SAST-SQLI-001', 'DEPS-MALICIOUS-001', 'IAC-GHA-PRTARGET-001']) {
+      if (!mapped.has(id)) fail(`phase 23 acceptance: missing mapping for ${id}`);
+    }
+    const bad = iac.scanIac(join(root, 'test', 'fixtures', 'iac-app'), { experimental: true });
+    for (const id of ['IAC-GHA-UNPINNED-001', 'IAC-TF-S3PUBLIC-001', 'IAC-K8S-PRIV-001']) {
+      if (!bad.some((f) => f.ruleId === id)) fail(`phase 23 acceptance: missing ${id} on iac-app`);
+    }
+    if (iac.scanIac(join(root, 'test', 'fixtures', 'iac-clean'), { experimental: true }).length !== 0) {
+      fail('phase 23 acceptance: iac-clean produced findings');
+    }
+    if (iac.scanIac(join(root, 'test', 'fixtures', 'iac-app')).length !== 0) {
+      fail('phase 23 acceptance: IaC ran without experimental flag');
+    }
+    console.log('  ✔ compliance disclaimer; RULE_MAP; IaC positive/negative; experimental fail-closed');
   },
 };
 

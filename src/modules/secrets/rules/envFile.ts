@@ -12,6 +12,7 @@ export const envFileRule: SecretsRule = {
   },
   check(ctx) {
     const base = ctx.path.split('/').pop() ?? ctx.path;
+    ENV_FILE.lastIndex = 0;
     if (ENV_FILE.test(base) && base !== '.env.example' && base !== '.env.backup') {
       ctx.report({
         line: 1,

@@ -1,3 +1,4 @@
+import { everyMatch } from '../mask.js';
 import type { SecretsRule } from '../types.js';
 
 const PATTERN = /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36}\b/g;
@@ -12,7 +13,7 @@ export const githubRule: SecretsRule = {
   },
   check(ctx) {
     ctx.lines.forEach((line, index) => {
-      for (const match of line.matchAll(PATTERN)) {
+      for (const match of everyMatch(PATTERN, line)) {
         ctx.report({ line: index + 1, secret: match[0] });
       }
     });

@@ -3,6 +3,11 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     include: ['test/unit/**/*.test.ts', 'test/e2e/**/*.test.ts'],
+    // Coverage + RASP p95 + 100k flood tests contend for the same cores.
+    pool: 'forks',
+    poolOptions: {
+      forks: { minForks: 1, maxForks: 4 },
+    },
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
