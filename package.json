@@ -4,6 +4,10 @@
   "description": "Full-cycle security scanner for Node.js/TypeScript backends: detect, classify, report, notify, fix, prevent.",
   "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kathanp/fullshield.git"
+  },
   "engines": {
     "node": ">=20"
   },

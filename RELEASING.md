@@ -9,8 +9,8 @@ Published from GitHub Actions with [npm trusted publishing](https://docs.npmjs.c
    - Organization or user: the GitHub owner of this repo
    - Repository: `fullshield`
    - Workflow filename: `publish.yml`
-   - Environment name: `npm` (must match `.github/workflows/publish.yml`)
-3. In GitHub: **Settings → Environments → New environment** named `npm`. Optional: require a reviewer before the publish job runs.
+   - Environment name: leave blank (the workflow does not set `environment`)
+3. Do not create a GitHub Environment for publish. The job runs on the tag push with OIDC only.
 
 Do not add `NPM_TOKEN` to repository secrets.
 

@@ -4,6 +4,28 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+## 0.1.0 — 2026-10-14
+
+First public alpha (Core 1–10, Pro 11–16, Frontier 17–24 behind flags, harden-1–6).
+
+**Shipped (stable):** scan (deps + reachability, secrets, SAST, config), reports, baseline, fix, runtime guard, watch, edge, SBOM, CI gate.
+
+**Experimental flags (off by default):**
+- `scan --ai explain` and `fix --ai` only. Explain never shows a verdict. `--ai triage` and `--ai logic` are not a CLI surface. Live Ollama is `FULLSHIELD_AI_LIVE=1` (never CI).
+- `FULLSHIELD_EXPERIMENTAL_RASP=1` — structure-change sink hooks (`--import fullshield/runtime/register` or `import 'fullshield/runtime/auto'`).
+- `FULLSHIELD_EXPERIMENTAL_VPATCH=1` — `scan --emit-virtual-patches`.
+- `FULLSHIELD_EXPERIMENTAL_HONEY=1` — `honey init`.
+- `FULLSHIELD_EXPERIMENTAL_SUPPLY=1` — `fullshield install` (static only).
+- `FULLSHIELD_EXPERIMENTAL_CONFIRM=1` — localhost / 127.0.0.1 / FullShield-started container only.
+- `FULLSHIELD_EXPERIMENTAL_MCP=1` — read-only MCP (`propose_fix` returns diffs only).
+- `FULLSHIELD_EXPERIMENTAL_LLM=1` — `LLM-001`–`LLM-005`.
+- `FULLSHIELD_EXPERIMENTAL_PLATFORM=1` — threat-model, `--changed`/`--since`, workspaces, local dashboard.
+- `FULLSHIELD_EXPERIMENTAL_COMPLIANCE=1` — `report --compliance` (not a certification or audit).
+- `FULLSHIELD_EXPERIMENTAL_IAC=1` — light IaC rules.
+- `FULLSHIELD_EXPERIMENTAL_AGENT=1` — remediation agent (localhost mock API + local git only).
+
+**Publishing:** npm trusted publishing (OIDC) + `--provenance`. No `NPM_TOKEN`.
+
 ### harden-5
 
 - SSRF host normalization: IPv6 brackets, IPv4-mapped, decimal/octal/hex/short IPv4, trailing dots, resolve-at-connect, fetch redirect re-check.
@@ -26,16 +48,6 @@ All notable changes to FullShield are documented here.
 - **Phase 19:** supply-chain defense + `fullshield install` (`FULLSHIELD_EXPERIMENTAL_SUPPLY=1`). Static only (never executes packages). Seeded install-script + `.npmrc`/network heuristic, version-diff behavior change, cooldown, lockfile host, dependency confusion, provenance drop. Registry locked to `registry.npmjs.org`.
 - **Phase 18:** virtual patches (`scan --emit-virtual-patches`, `FULLSHIELD_EXPERIMENTAL_VPATCH=1`), egress allowlist, `honey init` (`FULLSHIELD_EXPERIMENTAL_HONEY=1`), threat score log→challenge→block.
 - **Phase 17 RASP:** structure-change sink hooks (`node:sqlite`, `child_process`, `fs`, `http(s)`/`fetch`, plus load-time wraps for `pg`/`mysql2`/…). Off unless `FULLSHIELD_EXPERIMENTAL_RASP=1`. Default `monitor`. Fail-open on hook errors. Activate with `--import fullshield/runtime/register` or `import 'fullshield/runtime/auto'`.
-
-## 0.1.0 — 2026-10-14
-
-First public alpha (Core 1–10, Pro 11–16, harden-1–4).
-
-**Shipped:** scan (deps + reachability, secrets, SAST, config), reports, baseline, fix, runtime guard, watch, edge, SBOM, CI gate.
-
-**Experimental AI (0.1.0):** `scan --ai explain` and `fix --ai` only. Explain never shows a verdict. `--ai triage` and `--ai logic` are not a CLI surface.
-
-**Publishing:** npm trusted publishing (OIDC) + `--provenance`. No `NPM_TOKEN`.
 
 ### harden-4
 
