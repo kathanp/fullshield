@@ -1,5 +1,6 @@
 import { decideSink } from './decide.js';
 import { installHooks, restoreHooks } from './hooks.js';
+import { setSsrfLookup } from './ssrf.js';
 import type { Decision, RaspEvent, RaspRequestContext, SinkKind } from './types.js';
 
 export type RaspMode = 'monitor' | 'block';
@@ -59,6 +60,7 @@ export function disableRasp(): void {
   restoreHooks();
   enabled = false;
   options = {};
+  setSsrfLookup(undefined);
 }
 
 export function enableRaspFromEnv(): void {

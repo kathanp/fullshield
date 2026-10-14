@@ -1,43 +1,1845 @@
 {
   "cases": [
-    { "kind": "sql", "sink": "SELECT * FROM users WHERE name = ?", "input": "O'Brien" },
     {
       "kind": "sql",
-      "sink": "SELECT * FROM seats WHERE title = 'SELECT your seat'",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "O'Brien"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "O'Brien"
+      },
+      "input": "O'Brien"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'O'\\''Brien'",
+      "input": "O'Brien"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "D'Angelo"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "D'Angelo"
+      },
+      "input": "D'Angelo"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'D'\\''Angelo'",
+      "input": "D'Angelo"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "O'Connor"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "O'Connor"
+      },
+      "input": "O'Connor"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'O'\\''Connor'",
+      "input": "O'Connor"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "O'Neill"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "O'Neill"
+      },
+      "input": "O'Neill"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'O'\\''Neill'",
+      "input": "O'Neill"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "D'Amico"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "D'Amico"
+      },
+      "input": "D'Amico"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'D'\\''Amico'",
+      "input": "D'Amico"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "O'Hara"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "O'Hara"
+      },
+      "input": "O'Hara"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'O'\\''Hara'",
+      "input": "O'Hara"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "D'Souza"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "D'Souza"
+      },
+      "input": "D'Souza"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'D'\\''Souza'",
+      "input": "D'Souza"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "O'Malley"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "O'Malley"
+      },
+      "input": "O'Malley"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'O'\\''Malley'",
+      "input": "O'Malley"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "D'Alessandro"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "D'Alessandro"
+      },
+      "input": "D'Alessandro"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'D'\\''Alessandro'",
+      "input": "D'Alessandro"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "O'Reilly"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "O'Reilly"
+      },
+      "input": "O'Reilly"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'O'\\''Reilly'",
+      "input": "O'Reilly"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "L'Heureux"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "L'Heureux"
+      },
+      "input": "L'Heureux"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'L'\\''Heureux'",
+      "input": "L'Heureux"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "D'Arcy"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "D'Arcy"
+      },
+      "input": "D'Arcy"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'D'\\''Arcy'",
+      "input": "D'Arcy"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "O'Toole"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "O'Toole"
+      },
+      "input": "O'Toole"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'O'\\''Toole'",
+      "input": "O'Toole"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "N'Diaye"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "N'Diaye"
+      },
+      "input": "N'Diaye"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'N'\\''Diaye'",
+      "input": "N'Diaye"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "D'Onofrio"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "D'Onofrio"
+      },
+      "input": "D'Onofrio"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'D'\\''Onofrio'",
+      "input": "D'Onofrio"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "O'Keefe"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "O'Keefe"
+      },
+      "input": "O'Keefe"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'O'\\''Keefe'",
+      "input": "O'Keefe"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "D'Amato"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "D'Amato"
+      },
+      "input": "D'Amato"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'D'\\''Amato'",
+      "input": "D'Amato"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "O'Rourke"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "O'Rourke"
+      },
+      "input": "O'Rourke"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'O'\\''Rourke'",
+      "input": "O'Rourke"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "L'Amour"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "L'Amour"
+      },
+      "input": "L'Amour"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'L'\\''Amour'",
+      "input": "L'Amour"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "D'Artagnan"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "D'Artagnan"
+      },
+      "input": "D'Artagnan"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'D'\\''Artagnan'",
+      "input": "D'Artagnan"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "O'Callaghan"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "O'Callaghan"
+      },
+      "input": "O'Callaghan"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'O'\\''Callaghan'",
+      "input": "O'Callaghan"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "D'Costa"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "D'Costa"
+      },
+      "input": "D'Costa"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'D'\\''Costa'",
+      "input": "D'Costa"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "O'Grady"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "O'Grady"
+      },
+      "input": "O'Grady"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'O'\\''Grady'",
+      "input": "O'Grady"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "D'Ettorre"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "D'Ettorre"
+      },
+      "input": "D'Ettorre"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'D'\\''Ettorre'",
+      "input": "D'Ettorre"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "O'Flaherty"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "O'Flaherty"
+      },
+      "input": "O'Flaherty"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'O'\\''Flaherty'",
+      "input": "O'Flaherty"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "D'Agostino"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "D'Agostino"
+      },
+      "input": "D'Agostino"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'D'\\''Agostino'",
+      "input": "D'Agostino"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "O'Byrne"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "O'Byrne"
+      },
+      "input": "O'Byrne"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'O'\\''Byrne'",
+      "input": "O'Byrne"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "D'Errico"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "D'Errico"
+      },
+      "input": "D'Errico"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'D'\\''Errico'",
+      "input": "D'Errico"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "O'Gorman"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "O'Gorman"
+      },
+      "input": "O'Gorman"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'O'\\''Gorman'",
+      "input": "O'Gorman"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ?",
+      "input": "D'Amore"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "D'Amore"
+      },
+      "input": "D'Amore"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'D'\\''Amore'",
+      "input": "D'Amore"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'SELECT your seat'",
       "input": "SELECT your seat"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "SELECT your seat"
+      },
+      "input": "SELECT your seat"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'SELECT your seat'",
+      "input": "SELECT your seat"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'union meeting'",
+      "input": "union meeting"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "union meeting"
+      },
+      "input": "union meeting"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'union meeting'",
+      "input": "union meeting"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'drop the kids off'",
+      "input": "drop the kids off"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "drop the kids off"
+      },
+      "input": "drop the kids off"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'drop the kids off'",
+      "input": "drop the kids off"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'update your profile'",
+      "input": "update your profile"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "update your profile"
+      },
+      "input": "update your profile"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'update your profile'",
+      "input": "update your profile"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'insert tab here'",
+      "input": "insert tab here"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "insert tab here"
+      },
+      "input": "insert tab here"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'insert tab here'",
+      "input": "insert tab here"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'delete leftover notes'",
+      "input": "delete leftover notes"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "delete leftover notes"
+      },
+      "input": "delete leftover notes"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'delete leftover notes'",
+      "input": "delete leftover notes"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'from the beginning'",
+      "input": "from the beginning"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "from the beginning"
+      },
+      "input": "from the beginning"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'from the beginning'",
+      "input": "from the beginning"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'where we left off'",
+      "input": "where we left off"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "where we left off"
+      },
+      "input": "where we left off"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'where we left off'",
+      "input": "where we left off"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'having a party'",
+      "input": "having a party"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "having a party"
+      },
+      "input": "having a party"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'having a party'",
+      "input": "having a party"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'order by Friday'",
+      "input": "order by Friday"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "order by Friday"
+      },
+      "input": "order by Friday"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'order by Friday'",
+      "input": "order by Friday"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'group by department'",
+      "input": "group by department"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "group by department"
+      },
+      "input": "group by department"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'group by department'",
+      "input": "group by department"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'and then some'",
+      "input": "and then some"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "and then some"
+      },
+      "input": "and then some"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'and then some'",
+      "input": "and then some"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'or else what'",
+      "input": "or else what"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "or else what"
+      },
+      "input": "or else what"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'or else what'",
+      "input": "or else what"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'like a charm'",
+      "input": "like a charm"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "like a charm"
+      },
+      "input": "like a charm"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'like a charm'",
+      "input": "like a charm"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'between meetings'",
+      "input": "between meetings"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "between meetings"
+      },
+      "input": "between meetings"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'between meetings'",
+      "input": "between meetings"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'join the team'",
+      "input": "join the team"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "join the team"
+      },
+      "input": "join the team"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'join the team'",
+      "input": "join the team"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'limit one per customer'",
+      "input": "limit one per customer"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "limit one per customer"
+      },
+      "input": "limit one per customer"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'limit one per customer'",
+      "input": "limit one per customer"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'count your blessings'",
+      "input": "count your blessings"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "count your blessings"
+      },
+      "input": "count your blessings"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'count your blessings'",
+      "input": "count your blessings"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'table for two'",
+      "input": "table for two"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "table for two"
+      },
+      "input": "table for two"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'table for two'",
+      "input": "table for two"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'column of text'",
+      "input": "column of text"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "column of text"
+      },
+      "input": "column of text"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'column of text'",
+      "input": "column of text"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'set the table'",
+      "input": "set the table"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "set the table"
+      },
+      "input": "set the table"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'set the table'",
+      "input": "set the table"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'create a memory'",
+      "input": "create a memory"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "create a memory"
+      },
+      "input": "create a memory"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'create a memory'",
+      "input": "create a memory"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'alter the schedule'",
+      "input": "alter the schedule"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "alter the schedule"
+      },
+      "input": "alter the schedule"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'alter the schedule'",
+      "input": "alter the schedule"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'grant access later'",
+      "input": "grant access later"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "grant access later"
+      },
+      "input": "grant access later"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'grant access later'",
+      "input": "grant access later"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'revoke nothing'",
+      "input": "revoke nothing"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "revoke nothing"
+      },
+      "input": "revoke nothing"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'revoke nothing'",
+      "input": "revoke nothing"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'cast of characters'",
+      "input": "cast of characters"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "cast of characters"
+      },
+      "input": "cast of characters"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'cast of characters'",
+      "input": "cast of characters"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'case by case'",
+      "input": "case by case"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "case by case"
+      },
+      "input": "case by case"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'case by case'",
+      "input": "case by case"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'when you arrive'",
+      "input": "when you arrive"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "when you arrive"
+      },
+      "input": "when you arrive"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'when you arrive'",
+      "input": "when you arrive"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'then we eat'",
+      "input": "then we eat"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "then we eat"
+      },
+      "input": "then we eat"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'then we eat'",
+      "input": "then we eat"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'else we wait'",
+      "input": "else we wait"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "else we wait"
+      },
+      "input": "else we wait"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'else we wait'",
+      "input": "else we wait"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'exists already'",
+      "input": "exists already"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "exists already"
+      },
+      "input": "exists already"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'exists already'",
+      "input": "exists already"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'in the meantime'",
+      "input": "in the meantime"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "in the meantime"
+      },
+      "input": "in the meantime"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'in the meantime'",
+      "input": "in the meantime"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'as requested'",
+      "input": "as requested"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "as requested"
+      },
+      "input": "as requested"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'as requested'",
+      "input": "as requested"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'is everyone ready'",
+      "input": "is everyone ready"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "is everyone ready"
+      },
+      "input": "is everyone ready"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'is everyone ready'",
+      "input": "is everyone ready"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'not a problem'",
+      "input": "not a problem"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "not a problem"
+      },
+      "input": "not a problem"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'not a problem'",
+      "input": "not a problem"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'null and void is legal phrasing'",
+      "input": "null and void is legal phrasing"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "null and void is legal phrasing"
+      },
+      "input": "null and void is legal phrasing"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'null and void is legal phrasing'",
+      "input": "null and void is legal phrasing"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'true story'",
+      "input": "true story"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "true story"
+      },
+      "input": "true story"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'true story'",
+      "input": "true story"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'false alarm'",
+      "input": "false alarm"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "false alarm"
+      },
+      "input": "false alarm"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'false alarm'",
+      "input": "false alarm"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'inner circle'",
+      "input": "inner circle"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "inner circle"
+      },
+      "input": "inner circle"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'inner circle'",
+      "input": "inner circle"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM notes WHERE title = 'left outer porch'",
+      "input": "left outer porch"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "title": "left outer porch"
+      },
+      "input": "left outer porch"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'left outer porch'",
+      "input": "left outer porch"
     },
     {
       "kind": "sql",
       "sink": "SELECT * FROM users WHERE email = 'user@example.com'",
       "input": "user@example.com"
     },
-    { "kind": "sql", "sink": "SELECT * FROM users WHERE id = 42", "input": "42" },
     {
       "kind": "sql",
-      "sink": "SELECT * FROM users WHERE name = 'hello world'",
-      "input": "hello world"
+      "sink": "SELECT * FROM users WHERE email = 'ada@example.org'",
+      "input": "ada@example.org"
     },
     {
       "kind": "sql",
-      "sink": "SELECT * FROM users WHERE id = 1 -- see https://example.com/docs",
-      "input": "https://example.com/docs"
+      "sink": "SELECT * FROM users WHERE email = 'help@example.net'",
+      "input": "help@example.net"
     },
     {
       "kind": "sql",
-      "sink": "SELECT * FROM users WHERE note = 'path is ./docs/readme.txt'",
+      "sink": "SELECT * FROM users WHERE email = 'noreply@example.com'",
+      "input": "noreply@example.com"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE email = 'support+test@example.com'",
+      "input": "support+test@example.com"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "1"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "2"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "3"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "4"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "5"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "6"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "7"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "8"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "9"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "10"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "11"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "12"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "13"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "14"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "15"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "16"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "17"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "18"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "19"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "20"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "21"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "22"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "23"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "24"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "25"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "26"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "27"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "28"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "29"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "30"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "31"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "32"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "33"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "34"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "35"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "36"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "37"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "38"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "39"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = ?",
+      "input": "40"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo hello",
+      "input": "hello"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'hello'",
+      "input": "hello"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo world",
+      "input": "world"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'world'",
+      "input": "world"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo ok",
+      "input": "ok"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'ok'",
+      "input": "ok"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo ready",
+      "input": "ready"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'ready'",
+      "input": "ready"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo notes",
+      "input": "notes"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'notes'",
+      "input": "notes"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo alpha",
+      "input": "alpha"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'alpha'",
+      "input": "alpha"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo bravo",
+      "input": "bravo"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'bravo'",
+      "input": "bravo"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo readme",
+      "input": "readme"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'readme'",
+      "input": "readme"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo index",
+      "input": "index"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'index'",
+      "input": "index"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo status",
+      "input": "status"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'status'",
+      "input": "status"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo health",
+      "input": "health"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'health'",
+      "input": "health"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo ping",
+      "input": "ping"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'ping'",
+      "input": "ping"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo pong",
+      "input": "pong"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'pong'",
+      "input": "pong"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo widget",
+      "input": "widget"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'widget'",
+      "input": "widget"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo report",
+      "input": "report"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'report'",
+      "input": "report"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo summary",
+      "input": "summary"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'summary'",
+      "input": "summary"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo export",
+      "input": "export"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'export'",
+      "input": "export"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo invoice",
+      "input": "invoice"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'invoice'",
+      "input": "invoice"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo receipt",
+      "input": "receipt"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'receipt'",
+      "input": "receipt"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo profile",
+      "input": "profile"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'profile'",
+      "input": "profile"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo settings",
+      "input": "settings"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'settings'",
+      "input": "settings"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo search",
+      "input": "search"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'search'",
+      "input": "search"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo filter",
+      "input": "filter"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'filter'",
+      "input": "filter"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo sort",
+      "input": "sort"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'sort'",
+      "input": "sort"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo page",
+      "input": "page"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'page'",
+      "input": "page"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo item",
+      "input": "item"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'item'",
+      "input": "item"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo cart",
+      "input": "cart"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'cart'",
+      "input": "cart"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo order",
+      "input": "order"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'order'",
+      "input": "order"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo draft",
+      "input": "draft"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'draft'",
+      "input": "draft"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo final",
+      "input": "final"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'final'",
+      "input": "final"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo hello-world",
+      "input": "hello-world"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'hello-world'",
+      "input": "hello-world"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo file-name",
+      "input": "file-name"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'file-name'",
+      "input": "file-name"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo foo_bar",
+      "input": "foo_bar"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'foo_bar'",
+      "input": "foo_bar"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo MyFile",
+      "input": "MyFile"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'MyFile'",
+      "input": "MyFile"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo Version2",
+      "input": "Version2"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'Version2'",
+      "input": "Version2"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo q1-2026",
+      "input": "q1-2026"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'q1-2026'",
+      "input": "q1-2026"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo north",
+      "input": "north"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'north'",
+      "input": "north"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo south",
+      "input": "south"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'south'",
+      "input": "south"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo east",
+      "input": "east"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'east'",
+      "input": "east"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo west",
+      "input": "west"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'west'",
+      "input": "west"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls 'My File.txt'",
+      "input": "My File.txt"
+    },
+    {
+      "kind": "shell",
+      "sink": "cat file-name.txt",
+      "input": "file-name.txt"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls ./docs/readme.txt",
       "input": "./docs/readme.txt"
     },
-    { "kind": "shell", "sink": "echo hello", "input": "hello" },
-    { "kind": "shell", "sink": "ls ./docs/readme.txt", "input": "./docs/readme.txt" },
-    { "kind": "shell", "sink": "cat file-name.txt", "input": "file-name.txt" },
-    { "kind": "shell", "sink": "cat foo_bar", "input": "foo_bar" },
-    { "kind": "shell", "sink": "ls 'My File.txt'", "input": "My File.txt" },
-    { "kind": "path", "sink": "uploads/photo.jpg", "input": "photo.jpg", "base": "uploads" },
     {
       "kind": "path",
-      "sink": "uploads/./docs/readme.txt",
-      "input": "./docs/readme.txt",
+      "sink": "uploads/photo.jpg",
+      "input": "photo.jpg",
       "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls photo.jpg",
+      "input": "photo.jpg"
     },
     {
       "kind": "path",
@@ -46,24 +1848,1541 @@
       "base": "uploads"
     },
     {
+      "kind": "shell",
+      "sink": "ls my.file.name.txt",
+      "input": "my.file.name.txt"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/archive.tar.gz",
+      "input": "archive.tar.gz",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls archive.tar.gz",
+      "input": "archive.tar.gz"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/readme.md",
+      "input": "readme.md",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls readme.md",
+      "input": "readme.md"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/v2.0.1.json",
+      "input": "v2.0.1.json",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls v2.0.1.json",
+      "input": "v2.0.1.json"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/logo.png",
+      "input": "logo.png",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls logo.png",
+      "input": "logo.png"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/avatar.webp",
+      "input": "avatar.webp",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls avatar.webp",
+      "input": "avatar.webp"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/notes.csv",
+      "input": "notes.csv",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls notes.csv",
+      "input": "notes.csv"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/data.min.js",
+      "input": "data.min.js",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls data.min.js",
+      "input": "data.min.js"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/style.min.css",
+      "input": "style.min.css",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls style.min.css",
+      "input": "style.min.css"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/backup.2026-10-14.sql",
+      "input": "backup.2026-10-14.sql",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls backup.2026-10-14.sql",
+      "input": "backup.2026-10-14.sql"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/invoice.final.pdf",
+      "input": "invoice.final.pdf",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls invoice.final.pdf",
+      "input": "invoice.final.pdf"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/song.mp3",
+      "input": "song.mp3",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls song.mp3",
+      "input": "song.mp3"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/clip.mp4",
+      "input": "clip.mp4",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls clip.mp4",
+      "input": "clip.mp4"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/model.obj",
+      "input": "model.obj",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls model.obj",
+      "input": "model.obj"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/map.geo.json",
+      "input": "map.geo.json",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls map.geo.json",
+      "input": "map.geo.json"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/theme.dark.css",
+      "input": "theme.dark.css",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls theme.dark.css",
+      "input": "theme.dark.css"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/app.config.yaml",
+      "input": "app.config.yaml",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls app.config.yaml",
+      "input": "app.config.yaml"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/keys.pub.pem.txt",
+      "input": "keys.pub.pem.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls keys.pub.pem.txt",
+      "input": "keys.pub.pem.txt"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/folder.sub.file.txt",
+      "input": "folder.sub.file.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls folder.sub.file.txt",
+      "input": "folder.sub.file.txt"
+    },
+    {
       "kind": "path",
       "sink": "uploads/folder/sub/file.txt",
       "input": "folder/sub/file.txt",
       "base": "uploads"
     },
-    { "kind": "nosql", "sink": { "name": "ada" }, "input": "ada" },
-    { "kind": "nosql", "sink": { "name": "O'Brien" }, "input": "O'Brien" },
-    { "kind": "nosql", "sink": { "$eq": "ada" }, "input": "ada" },
-    { "kind": "nosql", "sink": { "name": "SELECT your seat" }, "input": "SELECT your seat" },
-    { "kind": "ssrf", "sink": "https://example.com/api", "input": "https://example.com/api" },
-    { "kind": "ssrf", "sink": "https://api.stripe.com/v1/charges", "input": "https://api.stripe.com/v1/charges" },
+    {
+      "kind": "path",
+      "sink": "uploads/./docs/readme.txt",
+      "input": "./docs/readme.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/images/2026/photo.jpg",
+      "input": "images/2026/photo.jpg",
+      "base": "uploads"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/exports/q1/report.csv",
+      "input": "exports/q1/report.csv",
+      "base": "uploads"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/a/b/c/d.txt",
+      "input": "a/b/c/d.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://example.com/api",
+      "input": "https://example.com/api"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE note = 'see https://example.com/api'",
+      "input": "https://example.com/api"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://example.org/docs",
+      "input": "https://example.org/docs"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE note = 'see https://example.org/docs'",
+      "input": "https://example.org/docs"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://example.net/health",
+      "input": "https://example.net/health"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE note = 'see https://example.net/health'",
+      "input": "https://example.net/health"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://api.stripe.com/v1/charges",
+      "input": "https://api.stripe.com/v1/charges"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE note = 'see https://api.stripe.com/v1/charges'",
+      "input": "https://api.stripe.com/v1/charges"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://www.wikipedia.org/wiki/Node.js",
+      "input": "https://www.wikipedia.org/wiki/Node.js"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE note = 'see https://www.wikipedia.org/wiki/Node.js'",
+      "input": "https://www.wikipedia.org/wiki/Node.js"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://httpbin.org/get",
+      "input": "https://httpbin.org/get"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE note = 'see https://httpbin.org/get'",
+      "input": "https://httpbin.org/get"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://jsonplaceholder.typicode.com/posts/1",
+      "input": "https://jsonplaceholder.typicode.com/posts/1"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE note = 'see https://jsonplaceholder.typicode.com/posts/1'",
+      "input": "https://jsonplaceholder.typicode.com/posts/1"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://cdn.jsdelivr.net/npm/jquery",
+      "input": "https://cdn.jsdelivr.net/npm/jquery"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE note = 'see https://cdn.jsdelivr.net/npm/jquery'",
+      "input": "https://cdn.jsdelivr.net/npm/jquery"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://fonts.googleapis.com/css?family=Inter",
+      "input": "https://fonts.googleapis.com/css?family=Inter"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE note = 'see https://fonts.googleapis.com/css?family=Inter'",
+      "input": "https://fonts.googleapis.com/css?family=Inter"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://registry.npmjs.org/fullshield",
+      "input": "https://registry.npmjs.org/fullshield"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE note = 'see https://registry.npmjs.org/fullshield'",
+      "input": "https://registry.npmjs.org/fullshield"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://api.github.com/repos/nodejs/node",
+      "input": "https://api.github.com/repos/nodejs/node"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE note = 'see https://api.github.com/repos/nodejs/node'",
+      "input": "https://api.github.com/repos/nodejs/node"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://www.w3.org/TR/html52/",
+      "input": "https://www.w3.org/TR/html52/"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE note = 'see https://www.w3.org/TR/html52/'",
+      "input": "https://www.w3.org/TR/html52/"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://developer.mozilla.org/en-US/docs/Web/HTTP",
+      "input": "https://developer.mozilla.org/en-US/docs/Web/HTTP"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE note = 'see https://developer.mozilla.org/en-US/docs/Web/HTTP'",
+      "input": "https://developer.mozilla.org/en-US/docs/Web/HTTP"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://opensource.org/licenses/MIT",
+      "input": "https://opensource.org/licenses/MIT"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE note = 'see https://opensource.org/licenses/MIT'",
+      "input": "https://opensource.org/licenses/MIT"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://creativecommons.org/licenses/by/4.0/",
+      "input": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE note = 'see https://creativecommons.org/licenses/by/4.0/'",
+      "input": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://www.ietf.org/rfc/rfc3986.txt",
+      "input": "https://www.ietf.org/rfc/rfc3986.txt"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE note = 'see https://www.ietf.org/rfc/rfc3986.txt'",
+      "input": "https://www.ietf.org/rfc/rfc3986.txt"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://schema.org/Person",
+      "input": "https://schema.org/Person"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE note = 'see https://schema.org/Person'",
+      "input": "https://schema.org/Person"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://www.iana.org/domains/reserved",
+      "input": "https://www.iana.org/domains/reserved"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE note = 'see https://www.iana.org/domains/reserved'",
+      "input": "https://www.iana.org/domains/reserved"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://unpkg.com/react@18/package.json",
+      "input": "https://unpkg.com/react@18/package.json"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE note = 'see https://unpkg.com/react@18/package.json'",
+      "input": "https://unpkg.com/react@18/package.json"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://raw.githack.com/readme",
+      "input": "https://raw.githack.com/readme"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE note = 'see https://raw.githack.com/readme'",
+      "input": "https://raw.githack.com/readme"
+    },
     {
       "kind": "ssrf",
       "sink": "https://example.com/q?next=http://169.254.169.254/",
       "input": "http://169.254.169.254/"
     },
-    { "kind": "proto", "input": { "name": "ada" } },
-    { "kind": "proto", "input": { "title": "constructor" } },
-    { "kind": "proto", "input": { "note": "__proto__" } }
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'José'",
+      "input": "José"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/José.txt",
+      "input": "José.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'José'",
+      "input": "José"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'François'",
+      "input": "François"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/François.txt",
+      "input": "François.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'François'",
+      "input": "François"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'Müller'",
+      "input": "Müller"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/Müller.txt",
+      "input": "Müller.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'Müller'",
+      "input": "Müller"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'Søren'",
+      "input": "Søren"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/Søren.txt",
+      "input": "Søren.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'Søren'",
+      "input": "Søren"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'Łukasz'",
+      "input": "Łukasz"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/Łukasz.txt",
+      "input": "Łukasz.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'Łukasz'",
+      "input": "Łukasz"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '東京'",
+      "input": "東京"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/東京.txt",
+      "input": "東京.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo '東京'",
+      "input": "東京"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '北京'",
+      "input": "北京"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/北京.txt",
+      "input": "北京.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo '北京'",
+      "input": "北京"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '한국어'",
+      "input": "한국어"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/한국어.txt",
+      "input": "한국어.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo '한국어'",
+      "input": "한국어"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'مرحبا'",
+      "input": "مرحبا"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/مرحبا.txt",
+      "input": "مرحبا.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'مرحبا'",
+      "input": "مرحبا"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'Москва'",
+      "input": "Москва"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/Москва.txt",
+      "input": "Москва.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'Москва'",
+      "input": "Москва"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'Αθήνα'",
+      "input": "Αθήνα"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/Αθήνα.txt",
+      "input": "Αθήνα.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'Αθήνα'",
+      "input": "Αθήνα"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'São Paulo'",
+      "input": "São Paulo"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/São Paulo.txt",
+      "input": "São Paulo.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'São Paulo'",
+      "input": "São Paulo"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'Niño'",
+      "input": "Niño"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/Niño.txt",
+      "input": "Niño.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'Niño'",
+      "input": "Niño"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'İstanbul'",
+      "input": "İstanbul"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/İstanbul.txt",
+      "input": "İstanbul.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'İstanbul'",
+      "input": "İstanbul"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'Øresund'",
+      "input": "Øresund"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/Øresund.txt",
+      "input": "Øresund.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'Øresund'",
+      "input": "Øresund"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'Smørrebrød'",
+      "input": "Smørrebrød"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/Smørrebrød.txt",
+      "input": "Smørrebrød.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'Smørrebrød'",
+      "input": "Smørrebrød"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '日本語ファイル'",
+      "input": "日本語ファイル"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/日本語ファイル.txt",
+      "input": "日本語ファイル.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo '日本語ファイル'",
+      "input": "日本語ファイル"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'اسم الملف'",
+      "input": "اسم الملف"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/اسم الملف.txt",
+      "input": "اسم الملف.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'اسم الملف'",
+      "input": "اسم الملف"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'Файл'",
+      "input": "Файл"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/Файл.txt",
+      "input": "Файл.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'Файл'",
+      "input": "Файл"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'café'",
+      "input": "café"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/café.txt",
+      "input": "café.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo 'café'",
+      "input": "café"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM t WHERE payload = '{\"ok\":true}'",
+      "input": "{\"ok\":true}"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo '{\"ok\":true}'",
+      "input": "{\"ok\":true}"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "payload": "{\"ok\":true}"
+      },
+      "input": "{\"ok\":true}"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM t WHERE payload = '{\"name\":\"ada\"}'",
+      "input": "{\"name\":\"ada\"}"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo '{\"name\":\"ada\"}'",
+      "input": "{\"name\":\"ada\"}"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "payload": "{\"name\":\"ada\"}"
+      },
+      "input": "{\"name\":\"ada\"}"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM t WHERE payload = '{\"count\":3}'",
+      "input": "{\"count\":3}"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo '{\"count\":3}'",
+      "input": "{\"count\":3}"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "payload": "{\"count\":3}"
+      },
+      "input": "{\"count\":3}"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM t WHERE payload = '{\"nested\":{\"a\":1}}'",
+      "input": "{\"nested\":{\"a\":1}}"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo '{\"nested\":{\"a\":1}}'",
+      "input": "{\"nested\":{\"a\":1}}"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "payload": "{\"nested\":{\"a\":1}}"
+      },
+      "input": "{\"nested\":{\"a\":1}}"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM t WHERE payload = '[\"a\",\"b\"]'",
+      "input": "[\"a\",\"b\"]"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo '[\"a\",\"b\"]'",
+      "input": "[\"a\",\"b\"]"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "payload": "[\"a\",\"b\"]"
+      },
+      "input": "[\"a\",\"b\"]"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM t WHERE payload = '{\"msg\":\"hello world\"}'",
+      "input": "{\"msg\":\"hello world\"}"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo '{\"msg\":\"hello world\"}'",
+      "input": "{\"msg\":\"hello world\"}"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "payload": "{\"msg\":\"hello world\"}"
+      },
+      "input": "{\"msg\":\"hello world\"}"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM t WHERE payload = '{\"title\":\"SELECT your seat\"}'",
+      "input": "{\"title\":\"SELECT your seat\"}"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo '{\"title\":\"SELECT your seat\"}'",
+      "input": "{\"title\":\"SELECT your seat\"}"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "payload": "{\"title\":\"SELECT your seat\"}"
+      },
+      "input": "{\"title\":\"SELECT your seat\"}"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM t WHERE payload = '{\"note\":\"union meeting\"}'",
+      "input": "{\"note\":\"union meeting\"}"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo '{\"note\":\"union meeting\"}'",
+      "input": "{\"note\":\"union meeting\"}"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "payload": "{\"note\":\"union meeting\"}"
+      },
+      "input": "{\"note\":\"union meeting\"}"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM t WHERE payload = '{\"path\":\"my.file.name.txt\"}'",
+      "input": "{\"path\":\"my.file.name.txt\"}"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo '{\"path\":\"my.file.name.txt\"}'",
+      "input": "{\"path\":\"my.file.name.txt\"}"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "payload": "{\"path\":\"my.file.name.txt\"}"
+      },
+      "input": "{\"path\":\"my.file.name.txt\"}"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM t WHERE payload = '{\"url\":\"https://example.com\"}'",
+      "input": "{\"url\":\"https://example.com\"}"
+    },
+    {
+      "kind": "shell",
+      "sink": "echo '{\"url\":\"https://example.com\"}'",
+      "input": "{\"url\":\"https://example.com\"}"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "payload": "{\"url\":\"https://example.com\"}"
+      },
+      "input": "{\"url\":\"https://example.com\"}"
+    },
+    {
+      "kind": "proto",
+      "input": {
+        "name": "ada"
+      }
+    },
+    {
+      "kind": "proto",
+      "input": {
+        "title": "constructor"
+      }
+    },
+    {
+      "kind": "proto",
+      "input": {
+        "note": "__proto__"
+      }
+    },
+    {
+      "kind": "proto",
+      "input": {
+        "role": "prototype"
+      }
+    },
+    {
+      "kind": "proto",
+      "input": {
+        "label": "constructor.prototype"
+      }
+    },
+    {
+      "kind": "proto",
+      "input": {
+        "text": "__proto__ value"
+      }
+    },
+    {
+      "kind": "proto",
+      "input": {
+        "id": "prototype-ok"
+      }
+    },
+    {
+      "kind": "proto",
+      "input": {
+        "city": "O'Brien"
+      }
+    },
+    {
+      "kind": "proto",
+      "input": {
+        "title": "SELECT your seat"
+      }
+    },
+    {
+      "kind": "proto",
+      "input": {
+        "url": "https://example.com"
+      }
+    },
+    {
+      "kind": "proto",
+      "input": {
+        "file": "my.file.name.txt"
+      }
+    },
+    {
+      "kind": "proto",
+      "input": {
+        "hello": "世界"
+      }
+    },
+    {
+      "kind": "proto",
+      "input": {
+        "greeting": "مرحبا"
+      }
+    },
+    {
+      "kind": "proto",
+      "input": {
+        "json": "{\"ok\":true}"
+      }
+    },
+    {
+      "kind": "proto",
+      "input": {
+        "eq": "$eq"
+      }
+    },
+    {
+      "kind": "proto",
+      "input": {
+        "op": "$gt"
+      }
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "ada"
+      },
+      "input": "ada"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "$eq": 42
+      },
+      "input": "42"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": {
+          "$eq": "ready"
+        }
+      },
+      "input": "ready"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "email": "user@example.com"
+      },
+      "input": "user@example.com"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "city": "São Paulo"
+      },
+      "input": "São Paulo"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "$eq": "東京"
+      },
+      "input": "東京"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "path": "photo.jpg"
+      },
+      "input": "photo.jpg"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "alpha-one"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/alpha-one.txt",
+      "input": "alpha-one.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "beta-two"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/beta-two.txt",
+      "input": "beta-two.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "gamma3"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/gamma3.txt",
+      "input": "gamma3.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "delta_4"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/delta_4.txt",
+      "input": "delta_4.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "epsilon"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/epsilon.txt",
+      "input": "epsilon.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "zeta"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/zeta.txt",
+      "input": "zeta.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "eta"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/eta.txt",
+      "input": "eta.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "theta"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/theta.txt",
+      "input": "theta.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "iota"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/iota.txt",
+      "input": "iota.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "kappa"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/kappa.txt",
+      "input": "kappa.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "lambda"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/lambda.txt",
+      "input": "lambda.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "mu"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/mu.txt",
+      "input": "mu.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "nu"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/nu.txt",
+      "input": "nu.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "xi"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/xi.txt",
+      "input": "xi.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "omicron"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/omicron.txt",
+      "input": "omicron.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "pi"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/pi.txt",
+      "input": "pi.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "rho"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/rho.txt",
+      "input": "rho.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "sigma"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/sigma.txt",
+      "input": "sigma.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "tau"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/tau.txt",
+      "input": "tau.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "upsilon"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/upsilon.txt",
+      "input": "upsilon.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "phi"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/phi.txt",
+      "input": "phi.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "chi"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/chi.txt",
+      "input": "chi.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "psi"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/psi.txt",
+      "input": "psi.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "omega"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/omega.txt",
+      "input": "omega.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "monday"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/monday.txt",
+      "input": "monday.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "tuesday"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/tuesday.txt",
+      "input": "tuesday.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "wednesday"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/wednesday.txt",
+      "input": "wednesday.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "thursday"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/thursday.txt",
+      "input": "thursday.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "friday"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/friday.txt",
+      "input": "friday.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "saturday"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/saturday.txt",
+      "input": "saturday.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "sunday"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/sunday.txt",
+      "input": "sunday.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "january"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/january.txt",
+      "input": "january.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "february"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/february.txt",
+      "input": "february.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "march"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/march.txt",
+      "input": "march.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "april"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/april.txt",
+      "input": "april.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "june"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/june.txt",
+      "input": "june.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "july"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/july.txt",
+      "input": "july.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "august"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/august.txt",
+      "input": "august.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "september"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/september.txt",
+      "input": "september.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "october"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/october.txt",
+      "input": "october.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "november"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/november.txt",
+      "input": "november.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM tags WHERE tag = ?",
+      "input": "december"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/december.txt",
+      "input": "december.txt",
+      "base": "uploads"
+    }
   ]
 }

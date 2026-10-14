@@ -1,6 +1,8 @@
 export { contextFromRequest, currentRaspContext, enterRaspContext } from './context.js';
 export type { IncomingLike } from './context.js';
-export { decideSink, detectStructureChange, scoreCorpus } from './decide.js';
+export { decideSink, detectStructureChange, scoreCorpus, scoreCorpusByKind } from './decide.js';
+export type { CorpusKindScore } from './decide.js';
+export { hostIsBlocked, isPrivateOrMetadata, normalizeHost, setSsrfLookup, ssrfHostFromUser } from './ssrf.js';
 export { clearRaspEvents, disableRasp, enableRasp, enableRaspFromEnv, getRaspEvents, isRaspEnabled } from './enable.js';
 export type { RaspOptions } from './enable.js';
 export { wrapKnownPackage } from './hooks.js';

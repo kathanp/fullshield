@@ -30,7 +30,7 @@ function inferPathBase(p: string): string | undefined {
   return undefined;
 }
 
-function applySink<T>(kind: SinkKind, sink: unknown, base: string | undefined, original: () => T): T {
+function guardSink(kind: SinkKind, sink: unknown, base?: string): void {
   try {
     const ctx = currentRaspContext();
     if (ctx) {
@@ -55,6 +55,10 @@ function applySink<T>(kind: SinkKind, sink: unknown, base: string | undefined, o
       sample: 'hook-error',
     });
   }
+}
+
+function applySink<T>(kind: SinkKind, sink: unknown, base: string | undefined, original: () => T): T {
+  guardSink(kind, sink, base);
   return original();
 }
 
@@ -196,7 +200,26 @@ function wrapBuiltins(): void {
   if (typeof globalThis.fetch === 'function') {
     const origFetch = globalThis.fetch;
     globalThis.fetch = function (this: unknown, input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) {
-      return applySink('ssrf', fetchUrl(input), undefined, () => origFetch.call(this, input, init));
+      const start = fetchUrl(input);
+      const mode = init?.redirect ?? 'follow';
+      if (mode !== 'follow') {
+        return applySink('ssrf', start, undefined, () => origFetch.call(this, input, init));
+      }
+      guardSink('ssrf', start);
+      return (async () => {
+        let current = start;
+        let nextInput: Parameters<typeof fetch>[0] = input;
+        for (let hop = 0; hop < 8; hop += 1) {
+          const res = await origFetch.call(this, nextInput, { ...init, redirect: 'manual' });
+          if (res.status < 300 || res.status >= 400) return res;
+          const loc = res.headers.get('location');
+          if (!loc) return res;
+          current = new URL(loc, current).href;
+          guardSink('ssrf', current);
+          nextInput = current;
+        }
+        return origFetch.call(this, current, init);
+      })();
     };
     restorers.push(() => {
       globalThis.fetch = origFetch;
@@ -277,7 +300,8 @@ export function wrapKnownPackage(request: string, exported: unknown): unknown {
     return exported;
   }
   if (name === 'mysql2' || name.endsWith('/mysql2') || name.includes('mysql2/')) {
-    const proto = (exported as { Connection?: { prototype: object } }).Connection?.prototype;
+    const mysql = exported as { Connection?: { prototype: object }; prototype?: object };
+    const proto = mysql.Connection?.prototype ?? mysql.prototype;
     if (proto) {
       wrapSqlMethod(proto, 'query');
       wrapSqlMethod(proto, 'execute');

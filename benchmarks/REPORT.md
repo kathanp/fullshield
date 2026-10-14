@@ -238,3 +238,11 @@ Experimental RASP is off by default and is not a scan module. Default `scan` of 
 **NodeGoat 373 / high+critical 59 unchanged. DVNA 19 unchanged.** JSON: `results/*-phase17.json`.
 
 RASP corpus (not these repo scans): attack **41/43 (95.3%)** blocked, benign **0/26**. Two attack misses are IPv6 SSRF URLs (`http://[::1]/`, `http://[fd12:3456:789a::1]/`) — `URL.hostname` keeps brackets and the private-range check did not strip them. Still behind `FULLSHIELD_EXPERIMENTAL_RASP`.
+
+### After harden-5
+
+SSRF host normalization + PayloadsAllTheThings corpora. Default scan unchanged.
+
+**NodeGoat 373 / high+critical 59 unchanged. DVNA 19 unchanged.** JSON: `results/*-harden5.json`.
+
+RASP corpus: attack **173/181 (95.6%)** — sql 40/44, shell 43/47, path 51/51, ssrf 39/39. Benign **0/621**. Inventory: [`RASP-SINKS.md`](../RASP-SINKS.md).

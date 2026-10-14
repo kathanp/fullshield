@@ -60,7 +60,7 @@ function countVitestTests() {
 /** Last completed phase's test count. Phase N must add tests. */
 const PREVIOUS_PHASE_TESTS = {
   16: 291,
-  17: 308,
+  17: 318,
 };
 
 function listFilesRecursive(dir, out = []) {
@@ -749,12 +749,20 @@ s.listen(0, '127.0.0.1', () => {
     const rasp = await import(raspUrl);
     const attack = JSON.parse(readFileSync(join(root, 'test', 'fixtures', 'rasp', 'attack-corpus.json'), 'utf8'));
     const benign = JSON.parse(readFileSync(join(root, 'test', 'fixtures', 'rasp', 'benign-corpus.json'), 'utf8'));
-    const attackScore = rasp.scoreCorpus(attack.cases);
-    const benignScore = rasp.scoreCorpus(benign.cases);
+    const attackScore = rasp.scoreCorpusByKind(attack.cases);
+    const benignScore = rasp.scoreCorpusByKind(benign.cases);
     const attackRate = attackScore.blocked / attackScore.total;
     const benignRate = benignScore.blocked / benignScore.total;
     console.log(`  attack corpus ${attackScore.blocked}/${attackScore.total} = ${(attackRate * 100).toFixed(1)}%`);
+    for (const [kind, slot] of Object.entries(attackScore.byKind)) {
+      console.log(`    attack ${kind}: ${slot.blocked}/${slot.total}`);
+    }
     console.log(`  benign corpus ${benignScore.blocked}/${benignScore.total} = ${(benignRate * 100).toFixed(1)}%`);
+    for (const [kind, slot] of Object.entries(benignScore.byKind)) {
+      console.log(`    benign ${kind}: ${slot.blocked}/${slot.total}`);
+    }
+    if (attack.cases.length < 80) fail(`phase 17 acceptance: attack corpus too small (${attack.cases.length})`);
+    if (benign.cases.length < 300) fail(`phase 17 acceptance: benign corpus ${benign.cases.length} < 300`);
     if (attackRate < 0.95) fail(`phase 17 acceptance: attack block rate ${attackRate} < 0.95`);
     if (benignScore.blocked !== 0) fail(`phase 17 acceptance: benign corpus blocked ${benignScore.blocked}`);
     rasp.enableRasp({ mode: 'block' });

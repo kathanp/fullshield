@@ -58,14 +58,36 @@ export function contextForCorpusCase(c: Record<string, unknown>): RaspRequestCon
   };
 }
 
-export function scoreCorpus(cases: Array<Record<string, unknown>>): { blocked: number; total: number } {
+export interface CorpusKindScore {
+  blocked: number;
+  total: number;
+}
+
+export function scoreCorpusByKind(cases: Array<Record<string, unknown>>): {
+  blocked: number;
+  total: number;
+  byKind: Record<string, CorpusKindScore>;
+} {
+  const byKind: Record<string, CorpusKindScore> = {};
   let blocked = 0;
   for (const c of cases) {
-    const kind = c.kind as SinkKind;
+    const kind = typeof c.kind === 'string' ? c.kind : 'unknown';
     const ctx = contextForCorpusCase(c);
     const sink = kind === 'proto' ? null : (c.sink ?? c.input);
     const base = typeof c.base === 'string' ? c.base : undefined;
-    if (decideSink(kind, sink, ctx, base).block) blocked += 1;
+    const hit = decideSink(kind as SinkKind, sink, ctx, base).block;
+    const slot = byKind[kind] ?? { blocked: 0, total: 0 };
+    slot.total += 1;
+    if (hit) {
+      slot.blocked += 1;
+      blocked += 1;
+    }
+    byKind[kind] = slot;
   }
-  return { blocked, total: cases.length };
+  return { blocked, total: cases.length, byKind };
+}
+
+export function scoreCorpus(cases: Array<Record<string, unknown>>): { blocked: number; total: number } {
+  const { blocked, total } = scoreCorpusByKind(cases);
+  return { blocked, total };
 }

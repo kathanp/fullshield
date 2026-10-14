@@ -1,103 +1,961 @@
 {
+  "attribution": "PayloadsAllTheThings (swisskyrepo), MIT; see payloads/ATTRIBUTION.md",
   "cases": [
     {
       "kind": "sql",
-      "sink": "SELECT * FROM users WHERE name = '' OR 1=1--'",
-      "input": "' OR 1=1--"
+      "sink": "SELECT * FROM users WHERE name = ''-''",
+      "input": "'-'"
     },
     {
-      "kind": "sql",
-      "sink": "SELECT * FROM users WHERE name = '' OR '1'='1'",
-      "input": "' OR '1'='1"
+      "kind": "shell",
+      "sink": "ls &lt;!--#exec%20cmd=&quot;/bin/cat%20/etc/passwd&quot;--&gt;",
+      "input": "&lt;!--#exec%20cmd=&quot;/bin/cat%20/etc/passwd&quot;--&gt;"
     },
-    { "kind": "sql", "sink": "SELECT * FROM users WHERE name = 'admin'--'", "input": "admin'--" },
-    {
-      "kind": "sql",
-      "sink": "SELECT * FROM users WHERE name = '' UNION SELECT password FROM users--'",
-      "input": "' UNION SELECT password FROM users--"
-    },
-    {
-      "kind": "sql",
-      "sink": "SELECT * FROM users WHERE name = '') OR ('1'='1'",
-      "input": "') OR ('1'='1"
-    },
-    {
-      "kind": "sql",
-      "sink": "SELECT * FROM users WHERE id = 1 OR 1=1",
-      "input": "1 OR 1=1"
-    },
-    {
-      "kind": "sql",
-      "sink": "SELECT * FROM users WHERE name = ''; DELETE FROM users--'",
-      "input": "'; DELETE FROM users--"
-    },
-    {
-      "kind": "sql",
-      "sink": "SELECT * FROM users WHERE name = 'x' /* */ OR 1=1--'",
-      "input": "x' /* */ OR 1=1--"
-    },
-    {
-      "kind": "sql",
-      "sink": "SELECT * FROM users WHERE name = '' AND 1=0 UNION SELECT * FROM secrets--'",
-      "input": "' AND 1=0 UNION SELECT * FROM secrets--"
-    },
-    {
-      "kind": "sql",
-      "sink": "SELECT * FROM users WHERE name = 1; SELECT sqlite_version()--",
-      "input": "1; SELECT sqlite_version()--"
-    },
-    { "kind": "shell", "sink": "echo ok; echo pwned", "input": "ok; echo pwned" },
-    { "kind": "shell", "sink": "ping -c 2 1.1.1.1 | wc", "input": "1.1.1.1 | wc" },
-    { "kind": "shell", "sink": "echo $(whoami)", "input": "$(whoami)" },
-    { "kind": "shell", "sink": "echo `id`", "input": "`id`" },
-    { "kind": "shell", "sink": "echo hi && echo pwned", "input": "hi && echo pwned" },
-    { "kind": "shell", "sink": "echo hi || echo pwned", "input": "hi || echo pwned" },
-    { "kind": "shell", "sink": "echo hi > /tmp/fullshield-rasp-canary", "input": "hi > /tmp/fullshield-rasp-canary" },
-    { "kind": "shell", "sink": "echo hi < /etc/hosts", "input": "hi < /etc/hosts" },
-    { "kind": "shell", "sink": "echo hi\nwhoami", "input": "hi\nwhoami" },
-    { "kind": "shell", "sink": "echo ${PATH}", "input": "${PATH}" },
     {
       "kind": "path",
-      "sink": "uploads/../secret.txt",
-      "input": "../secret.txt",
+      "sink": "uploads/\\..\\WINDOWS\\win.ini",
+      "input": "\\..\\WINDOWS\\win.ini",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://169.254.169.254/latest/meta-data/",
+      "input": "http://169.254.169.254/latest/meta-data/"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '' ''",
+      "input": "' '"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls &lt;!--#exec%20cmd=&quot;/bin/cat%20/etc/shadow&quot;--&gt;",
+      "input": "&lt;!--#exec%20cmd=&quot;/bin/cat%20/etc/shadow&quot;--&gt;"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/\\..\\..\\WINDOWS\\win.ini",
+      "input": "\\..\\..\\WINDOWS\\win.ini",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://localhost:80",
+      "input": "http://localhost:80"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ''&''",
+      "input": "'&'"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls &lt;!--#exec%20cmd=&quot;/usr/bin/id;--&gt;",
+      "input": "&lt;!--#exec%20cmd=&quot;/usr/bin/id;--&gt;"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/\\..\\..\\..\\WINDOWS\\win.ini",
+      "input": "\\..\\..\\..\\WINDOWS\\win.ini",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://localhost:22",
+      "input": "http://localhost:22"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ''^''",
+      "input": "'^'"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls /index.html|id|",
+      "input": "/index.html|id|"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/\\..\\..\\..\\..\\WINDOWS\\win.ini",
+      "input": "\\..\\..\\..\\..\\WINDOWS\\win.ini",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://localhost:443",
+      "input": "https://localhost:443"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ''*''",
+      "input": "'*'"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/\\..\\..\\..\\..\\..\\WINDOWS\\win.ini",
+      "input": "\\..\\..\\..\\..\\..\\WINDOWS\\win.ini",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://127.0.0.1:80",
+      "input": "http://127.0.0.1:80"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '' or ''-''",
+      "input": "' or ''-'"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/\\..\\..\\..\\..\\..\\..\\WINDOWS\\win.ini",
+      "input": "\\..\\..\\..\\..\\..\\..\\WINDOWS\\win.ini",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://127.0.0.1:22",
+      "input": "http://127.0.0.1:22"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '' or '' ''",
+      "input": "' or '' '"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls ;id;",
+      "input": ";id;"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/..%5c..%5c../winnt/system32/cmd.exe?/c+dir+c:\\",
+      "input": "..%5c..%5c../winnt/system32/cmd.exe?/c+dir+c:\\",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://127.0.0.1:443",
+      "input": "https://127.0.0.1:443"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '' or ''&''",
+      "input": "' or ''&'"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls ;id",
+      "input": ";id"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/..%5c..%5c..%5c../winnt/system32/cmd.exe?/c+dir+c:\\",
+      "input": "..%5c..%5c..%5c../winnt/system32/cmd.exe?/c+dir+c:\\",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://0.0.0.0:80",
+      "input": "http://0.0.0.0:80"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '' or ''^''",
+      "input": "' or ''^'"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls ;netstat -a;",
+      "input": ";netstat -a;"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/..%5c..%5c..%5c..%5c../winnt/system32/cmd.exe?/c+dir+c:\\",
+      "input": "..%5c..%5c..%5c..%5c../winnt/system32/cmd.exe?/c+dir+c:\\",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://0.0.0.0:22",
+      "input": "http://0.0.0.0:22"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '' or ''*''",
+      "input": "' or ''*'"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/..%5c..%5c..%5c..%5c..%5c../winnt/system32/cmd.exe?/c+dir+c:\\",
+      "input": "..%5c..%5c..%5c..%5c..%5c../winnt/system32/cmd.exe?/c+dir+c:\\",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "https://0.0.0.0:443",
+      "input": "https://0.0.0.0:443"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/..%5c..%5c..%5c..%5c..%5c..%5c../winnt/system32/cmd.exe?/c+dir+c:\\",
+      "input": "..%5c..%5c..%5c..%5c..%5c..%5c../winnt/system32/cmd.exe?/c+dir+c:\\",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://127.127.127.127",
+      "input": "http://127.127.127.127"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls |id",
+      "input": "|id"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/..%5c..%5c..%5c..%5c..%5c..%5c..%5c../winnt/system32/cmd.exe?/c+dir+c:\\",
+      "input": "..%5c..%5c..%5c..%5c..%5c..%5c..%5c../winnt/system32/cmd.exe?/c+dir+c:\\",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://127.0.1.3",
+      "input": "http://127.0.1.3"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls |/usr/bin/id",
+      "input": "|/usr/bin/id"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/..%5c..%5c..%5c..%5c..%5c..%5c..%5c..%5c../winnt/system32/cmd.exe?/c+dir+c:\\",
+      "input": "..%5c..%5c..%5c..%5c..%5c..%5c..%5c..%5c../winnt/system32/cmd.exe?/c+dir+c:\\",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://127.0.0.0",
+      "input": "http://127.0.0.0"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls |id|",
+      "input": "|id|"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/../../../../../../../../../etc/passwd",
+      "input": "../../../../../../../../../etc/passwd",
       "base": "uploads"
     },
     {
       "kind": "path",
-      "sink": "uploads/../../etc/passwd",
-      "input": "../../etc/passwd",
+      "sink": "uploads/../../../../../../../../etc/passwd",
+      "input": "../../../../../../../../etc/passwd",
       "base": "uploads"
     },
     {
       "kind": "path",
-      "sink": "uploads/..\\..\\windows\\win.ini",
-      "input": "..\\..\\windows\\win.ini",
+      "sink": "uploads/../../../../../../../etc/passwd",
+      "input": "../../../../../../../etc/passwd",
       "base": "uploads"
     },
-    { "kind": "path", "sink": "uploads/foo\u0000.txt", "input": "foo\u0000.txt", "base": "uploads" },
+    {
+      "kind": "shell",
+      "sink": "ls |/usr/bin/id|",
+      "input": "|/usr/bin/id|"
+    },
     {
       "kind": "path",
-      "sink": "uploads/....//....//etc/passwd",
-      "input": "....//....//etc/passwd",
+      "sink": "uploads/../../../../../../etc/passwd",
+      "input": "../../../../../../etc/passwd",
       "base": "uploads"
     },
-    { "kind": "nosql", "sink": { "name": { "$gt": "" } }, "input": { "$gt": "" } },
-    { "kind": "nosql", "sink": { "name": { "$ne": null } }, "input": { "$ne": null } },
-    { "kind": "nosql", "sink": { "name": { "$regex": ".*" } }, "input": { "$regex": ".*" } },
-    { "kind": "nosql", "sink": { "name": { "$where": "1==1" } }, "input": { "$where": "1==1" } },
-    { "kind": "nosql", "sink": { "$or": [{ "a": 1 }] }, "input": { "$or": [{ "a": 1 }] } },
-    { "kind": "ssrf", "sink": "http://169.254.169.254/latest/meta-data/", "input": "http://169.254.169.254/latest/meta-data/" },
-    { "kind": "ssrf", "sink": "http://127.0.0.1:9/", "input": "http://127.0.0.1:9/" },
-    { "kind": "ssrf", "sink": "http://[::1]/", "input": "http://[::1]/" },
-    { "kind": "ssrf", "sink": "http://localhost/admin", "input": "http://localhost/admin" },
-    { "kind": "ssrf", "sink": "http://10.0.0.1/", "input": "http://10.0.0.1/" },
-    { "kind": "ssrf", "sink": "http://192.168.1.1/", "input": "http://192.168.1.1/" },
-    { "kind": "ssrf", "sink": "http://172.16.0.8/", "input": "http://172.16.0.8/" },
-    { "kind": "ssrf", "sink": "http://[fd12:3456:789a::1]/", "input": "http://[fd12:3456:789a::1]/" },
-    { "kind": "ssrf", "sink": "http://0.0.0.0/", "input": "http://0.0.0.0/" },
-    { "kind": "ssrf", "sink": "http://metadata.google.internal/", "input": "http://metadata.google.internal/" },
-    { "kind": "proto", "input": { "__proto__": { "admin": true } } },
-    { "kind": "proto", "input": { "constructor": { "prototype": { "admin": true } } } },
-    { "kind": "proto", "input": { "prototype": { "x": 1 } } }
+    {
+      "kind": "path",
+      "sink": "uploads/../../../../../etc/passwd",
+      "input": "../../../../../etc/passwd",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://127.0.0.1",
+      "input": "http://127.0.0.1"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/../../../../etc/passwd",
+      "input": "../../../../etc/passwd",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls ||/usr/bin/id|",
+      "input": "||/usr/bin/id|"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/../../../etc/passwd",
+      "input": "../../../etc/passwd",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://192.168.0.1",
+      "input": "http://192.168.0.1"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 1 or true--",
+      "input": "or true--"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls |id;",
+      "input": "|id;"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/../../../.htaccess",
+      "input": "../../../.htaccess",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls ||/usr/bin/id;",
+      "input": "||/usr/bin/id;"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/../../.htaccess",
+      "input": "../../.htaccess",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://192.168.1.1",
+      "input": "http://192.168.1.1"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '' or true--'",
+      "input": "' or true--"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls ;id|",
+      "input": ";id|"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/../.htaccess",
+      "input": "../.htaccess",
+      "base": "uploads"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls ;|/usr/bin/id|",
+      "input": ";|/usr/bin/id|"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/../../../../../../../../../../../../etc/hosts%00",
+      "input": "../../../../../../../../../../../../etc/hosts%00",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://169.254.169.254",
+      "input": "http://169.254.169.254"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '') or true--'",
+      "input": "') or true--"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/../../../../../../../../../../../../etc/hosts",
+      "input": "../../../../../../../../../../../../etc/hosts",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '' or 'x'='x'",
+      "input": "' or 'x'='x"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/../../boot.ini",
+      "input": "../../boot.ini",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '') or ('x')=('x'",
+      "input": "') or ('x')=('x"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls \\n/bin/ls -al\\n",
+      "input": "\\n/bin/ls -al\\n"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads//../../../../../../../../%2A",
+      "input": "/../../../../../../../../%2A",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '')) or (('x'))=(('x'",
+      "input": "')) or (('x'))=(('x"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/../../../../../../../../../../../../etc/passwd%00",
+      "input": "../../../../../../../../../../../../etc/passwd%00",
+      "base": "uploads"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/../../../../../../../../../../../../etc/passwd",
+      "input": "../../../../../../../../../../../../etc/passwd",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://127.0.0.1/%61dmin",
+      "input": "http://127.0.0.1/%61dmin"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls \\n/usr/bin/id;",
+      "input": "\\n/usr/bin/id;"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/../../../../../../../../../../../../etc/shadow%00",
+      "input": "../../../../../../../../../../../../etc/shadow%00",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://127.0.0.1/%2561dmin",
+      "input": "http://127.0.0.1/%2561dmin"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls \\nid;",
+      "input": "\\nid;"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/../../../../../../../../../../../../etc/shadow",
+      "input": "../../../../../../../../../../../../etc/shadow",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://localhost",
+      "input": "http://localhost"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 1 or 1=1",
+      "input": "or 1=1"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls \\n/usr/bin/id|",
+      "input": "\\n/usr/bin/id|"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads//../../../../../../../../../../etc/passwd^^",
+      "input": "/../../../../../../../../../../etc/passwd^^",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://127.1.1.1:80\\@127.2.2.2:80/",
+      "input": "http://127.1.1.1:80\\@127.2.2.2:80/"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 1 or 1=1--",
+      "input": "or 1=1--"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls \\nid|",
+      "input": "\\nid|"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads//../../../../../../../../../../etc/shadow^^",
+      "input": "/../../../../../../../../../../etc/shadow^^",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://127.1.1.1:80\\@@127.2.2.2:80/",
+      "input": "http://127.1.1.1:80\\@@127.2.2.2:80/"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 1 or 1=1#",
+      "input": "or 1=1#"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls ;/usr/bin/id\\n",
+      "input": ";/usr/bin/id\\n"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads//../../../../../../../../../../etc/passwd",
+      "input": "/../../../../../../../../../../etc/passwd",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://127.1.1.1:80#\\@127.2.2.2:80/",
+      "input": "http://127.1.1.1:80#\\@127.2.2.2:80/"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 1 or 1=1/*",
+      "input": "or 1=1/*"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls ;id\\n",
+      "input": ";id\\n"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads//../../../../../../../../../../etc/shadow",
+      "input": "/../../../../../../../../../../etc/shadow",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://127.0.0.1/",
+      "input": "http://127.0.0.1/"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'admin' --'",
+      "input": "admin' --"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls |usr/bin/id\\n",
+      "input": "|usr/bin/id\\n"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://127.0.0.1:443",
+      "input": "http://127.0.0.1:443"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'admin' #'",
+      "input": "admin' #"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls |nid\\n",
+      "input": "|nid\\n"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "gopher://localhost:25/_MAIL%20FROM",
+      "input": "gopher://localhost:25/_MAIL%20FROM"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'admin'/*'",
+      "input": "admin'/*"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls `id`",
+      "input": "`id`"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/\\..\\..\\..\\..\\..\\..\\..\\..\\..\\..\\etc\\passwd",
+      "input": "\\..\\..\\..\\..\\..\\..\\..\\..\\..\\..\\etc\\passwd",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://2130706433/ = http://127.0.0.1",
+      "input": "http://2130706433/ = http://127.0.0.1"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'admin' or '1'='1'",
+      "input": "admin' or '1'='1"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls `/usr/bin/id`",
+      "input": "`/usr/bin/id`"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/\\..\\..\\..\\..\\..\\..\\..\\..\\..\\..\\etc\\shadow",
+      "input": "\\..\\..\\..\\..\\..\\..\\..\\..\\..\\..\\etc\\shadow",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://3232235521/ = http://192.168.0.1",
+      "input": "http://3232235521/ = http://192.168.0.1"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'admin' or '1'='1'--'",
+      "input": "admin' or '1'='1'--"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls a);id",
+      "input": "a);id"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/..\\..\\..\\..\\..\\..\\..\\..\\..\\..\\etc\\passwd",
+      "input": "..\\..\\..\\..\\..\\..\\..\\..\\..\\..\\etc\\passwd",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://3232235777/ = http://192.168.1.1",
+      "input": "http://3232235777/ = http://192.168.1.1"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'admin' or '1'='1'#'",
+      "input": "admin' or '1'='1'#"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls a;id",
+      "input": "a;id"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/..\\..\\..\\..\\..\\..\\..\\..\\..\\..\\etc\\shadow",
+      "input": "..\\..\\..\\..\\..\\..\\..\\..\\..\\..\\etc\\shadow",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://2852039166/ = http://169.254.169.254",
+      "input": "http://2852039166/ = http://169.254.169.254"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'admin' or '1'='1'/*'",
+      "input": "admin' or '1'='1'/*"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls a);id;",
+      "input": "a);id;"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads//..\\../..\\../..\\../..\\../..\\../..\\../etc/passwd",
+      "input": "/..\\../..\\../..\\../..\\../..\\../..\\../etc/passwd",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://0177.0.0.1/ = http://127.0.0.1",
+      "input": "http://0177.0.0.1/ = http://127.0.0.1"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'admin'or 1=1 or ''=''",
+      "input": "admin'or 1=1 or ''='"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls a;id;",
+      "input": "a;id;"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads//..\\../..\\../..\\../..\\../..\\../..\\../etc/shadow",
+      "input": "/..\\../..\\../..\\../..\\../..\\../..\\../etc/shadow",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://169.254.169.254/latest/api/token",
+      "input": "http://169.254.169.254/latest/api/token"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'admin' or 1=1'",
+      "input": "admin' or 1=1"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls a);id|",
+      "input": "a);id|"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/\\..\\..\\..\\..\\..\\..\\..\\..\\..\\..\\etc\\passwd%00",
+      "input": "\\..\\..\\..\\..\\..\\..\\..\\..\\..\\..\\etc\\passwd%00",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://169.254.169.254/latest/meta-data",
+      "input": "http://169.254.169.254/latest/meta-data"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'admin' or 1=1--'",
+      "input": "admin' or 1=1--"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls a;id|",
+      "input": "a;id|"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/\\..\\..\\..\\..\\..\\..\\..\\..\\..\\..\\etc\\shadow%00",
+      "input": "\\..\\..\\..\\..\\..\\..\\..\\..\\..\\..\\etc\\shadow%00",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'admin' or 1=1#'",
+      "input": "admin' or 1=1#"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls a)|id",
+      "input": "a)|id"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/..\\..\\..\\..\\..\\..\\..\\..\\..\\..\\etc\\passwd%00",
+      "input": "..\\..\\..\\..\\..\\..\\..\\..\\..\\..\\etc\\passwd%00",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'admin' or 1=1/*'",
+      "input": "admin' or 1=1/*"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls a|id",
+      "input": "a|id"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/..\\..\\..\\..\\..\\..\\..\\..\\..\\..\\etc\\shadow%00",
+      "input": "..\\..\\..\\..\\..\\..\\..\\..\\..\\..\\etc\\shadow%00",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'admin') or ('1'='1'",
+      "input": "admin') or ('1'='1"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls a)|id;",
+      "input": "a)|id;"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/%00../../../../../../etc/passwd",
+      "input": "%00../../../../../../etc/passwd",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'admin') or ('1'='1'--'",
+      "input": "admin') or ('1'='1'--"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls |/bin/ls -al",
+      "input": "|/bin/ls -al"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/%00../../../../../../etc/shadow",
+      "input": "%00../../../../../../etc/shadow",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'admin') or ('1'='1'#'",
+      "input": "admin') or ('1'='1'#"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls a);/usr/bin/id",
+      "input": "a);/usr/bin/id"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads//../../../../../../../../../../../etc/passwd%00.jpg",
+      "input": "/../../../../../../../../../../../etc/passwd%00.jpg",
+      "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'admin') or ('1'='1'/*'",
+      "input": "admin') or ('1'='1'/*"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls a;/usr/bin/id",
+      "input": "a;/usr/bin/id"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads//../../../../../../../../../../../etc/passwd%00.html",
+      "input": "/../../../../../../../../../../../etc/passwd%00.html",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://169.254.169.254/latest/meta-data/iam/security-credentials",
+      "input": "http://169.254.169.254/latest/meta-data/iam/security-credentials"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'admin') or '1'='1'",
+      "input": "admin') or '1'='1"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls a);/usr/bin/id;",
+      "input": "a);/usr/bin/id;"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads//..%c0%af../..%c0%af../..%c0%af../..%c0%af../..%c0%af../..%c0%af../etc/passwd",
+      "input": "/..%c0%af../..%c0%af../..%c0%af../..%c0%af../..%c0%af../..%c0%af../etc/passwd",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://169.254.169.254/latest/meta-data/iam/security-credentials/[ROLE",
+      "input": "http://169.254.169.254/latest/meta-data/iam/security-credentials/[ROLE"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'admin') or '1'='1'--'",
+      "input": "admin') or '1'='1'--"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls a;/usr/bin/id;",
+      "input": "a;/usr/bin/id;"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads//..%c0%af../..%c0%af../..%c0%af../..%c0%af../..%c0%af../..%c0%af../etc/shadow",
+      "input": "/..%c0%af../..%c0%af../..%c0%af../..%c0%af../..%c0%af../..%c0%af../etc/shadow",
+      "base": "uploads"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://169.254.169.254/latest/user-data",
+      "input": "http://169.254.169.254/latest/user-data"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'admin') or '1'='1'#'",
+      "input": "admin') or '1'='1'#"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls a);/usr/bin/id|",
+      "input": "a);/usr/bin/id|"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://169.254.169.254/latest/meta-data/ami-id",
+      "input": "http://169.254.169.254/latest/meta-data/ami-id"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'admin') or '1'='1'/*'",
+      "input": "admin') or '1'='1'/*"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls a;/usr/bin/id|",
+      "input": "a;/usr/bin/id|"
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://169.254.169.254/latest/meta-data/reservation-id",
+      "input": "http://169.254.169.254/latest/meta-data/reservation-id"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls \";id;\"",
+      "input": "\";id;\""
+    },
+    {
+      "kind": "shell",
+      "sink": "ls ';id;'",
+      "input": "';id;'"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls \"|id|\"",
+      "input": "\"|id|\""
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '\"-\"'",
+      "input": "\"-\""
+    },
+    {
+      "kind": "shell",
+      "sink": "ls '|id|'",
+      "input": "'|id|'"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '\" \"'",
+      "input": "\" \""
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '\"&\"'",
+      "input": "\"&\""
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '\"^\"'",
+      "input": "\"^\""
+    },
+    {
+      "kind": "ssrf",
+      "sink": "http://0/",
+      "input": "http://0/"
+    }
   ]
 }

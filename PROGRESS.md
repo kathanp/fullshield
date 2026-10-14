@@ -533,3 +533,13 @@ Structure-change RASP (SQL / shell / path / NoSQL / SSRF / prototype), off unles
 **Re-scan:** NodeGoat 373 / high+critical **59** unchanged. DVNA 19 unchanged. JSON: `benchmarks/results/*-phase17.json`.
 
 **Stopped after Phase 17 (mandatory).** Nothing pushed. Nothing published.
+
+## harden-5 — RASP SSRF, corpora, sink inventory
+
+**Tests: 318** (was 308).
+
+SSRF `normalizeHost` / `hostIsBlocked`: strip IPv6 brackets, `::ffff:` mapped, decimal `2130706433`, octal `0177.0.0.1`, hex `0x7f.0.0.1`, short `127.1`, trailing dots, injected lookup for names that resolve to private/metadata. `fetch` re-checks `Location` on followed redirects.
+
+Attack corpus replaced with vendored PayloadsAllTheThings lists (`test/fixtures/rasp/payloads/`, MIT attribution). **173/181 = 95.6%** blocked (sql 40/44, shell 43/47, path 51/51, ssrf 39/39). Benign **0/621**. See `RASP-SINKS.md` for hooked vs not covered.
+
+**Re-scan:** NodeGoat 373 / high+critical **59** unchanged. DVNA 19 unchanged. JSON: `benchmarks/results/*-harden5.json`.
