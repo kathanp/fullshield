@@ -20,6 +20,9 @@
     "./runtime": "./dist/runtime/index.js",
     "./runtime/express": "./dist/runtime/express.js",
     "./runtime/fastify": "./dist/runtime/fastify.js",
+    "./runtime/rasp": "./dist/runtime/rasp.js",
+    "./runtime/register": "./dist/runtime/register.js",
+    "./runtime/auto": "./dist/runtime/auto.js",
     "./cli": "./dist/cli/index.js",
     "./package.json": "./package.json"
   },

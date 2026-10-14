@@ -230,3 +230,11 @@ Yarn and pnpm lockfiles now parse real dependency edges. Formats without parsed 
 **NodeGoat 373 / high+critical 59 unchanged** (npm `package-lock.json`, same 320 OSV hits: reachable 12, imported-not-called 4, reachable-via-dependency 84, not-imported 220). **DVNA 19 unchanged** (no lockfile). JSON: `results/*-harden4.json`.
 
 Live Ollama smoke (not this default scan) is in [`AI-REPORT.md`](AI-REPORT.md).
+
+### After Phase 17
+
+Experimental RASP is off by default and is not a scan module. Default `scan` of NodeGoat/DVNA is unchanged.
+
+**NodeGoat 373 / high+critical 59 unchanged. DVNA 19 unchanged.** JSON: `results/*-phase17.json`.
+
+RASP corpus (not these repo scans): attack **41/43 (95.3%)** blocked, benign **0/26**. Two attack misses are IPv6 SSRF URLs (`http://[::1]/`, `http://[fd12:3456:789a::1]/`) — `URL.hostname` keeps brackets and the private-range check did not strip them. Still behind `FULLSHIELD_EXPERIMENTAL_RASP`.

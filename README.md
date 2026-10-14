@@ -20,7 +20,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 | Dependencies (now + new CVEs later) | `deps` (OSV + **reachability**) + `watch` |
 | Secrets | `secrets` + `scan --staged` / pre-commit hook |
 | App/server config | `config` |
-| Live app-layer attacks | `runtime` (`fullshield/runtime/express` or `/fastify`) |
+| Live app-layer attacks | `runtime` (`fullshield/runtime/express` or `/fastify`); **experimental** RASP sink hooks via `--import fullshield/runtime/register` |
 | Edge/DDoS layer | `edge` checks that a CDN/WAF **exists** (headers only). Actual DDoS mitigation is the CDN. |
 | AI assist (opt-in, **experimental**) | `scan --ai explain` and `fix --ai` only. Off by default: zero AI network calls. Explain never shows a verdict. Triage and logic hunter are not shipped. |
 
@@ -38,7 +38,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 - Does **not** auto-delete code. `fix --apply` writes patches on a clean git tree. If project tests fail, each written file is restored from a byte-for-byte snapshot taken before the write — never `git checkout --`. `--force` on a dirty tree still refuses to touch files that have uncommitted changes.
 - v1 is **JS/TS only**. Other languages are out of scope.
 - Cross-file taint follows `require`/`import` and method calls up to 5 hops and records a `trace` (also SARIF `codeFlows`). Nested closures and some dynamic dispatch are still missed.
-- Runtime v1 is **signature-based** (payload regex + rate limit + body-size guard). It is a **stopgap**. Prefer **`mode: 'monitor'`** in production until you have measured false-positive rate. Sink-hooking RASP is Phase 17 (Frontier), not Core.
+- Runtime v1 is **signature-based** (payload regex + rate limit + body-size guard). It is a **stopgap**. Prefer **`mode: 'monitor'`** in production until you have measured false-positive rate. Sink-hooking RASP is **experimental** (off by default; see below).
 - Only scan hosts and repos you own or are authorized to test.
 
 ## Quick start
@@ -56,7 +56,7 @@ import { scan } from 'fullshield';
 const result = await scan({ cwd: process.cwd() });
 ```
 
-Runtime (does not load the scanner). **Signature-based stopgap — monitor mode recommended.** Sink-hooking arrives in Phase 17.
+Runtime (does not load the scanner). **Signature-based stopgap — monitor mode recommended.**
 
 ```ts
 import express from 'express';
@@ -65,6 +65,8 @@ import { shieldGuard } from 'fullshield/runtime/express';
 const app = express();
 app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 ```
+
+**Experimental RASP** (Frontier, off by default): structure-change sink hooks via `node --import fullshield/runtime/register app.js` or `import 'fullshield/runtime/auto'` as the first import. Enable only with `FULLSHIELD_EXPERIMENTAL_RASP=1`. Default mode is `monitor` (events only). `FULLSHIELD_RASP_MODE=block` throws on structure-changing SQL/shell/path/NoSQL/SSRF/prototype input. Hooks **fail open**: a hook error logs `RASP-FAIL-OPEN-001` and the original call proceeds. Do not use block mode in production until you have measured the benign corpus on your app.
 
 `npm run bench` reports `inspect()` p50/p95 (must stay under 1ms) and full Express request overhead p50/p95 with the middleware on the stack.
 

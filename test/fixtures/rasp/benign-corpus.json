@@ -1,0 +1,69 @@
+{
+  "cases": [
+    { "kind": "sql", "sink": "SELECT * FROM users WHERE name = ?", "input": "O'Brien" },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM seats WHERE title = 'SELECT your seat'",
+      "input": "SELECT your seat"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE email = 'user@example.com'",
+      "input": "user@example.com"
+    },
+    { "kind": "sql", "sink": "SELECT * FROM users WHERE id = 42", "input": "42" },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'hello world'",
+      "input": "hello world"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 1 -- see https://example.com/docs",
+      "input": "https://example.com/docs"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE note = 'path is ./docs/readme.txt'",
+      "input": "./docs/readme.txt"
+    },
+    { "kind": "shell", "sink": "echo hello", "input": "hello" },
+    { "kind": "shell", "sink": "ls ./docs/readme.txt", "input": "./docs/readme.txt" },
+    { "kind": "shell", "sink": "cat file-name.txt", "input": "file-name.txt" },
+    { "kind": "shell", "sink": "cat foo_bar", "input": "foo_bar" },
+    { "kind": "shell", "sink": "ls 'My File.txt'", "input": "My File.txt" },
+    { "kind": "path", "sink": "uploads/photo.jpg", "input": "photo.jpg", "base": "uploads" },
+    {
+      "kind": "path",
+      "sink": "uploads/./docs/readme.txt",
+      "input": "./docs/readme.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/my.file.name.txt",
+      "input": "my.file.name.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/folder/sub/file.txt",
+      "input": "folder/sub/file.txt",
+      "base": "uploads"
+    },
+    { "kind": "nosql", "sink": { "name": "ada" }, "input": "ada" },
+    { "kind": "nosql", "sink": { "name": "O'Brien" }, "input": "O'Brien" },
+    { "kind": "nosql", "sink": { "$eq": "ada" }, "input": "ada" },
+    { "kind": "nosql", "sink": { "name": "SELECT your seat" }, "input": "SELECT your seat" },
+    { "kind": "ssrf", "sink": "https://example.com/api", "input": "https://example.com/api" },
+    { "kind": "ssrf", "sink": "https://api.stripe.com/v1/charges", "input": "https://api.stripe.com/v1/charges" },
+    {
+      "kind": "ssrf",
+      "sink": "https://example.com/q?next=http://169.254.169.254/",
+      "input": "http://169.254.169.254/"
+    },
+    { "kind": "proto", "input": { "name": "ada" } },
+    { "kind": "proto", "input": { "title": "constructor" } },
+    { "kind": "proto", "input": { "note": "__proto__" } }
+  ]
+}

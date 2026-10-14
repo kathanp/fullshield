@@ -47,6 +47,22 @@ function runNpm(script) {
   if (result.status !== 0) fail(`\`npm run ${script}\` exited with ${result.status}`);
 }
 
+function countVitestTests() {
+  let n = 0;
+  for (const file of listFilesRecursive(join(root, 'test'))) {
+    if (!file.endsWith('.test.ts')) continue;
+    const text = readFileSync(file, 'utf8');
+    n += (text.match(/^\s*it\(/gm) ?? []).length;
+  }
+  return n;
+}
+
+/** Last completed phase's test count. Phase N must add tests. */
+const PREVIOUS_PHASE_TESTS = {
+  16: 291,
+  17: 308,
+};
+
 function listFilesRecursive(dir, out = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
@@ -165,9 +181,11 @@ if (existsSync(coverageSummaryPath)) {
   coverageBranches = `${total.branches.pct}%`;
 }
 
+const testCount = countVitestTests();
 console.table([
   {
     phase: phase ?? '(all)',
+    tests: testCount,
     'coverage lines': coverageLines,
     'coverage branches': coverageBranches,
     'implemented modules': IMPLEMENTED_MODULES.length > 0 ? IMPLEMENTED_MODULES.join(',') : 'none',
@@ -177,6 +195,14 @@ console.table([
     'clean-app high/critical': falsePositives.length,
   },
 ]);
+console.log(`test count: ${testCount}`);
+if (phase !== null && phase >= 17) {
+  const prev = PREVIOUS_PHASE_TESTS[phase - 1];
+  if (prev !== undefined && testCount <= prev) {
+    fail(`phase ${phase} must add tests (count ${testCount} <= previous phase ${prev})`);
+  }
+  console.log(`  ✔ test count ${testCount} > previous phase ${prev}`);
+}
 
 if (missing.length > 0) {
   for (const entry of missing) console.error(`  ✖ missing expected finding: ${entry.ruleId}`);
@@ -716,6 +742,26 @@ s.listen(0, '127.0.0.1', () => {
     }
     console.log('  ✔ --ai explain only; no verdict; --ai logic rejected');
   },
+  // Phase 17 (spec §17 / §22): experimental RASP sink hooks; attack ≥95%,
+  // benign 0, p95 < 1ms; fail-open; off by default.
+  17: async () => {
+    const raspUrl = pathToFileURL(join(root, 'dist', 'runtime', 'rasp.js')).href;
+    const rasp = await import(raspUrl);
+    const attack = JSON.parse(readFileSync(join(root, 'test', 'fixtures', 'rasp', 'attack-corpus.json'), 'utf8'));
+    const benign = JSON.parse(readFileSync(join(root, 'test', 'fixtures', 'rasp', 'benign-corpus.json'), 'utf8'));
+    const attackScore = rasp.scoreCorpus(attack.cases);
+    const benignScore = rasp.scoreCorpus(benign.cases);
+    const attackRate = attackScore.blocked / attackScore.total;
+    const benignRate = benignScore.blocked / benignScore.total;
+    console.log(`  attack corpus ${attackScore.blocked}/${attackScore.total} = ${(attackRate * 100).toFixed(1)}%`);
+    console.log(`  benign corpus ${benignScore.blocked}/${benignScore.total} = ${(benignRate * 100).toFixed(1)}%`);
+    if (attackRate < 0.95) fail(`phase 17 acceptance: attack block rate ${attackRate} < 0.95`);
+    if (benignScore.blocked !== 0) fail(`phase 17 acceptance: benign corpus blocked ${benignScore.blocked}`);
+    rasp.enableRasp({ mode: 'block' });
+    if (rasp.isRaspEnabled()) fail('phase 17 acceptance: rasp enabled without experimental flag');
+    rasp.disableRasp();
+    console.log('  ✔ experimental RASP off by default; attack ≥95%; benign 0');
+  },
 };
 
 if (phase !== null) {
@@ -724,7 +770,8 @@ if (phase !== null) {
   if (check === undefined) {
     fail(`acceptance criteria for phase ${phase} are not encoded in scripts/verify.mjs yet`);
   }
-  check();
+  const result = check();
+  if (result && typeof result.then === 'function') await result;
   console.log(`  ✔ phase ${phase} acceptance criteria passed`);
 }
 

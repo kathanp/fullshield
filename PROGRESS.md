@@ -521,3 +521,15 @@ as a basic phrase heuristic (three comment phrases). Reachability list includes
 zero real keys. Dogfood: `benchmarks/SELF-SCAN.md`.
 
 **Stopped. Do not start Frontier.** Nothing pushed.
+
+## Phase 17 — experimental RASP sink hooks
+
+**Tests: 308** (was 291).
+
+Structure-change RASP (SQL / shell / path / NoSQL / SSRF / prototype), off unless `FULLSHIELD_EXPERIMENTAL_RASP=1`. Default mode `monitor`. Hooks fail open (`RASP-FAIL-OPEN-001` + original call). Activate with `node --import fullshield/runtime/register` or `import 'fullshield/runtime/auto'`. Real `node:sqlite`, `child_process.execSync`, and `fs.readFileSync` in tests. Express + parameterized sqlite p95 < 1ms.
+
+**Corpus:** attack 41/43 = **95.3%** blocked; benign 0/26. Two IPv6 SSRF misses (`[::1]`, `fd12:…`) — hostname brackets. Virtual patching / egress / honeytokens are Phase 18 (not built).
+
+**Re-scan:** NodeGoat 373 / high+critical **59** unchanged. DVNA 19 unchanged. JSON: `benchmarks/results/*-phase17.json`.
+
+**Stopped after Phase 17 (mandatory).** Nothing pushed. Nothing published.

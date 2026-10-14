@@ -1,0 +1,103 @@
+{
+  "cases": [
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '' OR 1=1--'",
+      "input": "' OR 1=1--"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '' OR '1'='1'",
+      "input": "' OR '1'='1"
+    },
+    { "kind": "sql", "sink": "SELECT * FROM users WHERE name = 'admin'--'", "input": "admin'--" },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '' UNION SELECT password FROM users--'",
+      "input": "' UNION SELECT password FROM users--"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '') OR ('1'='1'",
+      "input": "') OR ('1'='1"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 1 OR 1=1",
+      "input": "1 OR 1=1"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ''; DELETE FROM users--'",
+      "input": "'; DELETE FROM users--"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 'x' /* */ OR 1=1--'",
+      "input": "x' /* */ OR 1=1--"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '' AND 1=0 UNION SELECT * FROM secrets--'",
+      "input": "' AND 1=0 UNION SELECT * FROM secrets--"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = 1; SELECT sqlite_version()--",
+      "input": "1; SELECT sqlite_version()--"
+    },
+    { "kind": "shell", "sink": "echo ok; echo pwned", "input": "ok; echo pwned" },
+    { "kind": "shell", "sink": "ping -c 2 1.1.1.1 | wc", "input": "1.1.1.1 | wc" },
+    { "kind": "shell", "sink": "echo $(whoami)", "input": "$(whoami)" },
+    { "kind": "shell", "sink": "echo `id`", "input": "`id`" },
+    { "kind": "shell", "sink": "echo hi && echo pwned", "input": "hi && echo pwned" },
+    { "kind": "shell", "sink": "echo hi || echo pwned", "input": "hi || echo pwned" },
+    { "kind": "shell", "sink": "echo hi > /tmp/fullshield-rasp-canary", "input": "hi > /tmp/fullshield-rasp-canary" },
+    { "kind": "shell", "sink": "echo hi < /etc/hosts", "input": "hi < /etc/hosts" },
+    { "kind": "shell", "sink": "echo hi\nwhoami", "input": "hi\nwhoami" },
+    { "kind": "shell", "sink": "echo ${PATH}", "input": "${PATH}" },
+    {
+      "kind": "path",
+      "sink": "uploads/../secret.txt",
+      "input": "../secret.txt",
+      "base": "uploads"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/../../etc/passwd",
+      "input": "../../etc/passwd",
+      "base": "uploads"
+    },
+    {
+      "kind": "path",
+      "sink": "uploads/..\\..\\windows\\win.ini",
+      "input": "..\\..\\windows\\win.ini",
+      "base": "uploads"
+    },
+    { "kind": "path", "sink": "uploads/foo\u0000.txt", "input": "foo\u0000.txt", "base": "uploads" },
+    {
+      "kind": "path",
+      "sink": "uploads/....//....//etc/passwd",
+      "input": "....//....//etc/passwd",
+      "base": "uploads"
+    },
+    { "kind": "nosql", "sink": { "name": { "$gt": "" } }, "input": { "$gt": "" } },
+    { "kind": "nosql", "sink": { "name": { "$ne": null } }, "input": { "$ne": null } },
+    { "kind": "nosql", "sink": { "name": { "$regex": ".*" } }, "input": { "$regex": ".*" } },
+    { "kind": "nosql", "sink": { "name": { "$where": "1==1" } }, "input": { "$where": "1==1" } },
+    { "kind": "nosql", "sink": { "$or": [{ "a": 1 }] }, "input": { "$or": [{ "a": 1 }] } },
+    { "kind": "ssrf", "sink": "http://169.254.169.254/latest/meta-data/", "input": "http://169.254.169.254/latest/meta-data/" },
+    { "kind": "ssrf", "sink": "http://127.0.0.1:9/", "input": "http://127.0.0.1:9/" },
+    { "kind": "ssrf", "sink": "http://[::1]/", "input": "http://[::1]/" },
+    { "kind": "ssrf", "sink": "http://localhost/admin", "input": "http://localhost/admin" },
+    { "kind": "ssrf", "sink": "http://10.0.0.1/", "input": "http://10.0.0.1/" },
+    { "kind": "ssrf", "sink": "http://192.168.1.1/", "input": "http://192.168.1.1/" },
+    { "kind": "ssrf", "sink": "http://172.16.0.8/", "input": "http://172.16.0.8/" },
+    { "kind": "ssrf", "sink": "http://[fd12:3456:789a::1]/", "input": "http://[fd12:3456:789a::1]/" },
+    { "kind": "ssrf", "sink": "http://0.0.0.0/", "input": "http://0.0.0.0/" },
+    { "kind": "ssrf", "sink": "http://metadata.google.internal/", "input": "http://metadata.google.internal/" },
+    { "kind": "proto", "input": { "__proto__": { "admin": true } } },
+    { "kind": "proto", "input": { "constructor": { "prototype": { "admin": true } } } },
+    { "kind": "proto", "input": { "prototype": { "x": 1 } } }
+  ]
+}

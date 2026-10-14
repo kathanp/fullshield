@@ -141,6 +141,16 @@ const EXTRA_TARGETS = [
       return src.replaceAll('args.findings.push(', 'void (');
     },
   },
+  {
+    name: 'RASP structure-change',
+    file: join(root, 'src', 'runtime', 'rasp', 'decide.ts'),
+    apply: (src) => {
+      if (!src.includes('const hit = detectStructureChange')) {
+        throw new Error('RASP decideSink site missing');
+      }
+      return src.replace('const hit = detectStructureChange', 'const hit = false && detectStructureChange');
+    },
+  },
 ];
 
 for (const extra of EXTRA_TARGETS) {
