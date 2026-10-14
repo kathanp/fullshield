@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { aiPrecision } from '../../../src/ai/logic.js';
 import { scan } from '../../../src/core/engine.js';
@@ -10,6 +10,19 @@ const logicApp = join(process.cwd(), 'test', 'fixtures', 'ai-logic-app');
 const logicClean = join(process.cwd(), 'test', 'fixtures', 'ai-logic-clean');
 
 describe('AI logic hunter (Phase 16)', () => {
+  beforeEach(() => {
+    process.env.FULLSHIELD_AI_INTERNAL = '1';
+  });
+  afterEach(() => {
+    delete process.env.FULLSHIELD_AI_INTERNAL;
+  });
+
+  it('does not run from the public scan() API without the internal flag', async () => {
+    delete process.env.FULLSHIELD_AI_INTERNAL;
+    const result = await scan({ cwd: logicApp, offline: true, ai: 'logic' });
+    expect(result.findings.some((f) => f.ruleId === 'AI-IDOR-001')).toBe(false);
+  });
+
   it('flags seeded IDOR and mass-assignment as source:ai confidence medium', async () => {
     const result = await scan({ cwd: logicApp, offline: true, ai: 'logic' });
     const idor = result.findings.find((f) => f.ruleId === 'AI-IDOR-001');

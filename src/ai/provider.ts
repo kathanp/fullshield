@@ -47,6 +47,14 @@ export function isLiveAi(): boolean {
   return process.env.FULLSHIELD_AI_LIVE === '1';
 }
 
+/**
+ * Triage and logic stay in-tree for fixtures/tests but are not a 0.1.0 CLI
+ * surface. Library callers must set FULLSHIELD_AI_INTERNAL=1.
+ */
+export function isInternalAi(): boolean {
+  return process.env.FULLSHIELD_AI_INTERNAL === '1';
+}
+
 function cacheKey(model: string, prompt: string): string {
   return createHash('sha256').update(`${model}\0${prompt}`).digest('hex');
 }

@@ -509,3 +509,15 @@ as a basic phrase heuristic (three comment phrases). Reachability list includes
 `reachability-unknown`. Live smoke linked from Benchmarks.
 
 **harden-4 complete. Stopped. Do not start Frontier (17+).** Nothing pushed.
+
+## release-prep — v0.1.0
+
+**Built:** `--ai explain` and `fix --ai` only (experimental). `--ai triage` /
+`--ai logic` rejected by the CLI; library path requires
+`FULLSHIELD_AI_INTERNAL=1`. Explain reports never include `aiVerdict`.
+`publish.yml` is npm trusted publishing (OIDC, `v*` tag, `verify` then
+`npm publish --provenance --access public`, no token). `SECURITY.md`,
+`CONTRIBUTING.md`, issue templates, `RELEASING.md`. History secrets scan:
+zero real keys. Dogfood: `benchmarks/SELF-SCAN.md`.
+
+**Stopped. Do not start Frontier.** Nothing pushed.

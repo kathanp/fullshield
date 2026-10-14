@@ -66,6 +66,9 @@ export async function applyExplain(
     }
     const text = asExplanation(res.json);
     if (text !== undefined) finding.explanation = text;
+    delete finding.aiVerdict;
+    delete finding.exploitScenario;
+    delete finding.aiReasoning;
   }
   return findings;
 }

@@ -36,6 +36,9 @@ function renderFinding(finding: Finding): string[] {
       `    ${pc.dim(`trace: ${finding.trace.map((s) => `${s.file}${s.line !== undefined ? `:${s.line}` : ''}`).join(' → ')}`)}`,
     );
   }
+  if (finding.explanation !== undefined && finding.explanation.length > 0) {
+    lines.push(`    ${pc.dim(`explain: ${finding.explanation}`)}`);
+  }
   return lines;
 }
 

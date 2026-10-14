@@ -204,7 +204,7 @@ Taint-lite approach: mark sources (`req.body`, `req.query`, `req.params`, `req.h
 - Typosquat check: Levenshtein distance ≤ 1 to the top ~1,000 popular packages list (ship as static JSON) → `medium`, `low` confidence.
 
 ### 4.2 secrets
-- Rules for: AWS access keys, Stripe, GitHub tokens, Slack tokens, Google API keys, OpenAI/Anthropic-style keys, generic `-----BEGIN PRIVATE KEY-----`, DB connection strings with inline passwords, JWT secrets assigned from string literals.
+- Rules for: AWS access keys, Stripe, GitHub tokens, Slack tokens, Google API keys, OpenAI/Anthropic-style keys, generic PEM `BEGIN` + `PRIVATE KEY` headers, DB connection strings with inline passwords, JWT secrets assigned from string literals.
 - Generic high-entropy string rule (Shannon entropy > 4.5, length ≥ 20, assigned to a var named like key/secret/token/password) → `low` confidence.
 - Flag committed `.env*` files (except `.env.example`) and check `.gitignore`.
 - ALWAYS mask the secret in every output and report.
@@ -332,7 +332,7 @@ app.get('/user', (req, res) => db.query("SELECT * FROM users WHERE id = " + req.
 app.get('/file', (req, res) => res.sendFile(req.query.name));                                // PATH
 app.post('/run', (req, res) => exec(`ping ${req.body.host}`));                                // CMDI
 const token = Math.random().toString(36);                                                    // CRYPTO
-const AWS_KEY = "AKIA" + "XXXXXXXXXXXXXXXX";                                                 // SECRETS (fake)
+const AWS_KEY = "AKIA" + "XXXX…";                                                            // SECRETS (fake, concatenated)
 ```
 Use clearly fake secrets only. `clean-app/` mirrors the same features written safely and must produce zero high/critical findings. Track the false-positive rate as a metric in CI output.
 

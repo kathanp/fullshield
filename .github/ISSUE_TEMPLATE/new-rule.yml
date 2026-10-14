@@ -1,0 +1,21 @@
+name: New rule
+description: A vulnerability class FullShield should detect
+title: '[rule] '
+labels: ['enhancement']
+body:
+  - type: input
+    id: proposed
+    attributes:
+      label: Proposed rule ID
+      placeholder: SAST-FOO-001
+  - type: textarea
+    id: pattern
+    attributes:
+      label: What should be detected
+      description: Positive example (must fire) and negative example (must not fire).
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: |
+        New rules need both fixtures and mutation-smoke coverage (`CONTRIBUTING.md`).

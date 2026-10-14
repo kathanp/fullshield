@@ -22,7 +22,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 | App/server config | `config` |
 | Live app-layer attacks | `runtime` (`fullshield/runtime/express` or `/fastify`) |
 | Edge/DDoS layer | `edge` checks that a CDN/WAF **exists** (headers only). Actual DDoS mitigation is the CDN. |
-| AI assist (opt-in, **experimental**) | `--ai triage\|explain\|logic` and `fix --ai`. Off by default: zero AI network calls. Recorded fixtures in CI. Live path is `npm run test:live-ai` (local Ollama; never CI). AI findings never fail CI. |
+| AI assist (opt-in, **experimental**) | `scan --ai explain` and `fix --ai` only. Off by default: zero AI network calls. Explain never shows a verdict. Triage and logic hunter are not shipped. |
 
 ## What it detects (Core)
 
@@ -72,7 +72,7 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 
 | Command | Purpose |
 |---|---|
-| `scan` | Run deps, secrets, sast, config. `--json`, `--sarif`, `--markdown`, `--html`, `--fail-on`, `--offline`, `--staged`, `--update-baseline`. `--ai triage\|explain\|logic` is **experimental** (off by default; zero AI network calls unless you opt in) |
+| `scan` | Run deps, secrets, sast, config. `--json`, `--sarif`, `--markdown`, `--html`, `--fail-on`, `--offline`, `--staged`, `--update-baseline`. `--ai explain` is **experimental** (off by default; explanation text only, never a verdict) |
 | `fix` | Dry-run patches (unsafe suggestions included). `--apply` writes only `safe: true` patches on a clean git tree. `--unsafe` is required for `helmet()` insertion and secret → `process.env` replacement. `--force` skips files with uncommitted changes. `--ai` is **experimental**: drafts a verified, reviewable diff for findings without a rule-based fix (never auto-merged). |
 | `init` | Config + GitHub/GitLab CI + pre-commit hook |
 | `notify` | Slack / generic webhook / SMTP summary of the last scan |
@@ -89,6 +89,8 @@ See [`rules/README.md`](rules/README.md).
 ## Benchmarks
 
 Honest NodeGoat / DVNA results (what we found and what we missed) live in [`benchmarks/REPORT.md`](benchmarks/REPORT.md). Live Ollama smoke results (not CI) live in [`benchmarks/AI-REPORT.md`](benchmarks/AI-REPORT.md).
+
+See [`SECURITY.md`](SECURITY.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), and [`RELEASING.md`](RELEASING.md).
 
 ## License
 

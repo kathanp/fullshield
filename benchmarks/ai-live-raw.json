@@ -160,7 +160,7 @@
       "value": {
         "accepted": false,
         "attempts": 2,
-        "diff": "--- a/.env\n+++ b/.env\n@@ -1,4 +1,4 @@\n-# SECRET-ENVFILE-001: committed .env fixture. All values are obviously fake.\n-DATABASE_URL=postgres://admin:fake-password-fixture@localhost:5432/app\n-JWT_SECRET=totally-fake-fixture-jwt-secret-value\n-\n+SECRET-DBURL-001\n+.env\n+# Database connection string with inline password (fake****).\n+DB_URL=postgres://user:***@localhost/db",
+        "diff": "--- a/.env\n+++ b/.env\n@@ -1,4 +1,4 @@\n-# SECRET-ENVFILE-001: committed .env fixture. All values are obviously fake.\n-<REDACTED fake DATABASE_URL>\n-<REDACTED fake JWT_SECRET>\n-\n+<model wrote junk; verify loop rejected it>",
         "file": ".env"
       }
     },

@@ -39,6 +39,9 @@ export function renderMarkdownReport(result: ScanResult): string {
           `- **Trace:** ${finding.trace.map((s) => `\`${s.file}${s.line !== undefined ? `:${s.line}` : ''}\``).join(' → ')}`,
         );
       }
+      if (finding.explanation !== undefined && finding.explanation.length > 0) {
+        lines.push(`- **Explain:** ${finding.explanation}`);
+      }
       lines.push('');
     }
   }

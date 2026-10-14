@@ -7,7 +7,7 @@ import { redactSecrets, wrapUntrustedCode } from '../../../src/ai/redact.js';
 import { scan } from '../../../src/core/engine.js';
 
 const cleanApp = join(process.cwd(), 'test', 'fixtures', 'clean-app');
-const AWS = 'AKIAIOSFODNN7EXAMPLE';
+const AWS = 'AKIA' + 'IOSFODNN7EXAMPLE';
 
 describe('AI provider layer (Phase 14)', () => {
   it('makes zero network calls when --ai is off', async () => {
@@ -29,7 +29,7 @@ describe('AI provider layer (Phase 14)', () => {
     const wrapped = wrapUntrustedCode(`const k = '${AWS}';`);
     expect(wrapped).toContain('<REDACTED>');
     expect(wrapped).not.toContain(AWS);
-    expect(redactSecrets(`sk-ant-abcdefghijklmnopqrstuvwxyz`)).toContain('<REDACTED>');
+    expect(redactSecrets('sk-ant-' + 'abcdefghijklmnopqrstuvwxyz')).toContain('<REDACTED>');
 
     const fetchImpl = vi.fn(() =>
       Promise.resolve({

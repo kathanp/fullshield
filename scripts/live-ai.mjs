@@ -16,6 +16,7 @@ const model = process.env.FULLSHIELD_AI_MODEL ?? 'qwen2.5-coder:7b';
 const host = process.env.FULLSHIELD_OLLAMA_URL ?? 'http://127.0.0.1:11434';
 
 process.env.FULLSHIELD_AI_LIVE = '1';
+process.env.FULLSHIELD_AI_INTERNAL = '1';
 process.env.FULLSHIELD_AI_PROVIDER = 'ollama';
 process.env.FULLSHIELD_AI_MODEL = model;
 process.env.FULLSHIELD_AI_MAX_FINDINGS = process.env.FULLSHIELD_AI_MAX_FINDINGS ?? '8';

@@ -2,82 +2,35 @@
 
 All notable changes to FullShield are documented here.
 
-## Unreleased — harden-4-5
+## 0.1.0 — 2026-10-14
 
-- README marks all `--ai` features experimental. `AI-INJECT-001` is documented as a basic three-phrase comment heuristic, not a prompt-injection defense.
+First public alpha (Core 1–10, Pro 11–16, harden-1–4).
 
-## Unreleased — harden-4-4
+**Shipped:** scan (deps + reachability, secrets, SAST, config), reports, baseline, fix, runtime guard, watch, edge, SBOM, CI gate.
 
-- Mutation-smoke now disables EDGE-*, AI-INJECT-001, DEPS-NOLOCK-001, and interproc taint in addition to the original SAST/secrets rules.
+**Experimental AI (0.1.0):** `scan --ai explain` and `fix --ai` only. Explain never shows a verdict. `--ai triage` and `--ai logic` are not a CLI surface.
 
-## Unreleased — harden-4-3
+**Publishing:** npm trusted publishing (OIDC) + `--provenance`. No `NPM_TOKEN`.
 
-- Runtime rate-limiter IP map and anomaly per-route / per-param maps are LRU-capped (configurable). A 100k unique-IP / unique-param flood keeps heap bounded.
+### harden-4
 
-## Unreleased — harden-4-2
+- Live Ollama path behind `FULLSHIELD_AI_LIVE=1`; `npm run test:live-ai` is never CI. Honest results in `benchmarks/AI-REPORT.md`.
+- Yarn/pnpm lockfile edges; `reachability-unknown` keeps severity when edges are missing.
+- LRU caps on the rate-limiter IP map and anomaly route/param maps.
+- Mutation-smoke covers EDGE-*, AI-INJECT-001, DEPS-NOLOCK-001, and interproc taint.
+- README: `--ai` experimental; AI-INJECT-001 is a three-phrase heuristic.
 
-- Yarn and pnpm lockfiles build real dependency edges. Until a lockfile format has parsed edges, transitive OSV hits are `reachability-unknown` (severity kept), never `not-imported`.
+### Pro (11–16)
 
-## Unreleased — harden-4-1
+- `watch` alerts only on new OSV hits.
+- `edge` GET/HEAD posture (CDN/WAF headers, HTTPS, security headers, exposure probes).
+- AI provider layer (off by default). `AI-INJECT-001` phrase heuristic.
+- Runtime anomaly baselines (no LLM).
 
-- Live AI path: `--ai` and `fix --ai` parse the model's JSON when `FULLSHIELD_AI_LIVE=1`. `npm run test:live-ai` talks to local Ollama (`qwen2.5-coder:7b`) and is never run by CI. Honest results: [`benchmarks/AI-REPORT.md`](benchmarks/AI-REPORT.md).
+### Core (1–10) and harden-1–3
 
-## Unreleased — phase-16
-
-- `scan --ai logic`: recorded-fixture IDOR / mass-assignment hunter. Findings are `source: ai`, confidence medium, and never fail CI.
-- Runtime `shieldGuard({ anomaly: { learnMinutes } })`: per-route baseline, 401 spikes, new params, 404 bursts (no LLM).
-
-## Unreleased — phase-15
-
-- `scan --ai triage` / `--ai explain`: labels and explanations from recorded fixtures. Never removes high/critical findings.
-- `fix --ai`: verify loop in a temp copy (rescan + tests, max 2 attempts). Reviewable diff only; never writes the user tree.
-
-## Unreleased — phase-14
-
-- AI provider layer (Anthropic / OpenAI / Ollama), off by default. Secrets redacted from outbound payloads. Cost cap + response cache. `AI-INJECT-001` for comments that try to manipulate AI reviewers.
-
-## Unreleased — phase-12
-
-- `fullshield edge <url>`: CDN/WAF, HTTPS redirect, security headers, exposure probes (GET/HEAD only).
-
-## Unreleased — phase-11
-
-- `fullshield watch` rescans dependencies and alerts only on new OSV findings vs last scan.
-- `init` writes `.github/workflows/fullshield-watch.yml` (daily cron).
-
-## Unreleased — harden-3
-
-- Transitive OSV hits on a lockfile path from an imported direct dependency are `reachable-via-dependency` (severity kept; path recorded). `not-imported` (−2) only when no such path exists.
-- DevDependency-only vulns are downgraded to info with a `dev-only` note unless production sources import the package.
-- Sanitizers are sink-specific: `JSON.parse` / generic `parse` never clear taint; `encodeURIComponent` is URL/redirect only; HTML escape is XSS only; zod/joi/yup clear taint only for the validated result.
-
-## Unreleased — phase-13
-
-- Cross-file taint (call graph, depth 5) records `Finding.trace` and SARIF `codeFlows`.
-- Dependency reachability: `reachable` / `imported-not-called` (−1) / `not-imported` (−2).
-- `fullshield sbom --format cyclonedx` emits CycloneDX 1.5 JSON with vuln references.
-
-## Unreleased — harden-2
-
-- `DEPS-NOLOCK-001` (info) when `package.json` exists without a lockfile; exact pins are still queried on OSV.
-- `topPackages.ts` documents its source/date; NodeGoat/DVNA-only names removed.
-- In-process CLI tests raise `src/cli/program.ts` coverage; SARIF validator branch coverage ≥ 75%.
-
-## Unreleased — harden-1
-
-- `fix --apply` restores files from in-memory snapshots (never `git checkout --`). `--force` does not write files with uncommitted changes.
-- `helmet()` insertion and secret → `process.env` are `safe: false` (dry-run suggestions; require `--unsafe` to apply).
-- Typosquat: drop the collision allowlist; skip names that appear in a larger static top-packages list.
-- Runtime README: signature-based stopgap, monitor recommended, sink-hooking in Phase 17. `bench` now also measures full Express request p50/p95.
-- `publishConfig.provenance` removed; `npm publish --provenance` lives in the CI publish workflow only.
-
-## 0.1.0 — 2026-10-13
-
-First Core release (phases 1–10).
-
-- Scanner: secrets, deps (OSV + typosquat), SAST taint-lite, config
-- Reports: console, JSON, SARIF 2.1.0, Markdown, HTML
-- Baseline (`--update-baseline`) and `fullshield-ignore RULE: reason`
-- `fix` dry-run / `--apply` with git safety and test revert
-- Runtime Express + Fastify guards (p95 inspect overhead < 1ms)
-- `init` (GitHub/GitLab/pre-commit) and `notify` (Slack, webhook, SMTP)
+- Secrets, deps (OSV + typosquat), SAST taint (intra + interproc depth 5), config.
+- Reachability: reachable / imported-not-called (−1) / reachable-via-dependency (kept) / not-imported (−2). Dev-only overlay.
+- Reports: console, JSON, SARIF 2.1.0, Markdown, HTML.
+- `fix --apply` snapshot restore; helmet/secret-env are `safe: false`.
+- Runtime Express + Fastify guards. `init` and `notify`.

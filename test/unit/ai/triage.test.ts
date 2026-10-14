@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { runAiFix } from '../../../src/ai/fixLoop.js';
 import { createAiClient } from '../../../src/ai/provider.js';
@@ -10,6 +10,19 @@ const injectApp = join(process.cwd(), 'test', 'fixtures', 'ai-inject-app');
 const vulnerableApp = join(process.cwd(), 'test', 'fixtures', 'vulnerable-app');
 
 describe('AI triage / explain / fix (Phase 15)', () => {
+  beforeEach(() => {
+    process.env.FULLSHIELD_AI_INTERNAL = '1';
+  });
+  afterEach(() => {
+    delete process.env.FULLSHIELD_AI_INTERNAL;
+  });
+
+  it('does not run triage from the public scan() API without the internal flag', async () => {
+    delete process.env.FULLSHIELD_AI_INTERNAL;
+    const result = await scan({ cwd: vulnerableApp, offline: true, ai: 'triage' });
+    expect(result.findings.every((f) => f.aiVerdict === undefined)).toBe(true);
+  });
+
   it('labels findings and never removes a high or critical true positive', async () => {
     const result = await scan({ cwd: vulnerableApp, offline: true, ai: 'triage' });
     const sqli = result.findings.filter((f) => f.ruleId === 'SAST-SQLI-001');
@@ -27,6 +40,7 @@ describe('AI triage / explain / fix (Phase 15)', () => {
     expect(explained.findings.map((f) => f.id).sort()).toEqual(base.findings.map((f) => f.id).sort());
     const inject = explained.findings.find((f) => f.ruleId === 'AI-INJECT-001');
     expect(inject?.explanation).toMatch(/comment|AI/i);
+    expect(explained.findings.every((f) => f.aiVerdict === undefined)).toBe(true);
   });
 
   it('keeps a verified AI patch as a reviewable diff and does not write the user tree', async () => {

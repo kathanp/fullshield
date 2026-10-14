@@ -685,41 +685,36 @@ s.listen(0, '127.0.0.1', () => {
     }
     console.log('  ✔ --ai explain labels findings; fix --ai is a reviewable diff');
   },
-  // Phase 16: logic hunter + fail-on ignores source:ai; precision on fixtures.
+  // Phase 16 (0.1.0): CLI ships --ai explain only; no verdict; logic stays internal.
   16: () => {
     const cli = join(root, 'dist', 'cli', 'index.js');
+    const inject = join(root, 'test', 'fixtures', 'ai-inject-app');
     const logic = join(root, 'test', 'fixtures', 'ai-logic-app');
-    const clean = join(root, 'test', 'fixtures', 'ai-logic-clean');
-    const dirty = spawnSync(
+    const rejected = spawnSync(
       process.execPath,
-      [cli, 'scan', logic, '--json', '--offline', '--ai', 'logic', '--fail-on', 'high'],
+      [cli, 'scan', logic, '--json', '--offline', '--ai', 'logic'],
       { cwd: root, encoding: 'utf8' },
     );
-    if (dirty.status === 1) {
-      fail('phase 16 acceptance: AI findings must not fail CI');
+    if (rejected.status !== 2 || !/not shipped/i.test(rejected.stderr)) {
+      fail(`phase 16 acceptance: --ai logic must not ship: ${rejected.stderr}`);
     }
-    const report = JSON.parse(dirty.stdout);
-    const ai = report.findings.filter((f) => f.source === 'ai');
-    const ids = new Set(ai.map((f) => f.ruleId));
-    if (!ids.has('AI-IDOR-001') || !ids.has('AI-MASSASSIGN-001')) {
-      fail(`phase 16 acceptance: missing IDOR/mass-assignment: ${dirty.stdout}`);
-    }
-    if (ai.some((f) => f.confidence !== 'medium')) {
-      fail('phase 16 acceptance: AI confidence must be medium');
-    }
-    const ok = spawnSync(
+    const explained = spawnSync(
       process.execPath,
-      [cli, 'scan', clean, '--json', '--offline', '--ai', 'logic', '--fail-on', 'high'],
+      [cli, 'scan', inject, '--json', '--offline', '--ai', 'explain', '--fail-on', 'high'],
       { cwd: root, encoding: 'utf8' },
     );
-    const cleanReport = JSON.parse(ok.stdout);
-    if (cleanReport.findings.some((f) => f.ruleId === 'AI-IDOR-001' || f.ruleId === 'AI-MASSASSIGN-001')) {
-      fail(`phase 16 acceptance: clean logic fixture should be quiet: ${ok.stdout}`);
+    const report = JSON.parse(explained.stdout);
+    const hit = report.findings.find((f) => f.ruleId === 'AI-INJECT-001');
+    if (hit === undefined || typeof hit.explanation !== 'string') {
+      fail(`phase 16 acceptance: explain missing: ${explained.stdout}`);
     }
-    const expected = new Set(['AI-IDOR-001', 'AI-MASSASSIGN-001']);
-    const tp = ai.filter((f) => expected.has(f.ruleId)).length;
-    const precision = ai.length === 0 ? 1 : tp / ai.length;
-    console.log(`  ✔ AI logic hunter; CI ignores source:ai; fixture precision=${precision.toFixed(2)}`);
+    if (report.findings.some((f) => f.aiVerdict !== undefined)) {
+      fail('phase 16 acceptance: explain must never show a verdict');
+    }
+    if (JSON.stringify(report).includes('true-positive') || JSON.stringify(report).includes('likely-false-positive')) {
+      fail('phase 16 acceptance: explain report leaked a verdict string');
+    }
+    console.log('  ✔ --ai explain only; no verdict; --ai logic rejected');
   },
 };
 

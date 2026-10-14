@@ -8,7 +8,7 @@ import { sastModule } from '../modules/sast/index.js';
 import { secretsModule } from '../modules/secrets/index.js';
 import { applyExplain, applyTriage } from '../ai/triage.js';
 import { runLogicHunt } from '../ai/logic.js';
-import { createAiClient, isLiveAi } from '../ai/provider.js';
+import { createAiClient, isInternalAi, isLiveAi } from '../ai/provider.js';
 import { applyBaseline, readBaseline, writeBaseline } from './baseline.js';
 import { loadConfig, type ResolvedConfig } from './config.js';
 import { walkFiles } from './fileWalker.js';
@@ -166,12 +166,12 @@ export async function runScan(
       config: { ...config.ai, enabled: true },
       useFixtures: !isLiveAi(),
     });
-    const mode = typeof aiMode === 'string' ? aiMode : undefined;
-    if (mode === 'triage') {
-      findings = await applyTriage(findings, client, config.ai, sources);
-    } else if (mode === 'explain') {
+    const mode = typeof aiMode === 'string' ? aiMode : aiMode === true ? 'explain' : undefined;
+    if (mode === 'explain') {
       findings = await applyExplain(findings, client, config.ai, sources);
-    } else if (mode === 'logic') {
+    } else if (isInternalAi() && mode === 'triage') {
+      findings = await applyTriage(findings, client, config.ai, sources);
+    } else if (isInternalAi() && mode === 'logic') {
       findings = sortFindings([...findings, ...(await runLogicHunt(cwd, files, client))]);
     }
   }

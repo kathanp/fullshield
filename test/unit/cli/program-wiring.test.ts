@@ -198,14 +198,26 @@ describe('CLI wiring (in-process)', () => {
     expect(process.exitCode).toBe(2);
   });
 
-  it('scan --ai logic on the IDOR fixture exits 0 under --fail-on high', async () => {
+  it('scan --ai logic is not shipped and exits 2', async () => {
     const logicApp = join(process.cwd(), 'test', 'fixtures', 'ai-logic-app');
     process.exitCode = undefined;
-    const { out, err } = await runCli(['scan', logicApp, '--json', '--offline', '--ai', 'logic', '--fail-on', 'high']);
+    const { err } = await runCli(['scan', logicApp, '--json', '--offline', '--ai', 'logic']);
+    expect(err).toMatch(/not shipped/i);
+    expect(process.exitCode).toBe(2);
+  });
+
+  it('scan --ai explain never includes a verdict', async () => {
+    const inject = join(process.cwd(), 'test', 'fixtures', 'ai-inject-app');
+    process.exitCode = undefined;
+    const { out, err } = await runCli(['scan', inject, '--json', '--offline', '--ai', 'explain']);
     expect(err).toBe('');
-    const parsed = JSON.parse(out) as { findings: Array<{ ruleId: string; source?: string }> };
-    expect(parsed.findings.some((f) => f.ruleId === 'AI-IDOR-001' && f.source === 'ai')).toBe(true);
-    expect(process.exitCode).not.toBe(1);
+    const parsed = JSON.parse(out) as {
+      findings: Array<{ ruleId: string; explanation?: string; aiVerdict?: string }>;
+    };
+    const hit = parsed.findings.find((f) => f.ruleId === 'AI-INJECT-001');
+    expect(hit?.explanation).toMatch(/comment|AI/i);
+    expect(parsed.findings.every((f) => f.aiVerdict === undefined)).toBe(true);
+    expect(out).not.toMatch(/true-positive|likely-false-positive|needs-review/);
   });
 
   it('scan --ai with an unknown mode exits 2', async () => {

@@ -69,11 +69,15 @@ function parseModules(value: string): ModuleName[] {
   });
 }
 
-function parseAiMode(value: string | true | undefined): boolean | 'triage' | 'explain' | 'logic' | undefined {
+function parseAiMode(value: string | true | undefined): 'explain' | undefined {
   if (value === undefined) return undefined;
-  if (value === true) return true;
-  if (value === 'triage' || value === 'explain' || value === 'logic') return value;
-  throw new Error(`invalid --ai mode "${value}" (valid: triage, explain, logic)`);
+  if (value === true || value === 'explain') return 'explain';
+  if (value === 'triage' || value === 'logic') {
+    throw new Error(
+      `--ai ${value} is not shipped in 0.1.0 (experimental: --ai explain, fix --ai)`,
+    );
+  }
+  throw new Error(`invalid --ai mode "${value}" (valid: explain)`);
 }
 
 function parseFailOn(value: string): Severity {
@@ -104,7 +108,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option('--markdown <file>', 'write a Markdown report to this path')
     .option('--html <file>', 'write an HTML report to this path')
     .option('--update-baseline', 'record current findings as accepted (CI fails only on new ones)')
-    .option('--ai [mode]', 'opt-in AI assist: triage | explain | logic (off = zero AI network calls)')
+    .option('--ai [mode]', 'experimental: explain findings (off = zero AI network calls)')
     .action(async (path: string, opts: ScanCliOptions) => {
       try {
         const failOnOverride = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;

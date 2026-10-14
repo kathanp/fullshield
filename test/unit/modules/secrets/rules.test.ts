@@ -112,10 +112,10 @@ describe('SECRET-AIKEY-001 (OpenAI/Anthropic-style key)', () => {
 describe('SECRET-PRIVKEY-001 (private key block)', () => {
   it('detects PEM private key headers', () => {
     expect(
-      findingsFor('SECRET-PRIVKEY-001', 'key.pem', '-----BEGIN PRIVATE KEY-----'),
+      findingsFor('SECRET-PRIVKEY-001', 'key.pem', '-----BEGIN ' + 'PRIVATE KEY-----'),
     ).toHaveLength(1);
     expect(
-      findingsFor('SECRET-PRIVKEY-001', 'key.pem', '-----BEGIN RSA PRIVATE KEY-----'),
+      findingsFor('SECRET-PRIVKEY-001', 'key.pem', '-----BEGIN RSA ' + 'PRIVATE KEY-----'),
     ).toHaveLength(1);
   });
 

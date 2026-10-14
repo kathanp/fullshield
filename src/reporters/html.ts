@@ -28,6 +28,7 @@ export function renderHtmlReport(result: ScanResult): string {
   <p class="where">${esc(location(f))}</p>
   <p>${esc(f.message)}</p>
   <p class="fix">Fix: ${esc(f.remediation)}</p>
+  ${f.explanation !== undefined && f.explanation.length > 0 ? `<p class="explain">${esc(f.explanation)}</p>` : ''}
 </article>`,
       )
       .join('\n');

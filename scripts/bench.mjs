@@ -56,6 +56,8 @@ async function benchExpress() {
   }
 
   const app = express();
+  // fullshield-ignore CONFIG-HELMET-001: loopback bench harness, not a server
+  // fullshield-ignore CONFIG-BODYLIMIT-001: loopback bench harness, not a server
   app.use(express.json());
   app.use(shieldGuard({ mode: 'monitor' }));
   app.post('/api/items', (_req, res) => {
