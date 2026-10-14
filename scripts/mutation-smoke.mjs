@@ -161,6 +161,16 @@ const EXTRA_TARGETS = [
       return src.replace('return (DECOY_ROUTES as readonly string[]).includes(p);', 'return false;');
     },
   },
+  {
+    name: 'SUPPLY-NPMRC-NET-001',
+    file: join(root, 'src', 'supply', 'index.ts'),
+    apply: (src) => {
+      if (!src.includes('if (readsNpmrc && hasNet)')) {
+        throw new Error('SUPPLY-NPMRC-NET-001 site missing');
+      }
+      return src.replace('if (readsNpmrc && hasNet)', 'if (false && readsNpmrc && hasNet)');
+    },
+  },
 ];
 
 for (const extra of EXTRA_TARGETS) {

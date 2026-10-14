@@ -62,6 +62,7 @@ const PREVIOUS_PHASE_TESTS = {
   16: 291,
   17: 318,
   18: 324,
+  19: 341,
 };
 
 function listFilesRecursive(dir, out = []) {
@@ -808,6 +809,40 @@ s.listen(0, '127.0.0.1', () => {
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }
+  },
+  // Phase 19 (spec §18 / §22): seeded malicious package + version-diff new script.
+  19: async () => {
+    const supplyUrl = pathToFileURL(join(root, 'dist', 'supply.js')).href;
+    const supply = await import(supplyUrl);
+    const malicious = join(root, 'test', 'fixtures', 'supply', 'malicious-pkg');
+    const benign = join(root, 'test', 'fixtures', 'supply', 'benign-pkg');
+    const v1 = join(root, 'test', 'fixtures', 'supply', 'pkg-v1');
+    const v2 = join(root, 'test', 'fixtures', 'supply', 'pkg-v2');
+    const mal = supply.analyzePackageDir(malicious);
+    if (!mal.some((f) => f.ruleId === 'SUPPLY-INSTALLSCRIPT-001')) {
+      fail('phase 19 acceptance: missing SUPPLY-INSTALLSCRIPT-001 on seeded package');
+    }
+    if (!mal.some((f) => f.ruleId === 'SUPPLY-NPMRC-NET-001')) {
+      fail('phase 19 acceptance: missing SUPPLY-NPMRC-NET-001 on seeded package');
+    }
+    const clean = supply.analyzePackageDir(benign);
+    if (clean.some((f) => f.severity === 'high' || f.severity === 'critical')) {
+      fail('phase 19 acceptance: benign package flagged high/critical');
+    }
+    const diff = supply.diffPackageVersions(v1, v2);
+    if (!diff.some((f) => f.ruleId === 'SUPPLY-BEHAVIOR-001')) {
+      fail('phase 19 acceptance: version diff did not flag newly added script');
+    }
+    let threw = false;
+    try {
+      supply.assertRegistryUrl('https://evil.example/pkg');
+    } catch {
+      threw = true;
+    }
+    if (!threw) fail('phase 19 acceptance: non-npmjs registry was allowed');
+    const skipped = await supply.installGuard('lodash');
+    if (!skipped.skipped) fail('phase 19 acceptance: installGuard ran without experimental flag');
+    console.log('  ✔ seeded malicious package + version-diff new script; registry locked; fail-closed without experimental');
   },
 };
 

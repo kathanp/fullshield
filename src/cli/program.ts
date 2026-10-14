@@ -378,6 +378,35 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     });
 
   program
+    .command('install')
+    .description('Experimental install-guard (requires FULLSHIELD_EXPERIMENTAL_SUPPLY=1)')
+    .argument('<pkg>', 'package spec (never executed; analyzed statically)')
+    .option('--dir <path>', 'local extracted package directory (tests / offline)')
+    .action(async (pkg: string, opts: { dir?: string }) => {
+      try {
+        if (process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY !== '1') {
+          throw new Error('install requires FULLSHIELD_EXPERIMENTAL_SUPPLY=1');
+        }
+        const { installGuard } = await import('../supply/index.js');
+        const result = await installGuard(pkg, {
+          experimental: true,
+          extractDir: opts.dir ? resolve(opts.dir) : undefined,
+        });
+        if (result.findings.length > 0) {
+          for (const f of result.findings) {
+            io.out(`${f.ruleId} ${f.severity} ${f.message}`);
+          }
+          process.exitCode = 1;
+          return;
+        }
+        io.out(`static checks passed for ${pkg}; next step would be npm install --ignore-scripts`);
+      } catch (error) {
+        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 2;
+      }
+    });
+
+  program
     .command('honey')
     .description('Experimental honeytokens (requires FULLSHIELD_EXPERIMENTAL_HONEY=1)')
     .command('init')

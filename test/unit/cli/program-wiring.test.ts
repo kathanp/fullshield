@@ -231,4 +231,47 @@ describe('CLI wiring (in-process)', () => {
     const { out } = await runCli(['fix', inject, '--ai']);
     expect(out).toMatch(/reviewable diff|AI patch/i);
   });
+
+  it('install refuses without FULLSHIELD_EXPERIMENTAL_SUPPLY', async () => {
+    const prev = process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY;
+    delete process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY;
+    try {
+      const { err } = await runCli(['install', 'lodash']);
+      expect(err).toMatch(/FULLSHIELD_EXPERIMENTAL_SUPPLY/);
+      expect(process.exitCode).toBe(2);
+    } finally {
+      if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY;
+      else process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY = prev;
+    }
+  });
+
+  it('install reports seeded malicious findings and does not claim npm install ran', async () => {
+    const prev = process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY;
+    process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY = '1';
+    try {
+      const dir = join(process.cwd(), 'test', 'fixtures', 'supply', 'malicious-pkg');
+      const { out } = await runCli(['install', 'fullshield-seeded-malicious', '--dir', dir]);
+      expect(out).toMatch(/SUPPLY-NPMRC-NET-001/);
+      expect(out).not.toMatch(/npm install --ignore-scripts/);
+      expect(process.exitCode).toBe(1);
+    } finally {
+      if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY;
+      else process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY = prev;
+    }
+  });
+
+  it('install on a clean local dir prints the ignore-scripts next step', async () => {
+    const prev = process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY;
+    process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY = '1';
+    try {
+      const dir = join(process.cwd(), 'test', 'fixtures', 'supply', 'benign-pkg');
+      const { out, err } = await runCli(['install', 'fullshield-seeded-benign', '--dir', dir]);
+      expect(err).toBe('');
+      expect(out).toMatch(/npm install --ignore-scripts/);
+      expect(process.exitCode === undefined || process.exitCode === 0).toBe(true);
+    } finally {
+      if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY;
+      else process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY = prev;
+    }
+  });
 });

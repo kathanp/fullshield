@@ -553,3 +553,11 @@ Experimental: `scan --emit-virtual-patches` writes `{ruleId,file,line,sink,route
 Off without `FULLSHIELD_EXPERIMENTAL_VPATCH` / `FULLSHIELD_EXPERIMENTAL_HONEY`.
 
 **Re-scan:** NodeGoat 373 / high+critical **59** unchanged. DVNA 19 unchanged. JSON: `benchmarks/results/*-phase18.json`.
+
+## Phase 19 — supply-chain defense + install-guard
+
+**Tests: 341** (was 324).
+
+Static only: never executes or installs analyzed packages. `fullshield install` requires `FULLSHIELD_EXPERIMENTAL_SUPPLY=1`. Registry host locked to `registry.npmjs.org`. Seeded fixture with `postinstall` + `.npmrc` read + `https.request` → `SUPPLY-INSTALLSCRIPT-001` + `SUPPLY-NPMRC-NET-001`. Version diff v1→v2 flags newly added postinstall/`child_process` (`SUPPLY-BEHAVIOR-001`). Also cooldown, lockfile non-registry URL, private-scope confusion, provenance drop.
+
+**Re-scan:** NodeGoat 373 / high+critical **59** unchanged. DVNA 19 unchanged. JSON: `benchmarks/results/*-phase19.json`.

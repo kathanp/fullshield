@@ -11,6 +11,7 @@ export default defineConfig({
     'runtime/register': 'src/runtime/register.ts',
     'runtime/auto': 'src/runtime/auto.ts',
     'runtime/rasp/loader': 'src/runtime/rasp/loader.ts',
+    supply: 'src/supply/index.ts',
   },
   format: ['esm'],
   platform: 'node',

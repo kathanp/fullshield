@@ -252,3 +252,9 @@ RASP corpus: attack **173/181 (95.6%)** — sql 40/44, shell 43/47, path 51/51, 
 Virtual patches / honey / egress are experimental runtime/CLI and do not change default `scan` findings.
 
 **NodeGoat 373 / high+critical 59 unchanged. DVNA 19 unchanged.** JSON: `results/*-phase18.json`.
+
+### After Phase 19
+
+Supply-chain / `install-guard` is experimental CLI, not a scan module. Default `scan` of NodeGoat/DVNA is unchanged.
+
+**NodeGoat 373 / high+critical 59 unchanged. DVNA 19 unchanged.** JSON: `results/*-phase19.json`.

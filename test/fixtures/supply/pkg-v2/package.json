@@ -1,0 +1,7 @@
+{
+  "name": "fullshield-seeded-diff",
+  "version": "1.0.1",
+  "scripts": {
+    "postinstall": "node hook.js"
+  }
+}
