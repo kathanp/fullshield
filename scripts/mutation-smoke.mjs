@@ -97,8 +97,80 @@ spawnSync(isWindows ? 'npm.cmd' : 'npm', ['run', 'build'], {
   shell: isWindows,
 });
 
+const EXTRA_TARGETS = [
+  {
+    name: 'EDGE-*',
+    file: join(root, 'src', 'modules', 'edge', 'index.ts'),
+    apply: (src) => {
+      if (!src.includes('findings.push(')) {
+        throw new Error('EDGE findings.push site missing');
+      }
+      return src.replaceAll('findings.push(', 'void (');
+    },
+  },
+  {
+    name: 'AI-INJECT-001',
+    file: join(root, 'src', 'ai', 'injection.ts'),
+    apply: (src) => {
+      if (!src.includes('findings.push(')) {
+        throw new Error('AI-INJECT-001 findings.push site missing');
+      }
+      return src.replaceAll('findings.push(', 'void (');
+    },
+  },
+  {
+    name: 'DEPS-NOLOCK-001',
+    file: join(root, 'src', 'modules', 'deps', 'index.ts'),
+    apply: (src) => {
+      if (!src.includes('const findings: Finding[] = [noLockFinding()];')) {
+        throw new Error('DEPS-NOLOCK-001 site missing');
+      }
+      return src.replace(
+        'const findings: Finding[] = [noLockFinding()];',
+        'const findings: Finding[] = [];',
+      );
+    },
+  },
+  {
+    name: 'interproc taint',
+    file: join(root, 'src', 'modules', 'sast', 'interproc.ts'),
+    apply: (src) => {
+      if (!src.includes('args.findings.push(')) {
+        throw new Error('interproc pushSinkFinding site missing');
+      }
+      return src.replaceAll('args.findings.push(', 'void (');
+    },
+  },
+];
+
+for (const extra of EXTRA_TARGETS) {
+  const rel = relative(root, extra.file);
+  const original = readFileSync(extra.file, 'utf8');
+  const mutated = extra.apply(original);
+  console.log(`mutation-smoke: disabling ${extra.name} in ${rel} ...`);
+  writeFileSync(extra.file, mutated);
+  let result;
+  try {
+    result = runSuite();
+  } finally {
+    writeFileSync(extra.file, original);
+  }
+  if (result.status === 0) {
+    fakeTested.push(extra.name);
+    console.error(`  ✖ suite still passes with ${extra.name} disabled — its tests are fake`);
+  } else {
+    console.log(`  ✔ suite fails (${result.stage}) when ${extra.name} is disabled`);
+  }
+}
+
+spawnSync(isWindows ? 'npm.cmd' : 'npm', ['run', 'build'], {
+  cwd: root,
+  stdio: 'ignore',
+  shell: isWindows,
+});
+
 if (fakeTested.length > 0) {
   console.error(`mutation-smoke FAILED: ${fakeTested.join(', ')}`);
   process.exit(1);
 }
-console.log(`mutation-smoke: ${ruleFiles.length} rule(s) verified.`);
+console.log(`mutation-smoke: ${ruleFiles.length} rule(s) + ${EXTRA_TARGETS.length} extra target(s) verified.`);

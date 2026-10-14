@@ -494,3 +494,10 @@ DVNA 19 unchanged. JSON: `benchmarks/results/*-harden4.json`.
 
 Test: 100_000 unique IPs + 100_000 unique param names + 100_000 routes; map
 sizes stay at the cap; heap delta < 80MB.
+
+## harden-4-4 — mutation-smoke extras
+
+`scripts/mutation-smoke.mjs` now also disables `findings.push` in
+`src/modules/edge/index.ts` and `src/ai/injection.ts`, `noLockFinding()` in
+deps, and `pushSinkFinding` in interproc. Existing tests fail when those
+are disabled (no fake-test holes found).

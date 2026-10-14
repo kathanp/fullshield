@@ -2,6 +2,10 @@
 
 All notable changes to FullShield are documented here.
 
+## Unreleased — harden-4-4
+
+- Mutation-smoke now disables EDGE-*, AI-INJECT-001, DEPS-NOLOCK-001, and interproc taint in addition to the original SAST/secrets rules.
+
 ## Unreleased — harden-4-3
 
 - Runtime rate-limiter IP map and anomaly per-route / per-param maps are LRU-capped (configurable). A 100k unique-IP / unique-param flood keeps heap bounded.
