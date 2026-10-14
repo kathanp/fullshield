@@ -6,6 +6,7 @@ import type { ScanModule } from '../../core/engine.js';
 import { makeFindingId, type Finding } from '../../core/finding.js';
 import { parseLockfile, type LockedPackage } from './lockfile.js';
 import { queryOsv, type OsvVuln } from './osv.js';
+import { exactPinsFromManifest } from './pins.js';
 import { minFixedVersion, osvSeverity, sameMajor } from './semver.js';
 import { findTyposquats, type TyposquatHit } from './typosquat.js';
 
@@ -81,6 +82,21 @@ function typosquatFinding(lockFile: string, hit: TyposquatHit): Finding {
   };
 }
 
+function noLockFinding(): Finding {
+  return {
+    id: makeFindingId('DEPS-NOLOCK-001', 'package.json', 'no-lockfile'),
+    ruleId: 'DEPS-NOLOCK-001',
+    module: 'deps',
+    title: 'No lockfile found',
+    severity: 'info',
+    confidence: 'high',
+    file: 'package.json',
+    message: 'No lockfile found; dependency vulnerabilities were not checked.',
+    remediation:
+      'Commit package-lock.json, pnpm-lock.yaml, or yarn.lock so FullShield can audit the installed tree. Exact versions pinned in package.json are still queried.',
+  };
+}
+
 function deprecatedFinding(lockFile: string, pkg: LockedPackage): Finding {
   const snippet = `${pkg.name}@${pkg.version}`;
   return {
@@ -103,7 +119,37 @@ export const depsModule: ScanModule = {
   name: 'deps',
   async run(ctx) {
     const lockFile = LOCKFILE_NAMES.find((name) => ctx.files.includes(name));
-    if (lockFile === undefined) return [];
+    const cacheDir =
+      ctx.config.deps.cacheDir !== undefined
+        ? resolve(ctx.cwd, ctx.config.deps.cacheDir)
+        : defaultCacheDir();
+    const osvOpts = { cacheDir, offline: ctx.config.deps.offline };
+
+    if (lockFile === undefined) {
+      if (!ctx.files.includes('package.json')) return [];
+      const findings: Finding[] = [noLockFinding()];
+      let manifest: Record<string, unknown> = {};
+      try {
+        manifest = JSON.parse(await readFile(join(ctx.cwd, 'package.json'), 'utf8')) as Record<
+          string,
+          unknown
+        >;
+      } catch {
+        return findings;
+      }
+      const pins = exactPinsFromManifest(manifest);
+      const directNames = await readDirectDependencyNames(ctx.cwd);
+      for (const hit of findTyposquats(pins, { directNames })) {
+        findings.push(typosquatFinding('package.json', hit));
+      }
+      const osvHits = await queryOsv(pins, osvOpts);
+      for (const hit of osvHits) {
+        for (const vuln of hit.vulns) {
+          findings.push(vulnFinding('package.json', hit.pkg, vuln));
+        }
+      }
+      return findings;
+    }
 
     let contents: string;
     try {
@@ -125,15 +171,7 @@ export const depsModule: ScanModule = {
       }
     }
 
-    const cacheDir =
-      ctx.config.deps.cacheDir !== undefined
-        ? resolve(ctx.cwd, ctx.config.deps.cacheDir)
-        : defaultCacheDir();
-
-    const osvHits = await queryOsv(packages, {
-      cacheDir,
-      offline: ctx.config.deps.offline,
-    });
+    const osvHits = await queryOsv(packages, osvOpts);
     for (const hit of osvHits) {
       for (const vuln of hit.vulns) {
         findings.push(vulnFinding(lockFile, hit.pkg, vuln));

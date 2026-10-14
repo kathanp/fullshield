@@ -26,6 +26,7 @@ negative counterpart in `test/fixtures/clean-app`.
 | [DEPS-VULN-001](DEPS-VULN-001.md) | OSV-known vulnerable package |
 | [DEPS-TYPOSQUAT-001](DEPS-TYPOSQUAT-001.md) | Direct dep 1 edit from a popular name |
 | [DEPS-DEPRECATED-001](DEPS-DEPRECATED-001.md) | Lockfile `deprecated` field |
+| [DEPS-NOLOCK-001](DEPS-NOLOCK-001.md) | package.json without a lockfile |
 
 ## SAST
 

@@ -1,0 +1,10 @@
+{
+  "name": "no-lock-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Has package.json but no lockfile. lodash is an exact pin so OSV can still run.",
+  "dependencies": {
+    "lodash": "4.17.11",
+    "express": "^4.18.2"
+  }
+}

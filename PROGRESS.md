@@ -302,3 +302,27 @@ delta vs Phase 10: 0. See `benchmarks/REPORT.md`.
 
 **Stopped here per the mandatory harden-1 review gate; Pro phases not started.**
 Nothing was pushed to GitHub.
+
+## harden-2 — no-lockfile finding, honest top-packages, CLI coverage
+
+**Built:**
+- `DEPS-NOLOCK-001` (info) when `package.json` exists and no lockfile is
+  present. Exact `package.json` pins (no `^`/`~`) are still queried on OSV.
+  Fixture: `test/fixtures/no-lock-app` (lodash@4.17.11 + range express).
+  clean-app now has a lockfile so the zero-findings invariant holds.
+- `topPackages.ts` header records source (npm most-depended-upon / common
+  install-tree utilities, frozen 2026-10-14) and that NodeGoat/DVNA-only
+  names were removed.
+- In-process CLI tests for scan/fix/init/notify wiring (`src/cli/program.ts`
+  lines ≥ 80%). SARIF validator branch coverage ≥ 75%.
+
+**Verify (`npm run verify:phase 10`, PASSED after harden-2):**
+
+| phase | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|
+| 10 | 95.86% | 85.45% | deps,secrets,sast,config | 29 | 29 | 33 | 0 |
+
+237 tests. `src/cli/program.ts` 94.25% lines. `sarif.ts` 94.59% branches.
+
+**Benchmark:** NodeGoat 372 (unchanged). DVNA 14 → 19 (+1 NOLOCK info, +4
+OSV on exact `mathjs` / `node-serialize` pins). Typosquat FP delta: 0.

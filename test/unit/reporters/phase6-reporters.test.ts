@@ -59,8 +59,48 @@ describe('SARIF 2.1.0 reporter', () => {
     expect(sarif.runs[0]?.results[0]?.message.text).toContain('Tainted input');
   });
 
+  it('maps severity to SARIF level and omits location when file is missing', () => {
+    const medium: Finding = { ...finding, id: 'm', severity: 'medium', file: undefined, line: undefined };
+    const info: Finding = { ...finding, id: 'i', ruleId: 'DEPS-NOLOCK-001', severity: 'info', column: 0 };
+    const doc = JSON.parse(renderSarifReport(mkResult([finding, medium, info]))) as {
+      runs: Array<{ results: Array<{ level: string; locations: unknown[] }> }>;
+    };
+    expect(doc.runs[0]?.results[0]?.level).toBe('error');
+    expect(doc.runs[0]?.results[1]?.level).toBe('warning');
+    expect(doc.runs[0]?.results[2]?.level).toBe('note');
+    expect(doc.runs[0]?.results[1]?.locations).toEqual([]);
+  });
+
   it('rejects a document that is not SARIF 2.1.0', () => {
+    expect(validateSarif21(null)).toEqual(['SARIF document must be an object']);
+    expect(validateSarif21([])).toEqual(['SARIF document must be an object']);
     expect(validateSarif21({ version: '2.0.0', runs: [] }).length).toBeGreaterThan(0);
+    expect(validateSarif21({ version: '2.1.0' })).toEqual(['runs must be an array']);
+    expect(validateSarif21({ version: '2.1.0', runs: [null] })).toContain('runs[0] must be an object');
+    expect(validateSarif21({ version: '2.1.0', runs: [{ tool: {}, results: [] }] })).toContain(
+      'runs[0].tool.driver.name is required',
+    );
+    expect(validateSarif21({ version: '2.1.0', runs: [{ tool: { driver: { name: 'X' } } }] })).toContain(
+      'runs[0].results must be an array',
+    );
+    expect(
+      validateSarif21({
+        version: '2.1.0',
+        runs: [{ tool: { driver: { name: 'X' } }, results: [null] }],
+      }),
+    ).toContain('runs[0].results[0] must be an object');
+    expect(
+      validateSarif21({
+        version: '2.1.0',
+        runs: [{ tool: { driver: { name: 'X' } }, results: [{ message: {} }] }],
+      }),
+    ).toContain('runs[0].results[0].message.text or message.id is required');
+    expect(
+      validateSarif21({
+        version: '2.1.0',
+        runs: [{ tool: { driver: { name: 'X' } }, results: [{ message: { id: 'm1' } }] }],
+      }),
+    ).toEqual([]);
   });
 });
 

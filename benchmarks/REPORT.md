@@ -153,3 +153,14 @@ Typosquat no longer uses a named collision allowlist. A name is flagged only whe
 | DVNA | 9 | 14 | 14 | 14 | Unchanged. No lockfile, so deps/typosquat still not evaluated. |
 
 False-positive change vs Phase 10: **none**. False-positive change vs Phase 5: still −18 typosquat, −2 placeholder DB URLs, −1/−2 helmet-on-Router. JSON: `results/*-harden1.json`.
+
+### After harden-2
+
+`DEPS-NOLOCK-001` (info) when `package.json` exists and no lockfile is present. Exact versions pinned in `package.json` are still queried on OSV. `TOP_PACKAGES` names that were added only because they appeared in NodeGoat/DVNA (`swig`, `forever`, `consolidate`, `mathjs`, `libxmljs`, `node-serialize`, `grunt-contrib-*`, `selenium-webdriver`, …) were removed. Source/date is documented at the top of `src/modules/deps/topPackages.ts`.
+
+| App | harden-1 | harden-2 | Notes |
+|---|---|---|---|
+| NodeGoat | 372 | 372 | Still 0 typosquat findings. Removing the benchmark-only top-package names did **not** add FPs (those names were not 1-edit from `POPULAR_PACKAGES` as *direct* deps, or they remain in the general list). |
+| DVNA | 14 | 19 | +1 `DEPS-NOLOCK-001` (info, true: no lockfile). +4 `DEPS-VULN-001` on exact pins: `mathjs@3.10.1` ×3, `node-serialize@0.0.4` ×1 (true positives; previously skipped). No new typosquat FPs. |
+
+Typosquat false-positive change vs harden-1: **none**. JSON: `results/*-harden2.json`.

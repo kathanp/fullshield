@@ -22,6 +22,12 @@ export default defineConfig({
         'src/fixer/**/*.ts': {
           lines: 90,
         },
+        'src/cli/program.ts': {
+          lines: 80,
+        },
+        'src/reporters/sarif.ts': {
+          branches: 75,
+        },
       },
     },
   },

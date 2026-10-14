@@ -2,6 +2,12 @@
 
 All notable changes to FullShield are documented here.
 
+## Unreleased — harden-2
+
+- `DEPS-NOLOCK-001` (info) when `package.json` exists without a lockfile; exact pins are still queried on OSV.
+- `topPackages.ts` documents its source/date; NodeGoat/DVNA-only names removed.
+- In-process CLI tests raise `src/cli/program.ts` coverage; SARIF validator branch coverage ≥ 75%.
+
 ## Unreleased — harden-1
 
 - `fix --apply` restores files from in-memory snapshots (never `git checkout --`). `--force` does not write files with uncommitted changes.
