@@ -270,3 +270,35 @@ from the baseline are now detected. clean-app remains 0 findings.
 
 200 tests. Mutation-smoke verified all 23 rules. **Core (phases 1–10) complete.**
 Pro (11–16) not started. Nothing was pushed to GitHub.
+
+## harden-1 — fixer safety, unsafe patches, typosquat, runtime honesty
+
+**Built:**
+- `fix --apply` snapshots each target file's bytes before write and restores
+  those snapshots if project tests fail. Never `git checkout --`.
+- `--force` on a dirty tree skips files with uncommitted changes. New test:
+  dirty `app.js` + failing `npm test` → user bytes survive exactly.
+- `helmet()` and secret → `process.env` are `safe: false` (shown in dry-run;
+  applied only with `--unsafe`). Body-limit, `randomUUID`, `.env` gitignore
+  stay safe.
+- Typosquat: removed `LEGITIMATE_COLLISIONS`. Flag only if 1 edit from
+  `POPULAR_PACKAGES` and the name is not in `TOP_PACKAGES`.
+- README: runtime is signature-based, stopgap, monitor recommended; sink-hooking
+  is Phase 17. `scripts/bench.mjs` also reports Express+`shieldGuard` p50/p95.
+- `src/fixer/**` coverage ≥ 90% lines. `publishConfig.provenance` removed;
+  `.github/workflows/publish.yml` runs `npm publish --provenance`.
+
+**Verify (`npm run verify:phase 10`, full run PASSED after harden-1):**
+
+| phase | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|
+| 10 | 94.12% | 84.52% | deps,secrets,sast,config | 29 | 29 | 33 | 0 |
+
+223 tests. `src/fixer/**` 96.5% lines. Mutation-smoke verified all 23 rules.
+`bench`: inspect p95 0.0022ms; Express+shieldGuard p50 0.156ms / p95 0.454ms.
+
+**Benchmark:** NodeGoat 372, DVNA 14 (unchanged vs Phase 10). Typosquat FP
+delta vs Phase 10: 0. See `benchmarks/REPORT.md`.
+
+**Stopped here per the mandatory harden-1 review gate; Pro phases not started.**
+Nothing was pushed to GitHub.

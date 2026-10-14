@@ -19,6 +19,9 @@ export default defineConfig({
           lines: 85,
           branches: 75,
         },
+        'src/fixer/**/*.ts': {
+          lines: 90,
+        },
       },
     },
   },

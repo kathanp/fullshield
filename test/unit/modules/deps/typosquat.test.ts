@@ -33,6 +33,15 @@ describe('findTyposquats', () => {
     ).toEqual([]);
   });
 
+  it('does not flag a 1-edit name that is itself in the static top-packages list', () => {
+    expect(
+      findTyposquats([
+        { name: 'tmp', version: '0.2.3', path: 'node_modules/tmp' },
+        { name: 'csrf', version: '3.1.0', path: 'node_modules/csrf' },
+      ]),
+    ).toEqual([]);
+  });
+
   it('does not flag a transitive lookalike when only direct names are requested', () => {
     expect(
       findTyposquats([{ name: 'expresss', version: '0.0.1', path: 'node_modules/foo/node_modules/expresss' }], {

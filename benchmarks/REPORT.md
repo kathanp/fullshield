@@ -142,3 +142,14 @@ This table is updated again after Phase 7 and Phase 10.
 | DVNA | 9 | 14 | 14 | 14 |
 
 Phases 8–10 added runtime, init/notify, and docs. They do not change static detection. JSON: `results/*-phase10.json`.
+
+### After harden-1
+
+Typosquat no longer uses a named collision allowlist. A name is flagged only when it is 1 edit from `POPULAR_PACKAGES` **and** is not itself in the larger static `TOP_PACKAGES` list (still direct `package.json` deps only, min length 4, hyphen-normalized equality skipped).
+
+| App | Phase 5 | bench-1 | Phase 10 | harden-1 | Notes |
+|---|---|---|---|---|---|
+| NodeGoat | 392 | 372 | 372 | 372 | 0 typosquat findings (same as bench-1). The 18 Phase-5 FPs stay gone because those names are either transitive, short, hyphen-only, or in `TOP_PACKAGES` (`tmp`, `csrf`, `utile`, …). No new FPs. |
+| DVNA | 9 | 14 | 14 | 14 | Unchanged. No lockfile, so deps/typosquat still not evaluated. |
+
+False-positive change vs Phase 10: **none**. False-positive change vs Phase 5: still −18 typosquat, −2 placeholder DB URLs, −1/−2 helmet-on-Router. JSON: `results/*-harden1.json`.

@@ -1,12 +1,12 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 
 import { scan, type ScanOptions } from '../core/engine.js';
 import type { Finding, ModuleName } from '../core/finding.js';
+import { createFixBranch, isDirty, isGitRepo, listDirtyPaths } from './git.js';
 import { applyUnifiedDiff, proposeFix } from './patches.js';
-import { createFixBranch, isDirty, isGitRepo, revertWorktree } from './git.js';
 
 export interface FixOptions {
   cwd?: string;
@@ -62,10 +62,10 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
       source,
     );
     if (proposed === undefined) continue;
+    patches.push({ file: sourceFile, ruleId: finding.ruleId, safe: proposed.safe, diff: proposed.diff });
     if (proposed.safe !== true && options.unsafe !== true) continue;
     const after = applyUnifiedDiff(source, proposed.diff);
     byFile.set(sourceFile, after);
-    patches.push({ file: sourceFile, ruleId: finding.ruleId, safe: proposed.safe, diff: proposed.diff });
   }
 
   if (options.apply !== true) {
@@ -84,19 +84,42 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
     branch = await createFixBranch(cwd);
   }
 
+  const dirtyPaths = (await isGitRepo(cwd)) ? await listDirtyPaths(cwd) : new Set<string>();
+  const snapshots = new Map<string, Buffer | null>();
+
   for (const [file, contents] of byFile) {
+    if (dirtyPaths.has(file)) continue;
     const abs = join(cwd, file);
+    let original: Buffer | null = null;
+    try {
+      original = await readFile(abs);
+    } catch {
+      original = null;
+    }
+    if (original !== null && original.toString('utf8') === contents) continue;
+    snapshots.set(file, original);
     await mkdir(dirname(abs), { recursive: true });
     await writeFile(abs, contents, 'utf8');
   }
 
   const testFailed = runProjectTests(cwd);
-  if (testFailed && (await isGitRepo(cwd))) {
-    await revertWorktree(cwd);
+  if (testFailed) {
+    await restoreSnapshots(cwd, snapshots);
     return { applied: false, reverted: true, branch, patches, findings: result.findings };
   }
 
-  return { applied: !testFailed, reverted: false, branch, patches, findings: result.findings };
+  return { applied: true, reverted: false, branch, patches, findings: result.findings };
+}
+
+async function restoreSnapshots(cwd: string, snapshots: Map<string, Buffer | null>): Promise<void> {
+  for (const [file, original] of snapshots) {
+    const abs = join(cwd, file);
+    if (original === null) {
+      await unlink(abs).catch(() => undefined);
+    } else {
+      await writeFile(abs, original);
+    }
+  }
 }
 
 function runProjectTests(cwd: string): boolean {

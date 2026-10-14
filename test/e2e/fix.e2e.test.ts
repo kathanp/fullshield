@@ -47,7 +47,8 @@ describe('fix command (built CLI)', () => {
     expect(stderr).toBe('');
     expect(status).toBe(0);
     const src = readFileSync(join(dir, 'src/index.js'), 'utf8');
-    expect(src).toContain('helmet');
+    expect(src).not.toContain("require('helmet')");
+    expect(src).not.toContain('app.use(helmet())');
     expect(src).toContain("express.json({ limit: '100kb' })");
   });
 });

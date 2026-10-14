@@ -28,8 +28,12 @@
     "fastify": "*"
   },
   "peerDependenciesMeta": {
-    "express": { "optional": true },
-    "fastify": { "optional": true }
+    "express": {
+      "optional": true
+    },
+    "fastify": {
+      "optional": true
+    }
   },
   "files": [
     "dist",
@@ -40,8 +44,7 @@
     "rules"
   ],
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "scripts": {
     "build": "tsup",
@@ -66,6 +69,7 @@
     "@types/node": "^22.9.0",
     "@vitest/coverage-v8": "^2.1.4",
     "eslint": "^9.14.0",
+    "express": "^4.22.3",
     "globals": "^15.12.0",
     "tsup": "^8.3.5",
     "typescript": "^5.6.3",

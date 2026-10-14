@@ -25,5 +25,10 @@ describe('npm pack contents', () => {
     const readme = readFileSync(join(root, 'README.md'), 'utf8');
     expect(readme).toMatch(/Non-goals/i);
     expect(readme).toMatch(/does \*\*not\*\*|Does \*\*not\*\*/);
+    const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {
+      publishConfig?: { provenance?: boolean };
+    };
+    expect(pkg.publishConfig?.provenance).toBeUndefined();
   });
 });
+

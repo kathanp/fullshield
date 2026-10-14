@@ -32,10 +32,10 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 
 - Does **not** find business-logic or authorization bugs (IDOR, CSRF, missing ownership checks). It can flag routes with no auth middleware as *suspicious*, nothing more.
 - Does **not** replace a penetration test.
-- Does **not** auto-delete code. `fix --apply` writes patches on a clean git tree and reverts if tests fail.
+- Does **not** auto-delete code. `fix --apply` writes patches on a clean git tree. If project tests fail, each written file is restored from a byte-for-byte snapshot taken before the write — never `git checkout --`. `--force` on a dirty tree still refuses to touch files that have uncommitted changes.
 - v1 is **JS/TS only**. Other languages are out of scope.
 - Taint is **intra-function**. Cross-file flows (route → DAO) are a known miss until Pro (Phase 13).
-- Runtime v1 uses payload signatures + rate limits. Full RASP sink-hooking is Frontier, not Core.
+- Runtime v1 is **signature-based** (payload regex + rate limit + body-size guard). It is a **stopgap**. Prefer **`mode: 'monitor'`** in production until you have measured false-positive rate. Sink-hooking RASP is Phase 17 (Frontier), not Core.
 - Only scan hosts and repos you own or are authorized to test.
 
 ## Quick start
@@ -53,22 +53,24 @@ import { scan } from 'fullshield';
 const result = await scan({ cwd: process.cwd() });
 ```
 
-Runtime (does not load the scanner):
+Runtime (does not load the scanner). **Signature-based stopgap — monitor mode recommended.** Sink-hooking arrives in Phase 17.
 
 ```ts
 import express from 'express';
 import { shieldGuard } from 'fullshield/runtime/express';
 
 const app = express();
-app.use(shieldGuard({ mode: 'block', authRoutes: ['/login'] }));
+app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 ```
+
+`npm run bench` reports `inspect()` p50/p95 (must stay under 1ms) and full Express request overhead p50/p95 with the middleware on the stack.
 
 ## Commands
 
 | Command | Purpose |
 |---|---|
 | `scan` | Run deps, secrets, sast, config. `--json`, `--sarif`, `--markdown`, `--html`, `--fail-on`, `--offline`, `--staged`, `--update-baseline` |
-| `fix` | Dry-run patches. `--apply` on a clean git tree; `--force` / `--unsafe` / `--no-branch` |
+| `fix` | Dry-run patches (unsafe suggestions included). `--apply` writes only `safe: true` patches on a clean git tree. `--unsafe` is required for `helmet()` insertion and secret → `process.env` replacement. `--force` skips files with uncommitted changes. |
 | `init` | Config + GitHub/GitLab CI + pre-commit hook |
 | `notify` | Slack / generic webhook / SMTP summary of the last scan |
 

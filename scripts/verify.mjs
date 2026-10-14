@@ -395,7 +395,9 @@ const acceptanceCriteria = {
         fail(`phase 7 acceptance: fix --apply exited ${applied.status}: ${applied.stderr}`);
       }
       const src = readFileSync(join(copy, 'src', 'index.js'), 'utf8');
-      if (!src.includes('helmet')) fail('phase 7 acceptance: helmet() was not applied on the copy');
+      if (src.includes("require('helmet')") || src.includes('app.use(helmet())')) {
+        fail('phase 7 acceptance: helmet() must not apply without --unsafe');
+      }
       if (!src.includes("express.json({ limit: '100kb' })")) {
         fail('phase 7 acceptance: body limit was not applied on the copy');
       }

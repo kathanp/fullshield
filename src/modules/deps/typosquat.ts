@@ -1,5 +1,6 @@
 import type { LockedPackage } from './lockfile.js';
 import { POPULAR_PACKAGES } from './popular.js';
+import { TOP_PACKAGES } from './topPackages.js';
 
 export interface TyposquatHit {
   name: string;
@@ -10,6 +11,7 @@ export interface TyposquatHit {
 }
 
 const popularSet = new Set(POPULAR_PACKAGES);
+const topSet = new Set(TOP_PACKAGES);
 
 function levenshteinAtMost1(a: string, b: string): number | undefined {
   if (a === b) return 0;
@@ -43,25 +45,6 @@ function levenshteinAtMost1(a: string, b: string): number | undefined {
   return 1;
 }
 
-/**
- * Well-known real packages that sit at distance 1 from a popular name.
- * Checking them as typosquats is noise (NodeGoat lockfile: tmp/tap, csrf/csurf).
- */
-const LEGITIMATE_COLLISIONS = new Set([
-  'tmp',
-  'csrf',
-  'crc',
-  'extend',
-  'utile',
-  'foreach',
-  'isstream',
-  'ansicolors',
-  'ansistyles',
-  'hpkp',
-  'pend',
-  'retire',
-]);
-
 function hyphenless(name: string): string {
   return name.replace(/-/g, '');
 }
@@ -80,7 +63,7 @@ export function findTyposquats(
   for (const pkg of packages) {
     if (pkg.name.length < 4) continue;
     if (popularSet.has(pkg.name)) continue;
-    if (LEGITIMATE_COLLISIONS.has(pkg.name)) continue;
+    if (topSet.has(pkg.name)) continue;
     if (options.directNames !== undefined && !options.directNames.has(pkg.name)) continue;
     let best: TyposquatHit | undefined;
     for (const popular of POPULAR_PACKAGES) {

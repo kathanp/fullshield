@@ -24,7 +24,7 @@ function helmetFix(file: string, source: string): FixProposal | undefined {
     after = after.replace(/const app = express\(\s*\);/, (m) => `${m}\napp.use(helmet());`);
   }
   if (after === source) return undefined;
-  return { kind: 'config-add', safe: true, diff: unifiedDiff(file, source, after) };
+  return { kind: 'config-add', safe: false, diff: unifiedDiff(file, source, after) };
 }
 
 function bodyLimitFix(file: string, source: string): FixProposal | undefined {
@@ -68,7 +68,7 @@ function secretEnvFix(file: string, source: string, finding: Finding): FixPropos
   if (replaced === line) return undefined;
   const afterLines = [...lines];
   afterLines[idx] = replaced;
-  return { kind: 'code-patch', safe: true, diff: unifiedDiff(file, source, afterLines.join('\n')) };
+  return { kind: 'code-patch', safe: false, diff: unifiedDiff(file, source, afterLines.join('\n')) };
 }
 
 function envNameFor(ruleId: string): string {
