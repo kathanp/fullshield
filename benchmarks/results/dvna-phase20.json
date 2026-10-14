@@ -1,0 +1,350 @@
+{
+  "scannedAt": "2026-10-14T21:23:33.654Z",
+  "ms": 810,
+  "summary": {
+    "total": 19,
+    "highCrit": 14,
+    "bySev": {
+      "critical": 3,
+      "high": 11,
+      "medium": 4,
+      "info": 1
+    },
+    "depsReach": {
+      "reachable": 4
+    },
+    "depsVuln": 4
+  },
+  "findings": [
+    {
+      "id": "a6ccf9d9ee70b8a9",
+      "ruleId": "DEPS-VULN-001",
+      "module": "deps",
+      "title": "Vulnerable dependency mathjs@3.10.1",
+      "severity": "critical",
+      "confidence": "high",
+      "file": "package.json",
+      "snippet": "mathjs@3.10.1",
+      "message": "mathjs@3.10.1 is affected by GHSA-pv8x-p9hq-j328 (Arbitrary Code Execution in mathjs).",
+      "remediation": "Upgrade mathjs to 3.17.0 or later (data from OSV).",
+      "references": [
+        "GHSA-pv8x-p9hq-j328",
+        "CVE-2017-1001003"
+      ],
+      "fix": {
+        "kind": "dependency-bump",
+        "safe": true,
+        "diff": "--- a/package.json\n+++ b/package.json\n# bump mathjs from 3.10.1 to 3.17.0\n"
+      },
+      "reachability": "reachable"
+    },
+    {
+      "id": "213b2d178e1bac3c",
+      "ruleId": "DEPS-VULN-001",
+      "module": "deps",
+      "title": "Vulnerable dependency mathjs@3.10.1",
+      "severity": "critical",
+      "confidence": "high",
+      "file": "package.json",
+      "snippet": "mathjs@3.10.1",
+      "message": "mathjs@3.10.1 is affected by GHSA-vx5c-87qx-cv6c (Arbitrary Code Execution in mathjs).",
+      "remediation": "Upgrade mathjs to 3.17.0 or later (data from OSV).",
+      "references": [
+        "GHSA-vx5c-87qx-cv6c",
+        "CVE-2017-1001002"
+      ],
+      "fix": {
+        "kind": "dependency-bump",
+        "safe": true,
+        "diff": "--- a/package.json\n+++ b/package.json\n# bump mathjs from 3.10.1 to 3.17.0\n"
+      },
+      "reachability": "reachable"
+    },
+    {
+      "id": "4c73ed48821c9ee6",
+      "ruleId": "DEPS-VULN-001",
+      "module": "deps",
+      "title": "Vulnerable dependency node-serialize@0.0.4",
+      "severity": "critical",
+      "confidence": "high",
+      "file": "package.json",
+      "snippet": "node-serialize@0.0.4",
+      "message": "node-serialize@0.0.4 is affected by GHSA-q4v7-4rhw-9hqm (Code Execution through IIFE in node-serialize).",
+      "remediation": "Upgrade node-serialize to a version that OSV does not mark as affected.",
+      "references": [
+        "GHSA-q4v7-4rhw-9hqm",
+        "CVE-2017-5941"
+      ],
+      "reachability": "reachable"
+    },
+    {
+      "id": "fdeec6af83b41d43",
+      "ruleId": "SAST-SQLI-001",
+      "module": "sast",
+      "title": "SQL injection via string concatenation",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-89",
+      "file": "core/appHandler.js",
+      "line": 11,
+      "column": 1,
+      "snippet": "db.sequelize.query(query, { model: db.User })",
+      "message": "Tainted input is concatenated into a SQL string passed to query/execute.",
+      "remediation": "SQL injection via string concatenation. See https://cwe.mitre.org/data/definitions/89.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/89.html",
+        "CWE-89"
+      ]
+    },
+    {
+      "id": "12dd9c321d6b2ede",
+      "ruleId": "SAST-CMDI-001",
+      "module": "sast",
+      "title": "Command injection via shell execution",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-78",
+      "file": "core/appHandler.js",
+      "line": 39,
+      "column": 1,
+      "snippet": "exec('ping -c 2 ' + req.body.address, function (err, stdout, stderr) { output = stdout + stderr res.render('app/ping', {",
+      "message": "Tainted input reaches a shell command (exec/execSync/spawn with shell: true).",
+      "remediation": "Command injection via shell execution. See https://cwe.mitre.org/data/definitions/78.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/78.html",
+        "CWE-78"
+      ]
+    },
+    {
+      "id": "1a2889af44946733",
+      "ruleId": "SAST-REDIRECT-001",
+      "module": "sast",
+      "title": "Open redirect",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-601",
+      "file": "core/appHandler.js",
+      "line": 188,
+      "column": 2,
+      "snippet": "res.redirect(req.query.url)",
+      "message": "Tainted input is passed to res.redirect.",
+      "remediation": "Open redirect. See https://cwe.mitre.org/data/definitions/601.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/601.html",
+        "CWE-601"
+      ]
+    },
+    {
+      "id": "9cf6a22ab4c173df",
+      "ruleId": "SAST-EVAL-001",
+      "module": "sast",
+      "title": "Dynamic code execution with a non-literal",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-95",
+      "file": "core/appHandler.js",
+      "line": 197,
+      "column": 11,
+      "snippet": "mathjs.eval(req.body.eqn)",
+      "message": "eval / vm.runInNewContext is called with a non-literal argument.",
+      "remediation": "Dynamic code execution with a non-literal. See https://cwe.mitre.org/data/definitions/95.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/95.html",
+        "CWE-95"
+      ]
+    },
+    {
+      "id": "3f1570d68d62f0bf",
+      "ruleId": "DEPS-VULN-001",
+      "module": "deps",
+      "title": "Vulnerable dependency mathjs@3.10.1",
+      "severity": "high",
+      "confidence": "high",
+      "file": "package.json",
+      "snippet": "mathjs@3.10.1",
+      "message": "mathjs@3.10.1 is affected by GHSA-x2fc-mxcx-w4mf (Prototype Pollution in mathjs).",
+      "remediation": "Upgrade mathjs to 7.5.1 or later (data from OSV).",
+      "references": [
+        "GHSA-x2fc-mxcx-w4mf",
+        "CVE-2020-7743"
+      ],
+      "fix": {
+        "kind": "dependency-bump",
+        "safe": false,
+        "diff": "--- a/package.json\n+++ b/package.json\n# bump mathjs from 3.10.1 to 7.5.1\n"
+      },
+      "reachability": "reachable"
+    },
+    {
+      "id": "099ed4141ec6f6c1",
+      "ruleId": "SAST-XSS-001",
+      "module": "sast",
+      "title": "Reflected XSS via HTML response",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-79",
+      "file": "views/app/products.ejs",
+      "line": 20,
+      "column": 0,
+      "snippet": "Listing products with <strong>search query: </strong> <%- output.searchTerm %>",
+      "message": "Unescaped template interpolation (<%- or {{{) can produce XSS.",
+      "remediation": "Reflected XSS via HTML response. See https://cwe.mitre.org/data/definitions/79.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/79.html",
+        "CWE-79"
+      ]
+    },
+    {
+      "id": "d60effe592e80168",
+      "ruleId": "SAST-XSS-001",
+      "module": "sast",
+      "title": "Reflected XSS via HTML response",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-79",
+      "file": "views/app/products.ejs",
+      "line": 49,
+      "column": 0,
+      "snippet": "<td><%- output.products[i].id %></td>",
+      "message": "Unescaped template interpolation (<%- or {{{) can produce XSS.",
+      "remediation": "Reflected XSS via HTML response. See https://cwe.mitre.org/data/definitions/79.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/79.html",
+        "CWE-79"
+      ]
+    },
+    {
+      "id": "406a59c257482b0e",
+      "ruleId": "SAST-XSS-001",
+      "module": "sast",
+      "title": "Reflected XSS via HTML response",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-79",
+      "file": "views/app/products.ejs",
+      "line": 50,
+      "column": 0,
+      "snippet": "<td><%- output.products[i].name %></td>",
+      "message": "Unescaped template interpolation (<%- or {{{) can produce XSS.",
+      "remediation": "Reflected XSS via HTML response. See https://cwe.mitre.org/data/definitions/79.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/79.html",
+        "CWE-79"
+      ]
+    },
+    {
+      "id": "30384a0e5f0029f7",
+      "ruleId": "SAST-XSS-001",
+      "module": "sast",
+      "title": "Reflected XSS via HTML response",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-79",
+      "file": "views/app/products.ejs",
+      "line": 51,
+      "column": 0,
+      "snippet": "<td><%- output.products[i].code %></td>",
+      "message": "Unescaped template interpolation (<%- or {{{) can produce XSS.",
+      "remediation": "Reflected XSS via HTML response. See https://cwe.mitre.org/data/definitions/79.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/79.html",
+        "CWE-79"
+      ]
+    },
+    {
+      "id": "970ee65d65c77e51",
+      "ruleId": "SAST-XSS-001",
+      "module": "sast",
+      "title": "Reflected XSS via HTML response",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-79",
+      "file": "views/app/products.ejs",
+      "line": 52,
+      "column": 0,
+      "snippet": "<td><%- output.products[i].tags %></td>",
+      "message": "Unescaped template interpolation (<%- or {{{) can produce XSS.",
+      "remediation": "Reflected XSS via HTML response. See https://cwe.mitre.org/data/definitions/79.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/79.html",
+        "CWE-79"
+      ]
+    },
+    {
+      "id": "d4c5fd5180c9820f",
+      "ruleId": "SAST-XSS-001",
+      "module": "sast",
+      "title": "Reflected XSS via HTML response",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-79",
+      "file": "views/app/products.ejs",
+      "line": 53,
+      "column": 0,
+      "snippet": "<td><%- output.products[i].description %></td>",
+      "message": "Unescaped template interpolation (<%- or {{{) can produce XSS.",
+      "remediation": "Reflected XSS via HTML response. See https://cwe.mitre.org/data/definitions/79.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/79.html",
+        "CWE-79"
+      ]
+    },
+    {
+      "id": "c0f7587ebddade13",
+      "ruleId": "CONFIG-DOCKER-ROOT-001",
+      "module": "config",
+      "title": "Dockerfile runs as root",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "Dockerfile",
+      "message": "No USER instruction; the container defaults to root.",
+      "remediation": "Add a non-root USER instruction."
+    },
+    {
+      "id": "e3f8678372e743e8",
+      "ruleId": "CONFIG-RATELIMIT-001",
+      "module": "config",
+      "title": "Auth route without a rate limiter",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "routes/main.js",
+      "line": 10,
+      "message": "Route /login looks like an auth endpoint and has no rate limiter.",
+      "remediation": "Apply express-rate-limit (or similar) to login/auth routes."
+    },
+    {
+      "id": "3482e1b5c1952f4e",
+      "ruleId": "CONFIG-RATELIMIT-001",
+      "module": "config",
+      "title": "Auth route without a rate limiter",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "routes/main.js",
+      "line": 51,
+      "message": "Route /login looks like an auth endpoint and has no rate limiter.",
+      "remediation": "Apply express-rate-limit (or similar) to login/auth routes."
+    },
+    {
+      "id": "9bdd8e4c89fbfd1c",
+      "ruleId": "CONFIG-HELMET-001",
+      "module": "config",
+      "title": "Express app does not use helmet",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "server.js",
+      "message": "An Express app is created but helmet() is never applied.",
+      "remediation": "Add app.use(helmet()) to set standard security headers."
+    },
+    {
+      "id": "b349071ca4b3a2e5",
+      "ruleId": "DEPS-NOLOCK-001",
+      "module": "deps",
+      "title": "No lockfile found",
+      "severity": "info",
+      "confidence": "high",
+      "file": "package.json",
+      "message": "No lockfile found; dependency vulnerabilities were not checked.",
+      "remediation": "Commit package-lock.json, pnpm-lock.yaml, or yarn.lock so FullShield can audit the installed tree. Exact versions pinned in package.json are still queried."
+    }
+  ]
+}

@@ -258,3 +258,9 @@ Virtual patches / honey / egress are experimental runtime/CLI and do not change 
 Supply-chain / `install-guard` is experimental CLI, not a scan module. Default `scan` of NodeGoat/DVNA is unchanged.
 
 **NodeGoat 373 / high+critical 59 unchanged. DVNA 19 unchanged.** JSON: `results/*-phase19.json`.
+
+### After Phase 20
+
+Exploit confirm is experimental CLI (localhost / 127.0.0.1 / FullShield-started container only) and does not change default `scan` findings.
+
+**NodeGoat 373 / high+critical 59 unchanged. DVNA 19 unchanged.** JSON: `results/*-phase20.json`.

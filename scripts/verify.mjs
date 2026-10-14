@@ -63,6 +63,7 @@ const PREVIOUS_PHASE_TESTS = {
   17: 318,
   18: 324,
   19: 341,
+  20: 356,
 };
 
 function listFilesRecursive(dir, out = []) {
@@ -843,6 +844,37 @@ s.listen(0, '127.0.0.1', () => {
     const skipped = await supply.installGuard('lodash');
     if (!skipped.skipped) fail('phase 19 acceptance: installGuard ran without experimental flag');
     console.log('  ✔ seeded malicious package + version-diff new script; registry locked; fail-closed without experimental');
+  },
+  // Phase 20 (spec §19 / §22): confirm seeded vulns locally; refuse any other host.
+  20: async () => {
+    const confirmUrl = pathToFileURL(join(root, 'dist', 'confirm.js')).href;
+    const confirm = await import(confirmUrl);
+    confirm.assertLocalTarget('http://127.0.0.1:9/');
+    confirm.assertLocalTarget('http://localhost/');
+    let refused = 0;
+    for (const u of [
+      'http://example.com/',
+      'http://[::1]/',
+      'http://[2001:db8::1]/',
+      'http://8.8.8.8/',
+      'http://2130706433/',
+    ]) {
+      try {
+        confirm.assertLocalTarget(u, u.includes('example.com') ? { lookup: () => ['93.184.216.34'] } : {});
+      } catch {
+        refused += 1;
+      }
+    }
+    if (refused !== 5) fail(`phase 20 acceptance: expected 5 refusals, got ${refused}`);
+    try {
+      confirm.buildCanary('sql', 'DROP TABLE users');
+      fail('phase 20 acceptance: destructive SQL canary was allowed');
+    } catch {
+      /* expected */
+    }
+    const skipped = await confirm.confirmTarget('http://127.0.0.1:1/', { routes: [] });
+    if (!skipped.skipped) fail('phase 20 acceptance: confirm ran without experimental flag');
+    console.log('  ✔ scope lock refuses non-local (incl. public DNS + IPv6); canaries harmless; off without experimental');
   },
 };
 

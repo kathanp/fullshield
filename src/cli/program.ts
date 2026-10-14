@@ -378,6 +378,25 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     });
 
   program
+    .command('confirm')
+    .description('Experimental exploit confirm (localhost/127.0.0.1/FullShield container only)')
+    .argument('<url>', 'target base URL')
+    .action(async (url: string) => {
+      try {
+        if (process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM !== '1') {
+          throw new Error('confirm requires FULLSHIELD_EXPERIMENTAL_CONFIRM=1');
+        }
+        const { assertLocalTarget, confirmTarget } = await import('../confirm/index.js');
+        assertLocalTarget(url);
+        const result = await confirmTarget(url, { experimental: true, routes: [] });
+        io.out(JSON.stringify({ ok: true, confirmations: result.confirmations }));
+      } catch (error) {
+        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 2;
+      }
+    });
+
+  program
     .command('install')
     .description('Experimental install-guard (requires FULLSHIELD_EXPERIMENTAL_SUPPLY=1)')
     .argument('<pkg>', 'package spec (never executed; analyzed statically)')

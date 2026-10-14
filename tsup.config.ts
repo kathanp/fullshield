@@ -12,6 +12,7 @@ export default defineConfig({
     'runtime/auto': 'src/runtime/auto.ts',
     'runtime/rasp/loader': 'src/runtime/rasp/loader.ts',
     supply: 'src/supply/index.ts',
+    confirm: 'src/confirm/index.ts',
   },
   format: ['esm'],
   platform: 'node',

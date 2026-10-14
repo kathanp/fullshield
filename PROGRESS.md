@@ -561,3 +561,13 @@ Off without `FULLSHIELD_EXPERIMENTAL_VPATCH` / `FULLSHIELD_EXPERIMENTAL_HONEY`.
 Static only: never executes or installs analyzed packages. `fullshield install` requires `FULLSHIELD_EXPERIMENTAL_SUPPLY=1`. Registry host locked to `registry.npmjs.org`. Seeded fixture with `postinstall` + `.npmrc` read + `https.request` → `SUPPLY-INSTALLSCRIPT-001` + `SUPPLY-NPMRC-NET-001`. Version diff v1→v2 flags newly added postinstall/`child_process` (`SUPPLY-BEHAVIOR-001`). Also cooldown, lockfile non-registry URL, private-scope confusion, provenance drop.
 
 **Re-scan:** NodeGoat 373 / high+critical **59** unchanged. DVNA 19 unchanged. JSON: `benchmarks/results/*-phase19.json`.
+
+## Phase 20 — exploit confirm + fuzz + IDOR (localhost only)
+
+**Tests: 356** (was 341).
+
+`fullshield confirm` requires `FULLSHIELD_EXPERIMENTAL_CONFIRM=1`. Scope lock: `localhost` and `127.0.0.1` only, plus a container FullShield registered after starting it. Refuses public DNS names (injected lookup), IPv6 (`[::1]`, `[2001:db8::1]`, mapped), decimal/octal/hex/short IPv4, metadata, `127.0.0.2`. Raw authority is checked so `http://2130706433/` cannot sneak through URL normalization.
+
+Harmless canaries only (`UNION SELECT` marker, `echo` token, planted canary file). Destructive payloads (`DROP`, `rm`, `dd`) are rejected. Seeded local app: SQLi / CMDi / path / IDOR all `confirmed` with `curl` proofs. Fail-open: missing routes stay `unconfirmed`.
+
+**Re-scan:** NodeGoat 373 / high+critical **59** unchanged. DVNA 19 unchanged. JSON: `benchmarks/results/*-phase20.json`.

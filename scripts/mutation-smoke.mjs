@@ -171,6 +171,19 @@ const EXTRA_TARGETS = [
       return src.replace('if (readsNpmrc && hasNet)', 'if (false && readsNpmrc && hasNet)');
     },
   },
+  {
+    name: 'confirm scope lock',
+    file: join(root, 'src', 'confirm', 'index.ts'),
+    apply: (src) => {
+      if (!src.includes('if (isLiteralLocal(rawHost) && isLiteralLocal(host)) return;')) {
+        throw new Error('confirm scope lock site missing');
+      }
+      return src.replace(
+        'if (isLiteralLocal(rawHost) && isLiteralLocal(host)) return;',
+        'if (false && isLiteralLocal(rawHost) && isLiteralLocal(host)) return;',
+      );
+    },
+  },
 ];
 
 for (const extra of EXTRA_TARGETS) {

@@ -260,6 +260,46 @@ describe('CLI wiring (in-process)', () => {
     }
   });
 
+  it('confirm refuses without FULLSHIELD_EXPERIMENTAL_CONFIRM', async () => {
+    const prev = process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM;
+    delete process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM;
+    try {
+      const { err } = await runCli(['confirm', 'http://127.0.0.1:1/']);
+      expect(err).toMatch(/FULLSHIELD_EXPERIMENTAL_CONFIRM/);
+      expect(process.exitCode).toBe(2);
+    } finally {
+      if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM;
+      else process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM = prev;
+    }
+  });
+
+  it('confirm on 127.0.0.1 with experimental prints JSON', async () => {
+    const prev = process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM;
+    process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM = '1';
+    try {
+      const { out, err } = await runCli(['confirm', 'http://127.0.0.1:9/']);
+      expect(err).toBe('');
+      const parsed = JSON.parse(out) as { ok: boolean };
+      expect(parsed.ok).toBe(true);
+    } finally {
+      if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM;
+      else process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM = prev;
+    }
+  });
+
+  it('confirm refuses a public hostname', async () => {
+    const prev = process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM;
+    process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM = '1';
+    try {
+      const { err } = await runCli(['confirm', 'http://example.com/']);
+      expect(err).toMatch(/refused/);
+      expect(process.exitCode).toBe(2);
+    } finally {
+      if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM;
+      else process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM = prev;
+    }
+  });
+
   it('install on a clean local dir prints the ignore-scripts next step', async () => {
     const prev = process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY;
     process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY = '1';
