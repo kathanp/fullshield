@@ -8,7 +8,7 @@ import { sastModule } from '../modules/sast/index.js';
 import { secretsModule } from '../modules/secrets/index.js';
 import { applyExplain, applyTriage } from '../ai/triage.js';
 import { runLogicHunt } from '../ai/logic.js';
-import { createAiClient } from '../ai/provider.js';
+import { createAiClient, isLiveAi } from '../ai/provider.js';
 import { applyBaseline, readBaseline, writeBaseline } from './baseline.js';
 import { loadConfig, type ResolvedConfig } from './config.js';
 import { walkFiles } from './fileWalker.js';
@@ -112,6 +112,13 @@ export async function runScan(
   if (options.offline === true) {
     config = { ...config, deps: { ...config.deps, offline: true } };
   }
+  const maxRaw = process.env.FULLSHIELD_AI_MAX_FINDINGS;
+  if (maxRaw !== undefined && maxRaw.length > 0) {
+    const maxFindings = Number(maxRaw);
+    if (Number.isFinite(maxFindings) && maxFindings >= 1) {
+      config = { ...config, ai: { ...config.ai, maxFindings } };
+    }
+  }
   const modulesRequested = options.modules ?? config.modules;
   let files = await walkFiles({ cwd, ignore: config.ignore });
   if (options.staged === true) {
@@ -154,7 +161,11 @@ export async function runScan(
     aiMode === 'logic' ||
     config.ai.enabled;
   if (aiEnabled) {
-    const client = createAiClient({ enabled: true, config: { ...config.ai, enabled: true } });
+    const client = createAiClient({
+      enabled: true,
+      config: { ...config.ai, enabled: true },
+      useFixtures: !isLiveAi(),
+    });
     const mode = typeof aiMode === 'string' ? aiMode : undefined;
     if (mode === 'triage') {
       findings = await applyTriage(findings, client, config.ai, sources);

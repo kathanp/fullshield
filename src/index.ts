@@ -42,6 +42,8 @@ export type { WalkOptions } from './core/fileWalker.js';
 export { packageVersion } from './core/version.js';
 export { runFix } from './fixer/index.js';
 export type { FixOptions, FixPatch, FixResult } from './fixer/index.js';
+export { createAiClient, isLiveAi } from './ai/provider.js';
+export { runAiFix } from './ai/fixLoop.js';
 export { applyBaseline, readBaseline, writeBaseline } from './core/baseline.js';
 export type { BaselineFile } from './core/baseline.js';
 export { applyInlineSuppressions, parseIgnore } from './core/suppression.js';

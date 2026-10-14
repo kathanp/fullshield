@@ -1,0 +1,318 @@
+{
+  "model": "qwen2.5-coder:7b",
+  "host": "http://127.0.0.1:11434",
+  "startedAt": "2026-10-14T19:51:03.323Z",
+  "jobs": [
+    {
+      "name": "vulnerable-app --ai triage",
+      "ms": 122795,
+      "ok": true,
+      "value": {
+        "total": 34,
+        "labeled": 8,
+        "explained": 0,
+        "aiAdded": 0,
+        "verdicts": {
+          "true-positive": 4,
+          "likely-false-positive": 2,
+          "needs-review": 2
+        },
+        "labeledSample": [
+          {
+            "ruleId": "DEPS-VULN-001",
+            "file": "package-lock.json",
+            "severity": "critical",
+            "aiVerdict": "likely-false-positive",
+            "reasoning": "The presence of 'expresss' as a dependency seems to be a typo and may not be a real vulnerability. Further investigation is required to confirm the existence and impact of this dependency."
+          },
+          {
+            "ruleId": "SECRET-ENVFILE-001",
+            "file": ".env",
+            "severity": "high",
+            "aiVerdict": "likely-false-positive",
+            "reasoning": "The content appears to be a simulated or fake .env file for testing purposes, with clear indications that all values are fake and not intended for production use. Therefore, it is unlikely to be an actual security threat."
+          },
+          {
+            "ruleId": "SECRET-DBURL-001",
+            "file": ".env",
+            "severity": "high",
+            "aiVerdict": "needs-review",
+            "reasoning": "The provided content contains sensitive information such as a database URL and a JWT secret. This information should not be exposed in code, especially in a publicly accessible or shared context."
+          },
+          {
+            "ruleId": "CONFIG-DOCKER-ENV-001",
+            "file": "Dockerfile",
+            "severity": "high",
+            "aiVerdict": "true-positive",
+            "reasoning": "The Dockerfile does not set a non-root user, which can lead to security risks if the application is not designed to run as root."
+          },
+          {
+            "ruleId": "SAST-SQLI-001",
+            "file": "src/data/alloc-dao.js",
+            "severity": "high",
+            "aiVerdict": "needs-review",
+            "reasoning": "The SQL query in the function `byThreshold` is vulnerable to SQL Injection. The `threshold` parameter is directly concatenated into the SQL query without proper sanitization or parameterized queries, which can lead to malicious SQL code exe"
+          },
+          {
+            "ruleId": "CONFIG-CORS-001",
+            "file": "src/index.js",
+            "severity": "high",
+            "aiVerdict": "true-positive",
+            "reasoning": "The code contains several known vulnerabilities that can be exploited, including SQL injection (SAST-SQLI-001), path traversal (SAST-PATH-001), command injection (SAST-CMDI-001), eval of non-literal input (SAST-EVAL-001), lack of JWT verifi"
+          },
+          {
+            "ruleId": "SAST-SQLI-001",
+            "file": "src/index.js",
+            "severity": "high",
+            "aiVerdict": "true-positive",
+            "reasoning": "The code contains multiple security vulnerabilities including SQL injection, path traversal, command injection, script evaluation, cryptographic weaknesses, hardcoded secrets, authentication bypass, NoSQL injection, SSRF, open redirects, pr"
+          },
+          {
+            "ruleId": "SAST-PATH-001",
+            "file": "src/index.js",
+            "severity": "high",
+            "aiVerdict": "true-positive",
+            "reasoning": "The code contains multiple known vulnerabilities, including SQL Injection, Command Injection, File Path Traversal, Server-Side Request Forgery, Open Redirect, and Cross-Site Scripting. These are all detected by the SAST-PATH-001 rule."
+          }
+        ],
+        "aiSample": [],
+        "explainedSample": []
+      }
+    },
+    {
+      "name": "vulnerable-app --ai explain",
+      "ms": 108711,
+      "ok": true,
+      "value": {
+        "total": 34,
+        "labeled": 0,
+        "explained": 8,
+        "aiAdded": 0,
+        "verdicts": {
+          "true-positive": 0,
+          "likely-false-positive": 0,
+          "needs-review": 0
+        },
+        "labeledSample": [],
+        "aiSample": [],
+        "explainedSample": [
+          {
+            "ruleId": "DEPS-VULN-001",
+            "explanation": "This JSON represents the package dependencies of a vulnerable application named 'vulnerable-app-fixture'. It lists the versions of various packages installed, including 'express', 'expresss', 'lodash', and 'minimist'. However, 'expresss' is incorrectly spelled as 'expresss' instead of 'express'. This typo could lead to"
+          },
+          {
+            "ruleId": "SECRET-ENVFILE-001",
+            "explanation": "The text you provided is a sample environment file for a software application. It contains sensitive information that should not be shared or exposed. The file includes a fake database URL and a fake JWT secret key. These are placeholders used for testing or demonstration purposes. In a real-world scenario, these value"
+          },
+          {
+            "ruleId": "SECRET-DBURL-001",
+            "explanation": "This code contains sensitive information that should not be shared or committed to version control systems. It includes database credentials and a JWT secret. Always ensure that sensitive data is properly redacted and not exposed in your codebase."
+          },
+          {
+            "ruleId": "CONFIG-DOCKER-ENV-001",
+            "explanation": "This Dockerfile is intentionally flawed to demonstrate security best practices. It uses the latest Node.js image, which can be outdated and pose security risks. It sets an environment variable for the API secret using 'fixture-not-a-real-secret', which is not secure. The working directory is set to '/app', and all file"
+          },
+          {
+            "ruleId": "SAST-SQLI-001",
+            "explanation": "This code is using SQL queries directly, which can lead to SQL Injection vulnerabilities. It's important to use parameterized queries to prevent this. The code should be modified to use a method like `db.query('SELECT * FROM alloc WHERE value > ?', [threshold])` to safely pass the threshold value as a parameter."
+          },
+          {
+            "ruleId": "CONFIG-CORS-001",
+            "explanation": "This code is intentionally vulnerable to demonstrate common security issues. It includes open redirect, SQL injection, cross-site scripting, and other risks. Never use this code in production."
+          }
+        ]
+      }
+    },
+    {
+      "name": "vulnerable-app --ai logic",
+      "ms": 30384,
+      "ok": true,
+      "value": {
+        "total": 36,
+        "labeled": 0,
+        "explained": 0,
+        "aiAdded": 2,
+        "verdicts": {
+          "true-positive": 0,
+          "likely-false-positive": 0,
+          "needs-review": 0
+        },
+        "labeledSample": [],
+        "aiSample": [
+          {
+            "ruleId": "AI-IDOR-001",
+            "file": "src/index.js",
+            "message": "The /user route does not perform ownership checks on the requested user ID, allowing potential IDOR."
+          },
+          {
+            "ruleId": "AI-MASSASSIGN-001",
+            "file": "src/index.js",
+            "message": "The /settings route uses a recursive merge function without proper validation, which could lead to mass assignment vulnerabilities."
+          }
+        ],
+        "explainedSample": []
+      }
+    },
+    {
+      "name": "vulnerable-app fix --ai",
+      "ms": 6188,
+      "ok": true,
+      "value": {
+        "accepted": false,
+        "attempts": 2,
+        "diff": "--- a/.env\n+++ b/.env\n@@ -1,4 +1,4 @@\n-# SECRET-ENVFILE-001: committed .env fixture. All values are obviously fake.\n-DATABASE_URL=postgres://admin:fake-password-fixture@localhost:5432/app\n-JWT_SECRET=totally-fake-fixture-jwt-secret-value\n-\n+SECRET-DBURL-001\n+.env\n+# Database connection string with inline password (fake****).\n+DB_URL=postgres://user:***@localhost/db",
+        "file": ".env"
+      }
+    },
+    {
+      "name": "NodeGoat --ai triage (sast,config,secrets)",
+      "ms": 107330,
+      "ok": true,
+      "value": {
+        "total": 14,
+        "labeled": 8,
+        "explained": 0,
+        "aiAdded": 0,
+        "verdicts": {
+          "true-positive": 0,
+          "likely-false-positive": 6,
+          "needs-review": 2
+        },
+        "labeledSample": [
+          {
+            "ruleId": "SECRET-PRIVKEY-001",
+            "file": "artifacts/cert/server.key",
+            "severity": "critical",
+            "aiVerdict": "likely-false-positive",
+            "reasoning": "The content appears to be a string of characters that resembles a private key. However, without additional context or validation, it cannot be confirmed as a genuine RSA private key. It's possible this is a placeholder or a test string."
+          },
+          {
+            "ruleId": "SAST-NOSQLI-001",
+            "file": "app/data/allocations-dao.js",
+            "severity": "high",
+            "aiVerdict": "likely-false-positive",
+            "reasoning": "The code attempts to use `$where` to execute JavaScript code, which is generally a risk for NoSQL injection. However, the input parameter `threshold` is being properly escaped by wrapping it in single quotes, which mitigates the risk of NoS"
+          },
+          {
+            "ruleId": "SAST-EVAL-001",
+            "file": "app/routes/contributions.js",
+            "severity": "high",
+            "aiVerdict": "likely-false-positive",
+            "reasoning": "The use of eval() to parse inputs is not necessarily malicious. However, it is generally unsafe and should be avoided if possible. The code attempts to mitigate this by checking if the parsed values are NaN or less than 0, which is a good p"
+          },
+          {
+            "ruleId": "SAST-EVAL-001",
+            "file": "app/routes/contributions.js",
+            "severity": "high",
+            "aiVerdict": "likely-false-positive",
+            "reasoning": "The use of eval() to parse inputs is not necessarily malicious. However, it is generally unsafe and should be avoided if possible. The code attempts to mitigate this by checking if the parsed values are NaN or less than 0, which is a good p"
+          },
+          {
+            "ruleId": "SAST-EVAL-001",
+            "file": "app/routes/contributions.js",
+            "severity": "high",
+            "aiVerdict": "likely-false-positive",
+            "reasoning": "The use of eval() to parse inputs is not necessarily malicious. However, it is generally unsafe and should be avoided if possible. The code attempts to mitigate this by checking if the parsed values are NaN or less than 0, which is a good p"
+          },
+          {
+            "ruleId": "SAST-REDIRECT-001",
+            "file": "app/routes/index.js",
+            "severity": "high",
+            "aiVerdict": "needs-review",
+            "reasoning": "The code contains an insecure redirect vulnerability. The `learn` route handler is vulnerable to open redirects because it directly uses the URL from the query string without validation or sanitization. This can allow an attacker to redirec"
+          },
+          {
+            "ruleId": "SAST-SSRF-001",
+            "file": "app/routes/research.js",
+            "severity": "high",
+            "aiVerdict": "needs-review",
+            "reasoning": "The code is making an HTTP GET request to a URL constructed from user input (req.query.url and req.query.symbol). This can be vulnerable to Server-Side Request Forgery (SSRF) if the input is not properly sanitized."
+          },
+          {
+            "ruleId": "CONFIG-ERRSTACK-001",
+            "file": "app/routes/error.js",
+            "severity": "medium",
+            "aiVerdict": "likely-false-positive",
+            "reasoning": "The provided code snippet is an error handling middleware for a web application. It logs the error message and stack trace to the console and renders an error template with the error object. This is a common practice for handling errors in "
+          }
+        ],
+        "aiSample": [],
+        "explainedSample": []
+      }
+    },
+    {
+      "name": "NodeGoat --ai explain (sast,config,secrets)",
+      "ms": 85979,
+      "ok": true,
+      "value": {
+        "total": 14,
+        "labeled": 0,
+        "explained": 8,
+        "aiAdded": 0,
+        "verdicts": {
+          "true-positive": 0,
+          "likely-false-positive": 0,
+          "needs-review": 0
+        },
+        "labeledSample": [],
+        "aiSample": [],
+        "explainedSample": [
+          {
+            "ruleId": "SECRET-PRIVKEY-001",
+            "explanation": "The text you provided is a private RSA key, which is a type of cryptographic key used for secure communications. It contains sensitive information that should never be shared or exposed. If you see something like this, it's important to treat it as confidential and follow all security best practices."
+          },
+          {
+            "ruleId": "SAST-NOSQLI-001",
+            "explanation": "This code defines an AllocationsDAO class for managing allocations in a database. It includes methods to update allocations and retrieve allocations based on a user ID and threshold. However, the code is vulnerable to NoSQL injection due to the use of unescaped parameters in the search criteria. This can be exploited b"
+          },
+          {
+            "ruleId": "SAST-EVAL-001",
+            "explanation": "This code defines a handler for handling contributions in a web application. It includes methods to display contributions and update contributions. However, it uses `eval()` to parse user input, which can lead to security vulnerabilities. The code also lacks input validation, which could allow invalid or malicious data"
+          },
+          {
+            "ruleId": "SAST-EVAL-001",
+            "explanation": "This code defines a handler for handling contributions in a web application. It includes methods to display contributions and update contributions. However, it uses `eval()` to parse user input, which can lead to security vulnerabilities. The code also lacks input validation, which could allow invalid or malicious data"
+          },
+          {
+            "ruleId": "SAST-EVAL-001",
+            "explanation": "This code defines a handler for handling contributions in a web application. It includes methods to display contributions and update contributions. However, it uses `eval()` to parse user input, which can lead to security vulnerabilities. The code also lacks input validation, which could allow invalid or malicious data"
+          },
+          {
+            "ruleId": "SAST-REDIRECT-001",
+            "explanation": "The provided code sets up routes for a web application using Express.js. It includes handlers for sessions, profiles, benefits, contributions, allocations, memos, research, and tutorials. Each route is protected by middleware to check if the user is logged in and, optionally, if the user has admin rights. Routes for ha"
+          }
+        ]
+      }
+    },
+    {
+      "name": "NodeGoat --ai logic (sast)",
+      "ms": 23175,
+      "ok": true,
+      "value": {
+        "total": 6,
+        "labeled": 0,
+        "explained": 0,
+        "aiAdded": 0,
+        "verdicts": {
+          "true-positive": 0,
+          "likely-false-positive": 0,
+          "needs-review": 0
+        },
+        "labeledSample": [],
+        "aiSample": [],
+        "explainedSample": []
+      }
+    },
+    {
+      "name": "NodeGoat fix --ai",
+      "ms": 13083,
+      "ok": true,
+      "value": {
+        "accepted": false,
+        "attempts": 2,
+        "diff": "--- a/artifacts/cert/server.key\n+++ b/artifacts/cert/server.key\n@@ -1,16 +1,1 @@\n-<REDACTED RSA PRIVATE KEY — model proposed deleting the file contents>\n+",
+        "file": "artifacts/cert/server.key"
+      }
+    }
+  ]
+}

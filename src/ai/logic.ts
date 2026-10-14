@@ -1,15 +1,25 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { Finding } from '../core/finding.js';
+import { makeFindingId, type Finding } from '../core/finding.js';
 import { asAiFinding, fixtureLogic } from './fixtures.js';
+import { asLogicFindings } from './parse.js';
 import type { AiClient } from './provider.js';
 
 const ROUTE_FILE = /(^|\/)(routes?|handlers?|controllers?)\//;
 
+function clampAiFinding(finding: Finding): Finding {
+  return {
+    ...finding,
+    source: 'ai',
+    confidence: 'medium',
+    severity: finding.severity === 'low' ? 'low' : 'medium',
+  };
+}
+
 /**
- * Recorded-fixture logic hunter (IDOR, mass assignment). Findings are
- * `source: 'ai'`, confidence ≤ medium, and never fail CI.
+ * Logic hunter (IDOR, mass assignment). Findings are `source: 'ai'`,
+ * confidence ≤ medium, and never fail CI.
  */
 export async function runLogicHunt(
   cwd: string,
@@ -45,6 +55,30 @@ export async function runLogicHunt(
   if (prompt.length === 0) return [];
   const res = await client.complete({ mode: 'logic', prompt });
   if (res === null) return [];
+
+  if (!client.useFixtures) {
+    const live = asLogicFindings(res.json) ?? [];
+    const known = new Set(fileTexts.map((f) => f.file));
+    return live
+      .filter((row) => row.file === undefined || known.has(row.file))
+      .map((row) =>
+        clampAiFinding({
+          id: makeFindingId(row.ruleId, row.file, row.message),
+          ruleId: row.ruleId,
+          module: 'sast',
+          title: row.title,
+          severity: row.severity ?? 'medium',
+          confidence: 'medium',
+          file: row.file,
+          line: row.line,
+          message: row.message,
+          remediation: row.title,
+          references: [row.ruleId],
+          source: 'ai',
+        }),
+      );
+  }
+
   const seeds = fixtureLogic(prompt);
   const findings: Finding[] = [];
   for (const seed of seeds) {

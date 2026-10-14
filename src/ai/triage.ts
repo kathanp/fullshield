@@ -2,6 +2,7 @@ import type { Finding } from '../core/finding.js';
 import { severityRank } from '../core/finding.js';
 import type { AiConfig } from '../core/config.js';
 import { fixtureExplain, fixtureTriage } from './fixtures.js';
+import { asExplanation, asTriage } from './parse.js';
 import type { AiClient } from './provider.js';
 
 function cap(findings: readonly Finding[], max: number): Finding[] {
@@ -11,8 +12,9 @@ function cap(findings: readonly Finding[], max: number): Finding[] {
 }
 
 /**
- * Label findings from recorded (or live) triage JSON. Never removes a
- * finding — high/critical stay even if the model says likely-false-positive.
+ * Label findings. Fixture mode uses recorded labels. Live mode uses the
+ * model's JSON. Never removes a finding — high/critical stay even if the
+ * model says likely-false-positive.
  */
 export async function applyTriage(
   findings: Finding[],
@@ -28,10 +30,18 @@ export async function applyTriage(
       prompt: `${finding.ruleId}\n${snippet}`,
     });
     if (res === null) continue;
-    const label = fixtureTriage(finding.ruleId);
-    finding.aiVerdict = label.verdict;
-    finding.aiReasoning = label.reasoning;
-    finding.exploitScenario = label.exploitScenario;
+    if (client.useFixtures) {
+      const label = fixtureTriage(finding.ruleId);
+      finding.aiVerdict = label.verdict;
+      finding.aiReasoning = label.reasoning;
+      finding.exploitScenario = label.exploitScenario;
+      continue;
+    }
+    const live = asTriage(res.json);
+    if (live === undefined) continue;
+    finding.aiVerdict = live.verdict;
+    finding.aiReasoning = live.reasoning;
+    finding.exploitScenario = live.exploitScenario;
   }
   return findings;
 }
@@ -50,7 +60,12 @@ export async function applyExplain(
       prompt: `${finding.ruleId}\n${snippet}`,
     });
     if (res === null) continue;
-    finding.explanation = fixtureExplain(finding.ruleId);
+    if (client.useFixtures) {
+      finding.explanation = fixtureExplain(finding.ruleId);
+      continue;
+    }
+    const text = asExplanation(res.json);
+    if (text !== undefined) finding.explanation = text;
   }
   return findings;
 }

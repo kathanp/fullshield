@@ -54,6 +54,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "vitest run test/e2e",
+    "test:live-ai": "npm run build && node scripts/live-ai.mjs",
     "bench": "node scripts/bench.mjs",
     "verify": "node scripts/verify.mjs",
     "verify:phase": "node scripts/verify.mjs --phase"

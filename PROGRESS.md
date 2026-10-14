@@ -458,3 +458,18 @@ baselines and flags 401 spikes, new param names, and 404 bursts (no LLM).
 **Benchmark:** NodeGoat 373 / DVNA 19 unchanged vs harden-3. High+critical **59**.
 
 **Stopped here per the mandatory Phase 16 gate.** Nothing was pushed to GitHub.
+
+## harden-4-1 — live AI smoke
+
+The Phase 14–16 provider called a model (or a fixture) and then ignored the JSON
+and applied recorded labels. Live mode now uses `src/ai/parse.ts` against
+Ollama `POST /api/chat` (`format: json`). Opt-in: `FULLSHIELD_AI_LIVE=1` only.
+`npm run test:live-ai` is **not** in `verify` / CI.
+
+**Real run (qwen2.5-coder:7b, 507s, exit 0):** 8-finding smoke cap. vulnerable-app
+triage 4/8 TP verdicts, 2 wrong LFPs. NodeGoat triage **0/8 TP**, 6 known TPs
+marked LFP. Logic: 2 wrong-class hits on vulnerable-app, **0** on NodeGoat
+(missed A4 IDOR). `fix --ai` accepted **no** patch on either target (verify loop
+rejected both). Details: `benchmarks/AI-REPORT.md`.
+
+Recorded fixtures were not changed.

@@ -20,7 +20,7 @@ import {
   type ModuleName,
   type Severity,
 } from '../core/finding.js';
-import { createAiClient } from '../ai/provider.js';
+import { createAiClient, isLiveAi } from '../ai/provider.js';
 import { runAiFix } from '../ai/fixLoop.js';
 import { packageVersion } from '../core/version.js';
 import { renderConsoleReport } from '../reporters/console.js';
@@ -166,7 +166,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       try {
         const modules = opts.modules !== undefined ? parseModules(opts.modules) : undefined;
         if (opts.ai === true) {
-          const client = createAiClient({ enabled: true, useFixtures: true });
+          const client = createAiClient({ enabled: true, useFixtures: !isLiveAi() });
           const aiFix = await runAiFix({ cwd: resolve(path), client });
           if (!aiFix.accepted) {
             io.out('No verified AI patch (finding remained, new findings appeared, or tests failed).');

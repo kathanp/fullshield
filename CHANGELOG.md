@@ -2,6 +2,10 @@
 
 All notable changes to FullShield are documented here.
 
+## Unreleased — harden-4-1
+
+- Live AI path: `--ai` and `fix --ai` parse the model's JSON when `FULLSHIELD_AI_LIVE=1`. `npm run test:live-ai` talks to local Ollama (`qwen2.5-coder:7b`) and is never run by CI. Honest results: [`benchmarks/AI-REPORT.md`](benchmarks/AI-REPORT.md).
+
 ## Unreleased — phase-16
 
 - `scan --ai logic`: recorded-fixture IDOR / mass-assignment hunter. Findings are `source: ai`, confidence medium, and never fail CI.
