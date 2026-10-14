@@ -2,6 +2,10 @@
 
 All notable changes to FullShield are documented here.
 
+## Unreleased — harden-4-5
+
+- README marks all `--ai` features experimental. `AI-INJECT-001` is documented as a basic three-phrase comment heuristic, not a prompt-injection defense.
+
 ## Unreleased — harden-4-4
 
 - Mutation-smoke now disables EDGE-*, AI-INJECT-001, DEPS-NOLOCK-001, and interproc taint in addition to the original SAST/secrets rules.

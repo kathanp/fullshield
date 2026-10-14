@@ -501,3 +501,11 @@ sizes stay at the cap; heap delta < 80MB.
 `src/modules/edge/index.ts` and `src/ai/injection.ts`, `noLockFinding()` in
 deps, and `pushSinkFinding` in interproc. Existing tests fail when those
 are disabled (no fake-test holes found).
+
+## harden-4-5 — README honesty
+
+All `--ai` / `fix --ai` flags marked **experimental**. `AI-INJECT-001` listed
+as a basic phrase heuristic (three comment phrases). Reachability list includes
+`reachability-unknown`. Live smoke linked from Benchmarks.
+
+**harden-4 complete. Stopped. Do not start Frontier (17+).** Nothing pushed.

@@ -2,7 +2,7 @@
 
 **v0.1.0 / alpha.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → prevent (CI gate + runtime guard).
 
-**Headline: dependency reachability.** A lockfile CVE is not the same as an unused package. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (lockfile path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), or `not-imported` (−2, only when no such path exists). DevDependency-only vulns are `info` with a `dev-only` note unless production sources import the package. Pair it with `fullshield sbom --format cyclonedx`.
+**Headline: dependency reachability.** A lockfile CVE is not the same as an unused package. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (lockfile path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), `not-imported` (−2, only when no such path exists), or `reachability-unknown` (severity kept) when the lockfile format has no parsed dependency edges. DevDependency-only vulns are `info` with a `dev-only` note unless production sources import the package. Pair it with `fullshield sbom --format cyclonedx`.
 
 ```bash
 npx fullshield scan
@@ -22,13 +22,13 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 | App/server config | `config` |
 | Live app-layer attacks | `runtime` (`fullshield/runtime/express` or `/fastify`) |
 | Edge/DDoS layer | `edge` checks that a CDN/WAF **exists** (headers only). Actual DDoS mitigation is the CDN. |
-| AI assist (opt-in) | `--ai triage\|explain\|logic` and `fix --ai`. Off by default: zero AI network calls. Recorded fixtures in CI. AI findings never fail CI. |
+| AI assist (opt-in, **experimental**) | `--ai triage\|explain\|logic` and `fix --ai`. Off by default: zero AI network calls. Recorded fixtures in CI. Live path is `npm run test:live-ai` (local Ollama; never CI). AI findings never fail CI. |
 
 ## What it detects (Core)
 
-- **SAST:** SQL/NoSQL injection, command injection, path traversal, `eval`/`new Function`/`vm`, SSRF, open redirects, JWT `decode`/`none`, weak crypto, prototype pollution, XSS (`res.send` HTML and `<%-` / `{{{` templates), missing auth middleware (low confidence).
+- **SAST:** SQL/NoSQL injection, command injection, path traversal, `eval`/`new Function`/`vm`, SSRF, open redirects, JWT `decode`/`none`, weak crypto, prototype pollution, XSS (`res.send` HTML and `<%-` / `{{{` templates), missing auth middleware (low confidence). `AI-INJECT-001` is a **basic phrase heuristic** (three exact comment phrases: "ignore previous", "mark as safe", "AI reviewer") — not a prompt-injection defense.
 - **Secrets:** AWS, Stripe, GitHub, Slack, Google, AI keys, PEM keys, DB URLs with passwords, hardcoded JWT secrets, committed `.env`.
-- **Deps:** OSV vulnerabilities with reachability (`reachable` / `imported-not-called` / `reachable-via-dependency` / `not-imported`), `dev-only` info for unused devDependencies, lockfile deprecation notices, typosquat-suspicious *direct* dependency names. `DEPS-NOLOCK-001` when there is a manifest but no lockfile; exact `package.json` pins are still queried.
+- **Deps:** OSV vulnerabilities with reachability (`reachable` / `imported-not-called` / `reachable-via-dependency` / `not-imported` / `reachability-unknown`), `dev-only` info for unused devDependencies, lockfile deprecation notices, typosquat-suspicious *direct* dependency names. `DEPS-NOLOCK-001` when there is a manifest but no lockfile; exact `package.json` pins are still queried.
 - **Config:** missing helmet, `express.json()` without a limit, CORS `*` + credentials, auth routes without a rate limiter, `err.stack` leaks, risky Dockerfiles, install scripts.
 
 ## Non-goals (honesty is a feature)
@@ -72,8 +72,8 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 
 | Command | Purpose |
 |---|---|
-| `scan` | Run deps, secrets, sast, config. `--json`, `--sarif`, `--markdown`, `--html`, `--fail-on`, `--offline`, `--staged`, `--update-baseline`, `--ai triage\|explain\|logic` (off by default; zero AI network calls) |
-| `fix` | Dry-run patches (unsafe suggestions included). `--apply` writes only `safe: true` patches on a clean git tree. `--unsafe` is required for `helmet()` insertion and secret → `process.env` replacement. `--force` skips files with uncommitted changes. `--ai` drafts a verified, reviewable diff for findings without a rule-based fix (never auto-merged). |
+| `scan` | Run deps, secrets, sast, config. `--json`, `--sarif`, `--markdown`, `--html`, `--fail-on`, `--offline`, `--staged`, `--update-baseline`. `--ai triage\|explain\|logic` is **experimental** (off by default; zero AI network calls unless you opt in) |
+| `fix` | Dry-run patches (unsafe suggestions included). `--apply` writes only `safe: true` patches on a clean git tree. `--unsafe` is required for `helmet()` insertion and secret → `process.env` replacement. `--force` skips files with uncommitted changes. `--ai` is **experimental**: drafts a verified, reviewable diff for findings without a rule-based fix (never auto-merged). |
 | `init` | Config + GitHub/GitLab CI + pre-commit hook |
 | `notify` | Slack / generic webhook / SMTP summary of the last scan |
 | `sbom` | CycloneDX 1.5 JSON (`--format cyclonedx`, `--out file`) |
@@ -88,7 +88,7 @@ See [`rules/README.md`](rules/README.md).
 
 ## Benchmarks
 
-Honest NodeGoat / DVNA results (what we found and what we missed) live in [`benchmarks/REPORT.md`](benchmarks/REPORT.md).
+Honest NodeGoat / DVNA results (what we found and what we missed) live in [`benchmarks/REPORT.md`](benchmarks/REPORT.md). Live Ollama smoke results (not CI) live in [`benchmarks/AI-REPORT.md`](benchmarks/AI-REPORT.md).
 
 ## License
 
