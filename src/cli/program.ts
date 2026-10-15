@@ -60,6 +60,8 @@ interface ScanCliOptions {
   since?: string;
   experimentalSastGaps?: boolean;
   experimentalFrameworks?: boolean;
+  experimentalMcpcfg?: boolean;
+  includeHome?: boolean;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -127,6 +129,14 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       '--experimental-frameworks',
       'experimental: Next.js / NestJS / Hono / Koa taint + AUTH (FULLSHIELD_EXPERIMENTAL_FRAMEWORKS=1)',
     )
+    .option(
+      '--experimental-mcpcfg',
+      'experimental: MCP client/server config rules (FULLSHIELD_EXPERIMENTAL_MCPCFG=1)',
+    )
+    .option(
+      '--include-home',
+      'experimental: also scan MCP configs in the home directory (requires FULLSHIELD_EXPERIMENTAL_MCPCFG=1)',
+    )
     .action(async (path: string, opts: ScanCliOptions) => {
       try {
         const failOnOverride = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;
@@ -138,10 +148,14 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         if (opts.experimentalFrameworks === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_FRAMEWORKS = '1';
         }
+        if (opts.experimentalMcpcfg === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_MCPCFG = '1';
+        }
 
         const result = await scan({
           cwd: resolve(path),
           modules,
+          includeHome: opts.includeHome === true,
           configPath: opts.config,
           staged: opts.staged === true,
           offline: opts.offline === true || opts.offlineSafe === true,

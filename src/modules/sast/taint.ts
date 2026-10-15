@@ -20,6 +20,7 @@ import {
   nestInputDecorator,
 } from './frameworks.js';
 import { frameworksEnabled } from './experimental.js';
+import { isMcpArgsTaintSource, isMcpToolHandler } from './mcp.js';
 import type { AstNode } from './types.js';
 
 export type SinkSanitizer = 'url' | 'xss';
@@ -103,7 +104,9 @@ function exprIsTainted(
   returners: ReadonlySet<string> = NO_RETURNERS,
 ): boolean {
   if (node === undefined) return false;
-  if (isTaintSource(node) || isFrameworkMemberTaint(node) || isFrameworkTaintCall(node)) return true;
+  if (isTaintSource(node) || isFrameworkMemberTaint(node) || isFrameworkTaintCall(node) || isMcpArgsTaintSource(node)) {
+    return true;
+  }
   switch (node.type) {
     case 'AwaitExpression':
       return exprIsTainted(node.argument, tainted, returners);
@@ -228,6 +231,13 @@ function seedFrameworkParams(scope: AstNode, tainted: Set<string>): void {
   }
 }
 
+function seedMcpToolParams(scope: AstNode, tainted: Set<string>): void {
+  if (!isFunctionNode(scope) || !isMcpToolHandler(scope)) return;
+  for (const param of scope.params) {
+    for (const name of boundNames(param)) tainted.add(name);
+  }
+}
+
 function analyzeScope(
   scope: AstNode,
   seed: Iterable<string> = [],
@@ -236,6 +246,7 @@ function analyzeScope(
   const tainted = new Set<string>(seed);
   seedDestructuredRequestParams(scope, tainted);
   seedFrameworkParams(scope, tainted);
+  seedMcpToolParams(scope, tainted);
   const urlSanitized = new Set<string>();
   const xssSanitized = new Set<string>();
   const nosqlSanitized = new Set<string>();

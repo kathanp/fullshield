@@ -7,3 +7,8 @@ export function sastGapsEnabled(): boolean {
 export function frameworksEnabled(): boolean {
   return process.env.FULLSHIELD_EXPERIMENTAL_FRAMEWORKS === '1';
 }
+
+/** Phase 33 MCP config/taint. Off unless FULLSHIELD_EXPERIMENTAL_MCPCFG=1. */
+export function mcpCfgEnabled(): boolean {
+  return process.env.FULLSHIELD_EXPERIMENTAL_MCPCFG === '1';
+}

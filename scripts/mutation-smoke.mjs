@@ -204,6 +204,16 @@ const EXTRA_TARGETS = [
       return src.replaceAll("'LLM-001'", "'LLM-DISABLED'");
     },
   },
+  {
+    name: 'MCP-001',
+    file: join(root, 'src', 'modules', 'mcp', 'index.ts'),
+    apply: (src) => {
+      if (!src.includes("'MCP-001'")) {
+        throw new Error('MCP-001 site missing');
+      }
+      return src.replaceAll("'MCP-001'", "'MCP-DISABLED'");
+    },
+  },
 ];
 
 for (const extra of EXTRA_TARGETS) {

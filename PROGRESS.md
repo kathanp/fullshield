@@ -713,3 +713,28 @@ goof is a **seen holdout**. `cr0hn/vulnerable-node` @ `d68f2a3c9277ece2c2feb9976
 **Verify (`npm run verify:phase 26`, PASSED):** 498 tests. 92.24% lines / 83.03% branches. expected 30/30. vulnerable-app 35. clean-app 0 high/critical.
 
 Do not start Phase 28.
+
+## Phase 33 — MCP configuration security (experimental)
+
+**Built:**
+- Experimental `mcp` config module (`FULLSHIELD_EXPERIMENTAL_MCPCFG=1` / `scan --experimental-mcpcfg`). Default `scan` emits no `MCP-*` IDs.
+- Client configs: `.cursor/mcp.json`, `.vscode/mcp.json`, `.mcp.json`, `claude_desktop_config.json`. Home-dir scan only with `scan --include-home` (never implied). No network.
+- `MCP-001` inline secrets → high (masked). `MCP-002` unpinned `npx` / `@latest` → medium. `MCP-003` shell/exec or unrestricted fs-write without allowlist → medium. `MCP-004` tool-description injection / hidden / ZWC → high. `MCP-005` remote MCP over `http://` → medium.
+- MCP server code: model-provided `server.tool` / `registerTool` / `addTool` handler args are taint sources (existing SAST sinks).
+- Optional `guardTools(tools, { allow, confirm, log })`: deny-list dangerous tools, confirm writes/payments, log every call.
+- Compliance rows MCP-001..005. Rule docs. No new hard dependencies.
+
+**Verify (`npm run verify:phase 33`, PASSED):**
+
+| phase | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|---|
+| 33 | 543 | 92.59% | 82.9% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+
+**Gaps / deferred:**
+- Heuristic JSON + phrase checks, not a live MCP traffic inspector or prompt-injection defense.
+- Home Claude Desktop path is OS-specific (`Library/Application Support`, `%APPDATA%`, `~/.config`).
+- Taint seeding covers `tool` / `registerTool` / `addTool` callbacks and `request.params.arguments`, not every SDK registration style.
+- `guardTools` is opt-in library code; it is not auto-wrapped onto scanned servers.
+- JSONC comments are stripped heuristically before parse.
+
+Do not start Phase 34.

@@ -29,6 +29,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 | Supply-chain install (opt-in, **experimental**) | `fullshield install` — static only; never executes packages. |
 | Exploit confirm (opt-in, **experimental**) | `fullshield confirm` — localhost / 127.0.0.1 / FullShield-started container only. |
 | Editor MCP (opt-in, **experimental**) | `fullshield mcp --stdio` — read-only; `propose_fix` returns diffs, never writes. |
+| MCP client/server config (opt-in, **experimental**) | `MCP-001`–`MCP-005` (`FULLSHIELD_EXPERIMENTAL_MCPCFG=1`). Home-dir configs only with `scan --include-home`. |
 | Threat model / dashboard (opt-in, **experimental**) | STRIDE+Mermaid sketch; dashboard binds 127.0.0.1 and locks `Host`. |
 | Compliance / IaC (opt-in, **experimental**) | Mapping is **not a certification or audit**. IaC is ~10 high-value rules, not a full IaC scanner. |
 | Remediation agent (opt-in, **experimental**) | Localhost mock GitHub API + local git only. Never merges, never pushes to `main`/`master`. |
@@ -53,7 +54,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
   - RASP / virtual patches / honeytokens / threat auto-block: fail-open hooks; decoy-route hits are low and never auto-block; auto-block is opt-in (shared-IP / NAT risk).
   - `install` / supply-chain: static heuristics only; never a substitute for `npm audit` policy or a malware sandbox.
   - `confirm`: harmless canaries on localhost only; fail-open (`unconfirmed` is not a pass).
-  - MCP / LLM-app rules: editor glue and shallow AST/phrase checks. Not a prompt-injection or tool-abuse guarantee.
+  - MCP / LLM-app rules: editor glue and shallow AST/phrase checks. Not a prompt-injection or tool-abuse guarantee. `MCP-001`–`MCP-005` (`FULLSHIELD_EXPERIMENTAL_MCPCFG=1`) scan client configs and MCP server code; they do not inspect running MCP traffic and never scan `$HOME` unless `scan --include-home`.
   - Threat-model / incremental / dashboard: a route sketch and a local history UI. Not a STRIDE workshop or a hosted SOC.
   - `report --compliance` / `iac`: evidence-style mapping and a short IaC ruleset. **Not a certification or audit.**
   - `agent`: opens PRs against a **mock/localhost API and a local git remote**. It never talks to real GitHub, never merges, never pushes to protected branches.
@@ -144,6 +145,8 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | `scan --changed` / `--since` | **Experimental** incremental scan (`FULLSHIELD_EXPERIMENTAL_PLATFORM=1`). |
 | `scan --experimental-sast-gaps` | **Experimental** extra SAST sinks: ORM raw SQL, mongoose `$where`, `spawn('sh', ['-c'])`, execa `shell: true`, zx `$.raw` (`FULLSHIELD_EXPERIMENTAL_SAST_GAPS=1`). |
 | `scan --experimental-frameworks` | **Experimental** Next.js / NestJS / Hono / Koa taint sources and AUTH (`FULLSHIELD_EXPERIMENTAL_FRAMEWORKS=1`). Default `scan` is unchanged. Runtime adapters: `fullshield/runtime/koa`, `fullshield/runtime/hono` (optional peers). |
+| `scan --experimental-mcpcfg` | **Experimental** MCP client/server config rules `MCP-001`–`MCP-005` (`FULLSHIELD_EXPERIMENTAL_MCPCFG=1`). Default `scan` emits no `MCP-*` IDs. |
+| `scan --include-home` | **Experimental** also scan MCP configs under the user home (`.cursor/mcp.json`, `.vscode/mcp.json`, `.mcp.json`, Claude Desktop). Requires `FULLSHIELD_EXPERIMENTAL_MCPCFG=1`. Never implied. |
 
 Inline ignore (reason required): `// fullshield-ignore SAST-SQLI-001: reviewed`
 

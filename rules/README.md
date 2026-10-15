@@ -60,3 +60,13 @@ negative counterpart in `test/fixtures/clean-app`.
 | [CONFIG-DOCKER-ROOT-001](CONFIG-DOCKER-ROOT-001.md) | Dockerfile with no `USER` |
 | [CONFIG-DOCKER-ENV-001](CONFIG-DOCKER-ENV-001.md) | `ENV *_SECRET=` / `*_KEY=` |
 | [CONFIG-INSTALLSCRIPT-001](CONFIG-INSTALLSCRIPT-001.md) | Lockfile `hasInstallScript` |
+
+## MCP config (experimental, `FULLSHIELD_EXPERIMENTAL_MCPCFG=1`)
+
+| ID | What |
+|---|---|
+| [MCP-001](MCP-001.md) | Inline secret in MCP client config |
+| [MCP-002](MCP-002.md) | Unpinned `npx` / `@latest` MCP server |
+| [MCP-003](MCP-003.md) | Shell/exec or unrestricted fs-write tool, no allowlist |
+| [MCP-004](MCP-004.md) | Tool-description instruction injection / hidden / ZWC |
+| [MCP-005](MCP-005.md) | Remote MCP over plaintext `http://` |
