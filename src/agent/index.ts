@@ -80,14 +80,16 @@ function defaultTests(cwd: string): { ok: boolean; output: string } {
   try {
     const pkg = JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8')) as { scripts?: { test?: string } };
     if (!pkg.scripts?.test) return { ok: true, output: 'no test script' };
-    const out = execFileSync(npmBin(), ['test', '--silent'], {
-      cwd,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
+    // execFile('npm') does not search PATHEXT on Windows; cmd.exe does.
+    const out = execFileSync(
+      process.platform === 'win32' ? 'cmd.exe' : npmBin(),
+      process.platform === 'win32' ? ['/d', '/s', '/c', 'npm test --silent'] : ['test', '--silent'],
+      { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true },
+    );
     return { ok: true, output: out };
   } catch (error) {
-    return { ok: false, output: error instanceof Error ? error.message : String(error) };
+    const err = error as { message?: string; stderr?: string; stdout?: string };
+    return { ok: false, output: [err.stderr, err.stdout, err.message].filter(Boolean).join('\n') };
   }
 }
 
