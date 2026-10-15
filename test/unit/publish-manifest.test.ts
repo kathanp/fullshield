@@ -2,22 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { manifestForRegistry as manifestForRegistryUntyped } from '../../scripts/publish-manifest.mjs';
-
-type Manifest = { name?: string; version?: string; readme?: string };
-
-const manifestForRegistry = manifestForRegistryUntyped as (
-  pkg: Manifest,
-  readme: string,
-) => Manifest & { readme: string };
+import { manifestForRegistry } from '../../src/publish/manifest.js';
 
 describe('manifestForRegistry', () => {
   it('attaches README.md text so the npm packument is not empty', () => {
     const readme = readFileSync(join(process.cwd(), 'README.md'), 'utf8');
-    const manifest = manifestForRegistry(
-      { name: 'fullshield', version: '0.1.2', readme: undefined },
-      readme,
-    );
+    const manifest = manifestForRegistry({ name: 'fullshield', version: '0.1.2' }, readme);
     expect(manifest.readme).toBe(readme);
     expect(manifest.readme.length).toBeGreaterThan(100);
     expect(manifest.readme).toMatch(/^# FullShield/m);

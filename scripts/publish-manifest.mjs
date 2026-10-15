@@ -1,4 +1,5 @@
 /**
+ * Keep in sync with src/publish/manifest.ts (that file is what typecheck/tests use).
  * npm's CLI injects README.md into the registry manifest. libnpmpublish does
  * not: it sends package.json as-is, so the packument `readme` stays "".
  */
