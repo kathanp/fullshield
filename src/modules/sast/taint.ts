@@ -21,6 +21,7 @@ export interface ScopeFacts {
   pathSanitized: Set<string>;
   urlSanitized: Set<string>;
   xssSanitized: Set<string>;
+  nosqlSanitized: Set<string>;
   hasPasswordName: boolean;
   /** Identifiers bound to req.body/query/params themselves (not a property). */
   requestObjects: Set<string>;
@@ -63,6 +64,17 @@ export function isUrlSanitizerCall(node: AstNode | undefined): boolean {
   if (node === undefined || node.type !== 'CallExpression') return false;
   const name = calleeName(node);
   return name === 'encodeURIComponent' || name === 'encodeURI';
+}
+
+export function isCoercionCall(node: AstNode | undefined): boolean {
+  if (node === undefined || node.type !== 'CallExpression') return false;
+  return node.callee.type === 'Identifier' && (node.callee.name === 'String' || node.callee.name === 'Number' || node.callee.name === 'Boolean');
+}
+
+export function isMongoSanitizeCall(node: AstNode | undefined): boolean {
+  if (node === undefined || node.type !== 'CallExpression') return false;
+  const name = calleeName(node);
+  return name === 'mongoSanitize' || name === 'mongo_sanitize';
 }
 
 export function isXssSanitizerCall(node: AstNode | undefined): boolean {
@@ -205,12 +217,16 @@ function analyzeScope(
   seedDestructuredRequestParams(scope, tainted);
   const urlSanitized = new Set<string>();
   const xssSanitized = new Set<string>();
+  const nosqlSanitized = new Set<string>();
   let changed = true;
   while (changed) {
     changed = false;
     walkScope(scope, (node) => {
       if (node.type === 'VariableDeclarator') {
         const init = node.init ?? undefined;
+        if (isSchemaValidatorCall(init) || isCoercionCall(init) || isMongoSanitizeCall(init)) {
+          for (const name of boundNames(node.id)) nosqlSanitized.add(name);
+        }
         if (isSchemaValidatorCall(init)) return;
         if (isUrlSanitizerCall(init)) {
           for (const name of boundNames(node.id)) urlSanitized.add(name);
@@ -228,6 +244,9 @@ function analyzeScope(
         }
       }
       if (node.type === 'AssignmentExpression') {
+        if (isSchemaValidatorCall(node.right) || isCoercionCall(node.right) || isMongoSanitizeCall(node.right)) {
+          for (const name of boundNames(node.left)) nosqlSanitized.add(name);
+        }
         if (isSchemaValidatorCall(node.right)) return;
         if (isUrlSanitizerCall(node.right)) {
           for (const name of boundNames(node.left)) urlSanitized.add(name);
@@ -291,6 +310,7 @@ function analyzeScope(
     pathSanitized,
     urlSanitized,
     xssSanitized,
+    nosqlSanitized,
     hasPasswordName,
     requestObjects,
     returners: new Set(returners),
@@ -411,6 +431,7 @@ export function factsFor(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): Scop
       pathSanitized: new Set(),
       urlSanitized: new Set(),
       xssSanitized: new Set(),
+      nosqlSanitized: new Set(),
       hasPasswordName: false,
       requestObjects: new Set(),
       returners: new Set(),
@@ -443,5 +464,11 @@ export function nodeIsSanitizedFor(
 export function nodeIsRequestObject(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): boolean {
   if (isRequestObjectNode(node)) return true;
   if (node.type === 'Identifier') return factsFor(node, map).requestObjects.has(node.name);
+  return false;
+}
+
+export function nodeIsNosqlSanitized(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): boolean {
+  if (isCoercionCall(node) || isSchemaValidatorCall(node) || isMongoSanitizeCall(node)) return true;
+  if (node.type === 'Identifier') return factsFor(node, map).nosqlSanitized.has(node.name);
   return false;
 }

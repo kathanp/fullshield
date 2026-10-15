@@ -78,17 +78,17 @@ In-scope public-bench patterns we still do not claim (one line each):
 - Swig `{{firstName}}` in `.html` — XSS only if autoescape is off in another file; we flag `autoescape: false`, not the template line.
 - Juice Shop track-order XSS — server returns `res.json`; we do not treat JSON fields as HTML sinks.
 - Juice Shop `url.includes(allowedUrl)` — weak allowlist helper is not a redirect sink; we flag `res.redirect(tainted)`.
-- Juice Shop `{ _id: req.body.id }` — nested Mongo operator injection, not a whole `req.body` filter. The same constructed-filter gap covers goof `User.find({ password: req.body.password })` / `$gt`.
+- Juice Shop `{ _id: req.body.id }` — flagged as `SAST-NOSQLI-001` (medium) unless coerced (`String()`/`Number()`/`Boolean()`), schema-validated, or mongo-sanitize is applied. Same for goof `User.find({ password: req.body.password })`.
 - `DEPS-VULN-001` — when an OSV hit exists, the finding is attributed to the `package.json` name line; `--offline-safe` on a cache-less clone still emits no OSV hits (`package.json:N` will not match).
 - DVNA calculator “stack leak” — that line is `mathjs.eval` (`SAST-EVAL-001`), not `err.stack`.
 
 Public-app in-scope detection on **unreviewed** ground truth (`"reviewed": false` in `bench/*/ground-truth.json`). These are not product recall claims. Matching is class + file + line ±3. Helmet comment-only line attribution is not counted.
 
-- Seen holdout `snyk-labs/nodejs-goof` @ `add14ba59e98240d9e00a235dd7d42cd61ae9912`: 9/11 in-scope (unreviewed). Not a recall gain; this app was used to find engine gaps.
-- Untouched holdout `cr0hn/vulnerable-node` @ `d68f2a3c9277ece2c2feb9976052033bdecd7fbe`: 9/12 in-scope (unreviewed). Scanned once; no rule changes from that run.
-- NodeGoat 5/7, Juice Shop 9/12, DVNA 9/10 (same unreviewed files; deps TPs need an OSV cache hit under `--offline-safe`).
+- Seen holdout `snyk-labs/nodejs-goof` @ `add14ba59e98240d9e00a235dd7d42cd61ae9912`: 10/11 in-scope (unreviewed). Not a recall gain; this app was used to find engine gaps.
+- Seen holdout `cr0hn/vulnerable-node` @ `d68f2a3c9277ece2c2feb9976052033bdecd7fbe`: 9/12 in-scope (unreviewed). Re-scored after the authorized NoSQL filter-value rule; not a recall gain.
+- NodeGoat 5/7, Juice Shop 10/12, DVNA 9/10 (same unreviewed files; deps TPs need an OSV cache hit under `--offline-safe`).
 
-Precision in [`BENCHMARK.md`](BENCHMARK.md) is self-triaged, unverified. Unsure counts on that run: NodeGoat 4, Juice Shop 23, DVNA 5, goof 4, vulnerable-node 29.
+Precision in [`BENCHMARK.md`](BENCHMARK.md) is self-triaged, unverified. Unsure counts on that run: NodeGoat 4, Juice Shop 46, DVNA 5, goof 4, vulnerable-node 29.
 
 ## Quick start
 
@@ -152,7 +152,7 @@ See [`rules/README.md`](rules/README.md).
 
 ## Benchmarks
 
-Public-app detection results (OWASP NodeGoat, Juice Shop, DVNA, seen holdout `snyk-labs/nodejs-goof`, untouched holdout `cr0hn/vulnerable-node`) live in [`BENCHMARK.md`](BENCHMARK.md). Those ground-truth files are still `"reviewed": false`. Holdout numbers are listed under Known limitations and are on unreviewed ground truth. Precision in `BENCHMARK.md` is self-triaged, unverified. Untouched holdout results do not drive rule changes. Self-authored fixture notes live in [`benchmarks/REPORT.md`](benchmarks/REPORT.md). Live Ollama smoke results (not CI) live in [`benchmarks/AI-REPORT.md`](benchmarks/AI-REPORT.md).
+Public-app detection results (OWASP NodeGoat, Juice Shop, DVNA, seen holdouts `snyk-labs/nodejs-goof` and `cr0hn/vulnerable-node`) live in [`BENCHMARK.md`](BENCHMARK.md). Those ground-truth files are still `"reviewed": false`. Holdout numbers are listed under Known limitations and are on unreviewed ground truth. Precision in `BENCHMARK.md` is self-triaged, unverified. Self-authored fixture notes live in [`benchmarks/REPORT.md`](benchmarks/REPORT.md). Live Ollama smoke results (not CI) live in [`benchmarks/AI-REPORT.md`](benchmarks/AI-REPORT.md).
 
 ### Cursor MCP (`mcp.json`)
 

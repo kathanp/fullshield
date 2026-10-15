@@ -49,6 +49,7 @@ const APPS = [
     repo: 'https://github.com/cr0hn/vulnerable-node.git',
     sha: 'd68f2a3c9277ece2c2feb9976052033bdecd7fbe',
     holdout: true,
+    seenHoldout: true,
   },
 ];
 
@@ -263,7 +264,7 @@ lines.push(
   '- Precision: self-triaged, unverified. `realIssue / (realIssue + falsePositive)` on unmatched findings listed in `bench/<app>/triage.json`. `unsure` is excluded from the denominator and counted separately per app.',
 );
 lines.push(
-  '- Holdout apps are scored the same way. A seen holdout was used to find engine gaps; an untouched holdout is scanned once and does not drive rule changes.',
+  '- Holdout apps are scored the same way. A seen holdout was used to find engine gaps or to re-score after an authorized rule change.',
 );
 lines.push('- Scan: `node dist/cli/index.js scan <app> --json --offline-safe`');
 lines.push('');
@@ -274,8 +275,10 @@ for (const r of results) {
   lines.push('');
   lines.push(`- Repo: ${r.repo}`);
   lines.push(`- Commit: \`${r.sha}\``);
-  if (r.seenHoldout) {
+  if (r.seenHoldout && r.id === 'goof') {
     lines.push('- Seen holdout: yes. Engine gaps were taken from this app; do not count this re-run as a recall gain.');
+  } else if (r.seenHoldout) {
+    lines.push('- Seen holdout: yes. Re-scored after an authorized rule change; do not count this as a recall gain.');
   } else if (r.holdout) {
     lines.push('- Holdout: yes. Untouched. Do not change rules based on this app.');
   }

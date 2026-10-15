@@ -34,7 +34,7 @@ negative counterpart in `test/fixtures/clean-app`.
 | ID | What |
 |---|---|
 | [SAST-SQLI-001](SAST-SQLI-001.md) | Tainted SQL concatenation |
-| [SAST-NOSQLI-001](SAST-NOSQLI-001.md) | Raw `req.body`/`query` as Mongo filter |
+| [SAST-NOSQLI-001](SAST-NOSQLI-001.md) | Raw `req.body`/`query` as Mongo filter, or a request field as a filter value |
 | [SAST-CMDI-001](SAST-CMDI-001.md) | Tainted shell `exec` |
 | [SAST-PATH-001](SAST-PATH-001.md) | Tainted path without resolve+prefix |
 | [SAST-EVAL-001](SAST-EVAL-001.md) | `eval` / `new Function` / `vm` / `*.eval` |

@@ -5,6 +5,15 @@ All notable changes to FullShield are documented here.
 ## Unreleased
 
 - Publish CI uses `npm publish --provenance --access public` (no staged-manifest edits). The unpublished `v0.1.2` tag was deleted.
+- CI: push to `next` runs `verify` on ubuntu-24.04 × Node 24 only. The full 6-job matrix (and the non-blocking `bench` job) runs on pull requests to `main` and on push to `main`. Required checks on `main` stay the six matrix jobs.
+
+### NoSQL constructed-filter values
+
+**New stable findings — may change CI results; use `--update-baseline`:**
+
+- `SAST-NOSQLI-001` — request input used as a Mongo filter value (e.g. `{ password: req.body.password }`) at medium confidence, unless the value is coerced (`String()` / `Number()` / `Boolean()`), schema-validated (zod / joi / yup `.parse`), or `mongo-sanitize` / `express-mongo-sanitize` is applied. SQL ORM `update(values, { where })` / `find({ where })` is not treated as a Mongo filter.
+
+`cr0hn/vulnerable-node` is now a seen holdout (no longer untouched).
 
 ### Phase 26c — engine gaps from the goof holdout
 

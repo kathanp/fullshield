@@ -1098,7 +1098,7 @@ s.listen(0, '127.0.0.1', () => {
     }
     console.log('  ✔ public bench harness, unreviewed ground truth, non-blocking CI bench job');
     console.log('  ✔ phase 26b fixtures + Known limitations for remaining in-scope misses');
-    console.log('  ✔ phase 26c engine-gap fixtures, seen holdout, untouched vulnerable-node holdout');
+    console.log('  ✔ phase 26c engine-gap fixtures, seen holdout, seen vulnerable-node holdout');
   },
   // Phase 27: SAST + RASP coverage gaps (numeric SQL, ORM raw, template shell).
   27: async () => {

@@ -17,9 +17,70 @@ describe('SAST-NOSQLI-001', () => {
     ).resolves.toBe(true);
   });
 
-  it('does not flag a constructed filter object', async () => {
+  it('flags request input used directly as a Mongo filter value', async () => {
     await expect(
       has(`app.post('/s', (req, res) => { User.find({ q: req.body.q }); });`, 'SAST-NOSQLI-001'),
+    ).resolves.toBe(true);
+  });
+
+  it('does not flag a coerced Mongo filter value', async () => {
+    await expect(
+      has(`app.post('/s', (req, res) => { User.find({ q: String(req.body.q) }); });`, 'SAST-NOSQLI-001'),
+    ).resolves.toBe(false);
+  });
+
+  it('does not flag Number() or Boolean() coercion of a filter value', async () => {
+    await expect(
+      has(`app.post('/s', (req, res) => { User.find({ n: Number(req.body.n) }); });`, 'SAST-NOSQLI-001'),
+    ).resolves.toBe(false);
+    await expect(
+      has(`app.post('/s', (req, res) => { User.find({ ok: Boolean(req.body.ok) }); });`, 'SAST-NOSQLI-001'),
+    ).resolves.toBe(false);
+  });
+
+  it('does not flag a zod-parsed Mongo filter value', async () => {
+    await expect(
+      has(
+        `const { z } = require('zod');\napp.post('/s', (req, res) => { User.find({ q: z.string().parse(req.body.q) }); });`,
+        'SAST-NOSQLI-001',
+      ),
+    ).resolves.toBe(false);
+  });
+
+  it('does not flag mongo-sanitize wrapping a filter value', async () => {
+    await expect(
+      has(
+        `const sanitize = require('mongo-sanitize');\napp.post('/s', (req, res) => { User.find({ q: sanitize(req.body.q) }); });`,
+        'SAST-NOSQLI-001',
+      ),
+    ).resolves.toBe(false);
+  });
+
+  it('does not flag filters after express-mongo-sanitize middleware', async () => {
+    await expect(
+      has(
+        `const mongoSanitize = require('express-mongo-sanitize');\napp.use(mongoSanitize());\napp.post('/s', (req, res) => { User.find({ q: req.body.q }); });`,
+        'SAST-NOSQLI-001',
+      ),
+    ).resolves.toBe(false);
+  });
+
+  it('reports constructed filter-value hits at medium confidence', async () => {
+    const hits = await runSastOnText(
+      'fixture.js',
+      `app.post('/s', (req, res) => { User.find({ password: req.body.password }); });`,
+    );
+    const nosqli = hits.filter((f) => f.ruleId === 'SAST-NOSQLI-001');
+    expect(nosqli.length).toBeGreaterThan(0);
+    expect(nosqli.every((f) => f.confidence === 'medium')).toBe(true);
+  });
+
+  it('does not flag Sequelize update(values, { where }) as a Mongo filter', async () => {
+    await expect(
+      has(
+        `app.post('/s', (req, res) => { User.update({ history: JSON.stringify(req.body.history) }, { where: { id: req.body.id } }); });`,
+        'SAST-NOSQLI-001',
+      ),
     ).resolves.toBe(false);
   });
 });

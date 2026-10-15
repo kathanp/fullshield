@@ -9,6 +9,7 @@ import {
   analyzeFile,
   factsFor,
   functionsThatReturnTaint,
+  nodeIsNosqlSanitized,
   nodeIsPathSanitized,
   nodeIsRequestObject,
   nodeIsSanitizedFor,
@@ -76,7 +77,7 @@ export function findingsFromAst(
     const ctx: RuleContext = {
       filename,
       source,
-      report: ({ node, message }) => {
+      report: ({ node, message, confidence }) => {
         const snippet = snippetOf(source, node);
         findings.push({
           id: makeFindingId(rule.meta.id, filename, `${node.loc?.start.line ?? 0}|${snippet}`),
@@ -84,7 +85,7 @@ export function findingsFromAst(
           module: 'sast',
           title: rule.meta.title,
           severity: rule.meta.severity,
-          confidence: 'high',
+          confidence: confidence ?? 'high',
           cwe: rule.meta.cwe,
           file: filename,
           line: node.loc?.start.line,
@@ -98,6 +99,7 @@ export function findingsFromAst(
       isTainted: (node) => nodeIsTainted(node, facts),
       isPathSanitized: (node) => nodeIsPathSanitized(node, facts),
       isSanitizedFor: (node, kind) => nodeIsSanitizedFor(node, facts, kind),
+      isNosqlSanitized: (node) => nodeIsNosqlSanitized(node, facts),
       isRequestObject: (node) => nodeIsRequestObject(node, facts),
       functionHasPasswordName: (node) => factsFor(node, facts).hasPasswordName,
       assignedName: (node) => assignedNameOf(node),
@@ -138,6 +140,7 @@ function findingsFromTemplate(filename: string, source: string): Finding[] {
     isTainted: () => false,
     isPathSanitized: () => false,
     isSanitizedFor: () => false,
+    isNosqlSanitized: () => false,
     isRequestObject: () => false,
     functionHasPasswordName: () => false,
     assignedName: () => undefined,

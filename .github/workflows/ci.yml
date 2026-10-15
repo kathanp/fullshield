@@ -4,6 +4,7 @@ on:
   push:
     branches: [main, next]
   pull_request:
+    branches: [main]
 
 permissions:
   contents: read
@@ -11,6 +12,9 @@ permissions:
 jobs:
   verify:
     name: verify (${{ matrix.os }}, node ${{ matrix.node }})
+    if: >
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'pull_request' && github.base_ref == 'main')
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -45,8 +49,35 @@ jobs:
           path: '**/*.sarif'
           if-no-files-found: ignore
 
+  verify-next:
+    name: verify (ubuntu-24.04, node 24)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/next'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run verify
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-ubuntu-24.04-node24
+          path: coverage/
+          if-no-files-found: ignore
+
   bench:
     name: bench
+    if: >
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'pull_request' && github.base_ref == 'main')
     runs-on: ubuntu-24.04
     continue-on-error: true
     steps:

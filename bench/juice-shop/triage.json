@@ -37,6 +37,48 @@
       "reason": "SAST hit did not match an in-scope ground-truth file/line"
     },
     {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "data/static/codefixes/forgedReviewChallenge_1.ts",
+      "line": 4,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "data/static/codefixes/forgedReviewChallenge_2_correct.ts",
+      "line": 4,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "data/static/codefixes/forgedReviewChallenge_3.ts",
+      "line": 4,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "data/static/codefixes/noSqlReviewsChallenge_1.ts",
+      "line": 10,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "data/static/codefixes/noSqlReviewsChallenge_2.ts",
+      "line": 4,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "data/static/codefixes/noSqlReviewsChallenge_3_correct.ts",
+      "line": 10,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
       "ruleId": "SAST-SQLI-001",
       "file": "data/static/codefixes/unionSqlInjectionChallenge_1.ts",
       "line": 6,
@@ -65,6 +107,34 @@
       "reason": "SAST hit did not match an in-scope ground-truth file/line"
     },
     {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "routes/changePassword.ts",
+      "line": 51,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "routes/coupon.ts",
+      "line": 24,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "routes/dataExport.ts",
+      "line": 33,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "routes/dataExport.ts",
+      "line": 40,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
       "ruleId": "SAST-PATH-001",
       "file": "routes/fileServer.ts",
       "line": 32,
@@ -79,9 +149,51 @@
       "reason": "SAST hit did not match an in-scope ground-truth file/line"
     },
     {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "routes/likeProductReviews.ts",
+      "line": 25,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "routes/likeProductReviews.ts",
+      "line": 35,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "routes/likeProductReviews.ts",
+      "line": 43,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "routes/likeProductReviews.ts",
+      "line": 50,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
       "ruleId": "SAST-PATH-001",
       "file": "routes/logfileServer.ts",
       "line": 14,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "routes/orderHistory.ts",
+      "line": 17,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "routes/orderHistory.ts",
+      "line": 36,
       "verdict": "unsure",
       "reason": "SAST hit did not match an in-scope ground-truth file/line"
     },
@@ -100,9 +212,58 @@
       "reason": "SAST hit did not match an in-scope ground-truth file/line"
     },
     {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "routes/profileImageUrlUpload.ts",
+      "line": 32,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "routes/profileImageUrlUpload.ts",
+      "line": 36,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
       "ruleId": "SAST-PATH-001",
       "file": "routes/quarantineServer.ts",
       "line": 14,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "routes/resetPassword.ts",
+      "line": 35,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "routes/resetPassword.ts",
+      "line": 44,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "routes/saveLoginIp.ts",
+      "line": 32,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "routes/securityQuestion.ts",
+      "line": 15,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-NOSQLI-001",
+      "file": "routes/updateUserProfile.ts",
+      "line": 38,
       "verdict": "unsure",
       "reason": "SAST hit did not match an in-scope ground-truth file/line"
     },

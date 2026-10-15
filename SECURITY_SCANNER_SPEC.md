@@ -62,8 +62,9 @@
 - After each phase, paste the full `npm run verify:phase N` output into the phase summary.
 
 ### CI (`.github/workflows/ci.yml`)
-- Runs `npm ci && npm run verify` on Node 22 and 24, on Linux, macOS, Windows.
-- Uploads coverage report and SARIF as artifacts.
+- Push to `next`: one job, `verify` on ubuntu-24.04 × Node 24.
+- Pull request to `main` and push to `main`: the full 6-job matrix (Linux/macOS/Windows × Node 22/24). Required checks on `main` stay those six jobs.
+- Uploads coverage report and SARIF as artifacts. The `bench` job stays non-blocking and runs on `main` PRs/pushes only.
 
 ---
 
@@ -241,7 +242,7 @@ Taint-lite approach: mark sources (`req.body`, `req.query`, `req.params`, `req.h
 | ID | Rule | CWE |
 |---|---|---|
 | SAST-SQLI-001 | Tainted input concatenated into SQL string passed to query/execute | CWE-89 |
-| SAST-NOSQLI-001 | `req.body`/`req.query` object passed directly into Mongo filter | CWE-943 |
+| SAST-NOSQLI-001 | `req.body`/`req.query` object passed directly into Mongo filter, or a request field used as a filter value without coercion / schema / mongo-sanitize (medium) | CWE-943 |
 | SAST-CMDI-001 | Tainted input reaching `exec`/`execSync`/`spawn` with `shell: true` | CWE-78 |
 | SAST-PATH-001 | Tainted input in `fs.*` path or `res.sendFile` without `path.resolve` + prefix check | CWE-22 |
 | SAST-EVAL-001 | `eval`, `new Function`, `vm.runInNewContext` with non-literal | CWE-95 |
