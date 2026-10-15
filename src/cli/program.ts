@@ -28,6 +28,7 @@ import { renderHtmlReport } from '../reporters/html.js';
 import { renderJsonReport } from '../reporters/json.js';
 import { renderMarkdownReport } from '../reporters/markdown.js';
 import { renderSarifReport } from '../reporters/sarif.js';
+import { POLICY_FLAG, renderPrSummary } from '../policy/index.js';
 import { buildSbom } from '../sbom/index.js';
 import { validateCycloneDx15 } from '../sbom/cyclonedx.js';
 import { runEdge } from '../modules/edge/index.js';
@@ -60,6 +61,7 @@ interface ScanCliOptions {
   since?: string;
   experimentalSastGaps?: boolean;
   experimentalFrameworks?: boolean;
+  prSummary?: boolean;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -127,6 +129,10 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       '--experimental-frameworks',
       'experimental: Next.js / NestJS / Hono / Koa taint + AUTH (FULLSHIELD_EXPERIMENTAL_FRAMEWORKS=1)',
     )
+    .option(
+      '--pr-summary',
+      'experimental: deterministic Markdown of new findings versus baseline (FULLSHIELD_EXPERIMENTAL_POLICY=1)',
+    )
     .action(async (path: string, opts: ScanCliOptions) => {
       try {
         const failOnOverride = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;
@@ -137,6 +143,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
         if (opts.experimentalFrameworks === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_FRAMEWORKS = '1';
+        }
+        if (opts.prSummary === true && process.env[POLICY_FLAG] !== '1') {
+          throw new Error(`--pr-summary requires ${POLICY_FLAG}=1`);
         }
 
         const result = await scan({
@@ -150,6 +159,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           changed: opts.changed === true,
           since: opts.since,
           experimentalIncremental: process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM === '1',
+          experimentalPolicy: process.env[POLICY_FLAG] === '1',
         });
 
         if (opts.sarif !== undefined) {
@@ -177,9 +187,19 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           io.err(`wrote virtual patches ${out}`);
         }
 
-        io.out(opts.json === true ? renderJsonReport(result) : renderConsoleReport(result));
+        if (opts.prSummary === true) {
+          io.out(renderPrSummary(result.findings));
+        } else {
+          io.out(opts.json === true ? renderJsonReport(result) : renderConsoleReport(result));
+        }
 
-        const failOn = failOnOverride ?? result.config.failOn;
+        if (result.policy !== undefined && result.policy.errors.length > 0) {
+          for (const message of result.policy.errors) {
+            io.err(`fullshield: ${message}`);
+          }
+          process.exitCode = 1;
+        }
+        const failOn = failOnOverride ?? result.policy?.failOn ?? result.config.failOn;
         if (result.findings.some((f) => failsCi(f, failOn))) {
           process.exitCode = 1;
         }

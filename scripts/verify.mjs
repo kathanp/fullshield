@@ -71,6 +71,8 @@ const PREVIOUS_PHASE_TESTS = {
   25: 439,
   26: 443,
   27: 505,
+  28: 520,
+  33: 520,
 };
 
 function listFilesRecursive(dir, out = []) {
@@ -1179,6 +1181,59 @@ s.listen(0, '127.0.0.1', () => {
       fail('phase 28 acceptance: README must document FULLSHIELD_EXPERIMENTAL_FRAMEWORKS');
     }
     console.log('  ✔ experimental Next/Nest/Hono/Koa taint; optional runtime peers; vuln+clean fixtures');
+  },
+  // Phase 34: policy-as-code + deterministic PR summary (experimental).
+  34: () => {
+    const cliHelp = spawnSync(
+      process.execPath,
+      [join(root, 'dist', 'cli', 'index.js'), 'scan', '--help'],
+      { cwd: root, encoding: 'utf8' },
+    );
+    if (!cliHelp.stdout.includes('--pr-summary')) {
+      fail('phase 34 acceptance: scan --help missing --pr-summary');
+    }
+    const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+    if (pkg.dependencies?.zod !== undefined) {
+      fail('phase 34 acceptance: zod must not be a hard dependency (optional peer only)');
+    }
+    if (pkg.peerDependencies?.zod === undefined || pkg.peerDependenciesMeta?.zod?.optional !== true) {
+      fail('phase 34 acceptance: zod must remain an optional peerDependency');
+    }
+    const src = readFileSync(join(root, 'src', 'policy', 'index.ts'), 'utf8');
+    if (!src.includes("import('zod')") && !src.includes('import("zod")')) {
+      fail('phase 34 acceptance: policy must lazy-import zod');
+    }
+    for (const rel of [
+      'test/fixtures/policy/pr-summary.md',
+      'test/fixtures/policy/pr-summary-empty.md',
+      'test/unit/policy/policy.test.ts',
+      'test/unit/policy/pr-summary.test.ts',
+      'test/e2e/phase34.e2e.test.ts',
+    ]) {
+      if (!existsSync(join(root, rel))) fail(`phase 34 acceptance: missing ${rel}`);
+    }
+    const policyTests = [
+      readFileSync(join(root, 'test', 'unit', 'policy', 'policy.test.ts'), 'utf8'),
+      readFileSync(join(root, 'test', 'e2e', 'phase34.e2e.test.ts'), 'utf8'),
+    ].join('\n');
+    if (!/expired/i.test(policyTests)) {
+      fail('phase 34 acceptance: expired-exception CI failure must be tested');
+    }
+    const golden = readFileSync(join(root, 'test', 'fixtures', 'policy', 'pr-summary.md'), 'utf8');
+    if (!golden.includes('SAST-SQLI-001') || !golden.includes('rules/SAST-SQLI-001.md')) {
+      fail('phase 34 acceptance: PR summary golden must list findings with rule-doc links');
+    }
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!readme.includes('FULLSHIELD_EXPERIMENTAL_POLICY')) {
+      fail('phase 34 acceptance: README must document FULLSHIELD_EXPERIMENTAL_POLICY');
+    }
+    if (!readme.includes('fullshield.policy.json')) {
+      fail('phase 34 acceptance: README must document fullshield.policy.json');
+    }
+    if (!readme.includes('--pr-summary')) {
+      fail('phase 34 acceptance: README must document scan --pr-summary');
+    }
+    console.log('  ✔ experimental policy-as-code; expired exceptions fail CI; PR summary goldens');
   },
 };
 

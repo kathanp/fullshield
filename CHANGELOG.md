@@ -7,6 +7,12 @@ All notable changes to FullShield are documented here.
 - Publish CI uses `npm publish --provenance --access public` (no staged-manifest edits). The unpublished `v0.1.2` tag was deleted.
 - CI: push to `next` runs `verify` on ubuntu-24.04 × Node 24 only. The full 6-job matrix (and the non-blocking `bench` job) runs on pull requests to `main` and on push to `main`. Required checks on `main` stay the six matrix jobs.
 
+### Phase 34 — policy-as-code + PR summary
+
+- Experimental `fullshield.policy.json` (`FULLSHIELD_EXPERIMENTAL_POLICY=1`): required modules, per-rule severity overrides, `failOn` per git/CI branch, and exceptions that require `owner`, `reason`, and ISO `expires`. Expired exceptions fail CI with a clear message. Exceptions without owner or expiry are rejected. Schema is validated with the optional `zod` peer (lazy-imported; not a hard dependency).
+- `scan --pr-summary`: deterministic Markdown for GitHub/GitLab PR comments listing new findings versus baseline (no AI), with links to rule docs. Uses existing baseline/diff.
+- Default `scan` without the flag or a policy file is unchanged.
+
 ### Phase 28 — framework coverage
 
 - Experimental Next.js / NestJS / Hono / Koa taint sources and AUTH (`FULLSHIELD_EXPERIMENTAL_FRAMEWORKS=1` / `scan --experimental-frameworks`). Default `scan` is unchanged.

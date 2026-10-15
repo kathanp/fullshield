@@ -20,8 +20,17 @@ import {
   type Finding,
   type FindingSummary,
   type ModuleName,
+  type Severity,
 } from './finding.js';
 import { packageVersion } from './version.js';
+import {
+  POLICY_FILE_NAME,
+  applyPolicy,
+  loadPolicy,
+  mergeRequiredModules,
+  resolvePolicyBranch,
+  type FullShieldPolicy,
+} from '../policy/index.js';
 
 export interface ModuleContext {
   cwd: string;
@@ -55,6 +64,10 @@ export interface ScanOptions {
   since?: string;
   experimentalIncremental?: boolean;
   changedFiles?: string[];
+  /** Phase 34 policy-as-code (`FULLSHIELD_EXPERIMENTAL_POLICY=1`). */
+  experimentalPolicy?: boolean;
+  /** Override git/CI branch when applying `failOn` per branch. */
+  policyBranch?: string;
 }
 
 export interface ScanMetadata {
@@ -68,11 +81,21 @@ export interface ScanMetadata {
   modulesRun: ModuleName[];
 }
 
+export interface PolicyScanResult {
+  enabled: true;
+  file: string;
+  failOn?: Severity;
+  errors: string[];
+  policy: FullShieldPolicy;
+}
+
 export interface ScanResult {
   findings: Finding[];
   summary: FindingSummary;
   metadata: ScanMetadata;
   config: ResolvedConfig;
+  /** Present only when experimental policy was loaded from `fullshield.policy.json`. */
+  policy?: PolicyScanResult;
 }
 
 /**
@@ -124,7 +147,11 @@ export async function runScan(
       config = { ...config, ai: { ...config.ai, maxFindings } };
     }
   }
-  const modulesRequested = options.modules ?? config.modules;
+  const loadedPolicy = await loadPolicy(cwd, { experimental: options.experimentalPolicy });
+  const modulesRequested = mergeRequiredModules(
+    options.modules ?? config.modules,
+    loadedPolicy?.requiredModules,
+  );
   let files = await walkFiles({ cwd, ignore: config.ignore });
   if (options.staged === true) {
     const staged = new Set(await listStagedFiles(cwd));
@@ -174,6 +201,22 @@ export async function runScan(
   }
   let findings = sortFindings(applyBaseline(unsuppressed, await readBaseline(baselinePath)));
 
+  let policyResult: PolicyScanResult | undefined;
+  if (loadedPolicy !== undefined) {
+    const applied = applyPolicy(findings, loadedPolicy, {
+      branch: options.policyBranch ?? resolvePolicyBranch(cwd),
+      modulesRun,
+    });
+    findings = applied.findings;
+    policyResult = {
+      enabled: true,
+      file: join(cwd, POLICY_FILE_NAME),
+      failOn: applied.failOn,
+      errors: applied.errors,
+      policy: loadedPolicy,
+    };
+  }
+
   const aiMode = options.ai;
   const aiEnabled =
     aiMode === true ||
@@ -209,6 +252,7 @@ export async function runScan(
       modulesRun,
     },
     config,
+    policy: policyResult,
   };
 }
 

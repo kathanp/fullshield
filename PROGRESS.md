@@ -713,3 +713,18 @@ goof is a **seen holdout**. `cr0hn/vulnerable-node` @ `d68f2a3c9277ece2c2feb9976
 **Verify (`npm run verify:phase 26`, PASSED):** 498 tests. 92.24% lines / 83.03% branches. expected 30/30. vulnerable-app 35. clean-app 0 high/critical.
 
 Do not start Phase 28.
+
+## Phase 34 — policy-as-code + PR summary (on `phase-34`)
+
+Experimental (`FULLSHIELD_EXPERIMENTAL_POLICY=1`). Default `scan` without the flag or a policy file is unchanged (no new `POLICY-*` IDs on vulnerable-app / clean-app).
+
+- `fullshield.policy.json`: `requiredModules`, per-rule `severityOverrides`, `failOn` per git/CI branch, exceptions that require `owner`, `reason`, and ISO `expires`. Schema validated with optional peer `zod` (lazy-imported). Missing owner/expiry rejected at load (exit 2). Expired exceptions fail CI with a clear message and do not hide the finding.
+- `scan --pr-summary`: deterministic Markdown for GitHub/GitLab PR comments listing new findings versus baseline (no AI), with links to `rules/<id>.md`. Golden files in `test/fixtures/policy/`.
+
+**Verify (`npm run verify:phase 34`, PASSED):**
+
+| phase | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|---|
+| 34 | 566 | 92.59% | 83.06% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+
+**Deferred:** Phases 29–33 and 35. Policy is not a general OPA/Kyverno engine. `--pr-summary` is comment text only (does not post to GitHub/GitLab). No push, no merge to `next`, no PR.

@@ -638,6 +638,7 @@ Goal: turn "possible vulnerability" into "**confirmed**, here's the proof" so de
 | 26c | Engine gaps from the goof holdout | Root-cause engine components (taint source, param/return propagation, cross-file calls, sink matching, lockfile attribution). Generic fixtures, not copied goof. goof becomes a seen holdout. Second untouched holdout scanned once. README holdout numbers only, on unreviewed ground truth. |
 | 27 | SAST + RASP coverage gaps: numeric SQL, ORM raw sinks, template-literal shell | Every new sink has positive + negative fixtures; attack corpus ≥ 10 cases per new context; benign corpus 0 blocked; extra SAST sinks behind `FULLSHIELD_EXPERIMENTAL_SAST_GAPS` / `--experimental-sast-gaps` |
 | 28 | Framework coverage: Next.js, NestJS, Hono, Koa taint sources + AUTH + runtime adapters | One vulnerable + one clean fixture per framework; route inventory lists every route; no new runtime deps; behind `FULLSHIELD_EXPERIMENTAL_FRAMEWORKS` / `--experimental-frameworks` |
+| 34 | Policy-as-code + deterministic PR summary | Policy schema validated with zod; expired exception fails CI; PR summary golden-file tests; behind `FULLSHIELD_EXPERIMENTAL_POLICY=1` |
 
 ### Phase 26 — Public benchmark run (credibility first)
 
@@ -672,5 +673,15 @@ Taint sources and AUTH are **experimental** (`FULLSHIELD_EXPERIMENTAL_FRAMEWORKS
 - Runtime adapters `fullshield/runtime/koa` and `fullshield/runtime/hono` (optional peers; no new required deps).
 
 Acceptance: one vulnerable + one clean fixture per framework; route inventory lists every route; no new runtime dependencies.
+
+### Phase 34 — Policy-as-code + deterministic PR summary
+
+Policy and PR comments are **experimental** (`FULLSHIELD_EXPERIMENTAL_POLICY=1`). Default `scan` without the flag or a policy file is unchanged.
+
+- `fullshield.policy.json`: required modules, severity overrides per rule, `failOn` per branch, and **exceptions** that require `owner`, `reason`, and `expires` (ISO date). Expired exceptions fail CI with a clear message. Exceptions without an owner or expiry are rejected.
+- `scan --pr-summary`: deterministic Markdown comment for GitHub/GitLab PRs listing new findings vs base branch (no AI), with links to rule docs. Uses the existing baseline/diff logic.
+- Policy schema validated with zod (optional peer; lazy-imported). No new hard dependencies.
+
+Acceptance: expired exception test fails CI; PR summary golden-file tests.
 
 - Show a real before/after: run it on a public, intentionally vulnerable Node app (e.g. OWASP NodeGoat or Juice Shop), list what it found and what it missed. Publishing the misses builds more trust than hiding them.
