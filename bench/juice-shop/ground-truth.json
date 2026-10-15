@@ -8,22 +8,1033 @@
       "class": "sqli",
       "file": "routes/login.ts",
       "line": 34,
-      "description": "Login SQL injection: email and password concatenated into sequelize.query.",
-      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html"
+      "description": "Login SQL injection (loginAdmin/Bender/Jim): email/password concatenated into sequelize.query.",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html",
+      "inScope": true
     },
     {
       "class": "sqli",
       "file": "routes/search.ts",
       "line": 23,
-      "description": "UNION SQL injection in product search (criteria interpolated into SELECT).",
-      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html"
+      "description": "UNION SQL injection in product search (unionSqlInjectionChallenge / dbSchemaChallenge).",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html",
+      "inScope": true
+    },
+    {
+      "class": "nosqli",
+      "file": "routes/trackOrder.ts",
+      "line": 18,
+      "description": "NoSQL injection on order tracking via Mongo $where.",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html",
+      "inScope": true
+    },
+    {
+      "class": "nosqli",
+      "file": "routes/showProductReviews.ts",
+      "line": 36,
+      "description": "NoSQL $where on product reviews (sleep DoS / noSqlCommandChallenge).",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html",
+      "inScope": true
+    },
+    {
+      "class": "nosqli",
+      "file": "routes/updateProductReviews.ts",
+      "line": 18,
+      "description": "NoSQL injection updating reviews by _id with multi:true.",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html",
+      "inScope": true
+    },
+    {
+      "class": "eval",
+      "file": "routes/userProfile.ts",
+      "line": 65,
+      "description": "SSTI/eval: username #{...} is eval()d in the profile template.",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html",
+      "inScope": true
     },
     {
       "class": "redirect",
       "file": "routes/redirect.ts",
       "line": 18,
-      "description": "Unvalidated redirect: /redirect follows toUrl when the allowlist check uses includes().",
-      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/unvalidated-redirects.html"
+      "description": "Open redirect: /redirect follows toUrl when allowlist uses includes().",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/unvalidated-redirects.html",
+      "inScope": true
+    },
+    {
+      "class": "redirect",
+      "file": "lib/insecurity.ts",
+      "line": 136,
+      "description": "Redirect allowlist is bypassable via String.includes (redirectChallenge).",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/unvalidated-redirects.html",
+      "inScope": true
+    },
+    {
+      "class": "xss",
+      "file": "routes/trackOrder.ts",
+      "line": 17,
+      "description": "Reflected XSS in track-order id (iframe javascript:alert).",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/xss.html",
+      "inScope": true
+    },
+    {
+      "class": "config",
+      "file": "server.ts",
+      "line": 290,
+      "description": "Directory listing enabled on /ftp.",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/security-misconfiguration.html",
+      "inScope": true
+    },
+    {
+      "class": "config",
+      "file": "server.ts",
+      "line": 302,
+      "description": "Access logs served under /support/logs.",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/security-misconfiguration.html",
+      "inScope": true
+    },
+    {
+      "class": "deps",
+      "file": "package.json",
+      "line": 1,
+      "description": "Vulnerable Components challenges (known-vulnerable third-party libs).",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/vulnerable-components.html",
+      "inScope": true
+    },
+    {
+      "class": "secrets",
+      "file": "data/static/challenges.yml",
+      "line": 3,
+      "description": "Password Hash Leak (Sensitive Data Exposure): Obtain the password (hash) of the currently logged-in user directly from a REST API endpoint.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "API oversharing / client-side leaks, not a secret-regex hit"
+    },
+    {
+      "class": "xss",
+      "file": "data/static/challenges.yml",
+      "line": 14,
+      "description": "API-only XSS (XSS): Perform a <i>persisted</i> XSS attack with <code>&lt;iframe src=\"javascript:alert(`xss`)\"&gt;</code> without using the frontend application at all.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "frontend-only / DOM XSS (Angular sanitizer bypass), not a Node SAST template sink"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 42,
+      "description": "Admin Registration (Improper Input Validation): Register as a user with administrator privileges.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "mass assignment / validation logic (Phase 29 SAST-MASSASSIGN)"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 53,
+      "description": "Admin Section (Broken Access Control): Access the administration section of the store.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "authorization / IDOR / hidden admin UI is business logic"
+    },
+    {
+      "class": "deps",
+      "file": "data/static/challenges.yml",
+      "line": 70,
+      "description": "Arbitrary File Write (Vulnerable Components): Overwrite the <a href=\"/ftp/legal.md\">Legal Information</a> file.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "server-side challenge catalogued from official list; not a claimed static sink at a known file:line"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 88,
+      "description": "Bjoern (Broken Authentication): Reset the password of Bjoern",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "auth/session challenges are not a claimed static class"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 101,
+      "description": "Blockchain Hype (Security through Obscurity): Learn about the Token Sale before its official announcement.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "hidden scoreboard/admin URLs are not a static vuln class"
+    },
+    {
+      "class": "secrets",
+      "file": "data/static/challenges.yml",
+      "line": 117,
+      "description": "NFT Takeover (Sensitive Data Exposure): Take over the wallet containing our official Soul Bound Token (NFT).",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "API oversharing / client-side leaks, not a secret-regex hit"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 130,
+      "description": "Mint the Honey Pot (Improper Input Validation): Mint the Honey Pot NFT by gathering BEEs from the bee haven.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "mass assignment / validation logic (Phase 29 SAST-MASSASSIGN)"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 141,
+      "description": "Wallet Depletion (Miscellaneous): Withdraw more ETH from the new wallet than you deposited.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "CTF/easter-egg challenge, not a SAST class FullShield claims"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 152,
+      "description": "Web3 Sandbox (Broken Access Control): Find an accidentally deployed code sandbox for writing smart contracts on the fly.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "authorization / IDOR / hidden admin UI is business logic"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 163,
+      "description": "Blocked RCE DoS (Insecure Deserialization): Perform a Remote Code Execution that would keep a less hardened application busy <em>forever</em>.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "deserialization is SAST-DESER (Phase 29)"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 181,
+      "description": "CAPTCHA Bypass (Broken Anti Automation): Submit 10 or more customer feedbacks within 20 seconds.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "captcha/rate-limit bypass is runtime/business logic"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 196,
+      "description": "Change Bender (Broken Authentication): Change Bender",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "auth/session challenges are not a claimed static class"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 207,
+      "description": "Christmas Special (Injection): Order the Christmas special offer of 2014.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "injection challenge without a mapped static sink in this SHA (see explicit SQL/NoSQL/eval entries)"
+    },
+    {
+      "class": "xss",
+      "file": "data/static/challenges.yml",
+      "line": 220,
+      "description": "CSP Bypass (XSS): Bypass the Content Security Policy and perform an XSS attack with <code>&lt;script&gt;alert(`xss`)&lt;/script&gt;</code> on a legacy page within the application.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "frontend-only / DOM XSS (Angular sanitizer bypass), not a Node SAST template sink"
+    },
+    {
+      "class": "xss",
+      "file": "data/static/challenges.yml",
+      "line": 237,
+      "description": "Client-side XSS Protection (XSS): Perform a <i>persisted</i> XSS attack with <code>&lt;iframe src=\"javascript:alert(`xss`)\"&gt;</code> bypassing a <i>client-side</i> security mechanism.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "frontend-only / DOM XSS (Angular sanitizer bypass), not a Node SAST template sink"
+    },
+    {
+      "class": "xss",
+      "file": "data/static/challenges.yml",
+      "line": 265,
+      "description": "DOM XSS (XSS): Perform a <i>DOM</i> XSS attack with <code>&lt;iframe src=\"javascript:alert(`xss`)\"&gt;</code>.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "frontend-only / DOM XSS (Angular sanitizer bypass), not a Node SAST template sink"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 280,
+      "description": "Database Schema (Injection): Exfiltrate the entire DB schema definition via SQL Injection.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "injection challenge without a mapped static sink in this SHA (see explicit SQL/NoSQL/eval entries)"
+    },
+    {
+      "class": "config",
+      "file": "data/static/challenges.yml",
+      "line": 293,
+      "description": "Deprecated Interface (Security Misconfiguration): Use a deprecated B2B interface that was not properly shut down.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "covered by explicit /ftp and /logs entries when a file:line exists; remaining are runtime/config"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 311,
+      "description": "Easter Egg (Broken Access Control): Find the hidden <a href=\"https://en.wikipedia.org/wiki/Easter_egg_(media)\" target=\"_blank\">easter egg</a>.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "authorization / IDOR / hidden admin UI is business logic"
+    },
+    {
+      "class": "secrets",
+      "file": "data/static/challenges.yml",
+      "line": 325,
+      "description": "Email Leak (Sensitive Data Exposure): Perform an unwanted information disclosure by accessing data cross-domain.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "API oversharing / client-side leaks, not a secret-regex hit"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 336,
+      "description": "Empty User Registration (Improper Input Validation): Register a user with an empty email and password.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "mass assignment / validation logic (Phase 29 SAST-MASSASSIGN)"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 345,
+      "description": "Ephemeral Accountant (Injection): Log in with the (non-existing) accountant <i>acc0unt4nt@juice-sh.op</i> without ever registering that user.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "injection challenge without a mapped static sink in this SHA (see explicit SQL/NoSQL/eval entries)"
+    },
+    {
+      "class": "config",
+      "file": "data/static/challenges.yml",
+      "line": 358,
+      "description": "Error Handling (Security Misconfiguration): Provoke an error that is neither very gracefully nor consistently handled.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "covered by explicit /ftp and /logs entries when a file:line exists; remaining are runtime/config"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 372,
+      "description": "Expired Coupon (Improper Input Validation): Successfully redeem an expired campaign coupon code.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "mass assignment / validation logic (Phase 29 SAST-MASSASSIGN)"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 383,
+      "description": "Extra Language (Broken Anti Automation): Retrieve the language file that never made it into production.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "captcha/rate-limit bypass is runtime/business logic"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 397,
+      "description": "Five-Star Feedback (Broken Access Control): Get rid of all 5-star customer feedback.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "authorization / IDOR / hidden admin UI is business logic"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 422,
+      "description": "Forged Feedback (Broken Access Control): ",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "authorization / IDOR / hidden admin UI is business logic"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 437,
+      "description": "Forged Review (Broken Access Control): Post a product review as another user or edit any user",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "authorization / IDOR / hidden admin UI is business logic"
+    },
+    {
+      "class": "deps",
+      "file": "data/static/challenges.yml",
+      "line": 449,
+      "description": "Forged Signed JWT (Vulnerable Components): Forge an almost properly RSA-signed JWT token that impersonates the (non-existing) user <i>rsa_lord@juice-sh.op</i>.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "server-side challenge catalogued from official list; not a claimed static sink at a known file:line"
+    },
+    {
+      "class": "secrets",
+      "file": "data/static/challenges.yml",
+      "line": 465,
+      "description": "Forgotten Developer Backup (Sensitive Data Exposure): Access a developer",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "API oversharing / client-side leaks, not a secret-regex hit"
+    },
+    {
+      "class": "secrets",
+      "file": "data/static/challenges.yml",
+      "line": 482,
+      "description": "Forgotten Sales Backup (Sensitive Data Exposure): Access a salesman",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "API oversharing / client-side leaks, not a secret-regex hit"
+    },
+    {
+      "class": "deps",
+      "file": "data/static/challenges.yml",
+      "line": 496,
+      "description": "Frontend Typosquatting (Vulnerable Components): <a href=\"/#/contact\">Inform the shop</a> about a <i>typosquatting</i> imposter that dug itself deep into the frontend. (Mention the exact name of the culprit)",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "server-side challenge catalogued from official list; not a claimed static sink at a known file:line"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 507,
+      "description": "GDPR Data Erasure (Broken Authentication): Log in with Chris",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "auth/session challenges are not a claimed static class"
+    },
+    {
+      "class": "secrets",
+      "file": "data/static/challenges.yml",
+      "line": 519,
+      "description": "GDPR Data Theft (Sensitive Data Exposure): Steal someone else",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "API oversharing / client-side leaks, not a secret-regex hit"
+    },
+    {
+      "class": "xss",
+      "file": "data/static/challenges.yml",
+      "line": 531,
+      "description": "HTTP-Header XSS (XSS): Perform a <i>persisted</i> XSS attack with <code>&lt;iframe src=\"javascript:alert(`xss`)\"&gt;</code> through an HTTP header.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "frontend-only / DOM XSS (Angular sanitizer bypass), not a Node SAST template sink"
+    },
+    {
+      "class": "crypto",
+      "file": "data/static/challenges.yml",
+      "line": 547,
+      "description": "Imaginary Challenge (Cryptographic Issues): Solve challenge #999. Unfortunately, this challenge does not exist.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "JWT/forged coupon crypto is mostly challenge-specific, not SAST-CRYPTO-001 weak hash"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 563,
+      "description": "Leaked Access Logs (Observability Failures): Dumpster dive the Internet for a leaked password and log in to the original user account it belongs to. (Creating a new account with the same password does not qualify as a solutio",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "logging/monitoring is not a shipped SAST class"
+    },
+    {
+      "class": "secrets",
+      "file": "data/static/challenges.yml",
+      "line": 577,
+      "description": "Leaked Unsafe Product (Sensitive Data Exposure): Identify an unsafe product that was removed from the shop and <a href=\"/#/contact\">inform the shop</a> which ingredients are dangerous.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "API oversharing / client-side leaks, not a secret-regex hit"
+    },
+    {
+      "class": "deps",
+      "file": "data/static/challenges.yml",
+      "line": 593,
+      "description": "Legacy Typosquatting (Vulnerable Components): <a href=\"/#/contact\">Inform the shop</a> about a <i>typosquatting</i> trick it has been a victim of at least in <code>v6.2.0-SNAPSHOT</code>. (Mention the exact name of the culprit",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "server-side challenge catalogued from official list; not a claimed static sink at a known file:line"
+    },
+    {
+      "class": "secrets",
+      "file": "data/static/challenges.yml",
+      "line": 622,
+      "description": "Login Amy (Sensitive Data Exposure): Log in with Amy",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "API oversharing / client-side leaks, not a secret-regex hit"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 637,
+      "description": "Login Bender (Injection): Log in with Bender",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "injection challenge without a mapped static sink in this SHA (see explicit SQL/NoSQL/eval entries)"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 653,
+      "description": "Login Bjoern (Broken Authentication): Log in with Bjoern",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "auth/session challenges are not a claimed static class"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 667,
+      "description": "Login Jim (Injection): Log in with Jim",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "injection challenge without a mapped static sink in this SHA (see explicit SQL/NoSQL/eval entries)"
+    },
+    {
+      "class": "secrets",
+      "file": "data/static/challenges.yml",
+      "line": 682,
+      "description": "Login MC SafeSearch (Sensitive Data Exposure): Log in with MC SafeSearch",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "API oversharing / client-side leaks, not a secret-regex hit"
+    },
+    {
+      "class": "config",
+      "file": "data/static/challenges.yml",
+      "line": 695,
+      "description": "Login Support Team (Security Misconfiguration): Log in with the support team",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "covered by explicit /ftp and /logs entries when a file:line exists; remaining are runtime/config"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 711,
+      "description": "Manipulate Basket (Broken Access Control): Put an additional product into another user",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "authorization / IDOR / hidden admin UI is business logic"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 722,
+      "description": "Misplaced Signature File (Observability Failures): Access a misplaced <a href=\"https://github.com/Neo23x0/sigma\">SIEM signature</a> file.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "logging/monitoring is not a shipped SAST class"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 736,
+      "description": "Multiple Likes (Broken Anti Automation): Like any review at least three times as the same user.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "captcha/rate-limit bypass is runtime/business logic"
+    },
+    {
+      "class": "crypto",
+      "file": "data/static/challenges.yml",
+      "line": 748,
+      "description": "Nested Easter Egg (Cryptographic Issues): Apply some advanced cryptanalysis to find <i>the real</i> easter egg.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "JWT/forged coupon crypto is mostly challenge-specific, not SAST-CRYPTO-001 weak hash"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 820,
+      "description": "Password Strength (Broken Authentication): Log in with the administrator",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "auth/session challenges are not a claimed static class"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 837,
+      "description": "Payback Time (Improper Input Validation): Place an order that makes you rich.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "mass assignment / validation logic (Phase 29 SAST-MASSASSIGN)"
+    },
+    {
+      "class": "crypto",
+      "file": "data/static/challenges.yml",
+      "line": 847,
+      "description": "Premium Paywall (Cryptographic Issues): 💎💎💎💎💎<!--IvLuRfBJYlmStf9XfL6ckJFngyd9LfV1JaaN/KRTPQPidTuJ7FR+D/nkWJUF+0xUF07CeCeqYfxq+OJVVa0gNbqgYkUNvn//UbE7e95C+6e+7GtdpqJ8mqm4WcPvUGIUxmGLTTAC2+G9UuFCD1DUjg==--> <a href=\"h",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "JWT/forged coupon crypto is mostly challenge-specific, not SAST-CRYPTO-001 weak hash"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 861,
+      "description": "Privacy Policy (Miscellaneous): Read our privacy policy.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "CTF/easter-egg challenge, not a SAST class FullShield claims"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 879,
+      "description": "Privacy Policy Inspection (Security through Obscurity): Prove that you actually read our privacy policy.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "hidden scoreboard/admin URLs are not a static vuln class"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 894,
+      "description": "Product Tampering (Broken Access Control): Change the <code>href</code> of the link within the <a href=\"/#/search?q=OWASP SSL Advanced Forensic Tool (O-Saft)\">OWASP SSL Advanced Forensic Tool (O-Saft)</a> product descriptio",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "authorization / IDOR / hidden admin UI is business logic"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 923,
+      "description": "Repetitive Registration (Improper Input Validation): Follow the DRY principle while registering a user.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "mass assignment / validation logic (Phase 29 SAST-MASSASSIGN)"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 935,
+      "description": "Reset Bender (Broken Authentication): Reset Bender",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "auth/session challenges are not a claimed static class"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 950,
+      "description": "Reset Bjoern (Broken Authentication): Reset the password of Bjoern",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "auth/session challenges are not a claimed static class"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 965,
+      "description": "Reset Jim (Broken Authentication): Reset Jim",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "auth/session challenges are not a claimed static class"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 979,
+      "description": "Reset Morty (Broken Anti Automation): Reset Morty",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "captcha/rate-limit bypass is runtime/business logic"
+    },
+    {
+      "class": "secrets",
+      "file": "data/static/challenges.yml",
+      "line": 994,
+      "description": "Retrieve Blueprint (Sensitive Data Exposure): Deprive the shop of earnings by downloading the blueprint for one of its products.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "API oversharing / client-side leaks, not a secret-regex hit"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1005,
+      "description": "SSRF (Broken Access Control): Request a hidden resource on server through server.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "authorization / IDOR / hidden admin UI is business logic"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1038,
+      "description": "Score Board (Miscellaneous): Find the carefully hidden ",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "CTF/easter-egg challenge, not a SAST class FullShield claims"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1050,
+      "description": "Security Policy (Miscellaneous): Behave like any \"white-hat\" should before getting into the action.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "CTF/easter-egg challenge, not a SAST class FullShield claims"
+    },
+    {
+      "class": "xss",
+      "file": "data/static/challenges.yml",
+      "line": 1064,
+      "description": "Server-side XSS Protection (XSS): Perform a <i>persisted</i> XSS attack with <code>&lt;iframe src=\"javascript:alert(`xss`)\"&gt;</code> bypassing a <i>server-side</i> security mechanism.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "frontend-only / DOM XSS (Angular sanitizer bypass), not a Node SAST template sink"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1082,
+      "description": "Steganography (Security through Obscurity): <a href=\"/#/contact\">Rat out</a> a notorious character hiding in plain sight in the shop. (Mention the exact name of the character)",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "hidden scoreboard/admin URLs are not a static vuln class"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1096,
+      "description": "Successful RCE DoS (Insecure Deserialization): Perform a Remote Code Execution that occupies the server for a while without using infinite loops.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "deserialization is SAST-DESER (Phase 29)"
+    },
+    {
+      "class": "deps",
+      "file": "data/static/challenges.yml",
+      "line": 1111,
+      "description": "Supply Chain Attack (Vulnerable Components): <a href=\"/#/contact\">Inform the development team</a> about a danger to some of <em>their</em> credentials. (Send them the URL of the <em>original report</em> or an assigned CVE or ",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "server-side challenge catalogued from official list; not a claimed static sink at a known file:line"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1124,
+      "description": "Two Factor Authentication (Broken Authentication): Solve the 2FA challenge for user \"wurstbrot\". (Disabling, bypassing or overwriting his 2FA settings does not count as a solution)",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "auth/session challenges are not a claimed static class"
+    },
+    {
+      "class": "deps",
+      "file": "data/static/challenges.yml",
+      "line": 1136,
+      "description": "Unsigned JWT (Vulnerable Components): Forge an essentially unsigned JWT token that impersonates the (non-existing) user <i>jwtn3d@juice-sh.op</i>.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "server-side challenge catalogued from official list; not a claimed static sink at a known file:line"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1149,
+      "description": "Upload Size (Improper Input Validation): Upload a file larger than 100 kB.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "mass assignment / validation logic (Phase 29 SAST-MASSASSIGN)"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1160,
+      "description": "Upload Type (Improper Input Validation): Upload a file that has no .pdf or .zip extension.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "mass assignment / validation logic (Phase 29 SAST-MASSASSIGN)"
+    },
+    {
+      "class": "xss",
+      "file": "data/static/challenges.yml",
+      "line": 1183,
+      "description": "Video XSS (XSS): Embed an XSS payload <code>&lt;/script&gt;&lt;script&gt;alert(`xss`)&lt;/script&gt;</code> into our promo video.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "frontend-only / DOM XSS (Angular sanitizer bypass), not a Node SAST template sink"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1200,
+      "description": "View Basket (Broken Access Control): View another user",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "authorization / IDOR / hidden admin UI is business logic"
+    },
+    {
+      "class": "deps",
+      "file": "data/static/challenges.yml",
+      "line": 1216,
+      "description": "Vulnerable Library (Vulnerable Components): <a href=\"/#/contact\">Inform the shop</a> about a high-severity vulnerability caused by one of its directly used dependencies. (Mention the exact library name and version in your co",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "server-side challenge catalogued from official list; not a claimed static sink at a known file:line"
+    },
+    {
+      "class": "crypto",
+      "file": "data/static/challenges.yml",
+      "line": 1229,
+      "description": "Weird Crypto (Cryptographic Issues): <a href=\"/#/contact\">Inform the shop</a> about an algorithm or library it should definitely not use the way it does.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "JWT/forged coupon crypto is mostly challenge-specific, not SAST-CRYPTO-001 weak hash"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1253,
+      "description": "XXE Data Access (XXE): Retrieve the content of <code>C:\\Windows\\system.ini</code> or <code>/etc/passwd</code> from the server.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "XXE is SAST-XXE (Phase 29)"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1269,
+      "description": "XXE DoS (XXE): Give the server something to chew on for quite a while.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "XXE is SAST-XXE (Phase 29)"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1286,
+      "description": "Memory Bomb (Insecure Deserialization): Drop some explosive data into a vulnerable file-handling endpoint.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "deserialization is SAST-DESER (Phase 29)"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1302,
+      "description": "Zero Stars (Improper Input Validation): Give a devastating zero-star feedback to the store.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "mass assignment / validation logic (Phase 29 SAST-MASSASSIGN)"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1311,
+      "description": "Missing Encoding (Improper Input Validation): Retrieve the photo of Bjoern",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "mass assignment / validation logic (Phase 29 SAST-MASSASSIGN)"
+    },
+    {
+      "class": "config",
+      "file": "data/static/challenges.yml",
+      "line": 1324,
+      "description": "Cross-Site Imaging (Security Misconfiguration): Stick <a href=\"https://cataas.com/cat\" target=\"_blank\">cute cross-domain kittens</a> all over our delivery boxes.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "covered by explicit /ftp and /logs entries when a file:line exists; remaining are runtime/config"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1339,
+      "description": "Exposed Metrics (Observability Failures): Find the endpoint that serves usage data to be scraped by a <a href=\"https://github.com/prometheus/prometheus\">popular monitoring system</a>.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "logging/monitoring is not a shipped SAST class"
+    },
+    {
+      "class": "config",
+      "file": "data/static/challenges.yml",
+      "line": 1352,
+      "description": "Misplaced IaC Files (Security Misconfiguration): Access the misplaced Infrastructure as Code files that were accidentally included in the web application deliverable.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "covered by explicit /ftp and /logs entries when a file:line exists; remaining are runtime/config"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1365,
+      "description": "Deluxe Fraud (Improper Input Validation): Obtain a Deluxe Membership without paying for it.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "mass assignment / validation logic (Phase 29 SAST-MASSASSIGN)"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1377,
+      "description": "CSRF (Broken Access Control): Change the name of a user by performing Cross-Site Request Forgery from <a href=\"http://htmledit.squarefree.com\">another origin</a>.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "authorization / IDOR / hidden admin UI is business logic"
+    },
+    {
+      "class": "xss",
+      "file": "data/static/challenges.yml",
+      "line": 1389,
+      "description": "Bonus Payload (XSS): Use the bonus payload <code>&lt;iframe width=&quot;100%&quot; height=&quot;166&quot; scrolling=&quot;no&quot; frameborder=&quot;no&quot; allow=&quot;autoplay&quot; src=&quot;https:",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "frontend-only / DOM XSS (Angular sanitizer bypass), not a Node SAST template sink"
+    },
+    {
+      "class": "secrets",
+      "file": "data/static/challenges.yml",
+      "line": 1405,
+      "description": "Reset Uvogin (Sensitive Data Exposure): Reset Uvogin",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "API oversharing / client-side leaks, not a secret-regex hit"
+    },
+    {
+      "class": "secrets",
+      "file": "data/static/challenges.yml",
+      "line": 1418,
+      "description": "Meta Geo Stalking (Sensitive Data Exposure): Determine the answer to John",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "API oversharing / client-side leaks, not a secret-regex hit"
+    },
+    {
+      "class": "secrets",
+      "file": "data/static/challenges.yml",
+      "line": 1431,
+      "description": "Visual Geo Stalking (Sensitive Data Exposure): Determine the answer to Emma",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "API oversharing / client-side leaks, not a secret-regex hit"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1442,
+      "description": "Poison Null Byte (Improper Input Validation): Bypass a security control with a <a href=\"https://hakipedia.com/index.php/Poison_Null_Byte\">Poison Null Byte</a> to access a file not meant for your eyes.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "mass assignment / validation logic (Phase 29 SAST-MASSASSIGN)"
+    },
+    {
+      "class": "deps",
+      "file": "data/static/challenges.yml",
+      "line": 1456,
+      "description": "Local File Read (Vulnerable Components): Gain read access to an arbitrary local file on the web server.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "server-side challenge catalogued from official list; not a claimed static sink at a known file:line"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1474,
+      "description": "Mass Dispel (Miscellaneous): Close multiple \"Challenge solved\"-notifications in one go.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "CTF/easter-egg challenge, not a SAST class FullShield claims"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1485,
+      "description": "Security Advisory (Miscellaneous): The Juice Shop is susceptible to a known vulnerability in a library, for which an advisory has already been issued, marking the Juice Shop as <i>known affected</i>. A fix is still ",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "CTF/easter-egg challenge, not a SAST class FullShield claims"
+    },
+    {
+      "class": "secrets",
+      "file": "data/static/challenges.yml",
+      "line": 1494,
+      "description": "Exposed Credentials (Sensitive Data Exposure): A developer was careless with hardcoding unused, but still valid credentials for a testing account on the client-side.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "API oversharing / client-side leaks, not a secret-regex hit"
+    },
+    {
+      "class": "secrets",
+      "file": "data/static/challenges.yml",
+      "line": 1505,
+      "description": "Leaked API Key (Sensitive Data Exposure): <a href=\"/#/contact\">Inform the shop</a> about a leaked API key. (Mention the exact key in your comment)",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "API oversharing / client-side leaks, not a secret-regex hit"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1517,
+      "description": "Chatbot Prompt Injection (Injection): Trick the chatbot into generating a coupon code for you despite its coupon policy saying otherwise.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "injection challenge without a mapped static sink in this SHA (see explicit SQL/NoSQL/eval entries)"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1531,
+      "description": "Greedy Chatbot Manipulation (Injection): Convince the chatbot to give you a coupon of 50% or more. Because apparently a 10% max policy is just a suggestion when you ask nicely enough.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "injection challenge without a mapped static sink in this SHA (see explicit SQL/NoSQL/eval entries)"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1544,
+      "description": "AI Debugging (Broken Access Control): Reveal some behind-the-scenes information on the chatbot as a non-admin user.",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "authorization / IDOR / hidden admin UI is business logic"
+    },
+    {
+      "class": "other",
+      "file": "data/static/challenges.yml",
+      "line": 1558,
+      "description": "System Prompt Extraction (Injection): Extract the chatbot",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "injection challenge without a mapped static sink in this SHA (see explicit SQL/NoSQL/eval entries)"
+    },
+    {
+      "class": "secrets",
+      "file": "data/static/challenges.yml",
+      "line": 1571,
+      "description": "Login Cloud Admin (Sensitive Data Exposure): Log in with the cloud admin",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "API oversharing / client-side leaks, not a secret-regex hit"
+    },
+    {
+      "class": "deps",
+      "file": "data/static/challenges.yml",
+      "line": 1583,
+      "description": "Vulnerable Infrastructure (Vulnerable Components): <a href=\"/#/complain\">Inform the shop</a> about the use of a known vulnerable infrastructure component. (Identify the component as specifically as possible in your complaint)",
+      "source": "https://github.com/juice-shop/juice-shop/blob/e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4/data/static/challenges.yml",
+      "inScope": false,
+      "reason": "server-side challenge catalogued from official list; not a claimed static sink at a known file:line"
     }
   ]
 }

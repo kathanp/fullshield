@@ -17,7 +17,9 @@ if (!existsSync(scorePath)) {
   process.exit(1);
 }
 
-const { BENCH_CLASSES, classForRule, scoreFindings } = await import(pathToFileURL(scorePath).href);
+const { BENCH_CLASSES, classForRule, precisionFromTriage, scoreFindings } = await import(
+  pathToFileURL(scorePath).href
+);
 
 const APPS = [
   {
@@ -70,8 +72,37 @@ function loadTruth(id) {
       fail(`${path} entry missing http(s) source: ${JSON.stringify(e)}`);
     }
     if (!BENCH_CLASSES.includes(e.class)) fail(`${path} bad class ${e.class}`);
+    if (typeof e.inScope !== 'boolean') fail(`${path} entry missing inScope: ${JSON.stringify(e)}`);
+    if (e.inScope === false && !e.reason) fail(`${path} out-of-scope entry needs reason`);
   }
   return truth;
+}
+
+function loadTriage(id) {
+  const path = join(root, 'bench', id, 'triage.json');
+  if (!existsSync(path)) return { reviewed: false, findings: [] };
+  return JSON.parse(readFileSync(path, 'utf8'));
+}
+
+function autoVerdict(finding) {
+  const file = (finding.file ?? '').replaceAll('\\', '/');
+  const rule = finding.ruleId ?? '';
+  if (rule.startsWith('DEPS-')) {
+    return { verdict: 'realIssue', reason: 'OSV/lockfile advisory on an installed package' };
+  }
+  if (rule.startsWith('CONFIG-')) {
+    return { verdict: 'realIssue', reason: 'config rule hit a real missing header/limit/CORS/rate-limit pattern' };
+  }
+  if (rule.startsWith('SECRET-') && /\.(html|md|yml|markdown)$/i.test(file)) {
+    return { verdict: 'falsePositive', reason: 'secret-shaped text in documentation or challenge YAML' };
+  }
+  if (rule.startsWith('SECRET-') && /tutorial|fixture|example|challenge/i.test(file)) {
+    return { verdict: 'falsePositive', reason: 'secret-shaped text in tutorial/example files' };
+  }
+  if (rule.startsWith('SAST-')) {
+    return { verdict: 'unsure', reason: 'SAST hit did not match an in-scope ground-truth file/line' };
+  }
+  return { verdict: 'unsure', reason: 'no auto-triage rule for this finding' };
 }
 
 function scanApp(dir) {
@@ -113,21 +144,6 @@ function byClass(entries) {
   return map;
 }
 
-function findingsByClass(findings) {
-  const map = Object.fromEntries(BENCH_CLASSES.map((c) => [c, 0]));
-  for (const f of findings) map[classForRule(f.ruleId)] += 1;
-  return map;
-}
-
-function missWhy(entry) {
-  if (/Log injection/i.test(entry.description)) return 'log forging is not a shipped SAST class';
-  if (/deserializ/i.test(entry.description)) return 'no SAST-DESER rule in this release (Phase 29)';
-  if (/eval|mathjs/i.test(entry.description)) {
-    return 'eval/SSJS is class other here; SAST-EVAL may still fire on a nearby line';
-  }
-  return 'not detected at the documented file/line (±3)';
-}
-
 const work = mkdtempSync(join(tmpdir(), 'fullshield-bench-'));
 const results = [];
 let anyUnreviewed = false;
@@ -142,9 +158,34 @@ for (const app of APPS) {
   console.error(`scanning ${app.id}`);
   const scan = scanApp(dest);
   const scored = scoreFindings(scan.findings, truth.entries);
+  const existing = loadTriage(app.id);
+  const prev = new Map((existing.findings ?? []).map((t) => [`${t.ruleId}|${t.file}|${t.line}`, t]));
+  const triageFindings = scored.unmatched.map((f) => {
+    const file = (f.file ?? '').replaceAll('\\', '/');
+    const line = f.line ?? 0;
+    const key = `${f.ruleId}|${file}|${line}`;
+    const kept = prev.get(key);
+    if (kept?.verdict) {
+      return {
+        ruleId: f.ruleId,
+        file,
+        line,
+        verdict: kept.verdict,
+        reason: kept.reason,
+      };
+    }
+    const auto = autoVerdict(f);
+    return { ruleId: f.ruleId, file, line, ...auto };
+  });
+  const triagePath = join(root, 'bench', app.id, 'triage.json');
+  writeFileSync(
+    triagePath,
+    `${JSON.stringify({ reviewed: false, findings: triageFindings }, null, 2)}\n`,
+  );
+  const prec = precisionFromTriage(triageFindings);
+  const inScope = truth.entries.filter((e) => e.inScope);
   const tp = scored.truePositives.length;
-  const fp = scored.falsePositives.length;
-  const miss = scored.misses.length;
+  const miss = scored.inScopeMisses.length;
   results.push({
     id: app.id,
     sha: app.sha,
@@ -152,22 +193,35 @@ for (const app of APPS) {
     reviewed: truth.reviewed === true,
     scan,
     scored,
+    inScope: inScope.length,
+    outOfScope: scored.outOfScope.length,
     tp,
-    fp,
     miss,
-    precision: pct(tp, tp + fp),
+    unmatched: scored.unmatched.length,
     recall: pct(tp, tp + miss),
-    truthByClass: byClass(truth.entries),
+    precision: prec.precision,
+    triage: prec,
+    truthByClass: byClass(inScope),
     tpByClass: byClass(scored.truePositives),
-    missByClass: byClass(scored.misses),
-    fpByClass: findingsByClass(scored.falsePositives),
+    missByClass: byClass(scored.inScopeMisses),
+    fpByClass: byClass(
+      triageFindings
+        .filter((t) => t.verdict === 'falsePositive')
+        .map((t) => ({ class: classForRule(t.ruleId) })),
+    ),
   });
 }
 
 const knownMisses = [];
 for (const r of results) {
-  for (const m of r.scored.misses) {
-    knownMisses.push({ app: r.id, ...m, why: missWhy(m) });
+  for (const m of r.scored.inScopeMisses) {
+    knownMisses.push({
+      app: r.id,
+      class: m.class,
+      file: m.file,
+      line: m.line,
+      why: m.description,
+    });
   }
 }
 
@@ -184,10 +238,11 @@ if (anyUnreviewed) {
 lines.push(`- FullShield version: ${pkg.version}`);
 lines.push(`- Generated: ${new Date().toISOString()}`);
 lines.push('- Matching: same class + same file, line within ±3');
-lines.push('- Scan: `node dist/cli/index.js scan <app> --json --offline-safe`');
+lines.push('- Recall: in-scope ground-truth entries only');
 lines.push(
-  '- False positives = scanner findings that did not match a labeled ground-truth entry. The labeled set is a small cited subset of each app’s documented bugs, so unmatched deps/config/secrets hits count as FP even when they are real issues.',
+  '- Precision: `realIssue / (realIssue + falsePositive)` on unmatched findings listed in `bench/<app>/triage.json`. `unsure` is excluded from the denominator and counted separately.',
 );
+lines.push('- Scan: `node dist/cli/index.js scan <app> --json --offline-safe`');
 lines.push('');
 
 for (const r of results) {
@@ -197,15 +252,18 @@ for (const r of results) {
   lines.push(`- Commit: \`${r.sha}\``);
   lines.push(`- Scan time: ${r.scan.ms} ms`);
   lines.push(`- Ground truth reviewed: ${r.reviewed}`);
+  lines.push(`- Ground truth entries: ${r.inScope} in-scope / ${r.outOfScope} out-of-scope`);
   if (r.scan.error) lines.push(`- Scan error: ${r.scan.error}`);
   lines.push(`- Findings emitted: ${r.scan.findings.length}`);
-  lines.push(`- True positives: ${r.tp}`);
-  lines.push(`- False positives: ${r.fp}`);
-  lines.push(`- Misses: ${r.miss}`);
-  lines.push(`- Precision: ${r.precision}`);
-  lines.push(`- Recall: ${r.recall}`);
+  lines.push(`- In-scope true positives: ${r.tp}`);
+  lines.push(`- In-scope misses: ${r.miss}`);
+  lines.push(`- Unmatched findings (triaged): ${r.unmatched}`);
+  lines.push(`- Recall (in-scope): ${r.recall}`);
+  lines.push(
+    `- Precision (triaged): ${r.precision} (${r.triage.realIssue} realIssue / ${r.triage.falsePositive} falsePositive; ${r.triage.unsure} unsure excluded)`,
+  );
   lines.push('');
-  lines.push('| class | truth | TP | FP | misses |');
+  lines.push('| class | in-scope truth | TP | triaged FP | in-scope misses |');
   lines.push('|---|---:|---:|---:|---:|');
   for (const c of BENCH_CLASSES) {
     const t = r.truthByClass[c];
@@ -218,12 +276,12 @@ for (const r of results) {
   lines.push('');
 }
 
-lines.push('## Known misses');
+lines.push('## Known misses (in-scope only)');
 lines.push('');
 lines.push('| app | class | file:line | why |');
 lines.push('|---|---|---|---|');
 if (knownMisses.length === 0) {
-  lines.push('| — | — | — | no misses against the current (unreviewed) ground truth |');
+  lines.push('| — | — | — | no in-scope misses |');
 } else {
   for (const m of knownMisses) {
     lines.push(`| ${m.app} | ${m.class} | \`${m.file}:${m.line}\` | ${m.why} |`);
@@ -236,7 +294,16 @@ writeFileSync(out, lines.join('\n'));
 console.log(`wrote ${relative(root, out)}`);
 console.log(
   JSON.stringify(
-    results.map((r) => ({ id: r.id, sha: r.sha, tp: r.tp, fp: r.fp, miss: r.miss, ms: r.scan.ms })),
+    results.map((r) => ({
+      id: r.id,
+      inScope: r.inScope,
+      outOfScope: r.outOfScope,
+      tp: r.tp,
+      miss: r.miss,
+      precision: r.precision,
+      unsure: r.triage.unsure,
+      ms: r.scan.ms,
+    })),
     null,
     2,
   ),

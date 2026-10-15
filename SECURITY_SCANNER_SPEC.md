@@ -636,9 +636,10 @@ Goal: turn "possible vulnerability" into "**confirmed**, here's the proof" so de
 
 ### Phase 26 — Public benchmark run (credibility first)
 
-- `bench/<app>/ground-truth.json` for NodeGoat, Juice Shop, and DVNA. Each entry is `{class, file, line, description, source}` with an http(s) citation from that app’s own docs. Cursor-drafted files stay `"reviewed": false`.
+- `bench/<app>/ground-truth.json` for NodeGoat, Juice Shop, and DVNA. Each entry is `{class, file, line, description, source, inScope}` with an http(s) citation from that app’s own docs. Out-of-scope entries include a one-line `reason`. Cursor-drafted files stay `"reviewed": false`.
+- Recall is computed on `inScope: true` entries only (classes FullShield claims statically: sqli, nosqli, cmdi, path, xss, ssrf, redirect, eval, jwt, crypto, proto, secrets, deps, config).
+- `bench/<app>/triage.json` lists every unmatched finding as `realIssue` | `falsePositive` | `unsure`. Precision uses only triaged realIssue/falsePositive and states the unsure count.
 - `npm run bench:public` clones the pinned SHAs into a temp directory (not committed), runs `node dist/cli/index.js scan <app> --json --offline-safe`, and scores same class + same file + line ±3.
-- Write `BENCHMARK.md` with per-app and per-class TP/FP/misses/precision/recall, scan time, FullShield version, commit SHA, and a **Known misses** table. Do not cite headline numbers while `reviewed` is false.
 - CI job named `bench` (ubuntu-24.04, Node 24) uploads `BENCHMARK.md`. `continue-on-error: true`; not a required check.
 - `--offline-safe` is an alias of `--offline` on `scan`.
 - Do not retune rules to chase these apps. Do not change existing tests or `expected-findings.json`. Do not tag a Phase 26 release.

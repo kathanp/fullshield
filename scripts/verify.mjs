@@ -1030,6 +1030,22 @@ s.listen(0, '127.0.0.1', () => {
         if (typeof e.source !== 'string' || !/^https:\/\//.test(e.source)) {
           fail(`phase 26 acceptance: ${app} entry missing https source`);
         }
+        if (typeof e.inScope !== 'boolean') {
+          fail(`phase 26 acceptance: ${app} entry missing inScope`);
+        }
+        if (e.inScope === false && !e.reason) {
+          fail(`phase 26 acceptance: ${app} out-of-scope entry needs reason`);
+        }
+      }
+      const triagePath = join(root, 'bench', app, 'triage.json');
+      if (!existsSync(triagePath)) fail(`phase 26 acceptance: missing ${relative(root, triagePath)}`);
+      const triage = JSON.parse(readFileSync(triagePath, 'utf8'));
+      if (!Array.isArray(triage.findings)) fail(`phase 26 acceptance: ${app} triage.json needs findings[]`);
+      for (const f of triage.findings) {
+        if (!['realIssue', 'falsePositive', 'unsure'].includes(f.verdict)) {
+          fail(`phase 26 acceptance: ${app} triage verdict ${f.verdict}`);
+        }
+        if (!f.reason) fail(`phase 26 acceptance: ${app} triage entry missing reason`);
       }
     }
     const benchMd = join(root, 'BENCHMARK.md');
@@ -1040,6 +1056,9 @@ s.listen(0, '127.0.0.1', () => {
       if (!md.toLowerCase().includes(app)) fail(`phase 26 acceptance: BENCHMARK.md missing ${app}`);
     }
     if (!/Known misses/i.test(md)) fail('phase 26 acceptance: BENCHMARK.md missing Known misses table');
+    if (!/in-scope/i.test(md) || !/unsure/i.test(md)) {
+      fail('phase 26 acceptance: BENCHMARK.md must report in-scope recall and unsure triage count');
+    }
     const readme = readFileSync(join(root, 'README.md'), 'utf8');
     if (!readme.includes('BENCHMARK.md')) fail('phase 26 acceptance: README must link BENCHMARK.md');
     console.log('  ✔ public bench harness, unreviewed ground truth, non-blocking CI bench job');

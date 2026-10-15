@@ -8,7 +8,7 @@ All notable changes to FullShield are documented here.
 
 ### Phase 26 — public benchmark harness
 
-- `npm run bench:public` clones pinned OWASP NodeGoat, Juice Shop, and DVNA SHAs, scans with `--json --offline-safe`, and writes `BENCHMARK.md`. Ground truth is `"reviewed": false`.
+- `npm run bench:public` clones pinned OWASP NodeGoat, Juice Shop, and DVNA SHAs, scans with `--json --offline-safe`, and writes `BENCHMARK.md`. Ground truth is exhaustive vs each app’s official docs, with `inScope` and `"reviewed": false`. Unmatched findings are triaged in `bench/<app>/triage.json`.
 - CI job `bench` (ubuntu-24.04, Node 24) uploads `BENCHMARK.md` and is non-blocking.
 - `scan --offline-safe` is an alias of `--offline`.
 

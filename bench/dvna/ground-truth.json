@@ -8,36 +8,144 @@
       "class": "sqli",
       "file": "core/appHandler.js",
       "line": 10,
-      "description": "SQL injection in user search: login concatenated into a Sequelize query string.",
-      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a1-injection.md"
+      "description": "A1: SQL injection in user search — login concatenated into sequelize.query.",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a1-injection.md",
+      "inScope": true
     },
     {
       "class": "cmdi",
       "file": "core/appHandler.js",
       "line": 39,
-      "description": "Command injection in connectivity test: exec('ping -c 2 ' + req.body.address).",
-      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a1-injection.md"
+      "description": "A1: command injection in connectivity test — exec('ping -c 2 ' + req.body.address).",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a1-injection.md",
+      "inScope": true
+    },
+    {
+      "class": "crypto",
+      "file": "core/authHandler.js",
+      "line": 49,
+      "description": "A2: password reset token is md5(login), attacker-computable.",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a2-broken-auth.md",
+      "inScope": true
+    },
+    {
+      "class": "secrets",
+      "file": "server.js",
+      "line": 24,
+      "description": "A2: express-session secret is the well-known 'keyboard cat'.",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a2-broken-auth.md",
+      "inScope": true
+    },
+    {
+      "class": "other",
+      "file": "core/appHandler.js",
+      "line": 206,
+      "description": "A3: /admin/api/users returns full user objects including password hashes.",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a3-sensitive-data-exposure.md",
+      "inScope": false,
+      "reason": "excessive data exposure / API oversharing is not a shipped SAST class"
+    },
+    {
+      "class": "other",
+      "file": "core/appHandler.js",
+      "line": 235,
+      "description": "A4: XXE — libxmljs.parseXmlString(..., {noent:true}) on uploaded bulk products.",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a4-xxe.md",
+      "inScope": false,
+      "reason": "XXE is SAST-XXE (Phase 29)"
+    },
+    {
+      "class": "other",
+      "file": "routes/app.js",
+      "line": 1,
+      "description": "A5: /admin/api/users is authenticated but not admin-authorized (hidden UI only).",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a5-broken-access-control.md",
+      "inScope": false,
+      "reason": "missing authorization is auth/IDOR"
+    },
+    {
+      "class": "config",
+      "file": "core/appHandler.js",
+      "line": 197,
+      "description": "A6: calculator error path leaks a stack trace; mathjs.eval of attacker input.",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a6-securty-misconfig.md",
+      "inScope": true
+    },
+    {
+      "class": "eval",
+      "file": "core/appHandler.js",
+      "line": 197,
+      "description": "A9/A1: calculator evaluates attacker-controlled mathjs.eval(req.body.eqn) (RCE in mathjs).",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a1-injection.md",
+      "inScope": true
+    },
+    {
+      "class": "xss",
+      "file": "views/app/products.ejs",
+      "line": 20,
+      "description": "A7: reflected XSS — <%- output.searchTerm %> in product search.",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a7-xss.md",
+      "inScope": true
+    },
+    {
+      "class": "xss",
+      "file": "views/app/products.ejs",
+      "line": 50,
+      "description": "A7: stored XSS — product name/code/tags rendered with <%- %>.",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a7-xss.md",
+      "inScope": true
+    },
+    {
+      "class": "xss",
+      "file": "views/app/adminusers.ejs",
+      "line": 40,
+      "description": "A7: DOM XSS — user listing assigns API fields to innerHTML.",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a7-xss.md",
+      "inScope": false,
+      "reason": "DOM XSS via innerHTML is frontend-only; SAST-XSS covers res.send HTML and <%- templates"
+    },
+    {
+      "class": "other",
+      "file": "core/appHandler.js",
+      "line": 218,
+      "description": "A8: insecure deserialization — serialize.unserialize on legacy bulk products.",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a8-insecure-deserialization.md",
+      "inScope": false,
+      "reason": "deserialization is SAST-DESER (Phase 29)"
+    },
+    {
+      "class": "deps",
+      "file": "package.json",
+      "line": 25,
+      "description": "A9: mathjs version used by the calculator is a known RCE (eval sandbox escape).",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a9-using-components-with-known-vulnerability.md",
+      "inScope": true
+    },
+    {
+      "class": "other",
+      "file": "server.js",
+      "line": 15,
+      "description": "A10: failed logins and high-value actions are not audited (morgan tiny only).",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a10-insufficient-logging.md",
+      "inScope": false,
+      "reason": "insufficient logging is not a shipped SAST class"
+    },
+    {
+      "class": "other",
+      "file": "routes/app.js",
+      "line": 1,
+      "description": "CSRF on modify product / user edit — no anti-CSRF token.",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/ax-csrf.md",
+      "inScope": false,
+      "reason": "CSRF is SAST-CSRF (Phase 29)"
     },
     {
       "class": "redirect",
       "file": "core/appHandler.js",
       "line": 188,
       "description": "Unvalidated redirect to req.query.url.",
-      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/ax-unvalidated-redirects-and-forwards.md"
-    },
-    {
-      "class": "other",
-      "file": "core/appHandler.js",
-      "line": 218,
-      "description": "Insecure deserialization: serialize.unserialize on uploaded bulk products.",
-      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a8-insecure-deserialization.md"
-    },
-    {
-      "class": "other",
-      "file": "core/appHandler.js",
-      "line": 197,
-      "description": "Calculator evaluates attacker-controlled mathjs.eval(req.body.eqn).",
-      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a1-injection.md"
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/ax-unvalidated-redirects-and-forwards.md",
+      "inScope": true
     }
   ]
 }

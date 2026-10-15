@@ -54,6 +54,8 @@ npx fullshield@0.1.0 scan ~/fullshield-bench/NodeGoat --offline
 
 If a published version is broken: bump (never reuse a number), tag, then deprecate the bad version. Do not unpublish.
 
+**Staged approval and README:** Approving a staged package can leave the registry packument `readme` empty even when the tarball contains `package/README.md` (`npm view fullshield@<version> readme` is blank; npmjs.com may keep showing the previous version). This is an npm registry/website issue, not a missing file in the pack. See [npm/cli#9405](https://github.com/npm/cli/issues/9405). Keep 2FA approval on. Do not inject README text into the staged manifest (Cloudflare WAF blocked that). Do not change the publish command to work around it.
+
 ## Later releases
 
 1. Bump `package.json` version and finalize `CHANGELOG.md`.
