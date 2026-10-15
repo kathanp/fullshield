@@ -60,6 +60,7 @@ interface ScanCliOptions {
   since?: string;
   experimentalSastGaps?: boolean;
   experimentalFrameworks?: boolean;
+  experimentalClasses?: boolean;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -127,6 +128,10 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       '--experimental-frameworks',
       'experimental: Next.js / NestJS / Hono / Koa taint + AUTH (FULLSHIELD_EXPERIMENTAL_FRAMEWORKS=1)',
     )
+    .option(
+      '--experimental-classes',
+      'experimental: ReDoS/deser/XXE/upload/cookie/CSRF/mass-assign/timing/hash/GQL/trust-proxy (FULLSHIELD_EXPERIMENTAL_CLASSES=1)',
+    )
     .action(async (path: string, opts: ScanCliOptions) => {
       try {
         const failOnOverride = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;
@@ -137,6 +142,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
         if (opts.experimentalFrameworks === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_FRAMEWORKS = '1';
+        }
+        if (opts.experimentalClasses === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_CLASSES = '1';
         }
 
         const result = await scan({

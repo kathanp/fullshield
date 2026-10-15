@@ -45,6 +45,16 @@ negative counterpart in `test/fixtures/clean-app`.
 | [SAST-PROTO-001](SAST-PROTO-001.md) | Unguarded recursive merge |
 | [SAST-XSS-001](SAST-XSS-001.md) | HTML `res.send` or `<%-` / `{{{` |
 | [SAST-AUTH-001](SAST-AUTH-001.md) | Data route with no auth middleware |
+| [SAST-REDOS-001](SAST-REDOS-001.md) | Nested/overlapping regex quantifiers on tainted input (experimental) |
+| [SAST-DESER-001](SAST-DESER-001.md) | Unsafe deserialize (`node-serialize`, js-yaml, funcster, serialize-javascript) (experimental) |
+| [SAST-XXE-001](SAST-XXE-001.md) | XML external entities on tainted input (experimental) |
+| [SAST-UPLOAD-001](SAST-UPLOAD-001.md) | multer/busboy/formidable without size/type, or `originalname` path (experimental) |
+| [SAST-COOKIE-001](SAST-COOKIE-001.md) | Cookies missing httpOnly/secure/sameSite; hardcoded session secret (experimental) |
+| [SAST-CSRF-001](SAST-CSRF-001.md) | Cookie-auth state-changing route without CSRF and sameSite (experimental) |
+| [SAST-MASSASSIGN-001](SAST-MASSASSIGN-001.md) | `Model.create/update(req.body)` / `Object.assign(user, req.body)` (experimental) |
+| [SAST-TIMING-001](SAST-TIMING-001.md) | Secret/token/HMAC compared with `===` not `timingSafeEqual` (experimental) |
+| [SAST-HASH-001](SAST-HASH-001.md) | bcrypt/argon2/pbkdf2 below OWASP minimums (experimental) |
+| [SAST-GQL-001](SAST-GQL-001.md) | GraphQL introspection in production, no depth limit, tainted resolver args (experimental) |
 
 ## Config
 
@@ -60,3 +70,4 @@ negative counterpart in `test/fixtures/clean-app`.
 | [CONFIG-DOCKER-ROOT-001](CONFIG-DOCKER-ROOT-001.md) | Dockerfile with no `USER` |
 | [CONFIG-DOCKER-ENV-001](CONFIG-DOCKER-ENV-001.md) | `ENV *_SECRET=` / `*_KEY=` |
 | [CONFIG-INSTALLSCRIPT-001](CONFIG-INSTALLSCRIPT-001.md) | Lockfile `hasInstallScript` |
+| [CONFIG-TRUSTPROXY-001](CONFIG-TRUSTPROXY-001.md) | `trust proxy: true` with IP rate limiting (experimental) |

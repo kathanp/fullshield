@@ -27,6 +27,7 @@ import { redirectRule } from './rules/redirect.js';
 import { sqliRule } from './rules/sqli.js';
 import { ssrfRule } from './rules/ssrf.js';
 import { TEMPLATE_EXT, xssRule } from './rules/xss.js';
+import { phase29Rules } from './rules/phase29.js';
 import type { AstNode, RuleContext, SastRule } from './types.js';
 import { scanPromptInjection } from '../../ai/injection.js';
 
@@ -43,6 +44,7 @@ export const sastRules: readonly SastRule[] = [
   protoRule,
   xssRule,
   authRule,
+  ...phase29Rules,
 ];
 
 const SOURCE_EXT = /\.[cm]?[jt]sx?$/;

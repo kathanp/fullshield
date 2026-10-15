@@ -71,6 +71,7 @@ const PREVIOUS_PHASE_TESTS = {
   25: 439,
   26: 443,
   27: 505,
+  28: 522,
 };
 
 function listFilesRecursive(dir, out = []) {
@@ -1179,6 +1180,46 @@ s.listen(0, '127.0.0.1', () => {
       fail('phase 28 acceptance: README must document FULLSHIELD_EXPERIMENTAL_FRAMEWORKS');
     }
     console.log('  ✔ experimental Next/Nest/Hono/Koa taint; optional runtime peers; vuln+clean fixtures');
+  },
+  // Phase 29: extra vuln classes behind FULLSHIELD_EXPERIMENTAL_CLASSES.
+  29: () => {
+    const cliHelp = spawnSync(
+      process.execPath,
+      [join(root, 'dist', 'cli', 'index.js'), 'scan', '--help'],
+      { cwd: root, encoding: 'utf8' },
+    );
+    if (!cliHelp.stdout.includes('--experimental-classes')) {
+      fail('phase 29 acceptance: scan --help missing --experimental-classes');
+    }
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!readme.includes('FULLSHIELD_EXPERIMENTAL_CLASSES')) {
+      fail('phase 29 acceptance: README must document FULLSHIELD_EXPERIMENTAL_CLASSES');
+    }
+    const phase29Ids = [
+      'SAST-REDOS-001',
+      'SAST-DESER-001',
+      'SAST-XXE-001',
+      'SAST-UPLOAD-001',
+      'SAST-COOKIE-001',
+      'SAST-CSRF-001',
+      'SAST-MASSASSIGN-001',
+      'SAST-TIMING-001',
+      'SAST-HASH-001',
+      'SAST-GQL-001',
+      'CONFIG-TRUSTPROXY-001',
+    ];
+    for (const id of phase29Ids) {
+      if (!existsSync(join(root, 'rules', `${id}.md`))) {
+        fail(`phase 29 acceptance: missing rules/${id}.md`);
+      }
+      if (foundRuleIds.has(id)) {
+        fail(`phase 29 acceptance: default scan of vulnerable-app emitted ${id}`);
+      }
+      if (clean.report.findings.some((f) => f.ruleId === id)) {
+        fail(`phase 29 acceptance: default scan of clean-app emitted ${id}`);
+      }
+    }
+    console.log('  ✔ experimental classes behind flag; default scan emits no Phase 29 rule IDs');
   },
 };
 

@@ -638,6 +638,7 @@ Goal: turn "possible vulnerability" into "**confirmed**, here's the proof" so de
 | 26c | Engine gaps from the goof holdout | Root-cause engine components (taint source, param/return propagation, cross-file calls, sink matching, lockfile attribution). Generic fixtures, not copied goof. goof becomes a seen holdout. Second untouched holdout scanned once. README holdout numbers only, on unreviewed ground truth. |
 | 27 | SAST + RASP coverage gaps: numeric SQL, ORM raw sinks, template-literal shell | Every new sink has positive + negative fixtures; attack corpus ≥ 10 cases per new context; benign corpus 0 blocked; extra SAST sinks behind `FULLSHIELD_EXPERIMENTAL_SAST_GAPS` / `--experimental-sast-gaps` |
 | 28 | Framework coverage: Next.js, NestJS, Hono, Koa taint sources + AUTH + runtime adapters | One vulnerable + one clean fixture per framework; route inventory lists every route; no new runtime deps; behind `FULLSHIELD_EXPERIMENTAL_FRAMEWORKS` / `--experimental-frameworks` |
+| 29 | New vulnerability classes: ReDoS, deser, XXE, upload, cookies, CSRF, mass assignment, timing, hash cost, GraphQL, trust-proxy | Each rule has positive + negative fixtures, mutation-smoke, docs, OWASP/CWE mapping; default scan emits no new IDs; behind `FULLSHIELD_EXPERIMENTAL_CLASSES` / `--experimental-classes` |
 
 ### Phase 26 — Public benchmark run (credibility first)
 

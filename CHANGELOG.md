@@ -4,6 +4,10 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+### Phase 29 — new vulnerability classes
+
+- Experimental extra SAST/config classes (`FULLSHIELD_EXPERIMENTAL_CLASSES=1` / `scan --experimental-classes`): ReDoS, insecure deserialization, XXE, unrestricted upload, cookie flags, CSRF, mass assignment, timing-safe compare, password-hash cost, GraphQL introspection/depth, and `trust proxy` + IP rate limits. Default `scan` is unchanged.
+
 - Publish CI uses `npm publish --provenance --access public` (no staged-manifest edits). The unpublished `v0.1.2` tag was deleted.
 - CI: push to `next` runs `verify` on ubuntu-24.04 × Node 24 only. The full 6-job matrix (and the non-blocking `bench` job) runs on pull requests to `main` and on push to `main`. Required checks on `main` stay the six matrix jobs.
 
