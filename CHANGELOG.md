@@ -6,6 +6,13 @@ All notable changes to FullShield are documented here.
 
 - Publish CI uses `npm publish --provenance --access public` (no staged-manifest edits). The unpublished `v0.1.2` tag was deleted.
 
+### Phase 27 — SAST + RASP coverage gaps
+
+- RASP treats extra tokens in unquoted numeric SQL (`WHERE id = 1 OR 1=1`) as a structure change; a single number (`42`) stays allowed.
+- Experimental SAST sinks (`FULLSHIELD_EXPERIMENTAL_SAST_GAPS=1` / `scan --experimental-sast-gaps`): Prisma `$queryRawUnsafe` / `$executeRawUnsafe` / `Prisma.raw`, Knex `raw`/`whereRaw`/`orderByRaw`, TypeORM `createQueryBuilder().where(concat)`, Drizzle `sql.raw`, mongoose `$where`, `spawn('sh', ['-c'])`, execa `shell: true`, zx `$.raw` / `{ quote: false }`. Prisma `$queryRaw` tagged templates and default zx `$` are not flagged. Default `scan` is unchanged.
+- RASP load-time hooks for `@prisma/client`, `sequelize`, `knex`, `typeorm`, `drizzle-orm`, and mongoose `$where`.
+- Attack corpus adds ≥10 cases each for `numeric-sql`, `orm-raw`, and `template-shell`. Benign corpus still 0 blocked.
+
 ### Phase 26 — public benchmark harness
 
 - `npm run bench:public` clones pinned OWASP NodeGoat, Juice Shop, and DVNA SHAs, scans with `--json --offline-safe`, and writes `BENCHMARK.md`. Ground truth is exhaustive vs each app’s official docs, with `inScope` and `"reviewed": false`. Unmatched findings are triaged in `bench/<app>/triage.json`.

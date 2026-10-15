@@ -648,3 +648,22 @@ Acceptance: CI Windows×Node 22/24; `--import` file:// silent; register budget; 
 **Deferred:** Phases 26–35 (public bench, SAST/ORM/frameworks, new rules, VEX, DLP, MCP-config, policy, host/SSH). Spec order is 25 → 26 first.
 
 **Launch status (corrected):** `fullshield@0.1.0` **is live** on npm (`latest=0.1.0`, provenance). Placeholders `0.0.0-stage` and `0.0.1` are deprecated. Phase 25 is committed and pushed as `3c507d6`.
+
+## Phase 27 — SAST + RASP coverage gaps (on `next`)
+
+**Tests: 469** (was 443). Extra SAST sinks are **experimental** (`FULLSHIELD_EXPERIMENTAL_SAST_GAPS=1` / `scan --experimental-sast-gaps`). Default `scan` is unchanged.
+
+- RASP numeric SQL: extra tokens in `WHERE id = …` / `LIMIT …` block; a single number does not.
+- SAST+RASP ORM raw: Prisma `$queryRawUnsafe` / `$executeRawUnsafe` / `Prisma.raw` (not `$queryRaw` tagged templates), Sequelize `literal`, Knex `raw`/`whereRaw`/`orderByRaw`, TypeORM `createQueryBuilder().where(concat)`, Drizzle `sql.raw`, mongoose `$where`.
+- Template-literal shell: `exec`/`execSync` (already stable), `spawn('sh', ['-c'])` without `shell: true`, execa `shell: true`, zx `$.raw` / `{ quote: false }` (default zx `$` not flagged).
+- Attack corpus ≥10 cases each for `numeric-sql`, `orm-raw`, `template-shell`; all blocked. Benign still 0.
+
+**Verify summary (`npm run verify:phase 27`, full run PASSED):**
+
+| phase | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|---|
+| 27 | 469 | 92.01% | 82.63% | deps,secrets,sast,config | 30 | 30 | 34 | 0 |
+
+**Stable behavior:** unchanged unless the experimental flag is set. RASP ORM hooks extend existing experimental RASP (`FULLSHIELD_EXPERIMENTAL_RASP=1`).
+
+**Deferred:** Phases 28–29 (frameworks, new vuln classes). Not merged to main. Not tagged.

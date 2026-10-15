@@ -86,6 +86,8 @@ function exprIsTainted(node: AstNode | undefined, tainted: Set<string>): boolean
       return node.arguments.some((arg) => arg.type !== 'SpreadElement' && exprIsTainted(arg, tainted));
     case 'TemplateLiteral':
       return node.expressions.some((expr) => exprIsTainted(expr, tainted));
+    case 'TaggedTemplateExpression':
+      return exprIsTainted(node.quasi, tainted);
     case 'BinaryExpression':
       return node.operator === '+' && (exprIsTainted(node.left, tainted) || exprIsTainted(node.right, tainted));
     case 'AssignmentExpression':

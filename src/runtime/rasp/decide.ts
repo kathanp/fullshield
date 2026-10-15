@@ -12,6 +12,20 @@ function sinkTexts(sink: unknown): string[] {
   return [];
 }
 
+function whereJsChangesStructure(sink: unknown, ctx: RaspRequestContext): boolean {
+  let code = '';
+  if (typeof sink === 'string') code = sink;
+  else if (sink !== null && typeof sink === 'object' && !Array.isArray(sink) && '$where' in sink) {
+    const where = sink.$where;
+    if (typeof where === 'string') code = where;
+  }
+  if (!code) return false;
+  for (const input of ctx.strings) {
+    if (input && sqlInputChangesStructure(code, input)) return true;
+  }
+  return false;
+}
+
 export function detectStructureChange(
   kind: SinkKind,
   sink: unknown,
@@ -19,7 +33,10 @@ export function detectStructureChange(
   base?: string,
 ): boolean {
   if (kind === 'proto') return protoPolluted(ctx);
-  if (kind === 'nosql') return nosqlUserOperators(sink, ctx);
+  if (kind === 'nosql') {
+    if (nosqlUserOperators(sink, ctx)) return true;
+    return whereJsChangesStructure(sink, ctx);
+  }
   for (const text of sinkTexts(sink)) {
     for (const input of ctx.strings) {
       if (!input) continue;

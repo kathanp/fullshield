@@ -633,6 +633,7 @@ Goal: turn "possible vulnerability" into "**confirmed**, here's the proof" so de
 | 24 | Remediation agent + benchmark publishing in CI | Agent opens PR against a test repo with passing tests; benchmark report generated per release |
 | 25 | 0.1.1 hardening: Windows CI + lazy `node:sqlite` + CRLF-safe diffs + `file://` `--import` | 6-way CI (Linux/macOS/Windows × Node 22/24); `node --import …/register -e 1` silent; register bundle under budget; history.db handle closed |
 | 26 | Public benchmark on pinned OWASP NodeGoat, Juice Shop, and DVNA | `npm run bench:public` writes `BENCHMARK.md` (per-app TP/FP/misses, per-class, scan time, version, SHA, Known misses). Ground truth stays `"reviewed": false` until a human flips it. CI job `bench` is non-blocking. Do not tune rules from this run. |
+| 27 | SAST + RASP coverage gaps: numeric SQL, ORM raw sinks, template-literal shell | Every new sink has positive + negative fixtures; attack corpus ≥ 10 cases per new context; benign corpus 0 blocked; extra SAST sinks behind `FULLSHIELD_EXPERIMENTAL_SAST_GAPS` / `--experimental-sast-gaps` |
 
 ### Phase 26 — Public benchmark run (credibility first)
 
@@ -645,5 +646,15 @@ Goal: turn "possible vulnerability" into "**confirmed**, here's the proof" so de
 - Do not retune rules to chase these apps. Do not change existing tests or `expected-findings.json`. Do not tag a Phase 26 release.
 
 Acceptance: `npm run bench:public` produces `BENCHMARK.md` reproducibly; CI job `bench` (non-blocking) uploads it; README links the results without citing unreviewed counts.
+
+### Phase 27 — SAST + RASP coverage gaps
+
+Extra SAST sinks are **experimental** (`FULLSHIELD_EXPERIMENTAL_SAST_GAPS=1` or `scan --experimental-sast-gaps`). Stable `query`/`execute` concat and `exec`/`execSync` template literals stay as they were.
+
+- SQL numeric context: input in an unquoted numeric position (`WHERE id = ${x}`, `LIMIT ` + x) → RASP structure change if the input is not a single numeric token.
+- ORM raw-query sinks (SAST + RASP hooks): Prisma `$queryRawUnsafe` / `$executeRawUnsafe` / `Prisma.raw` (flag); `$queryRaw` tagged template (do not flag); Sequelize `query` concat / `literal()`; Knex `raw` concat, `whereRaw`/`orderByRaw` with no bindings; TypeORM `query()` / `createQueryBuilder().where(string)` concat; Drizzle `sql.raw()`; Mongoose `$where` with a tainted string.
+- Template-literal shell: `exec(\`... ${x}\`)`, `execSync`, `spawn('sh', ['-c', ...])` even without `shell: true`, `execa` with `shell: true`, zx `$` only when interpolation is not auto-escaped (`$.raw`, `{ quote: false }`).
+
+Acceptance: every new sink has positive + negative fixtures; attack corpus ≥ 10 cases per new context (`numeric-sql`, `orm-raw`, `template-shell`); benign corpus still 0 blocked; Known Limitations updated.
 
 - Show a real before/after: run it on a public, intentionally vulnerable Node app (e.g. OWASP NodeGoat or Juice Shop), list what it found and what it missed. Publishing the misses builds more trust than hiding them.

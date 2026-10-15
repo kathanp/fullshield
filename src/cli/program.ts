@@ -58,6 +58,7 @@ interface ScanCliOptions {
   emitVirtualPatches?: boolean | string;
   changed?: boolean;
   since?: string;
+  experimentalSastGaps?: boolean;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -117,11 +118,18 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option('--emit-virtual-patches [file]', 'experimental: write .fullshield/vpatches.json')
     .option('--changed', 'experimental: scan git staged/changed files only')
     .option('--since <ref>', 'experimental: scan files changed since a git ref')
+    .option(
+      '--experimental-sast-gaps',
+      'experimental: ORM raw / sh -c / execa / zx sinks (FULLSHIELD_EXPERIMENTAL_SAST_GAPS=1)',
+    )
     .action(async (path: string, opts: ScanCliOptions) => {
       try {
         const failOnOverride = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;
         const modules = opts.modules !== undefined ? parseModules(opts.modules) : undefined;
         const ai = parseAiMode(opts.ai);
+        if (opts.experimentalSastGaps === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_SAST_GAPS = '1';
+        }
 
         const result = await scan({
           cwd: resolve(path),

@@ -22,6 +22,26 @@ export function calleeName(node: TSESTree.CallExpression | TSESTree.NewExpressio
   return undefined;
 }
 
+/** True when `method` appears on the callee chain (`createQueryBuilder().select().where()`). */
+export function calleeChainHas(node: TSESTree.CallExpression, method: string): boolean {
+  let current: AstNode | undefined = node.callee;
+  for (let i = 0; i < 16 && current !== undefined; i += 1) {
+    if (current.type === 'CallExpression') {
+      if (calleeName(current) === method) return true;
+      current = current.callee;
+      continue;
+    }
+    if (current.type === 'MemberExpression') {
+      if (propName(current) === method) return true;
+      current = current.object;
+      continue;
+    }
+    if (current.type === 'Identifier') return current.name === method;
+    break;
+  }
+  return false;
+}
+
 export function literalString(node: AstNode | undefined): string | undefined {
   if (node === undefined) return undefined;
   if (node.type === 'Literal' && typeof node.value === 'string') return node.value;

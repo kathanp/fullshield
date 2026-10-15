@@ -71,7 +71,7 @@ Experimental RASP structure-change scoring on the vendored PayloadsAllTheThings 
 
 Path 51/51 and SSRF 39/39 on the same corpus. Benign corpus stays 0 blocked. Prefer `mode: 'monitor'`.
 
-These fixtures are self-authored and cover **string-concatenation sinks only**. Untested contexts include numeric SQL (`WHERE id = ` + input), ORM raw queries, and template-literal shell calls.
+These fixtures are self-authored. Numeric SQL (`WHERE id = ` + input), ORM raw-query APIs (Prisma/Sequelize/Knex/TypeORM/Drizzle/`$where`), and template-literal shell (`exec(\`…${x}\`)`, `spawn('sh', ['-c', …])`, execa `shell: true`, zx `$.raw`) are covered in the attack corpus. Extra SAST sinks for those ORM / `sh -c` / execa / zx shapes stay behind `FULLSHIELD_EXPERIMENTAL_SAST_GAPS=1` (or `scan --experimental-sast-gaps`) so default `scan` behavior does not change.
 
 ## Quick start
 
@@ -125,6 +125,7 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | `iac` | **Experimental** light IaC (`FULLSHIELD_EXPERIMENTAL_IAC=1`): GHA, Terraform, Kubernetes, docker-compose. Not a full IaC scanner. |
 | `agent` | **Experimental** remediation agent (`FULLSHIELD_EXPERIMENTAL_AGENT=1`). Mock/localhost GitHub API + local git remote only — never a real network. Never merges, never pushes to `main`/`master`. `--max-prs` (default 3). |
 | `scan --changed` / `--since` | **Experimental** incremental scan (`FULLSHIELD_EXPERIMENTAL_PLATFORM=1`). |
+| `scan --experimental-sast-gaps` | **Experimental** extra SAST sinks: ORM raw SQL, mongoose `$where`, `spawn('sh', ['-c'])`, execa `shell: true`, zx `$.raw` (`FULLSHIELD_EXPERIMENTAL_SAST_GAPS=1`). |
 
 Inline ignore (reason required): `// fullshield-ignore SAST-SQLI-001: reviewed`
 

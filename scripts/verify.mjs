@@ -69,6 +69,7 @@ const PREVIOUS_PHASE_TESTS = {
   23: 401,
   24: 407,
   25: 439,
+  26: 443,
 };
 
 function listFilesRecursive(dir, out = []) {
@@ -1062,6 +1063,44 @@ s.listen(0, '127.0.0.1', () => {
     const readme = readFileSync(join(root, 'README.md'), 'utf8');
     if (!readme.includes('BENCHMARK.md')) fail('phase 26 acceptance: README must link BENCHMARK.md');
     console.log('  ✔ public bench harness, unreviewed ground truth, non-blocking CI bench job');
+  },
+  // Phase 27: SAST + RASP coverage gaps (numeric SQL, ORM raw, template shell).
+  27: async () => {
+    const raspUrl = pathToFileURL(join(root, 'dist', 'runtime', 'rasp.js')).href;
+    const rasp = await import(raspUrl);
+    const attack = JSON.parse(readFileSync(join(root, 'test', 'fixtures', 'rasp', 'attack-corpus.json'), 'utf8'));
+    const benign = JSON.parse(readFileSync(join(root, 'test', 'fixtures', 'rasp', 'benign-corpus.json'), 'utf8'));
+    for (const ctx of ['numeric-sql', 'orm-raw', 'template-shell']) {
+      const n = attack.cases.filter((c) => c.context === ctx).length;
+      if (n < 10) fail(`phase 27 acceptance: attack context ${ctx} has ${n} < 10 cases`);
+    }
+    const extra = attack.cases.filter(
+      (c) => c.context === 'numeric-sql' || c.context === 'orm-raw' || c.context === 'template-shell',
+    );
+    const extraScore = rasp.scoreCorpusByKind(extra);
+    if (extraScore.blocked !== extraScore.total) {
+      fail(`phase 27 acceptance: new-context attacks ${extraScore.blocked}/${extraScore.total}`);
+    }
+    const benignScore = rasp.scoreCorpusByKind(benign.cases);
+    if (benignScore.blocked !== 0) {
+      fail(`phase 27 acceptance: benign corpus blocked ${benignScore.blocked}`);
+    }
+    const cliHelp = spawnSync(
+      process.execPath,
+      [join(root, 'dist', 'cli', 'index.js'), 'scan', '--help'],
+      { cwd: root, encoding: 'utf8' },
+    );
+    if (!cliHelp.stdout.includes('--experimental-sast-gaps')) {
+      fail('phase 27 acceptance: scan --help missing --experimental-sast-gaps');
+    }
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!readme.includes('FULLSHIELD_EXPERIMENTAL_SAST_GAPS')) {
+      fail('phase 27 acceptance: README must document FULLSHIELD_EXPERIMENTAL_SAST_GAPS');
+    }
+    if (/Untested contexts include numeric SQL/.test(readme)) {
+      fail('phase 27 acceptance: README Known Limitations still lists numeric SQL/ORM/template-shell as untested');
+    }
+    console.log('  ✔ numeric/ORM/template-shell corpora blocked; benign 0; extra SAST sinks experimental');
   },
 };
 
