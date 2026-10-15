@@ -28,7 +28,7 @@ First public alpha (Core 1–10, Pro 11–16, Frontier 17–24 behind flags, har
 - `FULLSHIELD_EXPERIMENTAL_IAC=1` — light IaC rules.
 - `FULLSHIELD_EXPERIMENTAL_AGENT=1` — remediation agent (localhost mock API + local git only).
 
-**Publishing:** npm trusted publishing (OIDC) + `--provenance`. No `NPM_TOKEN`.
+**Publishing:** npm trusted publishing (OIDC) stages with `--provenance`; a maintainer approves with 2FA. No `NPM_TOKEN`.
 
 ### harden-5
 

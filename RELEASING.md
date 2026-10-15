@@ -1,6 +1,6 @@
 # Releasing FullShield
 
-Published from GitHub Actions with [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) (OIDC). There is no `NPM_TOKEN` secret. `npm publish --provenance --access public` stays in `.github/workflows/publish.yml`. Provenance only works from a **public** GitHub repository.
+Published from GitHub Actions with [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) (OIDC). There is no `NPM_TOKEN` secret. CI runs `npm stage publish --provenance --access public`; a maintainer then approves with 2FA so the version goes live. Provenance only works from a **public** GitHub repository.
 
 The npm package `fullshield` already exists (`0.0.0-stage` and `0.0.1` placeholders, maintainer `kathan2404`). Do not publish another placeholder.
 
@@ -25,6 +25,7 @@ git push -u origin main
    - Repository: `fullshield`
    - Workflow filename: `publish.yml`
    - Environment: leave blank
+   - Allow npm publish: optional (CI uses `npm stage publish`, which is always allowed)
    - Save. Do not add `NPM_TOKEN`. Do not create a GitHub Environment for publish.
 6. Confirm the GitHub repo is **public**, then publish 0.1.0 from CI:
 
@@ -34,7 +35,8 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-   Watch the Actions **Publish** job until it is green (`npm ci && npm run verify` then `npm publish --provenance --access public`).
+   Watch the Actions **Publish** job until it is green (`npm ci && npm run verify` then `npm stage publish --provenance --access public`). Direct `npm publish` from CI is rejected with `E403`.
+   Then approve the staged `0.1.0` with 2FA (npmjs.com → **Staged Packages → Approve**, or `npm stage list` / `npm stage approve <id>`).
 7. Deprecate placeholders and confirm `latest`:
 
 ```bash

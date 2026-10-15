@@ -20,7 +20,7 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Ensure npm CLI 11.5.1+ for trusted publishing
+      - name: Ensure npm CLI 11.15.0+ for staging and trusted publishing
         run: npm install -g npm@latest
 
       - run: npm ci
@@ -29,5 +29,7 @@ jobs:
 
       # Do not set registry-url / NODE_AUTH_TOKEN: setup-node would write an empty
       # _authToken and npm would skip OIDC trusted publishing (E403).
-      - name: Publish with provenance (OIDC, no token)
-        run: npm publish --provenance --access public
+      # Direct `npm publish` is rejected (E403) even with a valid OIDC identity;
+      # npm 2026 requires a maintainer 2FA approval before a version goes live.
+      - name: Stage with provenance (OIDC, no token)
+        run: npm stage publish --provenance --access public
