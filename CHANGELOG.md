@@ -16,7 +16,7 @@ All notable changes to FullShield are documented here.
 
 **New stable findings — may change CI results; use `--update-baseline`:**
 
-- `SAST-NOSQLI-001` — request input used as a Mongo filter value (e.g. `{ password: req.body.password }`) at medium confidence, unless the value is coerced (`String()` / `Number()` / `Boolean()`), schema-validated (zod / joi / yup `.parse`), or `mongo-sanitize` / `express-mongo-sanitize` is applied. SQL ORM `update(values, { where })` / `find({ where })` is not treated as a Mongo filter.
+- `SAST-NOSQLI-001` — request input used as a Mongo filter value (e.g. `{ password: req.body.password }`) at medium confidence, unless the value is coerced (`String()` / `Number()` / `Boolean()`), schema-validated (zod / joi / yup `.parse`), or `mongo-sanitize` / `express-mongo-sanitize` is applied. Fires only on MongoDB/mongoose receivers (file imports `mongodb`/`mongoose`, `collection.find` / `*Collection`, or a PascalCase model). Never Sequelize, Prisma, TypeORM, Knex, Drizzle, or unknown receivers.
 
 `cr0hn/vulnerable-node` is now a seen holdout (no longer untouched).
 

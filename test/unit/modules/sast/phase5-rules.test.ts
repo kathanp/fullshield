@@ -75,12 +75,27 @@ describe('SAST-NOSQLI-001', () => {
     expect(nosqli.every((f) => f.confidence === 'medium')).toBe(true);
   });
 
-  it('does not flag Sequelize update(values, { where }) as a Mongo filter', async () => {
+  it('does not flag Sequelize findOne({ where }) as a Mongo filter', async () => {
     await expect(
       has(
-        `app.post('/s', (req, res) => { User.update({ history: JSON.stringify(req.body.history) }, { where: { id: req.body.id } }); });`,
+        `const { User } = require('sequelize');\napp.post('/s', (req, res) => { User.findOne({ where: { email: req.body.email } }); });`,
         'SAST-NOSQLI-001',
       ),
+    ).resolves.toBe(false);
+  });
+
+  it('does not flag Prisma findUnique({ where }) as a Mongo filter', async () => {
+    await expect(
+      has(
+        `const { PrismaClient } = require('@prisma/client');\nconst prisma = new PrismaClient();\napp.post('/s', (req, res) => { prisma.user.findUnique({ where: { id: req.body.id } }); });`,
+        'SAST-NOSQLI-001',
+      ),
+    ).resolves.toBe(false);
+  });
+
+  it('does not flag an unknown receiver find() as Mongo', async () => {
+    await expect(
+      has(`app.post('/s', (req, res) => { helper.find({ q: req.body.q }); });`, 'SAST-NOSQLI-001'),
     ).resolves.toBe(false);
   });
 });

@@ -4,7 +4,7 @@
 > Do not cite precision, recall, or headline counts from this file until the human flips that flag.
 
 - FullShield version: 0.1.1
-- Generated: 2026-10-15T21:17:05.696Z
+- Generated: 2026-10-15T21:52:59.014Z
 - Matching: same class + same file, line within ±3
 - In-scope score: true positives / in-scope ground-truth entries (unreviewed).
 - Line attribution: a file-level (no-line) finding plus a later comment/line number on the same file is **not** counted as a recall gain.
@@ -16,7 +16,7 @@
 
 - Repo: https://github.com/OWASP/NodeGoat.git
 - Commit: `c5cb68a7084e4ae7dcc60e6a98768720a81841e8`
-- Scan time: 1670 ms
+- Scan time: 1941 ms
 - Ground truth reviewed: false
 - Ground truth entries: 7 in-scope / 9 out-of-scope
 - Findings emitted: 379
@@ -42,15 +42,15 @@
 
 - Repo: https://github.com/juice-shop/juice-shop.git
 - Commit: `e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4`
-- Scan time: 4324 ms
+- Scan time: 4004 ms
 - Ground truth reviewed: false
 - Ground truth entries: 12 in-scope / 104 out-of-scope
-- Findings emitted: 99
+- Findings emitted: 92
 - In-scope true positives: 10
 - In-scope misses: 2
-- Unmatched findings (triaged): 89
+- Unmatched findings (triaged): 82
 - In-scope true positives / in-scope truth: 10/12
-- Precision: self-triaged, unverified (38 realIssue / 5 falsePositive; 46 unsure)
+- Precision: self-triaged, unverified (38 realIssue / 5 falsePositive; 39 unsure)
 
 | class | in-scope truth | TP | triaged FP | in-scope misses |
 |---|---:|---:|---:|---:|
@@ -67,7 +67,7 @@
 
 - Repo: https://github.com/appsecco/dvna.git
 - Commit: `9ba473add536f66ac9007966acb2a775dd31277a`
-- Scan time: 848 ms
+- Scan time: 849 ms
 - Ground truth reviewed: false
 - Ground truth entries: 10 in-scope / 7 out-of-scope
 - Findings emitted: 23
@@ -94,7 +94,7 @@
 - Repo: https://github.com/snyk-labs/nodejs-goof.git
 - Commit: `add14ba59e98240d9e00a235dd7d42cd61ae9912`
 - Seen holdout: yes. Engine gaps were taken from this app; do not count this re-run as a recall gain.
-- Scan time: 495 ms
+- Scan time: 477 ms
 - Ground truth reviewed: false
 - Ground truth entries: 11 in-scope / 6 out-of-scope
 - Findings emitted: 111
@@ -121,7 +121,7 @@
 - Repo: https://github.com/cr0hn/vulnerable-node.git
 - Commit: `d68f2a3c9277ece2c2feb9976052033bdecd7fbe`
 - Seen holdout: yes. Re-scored after an authorized rule change; do not count this as a recall gain.
-- Scan time: 468 ms
+- Scan time: 486 ms
 - Ground truth reviewed: false
 - Ground truth entries: 12 in-scope / 9 out-of-scope
 - Findings emitted: 56

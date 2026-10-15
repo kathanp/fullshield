@@ -88,7 +88,7 @@ Public-app in-scope detection on **unreviewed** ground truth (`"reviewed": false
 - Seen holdout `cr0hn/vulnerable-node` @ `d68f2a3c9277ece2c2feb9976052033bdecd7fbe`: 9/12 in-scope (unreviewed). Re-scored after the authorized NoSQL filter-value rule; not a recall gain.
 - NodeGoat 5/7, Juice Shop 10/12, DVNA 9/10 (same unreviewed files; deps TPs need an OSV cache hit under `--offline-safe`).
 
-Precision in [`BENCHMARK.md`](BENCHMARK.md) is self-triaged, unverified. Unsure counts on that run: NodeGoat 4, Juice Shop 46, DVNA 5, goof 4, vulnerable-node 29.
+Precision in [`BENCHMARK.md`](BENCHMARK.md) is self-triaged, unverified. Unsure counts on that run: NodeGoat 4, Juice Shop 39, DVNA 5, goof 4, vulnerable-node 29.
 
 ## Quick start
 

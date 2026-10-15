@@ -5,6 +5,7 @@ const express = require('express');
 const cors = require('cors');
 const { exec } = require('child_process');
 const db = require('./db');
+require('mongodb'); // marks db.find as a Mongo receiver for SAST-NOSQLI-001
 const lodash = require('lodash');
 lodash.get({}, 'x');
 

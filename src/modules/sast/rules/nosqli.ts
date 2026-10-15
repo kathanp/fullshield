@@ -1,4 +1,4 @@
-import { calleeName, literalString } from '../ast.js';
+import { calleeName, literalString, propName } from '../ast.js';
 import { isCoercionCall, isMongoSanitizeCall, isSchemaValidatorCall } from '../taint.js';
 import type { AstNode, SastRule } from '../types.js';
 
@@ -15,6 +15,20 @@ const MONGO_SINKS = new Set([
   'aggregate',
 ]);
 
+/** Prisma / Sequelize / TypeORM method names that are never Mongo. */
+const SQL_ONLY_METHODS = new Set([
+  'findUnique',
+  'findMany',
+  'findFirst',
+  'findAll',
+  'findAndCountAll',
+  'findByPk',
+  'findById',
+]);
+
+const SQL_ORM_IMPORT = /(?:from|require\s*\(\s*)['"](?:sequelize|@prisma\/client|typeorm|knex|drizzle-orm)['"]/;
+const MONGO_IMPORT = /(?:from|require\s*\(\s*)['"](?:mongodb|mongoose)['"]/;
+
 function objectKey(prop: { type: string; key?: AstNode }): string | undefined {
   if (prop.type !== 'Property' || prop.key === undefined) return undefined;
   const key = prop.key;
@@ -28,12 +42,34 @@ function objectHasKey(node: AstNode, name: string): boolean {
   return node.properties.some((prop) => objectKey(prop) === name);
 }
 
-/** Sequelize/TypeORM `update(values, { where })` / `find({ where })` — not a Mongo filter. */
-function looksLikeSqlOrm(call: AstNode, filter: AstNode): boolean {
-  if (call.type !== 'CallExpression') return false;
-  if (objectHasKey(filter, 'where')) return true;
-  const second = call.arguments[1];
-  return second !== undefined && second.type !== 'SpreadElement' && objectHasKey(second, 'where');
+function isPascalModel(name: string): boolean {
+  return /^[A-Z][A-Za-z0-9]*$/.test(name);
+}
+
+function isCollectionName(name: string): boolean {
+  return /^(collection|col)$/i.test(name) || /Collection$/i.test(name);
+}
+
+/** True only for MongoDB / mongoose receivers. Never Sequelize, Prisma, TypeORM, Knex, Drizzle, or unknown. */
+function isMongoReceiver(node: AstNode, source: string): boolean {
+  if (node.type !== 'CallExpression' || node.callee.type !== 'MemberExpression') return false;
+  const fileHasMongo = MONGO_IMPORT.test(source);
+  const fileHasSqlOrm = SQL_ORM_IMPORT.test(source) && !fileHasMongo;
+  if (fileHasSqlOrm) return false;
+
+  const obj = node.callee.object;
+  if (obj.type === 'Identifier') {
+    if (isCollectionName(obj.name)) return true;
+    if (isPascalModel(obj.name)) return !fileHasSqlOrm;
+    return fileHasMongo;
+  }
+  if (obj.type === 'MemberExpression') {
+    const prop = propName(obj);
+    if (prop !== undefined && (prop === 'collection' || isCollectionName(prop))) return true;
+    if (prop !== undefined && isPascalModel(prop)) return fileHasMongo;
+    if (obj.object.type === 'Identifier' && obj.object.name === 'mongoose') return true;
+  }
+  return fileHasMongo;
 }
 
 function objectHasTaintedWhere(node: AstNode, isTainted: (n: AstNode) => boolean): boolean {
@@ -110,6 +146,7 @@ export const nosqliRule: SastRule = {
         if (node.type !== 'CallExpression') return;
         const name = calleeName(node);
         if (name === '$where') {
+          if (!MONGO_IMPORT.test(ctx.source) && !isMongoReceiver(node, ctx.source)) return;
           const expr = node.arguments[0];
           if (expr !== undefined && expr.type !== 'SpreadElement' && ctx.isTainted(expr)) {
             ctx.report({
@@ -119,9 +156,12 @@ export const nosqliRule: SastRule = {
           }
           return;
         }
+        if (name !== undefined && SQL_ONLY_METHODS.has(name)) return;
         if (name === undefined || !MONGO_SINKS.has(name)) return;
+        if (!isMongoReceiver(node, ctx.source)) return;
         const filter = node.arguments[0];
         if (filter === undefined || filter.type === 'SpreadElement') return;
+        if (objectHasKey(filter, 'where')) return;
         if (ctx.isRequestObject(filter)) {
           ctx.report({
             node,
@@ -137,7 +177,6 @@ export const nosqliRule: SastRule = {
           return;
         }
         if (middleware) return;
-        if (looksLikeSqlOrm(node, filter)) return;
         if (objectHasUnsafeTaintedValue(filter, (n) => ctx.isTainted(n), isSafe)) {
           ctx.report({
             node,
