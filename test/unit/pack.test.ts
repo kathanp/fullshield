@@ -36,9 +36,12 @@ describe('npm pack contents', () => {
     expect(readme).toMatch(/Non-goals/i);
     expect(readme).toMatch(/does \*\*not\*\*|Does \*\*not\*\*/);
     const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {
+      bin?: { fullshield?: string };
       publishConfig?: { provenance?: boolean };
     };
     expect(pkg.publishConfig?.provenance).toBeUndefined();
+    // npm 11+ drops `./` bin paths ("script name … was invalid and removed") so npx would have no command.
+    expect(pkg.bin?.fullshield).toBe('dist/cli/index.js');
   });
 
   it('does not ship source maps', () => {

@@ -12,7 +12,7 @@
     "node": ">=22.13"
   },
   "bin": {
-    "fullshield": "./dist/cli/index.js"
+    "fullshield": "dist/cli/index.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

@@ -18,7 +18,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          registry-url: https://registry.npmjs.org
           cache: npm
 
       - name: Ensure npm CLI 11.5.1+ for trusted publishing
@@ -28,5 +27,7 @@ jobs:
 
       - run: npm run verify
 
+      # Do not set registry-url / NODE_AUTH_TOKEN: setup-node would write an empty
+      # _authToken and npm would skip OIDC trusted publishing (E403).
       - name: Publish with provenance (OIDC, no token)
         run: npm publish --provenance --access public
