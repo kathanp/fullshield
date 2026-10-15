@@ -154,6 +154,32 @@ describe('Phase 24 remediation agent (experimental)', () => {
     }
   });
 
+  it('opens a PR when the patched file uses CRLF (core.autocrlf-independent)', async () => {
+    await writeFile(
+      join(work, 'app.js'),
+      "const express = require('express');\r\nconst app = express();\r\napp.use(express.json());\r\n",
+    );
+    git(work, ['add', '--', 'app.js']);
+    git(work, ['commit', '-m', 'crlf']);
+    const mock = await startMockGithub();
+    try {
+      const result = await runAgent({
+        cwd: work,
+        experimental: true,
+        maxPrs: 1,
+        maxFilesPerPr: 1,
+        apiBase: mock.base,
+        repo: 'acme/app',
+        remote: 'origin',
+      });
+      expect(result.skipped).not.toBe(true);
+      expect(result.prs.length).toBeGreaterThan(0);
+      expect(result.prs[0]?.files.some((f) => f.includes('\\'))).toBe(false);
+    } finally {
+      mock.server.close();
+    }
+  });
+
   it('does not touch more than maxFilesPerPr files in a PR', async () => {
     const mock = await startMockGithub();
     try {

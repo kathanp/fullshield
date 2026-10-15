@@ -1,7 +1,8 @@
 # FullShield — Build Spec for Cursor
 
-> Package name: `fullshield` (npm name confirmed available on 2026-10-13; reserve it with a 0.0.1 publish before building).
-> Language: TypeScript (strict). Runtime: Node.js ≥ 22.13. Distribution: npm (CLI + library + Express/Fastify middleware).
+> Package name: `fullshield` (published **0.1.0** on npm 2026-10-15; maintainer `kathan2404`; placeholders `0.0.0-stage` / `0.0.1` exist — do not publish another placeholder).
+> Repo: https://github.com/kathanp/fullshield. Language: TypeScript (strict). Runtime: Node.js ≥ 22.13. Distribution: npm (CLI + library + Express/Fastify middleware).
+> Spec revision: 2026-10-14 — adds **Section 1.1 Market position** (we provide all five crowded-category layers in one MIT CLI). Section 15.2 reachability classes match shipped 0.1.0.
 
 ---
 
@@ -87,6 +88,33 @@ A single tool that covers the full cycle for Node.js/TypeScript backends:
 - Does NOT replace a penetration test.
 - Does NOT auto-delete code, ever.
 - v1 supports JS/TS only. Other languages are out of scope.
+- Does NOT detect cyber-physical or hardware attacks (industrial temperature / ICS-SCADA sabotage, exploding pagers or radios, firmware implants, RF devices). Those need OT monitoring or hardware supply-chain review. The closest in-scope analog is **npm** supply-chain heuristics (Section 18): malicious packages and install scripts — software only. Do not add a phase, rule, or stub that claims otherwise.
+
+### 1.1 Market position — do we provide all of it? **Yes.**
+
+The category is crowded. Snyk, Socket, Semgrep, Gitleaks, Dependabot, Helmet, and Socket Firewall already sell or ship **pieces**. The idea is not unique. What *is* unique on npm as an MIT, no-SaaS, Node/TS CLI is the **combo**: one `npx fullshield` that does detect → classify → report → notify → fix → CI gate, plus optional runtime, with **no account**.
+
+**Answer for stakeholders: Yes, FullShield provides every layer in that comparison.** Depth is not the same as a paid platform. Honesty is part of the spec.
+
+| Piece | Already exists as | FullShield provides? | How (0.1.0, honest) | Ship status |
+|---|---|---|---|---|
+| Deps + reachability | Snyk, Socket, Semgrep Supply Chain | **Yes** | OSV + lockfile graph. Classes: `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), `not-imported` (−2, only when no such path exists), `reachability-unknown` (severity kept) when edges are unparsed. DevDependency-only unused hits are `info`. `DEPS-MALICIOUS-001` is always critical. Pair with `fullshield sbom --format cyclonedx`. | **Stable** |
+| SAST | Semgrep, Snyk Code | **Yes** | Intra-function taint + cross-file call graph, depth 5, SARIF `codeFlows`. SQL/NoSQL/CMDi/path/`eval`/SSRF/redirect/JWT/crypto/proto/XSS/missing-auth (low confidence). Nested closures and some dynamic dispatch are still missed. Not a Semgrep rule marketplace. | **Stable** |
+| Secrets | Gitleaks, TruffleHog, Semgrep Secrets | **Yes** | AWS/Stripe/GitHub/Slack/Google/AI/PEM/DB URLs/JWT secrets/committed `.env` + entropy. Always masked. `scan --staged` + pre-commit from `init`. | **Stable** |
+| Fix + CI gate | Snyk, Dependabot | **Yes** | `fix` dry-run; `fix --apply` only `safe: true` on a clean git tree; snapshot restore if project tests fail (never `git checkout --`). `--fail-on` + `--update-baseline` + SARIF. Never auto-merges, never pushes to `main`/`master`. | **Stable** |
+| Runtime / install guard | Helmet, Socket Firewall | **Yes** (runtime stable as a **stopgap monitor**; install-guard experimental) | `fullshield/runtime/express` and `/fastify`: signature + rate-limit + body-size. Prefer `mode: 'monitor'`. Experimental RASP (`FULLSHIELD_EXPERIMENTAL_RASP=1`) is structure-change sink hooks, fail-open, not a WAF. `fullshield install` is static-only (`FULLSHIELD_EXPERIMENTAL_SUPPLY=1`); never a malware sandbox. | Runtime monitor **stable**; RASP + `install` **experimental** |
+
+**What “Yes” does *not* mean (do not claim in README or sales copy):**
+
+- Function-level GHSA reachability across every affected symbol (Snyk/Socket enterprise). FullShield uses import + any-call, plus lockfile path for transitives.
+- Multi-language SAST. v1 is JS/TS only.
+- A hosted SOC, cloud dashboard, or SaaS account. Dashboard binds `127.0.0.1` and is experimental.
+- Prevention by itself. CI `--fail-on` and runtime **monitor** are the gates. Block-mode RASP is not a production claim until the app’s benign corpus is measured.
+- Certification (`report --compliance pci` is evidence-style mapping). Not a pentest.
+
+**Packaging rule this section exists to protect:** never split these layers into separately published packages. One install (`npm i -D fullshield`). Runtime subpath must load zero scanner code (Section 13). If a layer cannot meet its acceptance test, ship it behind an `experimental` flag — never stub it as if the table above were false.
+
+**Name status:** `fullshield` on npm is **taken** (ours). `latest` is `0.1.0`. Category remains crowded; this exact all-in-one open-source CLI is this repo.
 
 ---
 
@@ -197,11 +225,13 @@ Taint-lite approach: mark sources (`req.body`, `req.query`, `req.params`, `req.h
 ## 4. Module Details
 
 ### 4.1 deps
-- Parse `package-lock.json` (v2/v3), `pnpm-lock.yaml`, `yarn.lock` → list of `{name, version, path}`.
+- Parse `package-lock.json` (v2/v3), `pnpm-lock.yaml`, `yarn.lock` → list of `{name, version, path}` **and** dependency edges (required for `reachable-via-dependency` vs `not-imported`; missing edges → `reachability-unknown`, never a silent downgrade).
 - Batch query OSV `/v1/querybatch` (ecosystem `npm`), then fetch details for hits.
 - Cache results at `~/.cache/fullshield/osv/` with 24h TTL; `--offline` uses cache only.
+- Classify every OSV hit with Section 15.2 reachability. `DEPS-MALICIOUS-001` is always critical.
+- `DEPS-NOLOCK-001` when there is a manifest but no lockfile; exact `package.json` pins are still queried.
 - Fix: compute minimum non-vulnerable version from OSV `affected.ranges`; propose bump in package.json (safe if same major, unsafe otherwise).
-- Typosquat check: Levenshtein distance ≤ 1 to the top ~1,000 popular packages list (ship as static JSON) → `medium`, `low` confidence.
+- Typosquat check: Levenshtein distance ≤ 1 to the top ~1,000 popular packages list (ship as static JSON) → `medium`, `low` confidence. Direct dependency names only.
 
 ### 4.2 secrets
 - Rules for: AWS access keys, Stripe, GitHub tokens, Slack tokens, Google API keys, OpenAI/Anthropic-style keys, generic PEM `BEGIN` + `PRIVATE KEY` headers, DB connection strings with inline passwords, JWT secrets assigned from string literals.
@@ -373,15 +403,15 @@ Rules for keeping one package lean:
 - **Framework adapters as optional peer deps**: `express` and `fastify` are `peerDependenciesMeta: { optional: true }`, never bundled.
 - One version number and one CHANGELOG for everything.
 
-Coverage map to state in the README (honest "everything"):
+Coverage map to state in the README (honest "everything"). This is the same five-layer claim as Section 1.1, plus edge (headers only):
 | Layer | Covered by |
 |---|---|
-| Code vulnerabilities | `sast` |
-| Dependencies (now + new CVEs later) | `deps` + `watch` |
-| Secrets | `secrets` + pre-commit hook |
+| Code vulnerabilities | `sast` (intra-function + cross-file taint, depth 5) |
+| Dependencies (now + new CVEs later) | `deps` (OSV + **reachability**) + `watch` |
+| Secrets | `secrets` + `scan --staged` / pre-commit hook |
 | App/server config | `config` |
-| Live app-layer attacks | `runtime` |
-| Edge/DDoS layer | `edge` **checks that it exists**; actual DDoS mitigation must come from a CDN/WAF (Cloudflare, AWS Shield, etc.) |
+| Live app-layer signals | `runtime` in **monitor** mode; experimental RASP via `--import fullshield/runtime/register` (fail-open) |
+| Edge/DDoS layer | `edge` **checks that a CDN/WAF exists** (headers only). Actual DDoS mitigation is the CDN. |
 
 ### `edge` module spec
 ```bash
@@ -397,23 +427,15 @@ npx fullshield edge https://example.com
 
 ## 14. Public GitHub Launch Checklist
 
-**Day 1 (now):**
-- Reserve the npm name: publish `0.0.1` with a README stub ("in development") so nobody squats it.
-- Create the repo as **private** until Phase 5 passes.
+**Done (0.1.0, 2026-10-15):**
+- npm name reserved then published: `fullshield@0.1.0` is `latest` (maintainer `kathan2404`). Placeholders `0.0.0-stage` / `0.0.1` exist — deprecate by exact version, never republish a placeholder.
+- Public repo `kathanp/fullshield`, MIT, README coverage map + non-goals + Section 1.1 honesty (0.x / alpha).
+- Publish from CI with trusted publishing + `--provenance`. No `NPM_TOKEN`.
 
-**Before going public (after Phase 5–6):**
-- README top section: what it does, a 30-second demo GIF of `npx fullshield scan` on vulnerable-app, the coverage map, and the non-goals. Mark the version as `0.x` / alpha.
-- `LICENSE`: MIT for max adoption, or Apache-2.0 for patent protection. Decide before the first public commit.
-- `SECURITY.md`: how to report vulnerabilities in FullShield itself (private email or GitHub private advisories), with an expected response time.
-- `CONTRIBUTING.md` + rule-authoring guide (each rule needs positive and negative fixtures).
-- Issue templates: bug, false positive, new rule request.
-- Enable on the repo: branch protection on `main`, required CI, Dependabot, CodeQL, secret scanning, and 2FA on the GitHub + npm accounts.
+**Keep current:**
+- `SECURITY.md`, `CONTRIBUTING.md`, branch protection, Dependabot, secret scanning, 2FA on GitHub + npm.
 - **Fake secrets in fixtures will trip GitHub push protection.** Build them by string concatenation at test time (like the `"AKIA" + "XXXX..."` example) or generate them in a test setup step. Never commit realistic-looking keys.
-- Run `fullshield scan` on the repo itself and show the badge/result in the README.
-- Make sure git history is clean (no real `.env`, no personal tokens) before flipping to public. History becomes public too.
-
-**Launch:**
-- Tag `v0.1.0`, publish to npm from CI with `--provenance`.
+- README must keep stating: category is crowded; FullShield still provides all five layers (Section 1.1); APIs may change; not a pentest.
 
 ---
 
@@ -426,10 +448,17 @@ npx fullshield edge https://example.com
 - Depth limit (default 5 hops) + per-file cache keyed by content hash for speed.
 - Finding gets `trace: Array<{file, line, note}>` and SARIF `codeFlows`.
 
-### 15.2 Dependency reachability
-- For each vulnerable dependency, find whether the project's code actually **imports** the package and, where OSV/GHSA lists affected functions, whether those functions are **called**.
-- Classify: `reachable` (keep severity), `imported-not-called` (−1 severity), `not-imported / transitive-only` (−2 severity, still listed).
-- This is what turns 200 dependency alerts into the 5 that matter. Make it the headline feature in the README.
+### 15.2 Dependency reachability (headline differentiator)
+- For each OSV hit, classify using **import + call** in production sources plus the lockfile dependency graph (npm / yarn / pnpm edges). Affected-function lists from OSV/GHSA are **not** yet used; import + any-call ≈ reachable. Do not claim Snyk-style function-level reachability.
+- Classes (must match README and `src/modules/deps/reachability.ts`):
+  - `reachable` — imported and called. Severity kept.
+  - `imported-not-called` — imported, no call found. Severity −1.
+  - `reachable-via-dependency` — lockfile path from an **imported direct** dep (e.g. `express > body-parser > qs`). **Severity kept.** Path must be shown.
+  - `not-imported` — no such path. Severity −2. Only when edges are known.
+  - `reachability-unknown` — lockfile format has no parsed edges. **Severity kept** (never treat missing edges as not-imported).
+- DevDependency-only vulns are `info` with a `dev-only` note unless production sources import the package.
+- `DEPS-MALICIOUS-001` (OSV `MAL-` / malicious classification) is **always critical** and is never downgraded by reachability or the dev-only overlay (install scripts run at `npm install`).
+- This is what turns 200 lockfile alerts into the ones that matter. It is the README headline. Pair with `fullshield sbom --format cyclonedx`.
 
 ### 15.3 SBOM
 - `npx fullshield sbom --format cyclonedx` → CycloneDX 1.5 JSON with licenses + vuln references.
@@ -605,4 +634,8 @@ Goal: turn "possible vulnerability" into "**confirmed**, here's the proof" so de
 | 22 | Threat model, incremental scans, workspaces, local dashboard + history | Incremental scan < 5s on benchmark repo; dashboard renders from SQLite history |
 | 23 | Compliance mapping + IaC rules | Every rule has OWASP/CWE mapping (test enforces); IaC fixtures pass |
 | 24 | Remediation agent + benchmark publishing in CI | Agent opens PR against a test repo with passing tests; benchmark report generated per release |
+| 25 | 0.1.1 hardening: Windows CI + lazy `node:sqlite` + CRLF-safe diffs + `file://` `--import` | 6-way CI (Linux/macOS/Windows × Node 22/24); `node --import …/register -e 1` silent; register bundle under budget; history.db handle closed |
+
+**Next (26–35)** stay in the local draft spec until 0.1.0 is published and this phase's verify passes. Do not start Phase 26 from this file.
+
 - Show a real before/after: run it on a public, intentionally vulnerable Node app (e.g. OWASP NodeGoat or Juice Shop), list what it found and what it missed. Publishing the misses builds more trust than hiding them.

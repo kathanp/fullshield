@@ -1,5 +1,6 @@
 import type { Finding, FixProposal } from '../core/finding.js';
 import { unifiedDiff } from './diff.js';
+import { applyEol, detectEol, normalizeNewlines } from './eol.js';
 
 export function proposeFix(finding: Finding, source: string): FixProposal | undefined {
   const file = finding.file ?? '';
@@ -15,27 +16,30 @@ export function proposeFix(finding: Finding, source: string): FixProposal | unde
 }
 
 function helmetFix(file: string, source: string): FixProposal | undefined {
-  if (/helmet\s*\(/.test(source)) return undefined;
-  let after = source;
+  const normalized = normalizeNewlines(source);
+  if (/helmet\s*\(/.test(normalized)) return undefined;
+  let after = normalized;
   if (!/require\(\s*['"]helmet['"]\s*\)|from\s+['"]helmet['"]/.test(after)) {
     after = `const helmet = require('helmet');\n${after}`;
   }
   if (!/app\.use\(\s*helmet\s*\(\s*\)\s*\)/.test(after)) {
     after = after.replace(/const app = express\(\s*\);/, (m) => `${m}\napp.use(helmet());`);
   }
-  if (after === source) return undefined;
-  return { kind: 'config-add', safe: false, diff: unifiedDiff(file, source, after) };
+  if (after === normalized) return undefined;
+  return { kind: 'config-add', safe: false, diff: unifiedDiff(file, normalized, after) };
 }
 
 function bodyLimitFix(file: string, source: string): FixProposal | undefined {
-  if (!/express\.json\(\s*\)/.test(source)) return undefined;
-  const after = source.replace(/express\.json\(\s*\)/g, "express.json({ limit: '100kb' })");
-  return { kind: 'config-add', safe: true, diff: unifiedDiff(file, source, after) };
+  const normalized = normalizeNewlines(source);
+  if (!/express\.json\(\s*\)/.test(normalized)) return undefined;
+  const after = normalized.replace(/express\.json\(\s*\)/g, "express.json({ limit: '100kb' })");
+  return { kind: 'config-add', safe: true, diff: unifiedDiff(file, normalized, after) };
 }
 
 function cryptoFix(file: string, source: string): FixProposal | undefined {
-  if (!/Math\.random\(\)/.test(source)) return undefined;
-  let after = source;
+  const normalized = normalizeNewlines(source);
+  if (!/Math\.random\(\)/.test(normalized)) return undefined;
+  let after = normalized;
   if (!/require\(\s*['"]crypto['"]\s*\)|from\s+['"]crypto['"]/.test(after)) {
     after = `const crypto = require('crypto');\n${after}`;
   }
@@ -43,24 +47,26 @@ function cryptoFix(file: string, source: string): FixProposal | undefined {
     /Math\.random\(\)\.toString\(\s*36\s*\)(?:\.slice\(\s*2\s*\))?/g,
     'crypto.randomUUID()',
   );
-  if (after === source) return undefined;
-  return { kind: 'code-patch', safe: true, diff: unifiedDiff(file, source, after) };
+  if (after === normalized) return undefined;
+  return { kind: 'code-patch', safe: true, diff: unifiedDiff(file, normalized, after) };
 }
 
 function gitignoreFix(file: string, source: string): FixProposal | undefined {
   const target = file.endsWith('.gitignore') ? file : '.gitignore';
-  if (/(^|[\r\n])\.env(\r?\n|$)/.test(source)) return undefined;
+  const normalized = normalizeNewlines(source);
+  if (/(^|\n)\.env(\n|$)/.test(normalized)) return undefined;
   const after =
-    source.length === 0 || source.endsWith('\n') || source.endsWith('\r')
-      ? `${source}.env\n`
-      : `${source}\n.env\n`;
-  return { kind: 'config-add', safe: true, diff: unifiedDiff(target, source, after) };
+    normalized.length === 0 || normalized.endsWith('\n')
+      ? `${normalized}.env\n`
+      : `${normalized}\n.env\n`;
+  return { kind: 'config-add', safe: true, diff: unifiedDiff(target, normalized, after) };
 }
 
 function secretEnvFix(file: string, source: string, finding: Finding): FixProposal | undefined {
   const envName = envNameFor(finding.ruleId);
   // Replace a quoted/concatenated assignment on the finding line only.
-  const lines = source.split('\n');
+  const normalized = normalizeNewlines(source);
+  const lines = normalized.split('\n');
   const idx = (finding.line ?? 1) - 1;
   const line = lines[idx];
   if (line === undefined) return undefined;
@@ -71,7 +77,7 @@ function secretEnvFix(file: string, source: string, finding: Finding): FixPropos
   if (replaced === line) return undefined;
   const afterLines = [...lines];
   afterLines[idx] = replaced;
-  return { kind: 'code-patch', safe: false, diff: unifiedDiff(file, source, afterLines.join('\n')) };
+  return { kind: 'code-patch', safe: false, diff: unifiedDiff(file, normalized, afterLines.join('\n')) };
 }
 
 function envNameFor(ruleId: string): string {
@@ -88,10 +94,10 @@ function envNameFor(ruleId: string): string {
 
 /** Apply a single-file unified diff produced by `unifiedDiff`. */
 export function applyUnifiedDiff(source: string, diff: string): string {
-  const plus = diff
+  const plus = normalizeNewlines(diff)
     .split('\n')
     .filter((line) => line.startsWith('+') && !line.startsWith('+++'))
     .map((line) => line.slice(1));
   if (plus.length === 0) return source;
-  return plus.join('\n');
+  return applyEol(plus.join('\n'), detectEol(source));
 }

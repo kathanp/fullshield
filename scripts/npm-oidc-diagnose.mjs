@@ -55,7 +55,8 @@ async function readJson(res) {
 
 function withoutToken(json) {
   if (!json || typeof json !== 'object') return json;
-  const { token: _t, ...rest } = json;
+  const rest = { ...json };
+  delete rest.token;
   return rest;
 }
 

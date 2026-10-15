@@ -1,8 +1,12 @@
+import { normalizeNewlines } from './eol.js';
+
 /** Minimal unified diff for a single-file replacement (display + apply). */
 export function unifiedDiff(filename: string, before: string, after: string): string {
-  if (before === after) return '';
-  const oldLines = before.split('\n');
-  const newLines = after.split('\n');
+  const oldNorm = normalizeNewlines(before);
+  const newNorm = normalizeNewlines(after);
+  if (oldNorm === newNorm) return '';
+  const oldLines = oldNorm.split('\n');
+  const newLines = newNorm.split('\n');
   const hunks: string[] = [`--- a/${filename}`, `+++ b/${filename}`];
   hunks.push(`@@ -1,${oldLines.length} +1,${newLines.length} @@`);
   for (const line of oldLines) hunks.push(`-${line}`);

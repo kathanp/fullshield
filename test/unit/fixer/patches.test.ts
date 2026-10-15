@@ -124,4 +124,28 @@ describe('applyUnifiedDiff', () => {
     expect(applyUnifiedDiff('old\n', '--- a/f\n+++ b/f\n+new\n')).toBe('new');
     expect(applyUnifiedDiff('old\n', '--- a/f\n+++ b/f\n')).toBe('old\n');
   });
+
+  it('preserves CRLF from the source when applying a LF unified diff (core.autocrlf)', async () => {
+    const { applyUnifiedDiff, proposeFix } = await import('../../../src/fixer/patches.js');
+    const crlf = "const express = require('express');\r\nconst app = express();\r\napp.use(express.json());\r\n";
+    const proposed = proposeFix(
+      {
+        id: 'body',
+        ruleId: 'CONFIG-BODYLIMIT-001',
+        module: 'config',
+        title: 'body',
+        severity: 'medium',
+        confidence: 'high',
+        file: 'app.js',
+        message: 'unbounded json',
+        remediation: 'limit',
+      },
+      crlf,
+    );
+    expect(proposed).toBeDefined();
+    const after = applyUnifiedDiff(crlf, proposed!.diff);
+    expect(after).toContain('\r\n');
+    expect(after).not.toMatch(/[^\r]\n/);
+    expect(after).toContain("express.json({ limit: '100kb' })");
+  });
 });

@@ -55,6 +55,11 @@ function npmBin(): string {
   return process.platform === 'win32' ? 'npm.cmd' : 'npm';
 }
 
+/** Git pathspec is POSIX even on Windows (`core.autocrlf` / backslash paths). */
+function gitPath(file: string): string {
+  return file.replace(/\\/g, '/');
+}
+
 function git(cwd: string, args: string[]): string {
   return execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
 }
@@ -176,7 +181,7 @@ export async function runAgent(options: AgentOptions = {}): Promise<AgentResult>
       break;
     }
 
-    git(cwd, ['add', '--', ...files]);
+    git(cwd, ['add', '--', ...files.map(gitPath)]);
     git(cwd, ['-c', 'user.email=agent@fullshield.local', '-c', 'user.name=FullShield Agent', 'commit', '-m', `fix: ${finding.ruleId}`]);
     git(cwd, ['push', remote, `HEAD:${branch}`]);
     if (PROTECTED.has(branch)) {

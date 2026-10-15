@@ -625,3 +625,24 @@ Shared `/g` secret regexes now reset `lastIndex` per line (`everyMatch`) so extr
 **Re-scan:** NodeGoat 373 / high+critical **60** (`DEPS-MALICIOUS-001` `fsevents@1.2.9`). DVNA 19 / high+crit 14. JSON: `benchmarks/results/*-phase24.json`. Live Ollama 768s, exit 0 — see `benchmarks/AI-REPORT.md` (still not good enough to advertise).
 
 **MANDATORY STOP after Phase 24.** Do not start a next phase. Nothing pushed. Nothing published.
+
+## Phase 25 — 0.1.1 hardening: Windows + lazy SQLite
+
+**Tests: 434** (was 407).
+
+CI already included `windows-latest` × Node 22/24. This phase made the product Windows-safe instead of skipping:
+
+- Quoted-filename dirty-tree case is `it.skipIf(win32)` with a Phase 25 comment (Windows forbids `"` in names).
+- `HistoryDb.close()` is idempotent and uses try/finally (including listen errors) so Windows can unlink `history.db`.
+- Fixer/agent diffs normalize newlines for compare and restore the file's original EOL on apply (`core.autocrlf`-independent). Git pathspecs use POSIX slashes.
+- `--import` uses `importHref` / `pathToFileURL(...).href`. Runtime entry sources do not import `node:sqlite`. `node --import …/register -e 1` prints nothing on stderr. Register bundle stays under 256 KB.
+
+**Verify summary (`npm run verify:phase 25`, full run PASSED):**
+
+| phase | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|---|
+| 25 | 434 | 91.85% | 82.32% | deps,secrets,sast,config | 30 | 30 | 34 | 0 |
+
+Acceptance: CI Windows×Node 22/24; `--import` file:// silent; register budget; no static sqlite.
+
+**Deferred:** Phases 26–35 (public bench, SAST/ORM/frameworks, new rules, VEX, DLP, MCP-config, policy, host/SSH). Spec order is 25 → 26 first. Launch checklist (npm 0.1.0 stranger check) is still a human step. Nothing pushed. Nothing published.

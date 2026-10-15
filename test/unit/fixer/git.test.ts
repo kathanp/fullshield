@@ -46,7 +46,7 @@ describe('fixer git helpers', () => {
     expect(dirty.has('new-name.txt') || dirty.has('old-name.txt')).toBe(true);
   });
 
-  // Windows rejects `"` in filenames (CreateFile ENOENT). This case is POSIX-only.
+  // Phase 25: Windows forbids `"` in filenames (CreateFile). POSIX-only fixture.
   it.skipIf(process.platform === 'win32')('lists dirty paths that include a quoted filename', async () => {
     execFileSync('git', ['init'], { cwd: dir });
     execFileSync('git', ['config', 'user.email', 'git@test.local'], { cwd: dir });

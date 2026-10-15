@@ -10,7 +10,7 @@
  *   6. summary table (+ per-phase acceptance criteria with --phase N)
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -67,6 +67,7 @@ const PREVIOUS_PHASE_TESTS = {
   21: 383,
   22: 392,
   23: 401,
+  24: 407,
 };
 
 function listFilesRecursive(dir, out = []) {
@@ -957,6 +958,39 @@ s.listen(0, '127.0.0.1', () => {
     const skipped = await agent.runAgent({ cwd: join(root, 'test', 'fixtures', 'clean-app'), apiBase: 'http://127.0.0.1:9' });
     if (skipped.skipped !== true) fail('phase 24 acceptance: agent ran without experimental');
     console.log('  ✔ agent localhost-only API; experimental fail-closed; never real GitHub');
+  },
+  // Phase 25: Windows + lazy sqlite. Register --import must be a file:// URL and silent.
+  25: () => {
+    const ci = readFileSync(join(root, '.github/workflows/ci.yml'), 'utf8');
+    if (!ci.includes('windows-latest') || !ci.includes('macos-latest') || !ci.includes('ubuntu-latest')) {
+      fail('phase 25 acceptance: CI matrix must include ubuntu, macos, and windows');
+    }
+    if (!ci.includes('node: [22, 24]') && !/node:\s*\[22,\s*24\]/.test(ci)) {
+      fail('phase 25 acceptance: CI must run Node 22 and 24');
+    }
+    const register = join(root, 'dist', 'runtime', 'register.js');
+    const href = pathToFileURL(register).href;
+    if (!href.startsWith('file:')) fail('phase 25 acceptance: --import specifier is not a file:// URL');
+    const quiet = spawnSync(process.execPath, ['--import', href, '-e', '1'], {
+      cwd: root,
+      encoding: 'utf8',
+      env: { ...process.env, FULLSHIELD_EXPERIMENTAL_RASP: '1' },
+    });
+    if (quiet.status !== 0) fail(`phase 25 acceptance: --import register -e 1 exited ${quiet.status}`);
+    if (String(quiet.stderr).trim() !== '') {
+      fail(`phase 25 acceptance: --import register printed stderr: ${quiet.stderr}`);
+    }
+    const bytes = statSync(register).size;
+    if (bytes <= 0 || bytes >= 256_000) {
+      fail(`phase 25 acceptance: register bundle size ${bytes} outside budget`);
+    }
+    for (const name of ['register.js', 'auto.js', 'express.js', 'fastify.js', 'index.js']) {
+      const text = readFileSync(join(root, 'dist', 'runtime', name), 'utf8');
+      if (/from\s+['"]node:sqlite['"]/.test(text) || /require\(\s*['"]node:sqlite['"]\s*\)/.test(text)) {
+        fail(`phase 25 acceptance: ${name} statically loads node:sqlite`);
+      }
+    }
+    console.log('  ✔ CI Windows×Node 22/24; --import file:// silent; register budget; no static sqlite');
   },
 };
 

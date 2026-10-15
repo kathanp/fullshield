@@ -180,6 +180,16 @@ describe('Phase 22 dashboard (127.0.0.1 + Host lock)', () => {
     expect(() => rmSync(join(dir, '.fullshield'), { recursive: true, force: true })).not.toThrow();
   });
 
+  it('close() is idempotent and still releases the handle', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'fullshield-dash-err-'));
+    dirs.push(dir);
+    const db = openHistory(dir);
+    recordHistory(db, { scannedAt: '2026-10-14T00:00:00Z', total: 1, highCrit: 0 });
+    db.close();
+    db.close();
+    expect(() => rmSync(join(dir, '.fullshield'), { recursive: true, force: true })).not.toThrow();
+  });
+
   it('is a no-op without experimental', () => {
     expect(() => createDashboardHandler({ dbPath: '/tmp', experimental: false })).toThrow(/EXPERIMENTAL/i);
   });

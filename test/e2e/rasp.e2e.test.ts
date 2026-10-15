@@ -1,12 +1,13 @@
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
+import { importHref } from '../../src/runtime/importHref.js';
+
 const root = process.cwd();
 const register = join(root, 'dist', 'runtime', 'register.js');
-const registerHref = pathToFileURL(register).href;
+const registerHref = importHref(register);
 
 const SCRIPT = `
 import { DatabaseSync } from 'node:sqlite';

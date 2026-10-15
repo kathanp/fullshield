@@ -19,23 +19,41 @@ export interface HistoryDb {
 
 function sqliteDb(file: string): HistoryDb {
   const { DatabaseSync } = require('node:sqlite') as typeof import('node:sqlite');
-  const db = new DatabaseSync(file);
-  db.exec(
-    'CREATE TABLE IF NOT EXISTS scans (scannedAt TEXT NOT NULL, total INTEGER NOT NULL, highCrit INTEGER NOT NULL)',
-  );
+  let db: InstanceType<typeof DatabaseSync> | undefined;
+  try {
+    db = new DatabaseSync(file);
+    db.exec(
+      'CREATE TABLE IF NOT EXISTS scans (scannedAt TEXT NOT NULL, total INTEGER NOT NULL, highCrit INTEGER NOT NULL)',
+    );
+  } catch (error) {
+    try {
+      db?.close();
+    } catch {
+      // never opened or already closed
+    }
+    throw error;
+  }
+  let closed = false;
+  const handle = db;
   return {
     list() {
-      return db.prepare('SELECT scannedAt, total, highCrit FROM scans ORDER BY scannedAt').all() as unknown as HistoryRow[];
+      return handle.prepare('SELECT scannedAt, total, highCrit FROM scans ORDER BY scannedAt').all() as unknown as HistoryRow[];
     },
     insert(row) {
-      db.prepare('INSERT INTO scans (scannedAt, total, highCrit) VALUES (?, ?, ?)').run(
+      handle.prepare('INSERT INTO scans (scannedAt, total, highCrit) VALUES (?, ?, ?)').run(
         row.scannedAt,
         row.total,
         row.highCrit,
       );
     },
     close() {
-      db.close();
+      if (closed) return;
+      closed = true;
+      try {
+        handle.close();
+      } catch {
+        // already closed
+      }
     },
   };
 }
@@ -139,6 +157,13 @@ export function startDashboard(opts: { dir: string; experimental?: boolean; port
           }),
       });
     });
-    server.on('error', reject);
+    server.on('error', (err) => {
+      try {
+        db.close();
+      } catch {
+        // already closed
+      }
+      reject(err);
+    });
   });
 }
