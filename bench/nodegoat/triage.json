@@ -394,6 +394,13 @@
       "reason": "OSV/lockfile advisory on an installed package"
     },
     {
+      "ruleId": "SAST-XSS-001",
+      "file": "server.js",
+      "line": 135,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
       "ruleId": "CONFIG-ERRSTACK-001",
       "file": "app/routes/error.js",
       "line": 8,
@@ -427,6 +434,20 @@
       "line": 38,
       "verdict": "realIssue",
       "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "SECRET-SESSION-001",
+      "file": "app/views/tutorial/a2.html",
+      "line": 153,
+      "verdict": "falsePositive",
+      "reason": "secret-shaped text in documentation or challenge YAML"
+    },
+    {
+      "ruleId": "SECRET-SESSION-001",
+      "file": "app/views/tutorial/a3.html",
+      "line": 176,
+      "verdict": "falsePositive",
+      "reason": "secret-shaped text in documentation or challenge YAML"
     },
     {
       "ruleId": "DEPS-VULN-001",
@@ -747,6 +768,20 @@
       "ruleId": "CONFIG-HELMET-001",
       "file": "server.js",
       "line": 0,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-HELMET-001",
+      "file": "server.js",
+      "line": 58,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-HELMET-001",
+      "file": "server.js",
+      "line": 61,
       "verdict": "realIssue",
       "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
     },

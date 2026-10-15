@@ -13,6 +13,7 @@ import { githubRule } from './rules/github.js';
 import { googleRule } from './rules/google.js';
 import { jwtSecretRule } from './rules/jwtSecret.js';
 import { privateKeyRule } from './rules/privateKey.js';
+import { sessionSecretRule } from './rules/sessionSecret.js';
 import { slackRule } from './rules/slack.js';
 import { stripeRule } from './rules/stripe.js';
 import type { SecretsRule } from './types.js';
@@ -27,6 +28,7 @@ export const secretsRules: readonly SecretsRule[] = [
   privateKeyRule,
   dbUrlRule,
   jwtSecretRule,
+  sessionSecretRule,
   entropyRule,
   envFileRule,
 ];

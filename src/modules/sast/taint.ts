@@ -8,6 +8,7 @@ import {
   isRequestObjectNode,
   isTaintSource,
   propName,
+  REQUEST_SOURCE_PROPS,
   walk,
 } from './ast.js';
 import type { AstNode } from './types.js';
@@ -157,8 +158,22 @@ function walkScope(scope: AstNode, visit: (n: AstNode) => void): void {
   inner(scope);
 }
 
+function seedDestructuredRequestParams(scope: AstNode, tainted: Set<string>): void {
+  if (!isFunctionNode(scope)) return;
+  for (const param of scope.params) {
+    if (param.type !== 'ObjectPattern') continue;
+    for (const prop of param.properties) {
+      if (prop.type !== 'Property') continue;
+      const key = prop.key.type === 'Identifier' ? prop.key.name : undefined;
+      if (key === undefined || !REQUEST_SOURCE_PROPS.has(key)) continue;
+      for (const name of boundNames(prop.value)) tainted.add(name);
+    }
+  }
+}
+
 function analyzeScope(scope: AstNode, seed: Iterable<string> = []): ScopeFacts {
   const tainted = new Set<string>(seed);
+  seedDestructuredRequestParams(scope, tainted);
   const urlSanitized = new Set<string>();
   const xssSanitized = new Set<string>();
   let changed = true;

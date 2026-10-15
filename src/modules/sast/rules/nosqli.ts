@@ -1,5 +1,4 @@
 import { calleeName, literalString } from '../ast.js';
-import { sastGapsEnabled } from '../experimental.js';
 import type { AstNode, SastRule } from '../types.js';
 
 const MONGO_SINKS = new Set([
@@ -43,7 +42,7 @@ export const nosqliRule: SastRule = {
       CallExpression(node) {
         if (node.type !== 'CallExpression') return;
         const name = calleeName(node);
-        if (sastGapsEnabled() && name === '$where') {
+        if (name === '$where') {
           const expr = node.arguments[0];
           if (expr !== undefined && expr.type !== 'SpreadElement' && ctx.isTainted(expr)) {
             ctx.report({
@@ -63,7 +62,7 @@ export const nosqliRule: SastRule = {
           });
           return;
         }
-        if (sastGapsEnabled() && objectHasTaintedWhere(filter, (n) => ctx.isTainted(n))) {
+        if (objectHasTaintedWhere(filter, (n) => ctx.isTainted(n))) {
           ctx.report({
             node,
             message: 'Tainted input is passed to a Mongo $where filter.',

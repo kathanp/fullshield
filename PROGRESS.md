@@ -667,3 +667,23 @@ Acceptance: CI Windows×Node 22/24; `--import` file:// silent; register budget; 
 **Stable behavior:** unchanged unless the experimental flag is set. RASP ORM hooks extend existing experimental RASP (`FULLSHIELD_EXPERIMENTAL_RASP=1`).
 
 **Deferred:** Phases 28–29 (frameworks, new vuln classes). Not merged to main. Not tagged.
+
+## Phase 26b — stable public-bench misses (on `next`)
+
+Per in-scope miss: a fixture (positive + negative). Stable rule fixes vs README Known limitations. `ground-truth.json` / `triage.json` not edited.
+
+**Fixed (stable):** Mongo `$where`; destructured `{ query }` taint for redirects; `md5(tainted)`; `autoescape: false`; commented-out `helmet` import/call; `serveIndex()` (`CONFIG-DIRLIST-001`); hardcoded `express-session` secret (`SECRET-SESSION-001`).
+
+**Known limitations:** Swig `{{ }}` template line, JSON XSS, `url.includes` allowlist, `{ _id: req.body.id }`, deps lockfile/offline, DVNA calc vs `err.stack`.
+
+The secrets registry test gained `SECRET-SESSION-001` (additive ID list). clean-app stays 0 findings.
+
+**In-scope recall (bench:public, `"reviewed": false`):**
+
+| app | before (a64ab8b) | after |
+|---|---|---|
+| NodeGoat | 4/7 (57.1%) | 5/7 (71.4%) |
+| Juice Shop | 4/12 (33.3%) | 9/12 (75.0%) |
+| DVNA | 6/10 (60.0%) | 8/10 (80.0%) |
+
+Verify: 486 tests, 92.09% lines / 82.7% branches. clean-app 0 high/critical.

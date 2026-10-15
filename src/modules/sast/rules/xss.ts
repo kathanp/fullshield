@@ -56,6 +56,23 @@ export const xssRule: SastRule = {
     return {
       CallExpression(node) {
         if (node.type !== 'CallExpression') return;
+        for (const arg of node.arguments) {
+          if (arg.type !== 'ObjectExpression') continue;
+          for (const prop of arg.properties) {
+            if (prop.type !== 'Property') continue;
+            const key = prop.key.type === 'Identifier' ? prop.key.name : literalString(prop.key);
+            if (
+              key === 'autoescape' &&
+              prop.value.type === 'Literal' &&
+              prop.value.value === false
+            ) {
+              ctx.report({
+                node,
+                message: 'Template engine autoescape is disabled; interpolations are XSS sinks.',
+              });
+            }
+          }
+        }
         const name = calleeName(node);
         if (name !== 'send' && name !== 'write') return;
         const arg = node.arguments[0];

@@ -633,6 +633,7 @@ Goal: turn "possible vulnerability" into "**confirmed**, here's the proof" so de
 | 24 | Remediation agent + benchmark publishing in CI | Agent opens PR against a test repo with passing tests; benchmark report generated per release |
 | 25 | 0.1.1 hardening: Windows CI + lazy `node:sqlite` + CRLF-safe diffs + `file://` `--import` | 6-way CI (Linux/macOS/Windows × Node 22/24); `node --import …/register -e 1` silent; register bundle under budget; history.db handle closed |
 | 26 | Public benchmark on pinned OWASP NodeGoat, Juice Shop, and DVNA | `npm run bench:public` writes `BENCHMARK.md` (per-app TP/FP/misses, per-class, scan time, version, SHA, Known misses). Ground truth stays `"reviewed": false` until a human flips it. CI job `bench` is non-blocking. Do not tune rules from this run. |
+| 26b | Close stable in-scope misses from that bench | Fixture per miss (positive + negative). Fix the stable rule when it is a real gap in a claimed class; otherwise README Known limitations. Do not edit `ground-truth.json` or `triage.json`. |
 | 27 | SAST + RASP coverage gaps: numeric SQL, ORM raw sinks, template-literal shell | Every new sink has positive + negative fixtures; attack corpus ≥ 10 cases per new context; benign corpus 0 blocked; extra SAST sinks behind `FULLSHIELD_EXPERIMENTAL_SAST_GAPS` / `--experimental-sast-gaps` |
 
 ### Phase 26 — Public benchmark run (credibility first)

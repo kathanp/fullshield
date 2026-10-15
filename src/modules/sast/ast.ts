@@ -125,7 +125,8 @@ export function attachParents(node: AstNode, parent?: AstNode): void {
   }
 }
 
-const SOURCE_PROPS = new Set(['query', 'body', 'params', 'headers']);
+export const REQUEST_SOURCE_PROPS = new Set(['query', 'body', 'params', 'headers']);
+const SOURCE_PROPS = REQUEST_SOURCE_PROPS;
 
 export function isTaintSource(node: AstNode): boolean {
   if (node.type !== 'MemberExpression') return false;

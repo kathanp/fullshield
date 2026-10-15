@@ -1062,7 +1062,27 @@ s.listen(0, '127.0.0.1', () => {
     }
     const readme = readFileSync(join(root, 'README.md'), 'utf8');
     if (!readme.includes('BENCHMARK.md')) fail('phase 26 acceptance: README must link BENCHMARK.md');
+    for (const needle of [
+      'url.includes(allowedUrl)',
+      '{ _id: req.body.id }',
+      'res.json',
+      'autoescape',
+      'package.json:N',
+      'mathjs.eval',
+    ]) {
+      if (!readme.includes(needle)) {
+        fail(`phase 26b acceptance: README Known limitations missing ${needle}`);
+      }
+    }
+    for (const path of [
+      join(root, 'test', 'unit', 'modules', 'sast', 'bench-misses.test.ts'),
+      join(root, 'test', 'unit', 'modules', 'config', 'bench-misses.test.ts'),
+      join(root, 'test', 'unit', 'modules', 'secrets', 'bench-misses.test.ts'),
+    ]) {
+      if (!existsSync(path)) fail(`phase 26b acceptance: missing ${relative(root, path)}`);
+    }
     console.log('  ✔ public bench harness, unreviewed ground truth, non-blocking CI bench job');
+    console.log('  ✔ phase 26b fixtures + Known limitations for remaining in-scope misses');
   },
   // Phase 27: SAST + RASP coverage gaps (numeric SQL, ORM raw, template shell).
   27: async () => {

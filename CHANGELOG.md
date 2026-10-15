@@ -6,6 +6,13 @@ All notable changes to FullShield are documented here.
 
 - Publish CI uses `npm publish --provenance --access public` (no staged-manifest edits). The unpublished `v0.1.2` tag was deleted.
 
+### Phase 26b — stable public-bench misses
+
+- Stable SAST: Mongo `$where` with a tainted string; destructured `{ query }` taint for `res.redirect`; `md5(tainted)` reset tokens; `autoescape: false`.
+- Stable config: commented-out `helmet`; `serveIndex()` directory listing (`CONFIG-DIRLIST-001`).
+- Stable secrets: hardcoded `express-session` secret (`SECRET-SESSION-001`).
+- Remaining in-scope misses (Swig `{{ }}` template line, JSON XSS, `includes()` allowlist, nested `{ _id: req.body.id }`, deps lockfile/offline, DVNA calc vs eval) stay in README Known limitations. Ground truth and triage files were not edited.
+
 ### Phase 27 — SAST + RASP coverage gaps
 
 - RASP treats extra tokens in unquoted numeric SQL (`WHERE id = 1 OR 1=1`) as a structure change; a single number (`42`) stays allowed.

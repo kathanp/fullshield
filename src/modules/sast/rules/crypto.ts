@@ -33,7 +33,18 @@ export const cryptoRule: SastRule = {
           return;
         }
 
-        if (calleeName(node) !== 'createHash') return;
+        const name = calleeName(node);
+        if (name === 'md5') {
+          const arg = node.arguments[0];
+          if (arg !== undefined && arg.type !== 'SpreadElement' && ctx.isTainted(arg)) {
+            ctx.report({
+              node,
+              message: 'The md5 helper is used as a token or identifier over tainted input.',
+            });
+          }
+          return;
+        }
+        if (name !== 'createHash') return;
         const algo = literalString(node.arguments[0]);
         if (algo === undefined || !WEAK_HASH.has(algo.toLowerCase())) return;
         if (!ctx.functionHasPasswordName(node)) return;

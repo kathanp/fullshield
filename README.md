@@ -71,7 +71,16 @@ Experimental RASP structure-change scoring on the vendored PayloadsAllTheThings 
 
 Path 51/51 and SSRF 39/39 on the same corpus. Benign corpus stays 0 blocked. Prefer `mode: 'monitor'`.
 
-These fixtures are self-authored. Numeric SQL (`WHERE id = ` + input), ORM raw-query APIs (Prisma/Sequelize/Knex/TypeORM/Drizzle/`$where`), and template-literal shell (`exec(\`…${x}\`)`, `spawn('sh', ['-c', …])`, execa `shell: true`, zx `$.raw`) are covered in the attack corpus. Extra SAST sinks for those ORM / `sh -c` / execa / zx shapes stay behind `FULLSHIELD_EXPERIMENTAL_SAST_GAPS=1` (or `scan --experimental-sast-gaps`) so default `scan` behavior does not change.
+These fixtures are self-authored. Numeric SQL (`WHERE id = ` + input), ORM raw-query APIs (Prisma/Sequelize/Knex/TypeORM/Drizzle/`$where`), and template-literal shell (`exec(\`…${x}\`)`, `spawn('sh', ['-c', …])`, execa `shell: true`, zx `$.raw`) are covered in the attack corpus. Extra SAST sinks for those ORM / `sh -c` / execa / zx shapes stay behind `FULLSHIELD_EXPERIMENTAL_SAST_GAPS=1` (or `scan --experimental-sast-gaps`) so default `scan` behavior does not change. Mongo `$where` strings are **stable** SAST (Juice Shop track-order / reviews).
+
+In-scope public-bench patterns we still do not claim (one line each):
+
+- Swig `{{firstName}}` in `.html` — XSS only if autoescape is off in another file; we flag `autoescape: false`, not the template line.
+- Juice Shop track-order XSS — server returns `res.json`; we do not treat JSON fields as HTML sinks.
+- Juice Shop `url.includes(allowedUrl)` — weak allowlist helper is not a redirect sink; we flag `res.redirect(tainted)`.
+- Juice Shop `{ _id: req.body.id }` — nested Mongo operator injection, not a whole `req.body` filter.
+- `DEPS-VULN-001` — attributed to the lockfile with no line; `--offline-safe` on a cache-less clone emits no OSV hits (`package.json:N` will not match).
+- DVNA calculator “stack leak” — that line is `mathjs.eval` (`SAST-EVAL-001`), not `err.stack`.
 
 ## Quick start
 

@@ -65,9 +65,30 @@
       "reason": "SAST hit did not match an in-scope ground-truth file/line"
     },
     {
+      "ruleId": "SAST-PATH-001",
+      "file": "routes/keyServer.ts",
+      "line": 14,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-PATH-001",
+      "file": "routes/logfileServer.ts",
+      "line": 14,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
       "ruleId": "SAST-SSRF-001",
       "file": "routes/profileImageUrlUpload.ts",
       "line": 24,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-PATH-001",
+      "file": "routes/quarantineServer.ts",
+      "line": 14,
       "verdict": "unsure",
       "reason": "SAST hit did not match an in-scope ground-truth file/line"
     },
@@ -114,6 +135,202 @@
       "reason": "SAST hit did not match an in-scope ground-truth file/line"
     },
     {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/accessLogDisclosureChallenge_1_correct.ts",
+      "line": 2,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/accessLogDisclosureChallenge_1_correct.ts",
+      "line": 6,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/accessLogDisclosureChallenge_1_correct.ts",
+      "line": 10,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/accessLogDisclosureChallenge_2.ts",
+      "line": 2,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/accessLogDisclosureChallenge_2.ts",
+      "line": 6,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/accessLogDisclosureChallenge_2.ts",
+      "line": 10,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/accessLogDisclosureChallenge_2.ts",
+      "line": 14,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/accessLogDisclosureChallenge_3.ts",
+      "line": 2,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/accessLogDisclosureChallenge_3.ts",
+      "line": 6,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/accessLogDisclosureChallenge_3.ts",
+      "line": 10,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/accessLogDisclosureChallenge_3.ts",
+      "line": 14,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/accessLogDisclosureChallenge_4.ts",
+      "line": 2,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/accessLogDisclosureChallenge_4.ts",
+      "line": 6,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/accessLogDisclosureChallenge_4.ts",
+      "line": 10,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/directoryListingChallenge_1_correct.ts",
+      "line": 1,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/directoryListingChallenge_1_correct.ts",
+      "line": 5,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/directoryListingChallenge_1_correct.ts",
+      "line": 9,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/directoryListingChallenge_2.ts",
+      "line": 5,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/directoryListingChallenge_2.ts",
+      "line": 9,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/directoryListingChallenge_2.ts",
+      "line": 13,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/directoryListingChallenge_3.ts",
+      "line": 2,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/directoryListingChallenge_3.ts",
+      "line": 4,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/directoryListingChallenge_3.ts",
+      "line": 8,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/directoryListingChallenge_3.ts",
+      "line": 12,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/directoryListingChallenge_4.ts",
+      "line": 2,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/directoryListingChallenge_4.ts",
+      "line": 6,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/directoryListingChallenge_4.ts",
+      "line": 10,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "data/static/codefixes/directoryListingChallenge_4.ts",
+      "line": 14,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
       "ruleId": "SECRET-ENTROPY-001",
       "file": "data/static/users.yml",
       "line": 107,
@@ -152,6 +369,34 @@
       "ruleId": "CONFIG-HELMET-001",
       "file": "server.ts",
       "line": 0,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-HELMET-001",
+      "file": "server.ts",
+      "line": 189,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "server.ts",
+      "line": 269,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "server.ts",
+      "line": 294,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DIRLIST-001",
+      "file": "server.ts",
+      "line": 298,
       "verdict": "realIssue",
       "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
     },
