@@ -99,6 +99,11 @@ if (!exchangeRes.ok || !exchangeBody.json?.token) {
   process.exit(1);
 }
 
+if (process.env.GITHUB_ENV) {
+  const { appendFileSync } = await import('node:fs');
+  appendFileSync(process.env.GITHUB_ENV, `NPM_ID_TOKEN=${idToken}\n`);
+}
+
 const npmToken = exchangeBody.json.token;
 const auth = { Authorization: `Bearer ${npmToken}`, Accept: 'application/json' };
 

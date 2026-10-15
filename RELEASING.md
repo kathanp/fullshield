@@ -35,7 +35,7 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-   Watch the Actions **Publish** job until it is green (`npm ci && npm run verify` then `npm stage publish --provenance --access public`). Direct `npm publish` from CI is rejected with `E403`.
+   Watch the Actions **Publish** job until it is green (OIDC probe, `npm run build`, then `npm stage publish --provenance --access public`). CI on `main` is the test gate; Publish does not re-run `verify`. Direct `npm publish` from CI is rejected with `E403`.
    Then approve the staged `0.1.0` with 2FA (npmjs.com → **Staged Packages → Approve**, or `npm stage list` / `npm stage approve <id>`).
 7. Deprecate placeholders and confirm `latest`:
 
