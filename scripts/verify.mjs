@@ -509,7 +509,8 @@ const acceptanceCriteria = {
     });
     if (packed.status !== 0) fail(`phase 10 acceptance: npm pack failed: ${packed.stderr}`);
     const listing = JSON.parse(packed.stdout);
-    const paths = (listing[0]?.files ?? []).map((f) => f.path);
+    const entry = Array.isArray(listing) ? listing[0] : Object.values(listing ?? {})[0];
+    const paths = (entry?.files ?? []).map((f) => f.path);
     if (paths.some((p) => p.startsWith('test/') || p.includes('fixtures/'))) {
       fail('phase 10 acceptance: npm pack includes tests or fixtures');
     }

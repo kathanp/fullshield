@@ -6,6 +6,17 @@ import { describe, expect, it } from 'vitest';
 
 const root = process.cwd();
 
+/** npm 11: `[{ files }]`. npm 12+: `{ "<name>": { files } }`. */
+function packedPaths(stdout: string): string[] {
+  const listing = JSON.parse(stdout) as unknown;
+  const entry = Array.isArray(listing)
+    ? (listing[0] as { files?: Array<{ path: string }> } | undefined)
+    : listing && typeof listing === 'object'
+      ? (Object.values(listing as Record<string, { files?: Array<{ path: string }> }>)[0] ?? undefined)
+      : undefined;
+  return (entry?.files ?? []).map((f) => f.path);
+}
+
 describe('npm pack contents', () => {
   it('ships dist, README, LICENSE, templates, and rules — not tests or fixtures', () => {
     const result = spawnSync('npm', ['pack', '--dry-run', '--json'], {
@@ -14,8 +25,7 @@ describe('npm pack contents', () => {
       shell: process.platform === 'win32',
     });
     expect(result.status).toBe(0);
-    const files = JSON.parse(result.stdout) as Array<{ filename: string; files: Array<{ path: string }> }>;
-    const paths = (files[0]?.files ?? []).map((f) => f.path);
+    const paths = packedPaths(result.stdout);
     expect(paths.some((p) => p === 'README.md' || p.endsWith('/README.md'))).toBe(true);
     expect(paths.some((p) => p.includes('LICENSE'))).toBe(true);
     expect(paths.some((p) => p.startsWith('dist/'))).toBe(true);
@@ -38,8 +48,7 @@ describe('npm pack contents', () => {
       shell: process.platform === 'win32',
     });
     expect(result.status).toBe(0);
-    const files = JSON.parse(result.stdout) as Array<{ files: Array<{ path: string }> }>;
-    const paths = (files[0]?.files ?? []).map((f) => f.path);
+    const paths = packedPaths(result.stdout);
     expect(paths.some((p) => p.endsWith('.map'))).toBe(false);
   });
 });
