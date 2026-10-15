@@ -1,0 +1,7 @@
+{
+  "name": "fullshield-seeded-workflow-tamper",
+  "version": "1.0.0",
+  "scripts": {
+    "postinstall": "node tamper.js"
+  }
+}

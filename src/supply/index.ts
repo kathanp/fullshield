@@ -2,6 +2,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 import { makeFindingId, type Finding } from '../core/finding.js';
+import { experimentalVex } from './experimental.js';
+
 
 const REGISTRY_HOST = 'registry.npmjs.org';
 const INSTALL_SCRIPT_KEYS = ['preinstall', 'install', 'postinstall'] as const;
@@ -121,6 +123,10 @@ export function analyzePackageDir(dir: string): Finding[] {
         ),
       );
     }
+  }
+  if (experimentalVex()) {
+    findings.push(...analyzeWormIndicators(dir));
+    findings.push(...analyzeWorkflowTampering(dir));
   }
   return findings;
 }
@@ -263,3 +269,109 @@ export async function installGuard(
   }
   return { findings };
 }
+
+const TOKEN_RE = /(?:~\/)?\.npmrc\b|\bNPM_TOKEN\b|\bGITHUB_TOKEN\b/;
+const PUBLISH_RE = /\bnpm\s+publish\b|\bnpmPublish\b|\blibnpmpublish\b/;
+const REGISTRY_PUT_RE = /registry\.npmjs\.org[\s\S]{0,800}\bPUT\b|\bmethod\s*:\s*['"]PUT['"][\s\S]{0,400}registry\.npmjs\.org/;
+const GITHUB_CREATE_RE =
+  /api\.github\.com\/(?:user\/repos|repos\/)|\/actions\/workflows/;
+const WORKFLOW_PATH_RE = /\.github\/workflows/;
+const CI_WRITE_RE =
+  /\.github\/|\.git\/hooks\/|\.gitlab-ci\.yml|\.travis\.yml|azure-pipelines(?:\.yml)?|Jenkinsfile|\.circleci\//;
+
+function packageSources(dir: string): { sources: Array<{ file: string; text: string }>; scripts: string } {
+  const manifestPath = join(dir, 'package.json');
+  let scripts = '';
+  if (existsSync(manifestPath) && statSync(manifestPath).isFile()) {
+    try {
+      const pkg = readJson(manifestPath);
+      const block = (pkg.scripts ?? {}) as Record<string, string>;
+      scripts = Object.values(block).join('\n');
+    } catch {
+      scripts = '';
+    }
+  }
+  const sources = walkJs(dir).map((file) => ({
+    file: relative(dir, file) || file,
+    text: readFileSync(file, 'utf8'),
+  }));
+  return { sources, scripts };
+}
+
+/** Static worm indicators: token read + publish / registry PUT / GitHub create / workflow write. */
+export function analyzeWormIndicators(dir: string): Finding[] {
+  const { sources, scripts } = packageSources(dir);
+  if (sources.length === 0 && scripts.length === 0) return [];
+  const text = `${sources.map((s) => s.text).join('\n')}\n${scripts}`;
+  if (!TOKEN_RE.test(text)) return [];
+  const replicates =
+    PUBLISH_RE.test(text) ||
+    REGISTRY_PUT_RE.test(text) ||
+    GITHUB_CREATE_RE.test(text) ||
+    WORKFLOW_PATH_RE.test(text);
+  if (!replicates) return [];
+  const hit =
+    sources.find(
+      (s) =>
+        TOKEN_RE.test(s.text) &&
+        (PUBLISH_RE.test(s.text) ||
+          REGISTRY_PUT_RE.test(s.text) ||
+          GITHUB_CREATE_RE.test(s.text) ||
+          WORKFLOW_PATH_RE.test(s.text)),
+    ) ?? sources.find((s) => TOKEN_RE.test(s.text));
+  return [
+    finding(
+      'SUPPLY-WORM-001',
+      'Self-replicating worm indicators in dependency code',
+      'static: npm/GitHub token read combined with publish, registry PUT, GitHub repo/workflow creation, or writing .github/workflows',
+      hit?.file,
+      'critical',
+    ),
+  ];
+}
+
+/** Static: install scripts or code writing .github/, .git/hooks/, or CI config. */
+export function analyzeWorkflowTampering(dir: string): Finding[] {
+  const { sources, scripts } = packageSources(dir);
+  const text = `${sources.map((s) => s.text).join('\n')}\n${scripts}`;
+  if (!CI_WRITE_RE.test(text)) return [];
+  const hit = sources.find((s) => CI_WRITE_RE.test(s.text));
+  return [
+    finding(
+      'SUPPLY-WORKFLOW-001',
+      'Dependency writes GitHub workflow, git hooks, or CI config',
+      'static: install script or package code writes .github/, .git/hooks/, or CI configuration',
+      hit?.file ?? (CI_WRITE_RE.test(scripts) ? 'package.json' : undefined),
+      'critical',
+    ),
+  ];
+}
+
+export interface ProvenanceScore {
+  total: number;
+  withProvenance: number;
+  percent: number;
+  unknown: number;
+}
+
+/** Percent of deps published with provenance. Unknown is not counted as present (never guess). */
+export function provenanceCoverage(
+  packages: readonly { name: string; version: string }[],
+  known: ReadonlyMap<string, boolean>,
+): ProvenanceScore {
+  let withProvenance = 0;
+  let unknown = 0;
+  for (const pkg of packages) {
+    const hit = known.get(`${pkg.name}@${pkg.version}`);
+    if (hit === true) withProvenance += 1;
+    else if (hit === undefined) unknown += 1;
+  }
+  const total = packages.length;
+  return {
+    total,
+    withProvenance,
+    unknown,
+    percent: total === 0 ? 0 : (withProvenance / total) * 100,
+  };
+}
+

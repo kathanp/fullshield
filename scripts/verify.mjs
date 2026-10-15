@@ -71,6 +71,7 @@ const PREVIOUS_PHASE_TESTS = {
   25: 439,
   26: 443,
   27: 505,
+  30: 522,
 };
 
 function listFilesRecursive(dir, out = []) {
@@ -1179,6 +1180,113 @@ s.listen(0, '127.0.0.1', () => {
       fail('phase 28 acceptance: README must document FULLSHIELD_EXPERIMENTAL_FRAMEWORKS');
     }
     console.log('  ✔ experimental Next/Nest/Hono/Koa taint; optional runtime peers; vuln+clean fixtures');
+  },
+  // Phase 31: worm/workflow indicators, transitive overrides, provenance score, VEX.
+  31: async () => {
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!readme.includes('FULLSHIELD_EXPERIMENTAL_VEX')) {
+      fail('phase 31 acceptance: README must document FULLSHIELD_EXPERIMENTAL_VEX');
+    }
+    const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+    const beforeDeps = ['@typescript-eslint/typescript-estree', 'commander', 'ignore', 'picocolors'];
+    const depNames = Object.keys(pkg.dependencies ?? {});
+    for (const extra of depNames.filter((n) => !beforeDeps.includes(n))) {
+      fail(`phase 31 acceptance: new hard dependency ${extra}`);
+    }
+
+    const supplyUrl = pathToFileURL(join(root, 'dist', 'supply.js')).href;
+    const supply = await import(supplyUrl);
+    const prev = process.env.FULLSHIELD_EXPERIMENTAL_VEX;
+    delete process.env.FULLSHIELD_EXPERIMENTAL_VEX;
+    const wormDir = join(root, 'test', 'fixtures', 'supply', 'worm-pkg');
+    const off = supply.analyzePackageDir(wormDir);
+    if (off.some((f) => f.ruleId === 'SUPPLY-WORM-001' || f.ruleId === 'SUPPLY-WORKFLOW-001')) {
+      fail('phase 31 acceptance: default analyzePackageDir must not emit new IDs without the flag');
+    }
+    process.env.FULLSHIELD_EXPERIMENTAL_VEX = '1';
+    const worm = supply.analyzeWormIndicators(wormDir);
+    if (!worm.some((f) => f.ruleId === 'SUPPLY-WORM-001' && f.severity === 'critical')) {
+      fail('phase 31 acceptance: seeded worm-like fixture not detected');
+    }
+    const tamper = supply.analyzeWorkflowTampering(join(root, 'test', 'fixtures', 'supply', 'workflow-tamper-pkg'));
+    if (!tamper.some((f) => f.ruleId === 'SUPPLY-WORKFLOW-001')) {
+      fail('phase 31 acceptance: workflow-tamper fixture not detected');
+    }
+    if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_VEX;
+    else process.env.FULLSHIELD_EXPERIMENTAL_VEX = prev;
+
+    const defaultScan = runCliJson(vulnerableApp, ['--modules', 'deps', '--offline']);
+    const leaked = defaultScan.report.findings.filter((f) =>
+      ['SUPPLY-WORM-001', 'SUPPLY-WORKFLOW-001'].includes(f.ruleId),
+    );
+    if (leaked.length > 0) fail('phase 31 acceptance: default scan emitted new Phase 31 IDs');
+    console.log('  ✔ seeded worm fixture detected behind flag; default scan emits no new IDs');
+
+    const vexApp = join(root, 'test', 'fixtures', 'vex-app');
+    const cli = join(root, 'dist', 'cli', 'index.js');
+    const refused = spawnSync(process.execPath, [cli, 'vex', vexApp, '--format', 'openvex'], {
+      cwd: root,
+      encoding: 'utf8',
+      env: { ...process.env, FULLSHIELD_EXPERIMENTAL_VEX: '' },
+    });
+    if (refused.status !== 2 || !/FULLSHIELD_EXPERIMENTAL_VEX/.test(refused.stderr)) {
+      fail('phase 31 acceptance: vex must refuse without FULLSHIELD_EXPERIMENTAL_VEX');
+    }
+    const { validateOpenVex, validateCycloneDxVex } = await import(
+      pathToFileURL(join(root, 'dist', 'index.js')).href
+    );
+    for (const format of ['openvex', 'cyclonedx']) {
+      const ran = spawnSync(process.execPath, [cli, 'vex', vexApp, '--format', format], {
+        cwd: root,
+        encoding: 'utf8',
+        env: { ...process.env, FULLSHIELD_EXPERIMENTAL_VEX: '1' },
+      });
+      if (ran.status !== 0) fail(`phase 31 acceptance: vex --format ${format} exited ${ran.status}`);
+      const doc = JSON.parse(ran.stdout);
+      const errors = format === 'cyclonedx' ? validateCycloneDxVex(doc) : validateOpenVex(doc);
+      if (errors.length > 0) fail(`phase 31 acceptance: ${format} VEX invalid: ${errors.join('; ')}`);
+    }
+    console.log('  ✔ VEX validates against OpenVEX and CycloneDX schemas');
+
+    const overrideApp = join(root, 'test', 'fixtures', 'override-app');
+    const tmp = join(root, '.fullshield-verify-phase31');
+    rmSync(tmp, { recursive: true, force: true });
+    mkdirSync(tmp, { recursive: true });
+    try {
+      const copy = join(tmp, 'override-app');
+      const copied = spawnSync('cp', ['-R', overrideApp, copy], { encoding: 'utf8' });
+      if (copied.status !== 0) fail('phase 31 acceptance: could not copy override-app');
+      const env = { ...process.env, FULLSHIELD_EXPERIMENTAL_VEX: '1' };
+      const apply = spawnSync(
+        process.execPath,
+        [cli, 'fix', copy, '--apply', '--unsafe', '--force', '--no-branch', '--modules', 'deps'],
+        { cwd: root, encoding: 'utf8', env },
+      );
+      if (apply.status !== 0) {
+        fail(`phase 31 acceptance: override fix --apply exited ${apply.status}: ${apply.stderr}`);
+      }
+      const manifest = JSON.parse(readFileSync(join(copy, 'package.json'), 'utf8'));
+      if (manifest.overrides?.['leaf-vuln'] !== '1.0.1') {
+        fail('phase 31 acceptance: package.json overrides did not pin leaf-vuln@1.0.1');
+      }
+      const lock = JSON.parse(readFileSync(join(copy, 'package-lock.json'), 'utf8'));
+      if (lock.packages?.['node_modules/leaf-vuln']?.version !== '1.0.1') {
+        fail('phase 31 acceptance: lockfile was not rewritten to leaf-vuln@1.0.1');
+      }
+      const rescan = spawnSync(
+        process.execPath,
+        [cli, 'scan', copy, '--json', '--modules', 'deps', '--offline'],
+        { cwd: root, encoding: 'utf8', env },
+      );
+      const report = JSON.parse(rescan.stdout);
+      const leftover = (report.findings ?? []).filter(
+        (f) => f.ruleId === 'DEPS-VULN-001' && String(f.snippet ?? '').startsWith('leaf-vuln@1.0.0'),
+      );
+      if (leftover.length > 0) fail('phase 31 acceptance: rescan still reports leaf-vuln@1.0.0');
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+    console.log('  ✔ override proposal applies to fixture lockfile and removes the vuln on rescan');
   },
 };
 

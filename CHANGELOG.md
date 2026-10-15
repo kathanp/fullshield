@@ -4,6 +4,13 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+### Phase 31 — supply chain, advanced + VEX
+
+- Experimental (`FULLSHIELD_EXPERIMENTAL_VEX=1` / `scan --experimental-vex`): self-replicating worm indicators (`SUPPLY-WORM-001`) and workflow/git-hook/CI writes (`SUPPLY-WORKFLOW-001`). Default `scan` is unchanged.
+- Transitive `FixProposal.kind = 'dependency-override'` (unsafe) when the parent has no fixed release. Applies npm `overrides` / pnpm `overrides` / yarn `resolutions` and rewrites the lockfile version.
+- Provenance coverage score (% of deps with provenance; unknown is not counted as present) with history-DB trend helpers.
+- `fullshield vex --format openvex|cyclonedx` from reachability. `not_affected` + `vulnerable_code_not_in_execute_path` only when reachability is `not-imported`; otherwise `under_investigation`. Never guessed.
+
 - Publish CI uses `npm publish --provenance --access public` (no staged-manifest edits). The unpublished `v0.1.2` tag was deleted.
 - CI: push to `next` runs `verify` on ubuntu-24.04 × Node 24 only. The full 6-job matrix (and the non-blocking `bench` job) runs on pull requests to `main` and on push to `main`. Required checks on `main` stay the six matrix jobs.
 

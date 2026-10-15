@@ -57,6 +57,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
   - Threat-model / incremental / dashboard: a route sketch and a local history UI. Not a STRIDE workshop or a hosted SOC.
   - `report --compliance` / `iac`: evidence-style mapping and a short IaC ruleset. **Not a certification or audit.**
   - `agent`: opens PRs against a **mock/localhost API and a local git remote**. It never talks to real GitHub, never merges, never pushes to protected branches.
+  - `vex` / worm / overrides (`FULLSHIELD_EXPERIMENTAL_VEX=1`): static heuristics and reachability-backed VEX only. Default `scan` does not emit `SUPPLY-WORM-001` / `SUPPLY-WORKFLOW-001`. Overrides are **unsafe** (`fix --unsafe`). Never claim `not_affected` unless reachability proves `not-imported`.
 
 ## Known limitations
 
@@ -144,6 +145,7 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | `scan --changed` / `--since` | **Experimental** incremental scan (`FULLSHIELD_EXPERIMENTAL_PLATFORM=1`). |
 | `scan --experimental-sast-gaps` | **Experimental** extra SAST sinks: ORM raw SQL, mongoose `$where`, `spawn('sh', ['-c'])`, execa `shell: true`, zx `$.raw` (`FULLSHIELD_EXPERIMENTAL_SAST_GAPS=1`). |
 | `scan --experimental-frameworks` | **Experimental** Next.js / NestJS / Hono / Koa taint sources and AUTH (`FULLSHIELD_EXPERIMENTAL_FRAMEWORKS=1`). Default `scan` is unchanged. Runtime adapters: `fullshield/runtime/koa`, `fullshield/runtime/hono` (optional peers). |
+| `vex` | **Experimental** OpenVEX / CycloneDX VEX from reachability (`FULLSHIELD_EXPERIMENTAL_VEX=1`). `not_affected` + `vulnerable_code_not_in_execute_path` only when reachability is `not-imported`; otherwise `under_investigation`. Never guessed. Also enables worm/workflow indicators, unsafe `dependency-override` proposals, and a provenance coverage score. |
 
 Inline ignore (reason required): `// fullshield-ignore SAST-SQLI-001: reviewed`
 

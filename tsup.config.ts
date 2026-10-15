@@ -14,6 +14,7 @@ export default defineConfig({
     'runtime/auto': 'src/runtime/auto.ts',
     'runtime/rasp/loader': 'src/runtime/rasp/loader.ts',
     supply: 'src/supply/index.ts',
+    vex: 'src/vex/index.ts',
     confirm: 'src/confirm/index.ts',
     mcp: 'src/mcp/index.ts',
     llm: 'src/llm/index.ts',

@@ -56,3 +56,16 @@ export { renderSarifReport, validateSarif21 } from './reporters/sarif.js';
 export { buildSbom } from './sbom/index.js';
 export { renderCycloneDx, validateCycloneDx15 } from './sbom/cyclonedx.js';
 export type { SbomComponent, SbomInput } from './sbom/cyclonedx.js';
+export {
+  buildCycloneDxVex,
+  buildOpenVex,
+  buildVex,
+  validateCycloneDxVex,
+  validateOpenVex,
+} from './vex/index.js';
+export { experimentalVex } from './supply/experimental.js';
+export {
+  analyzeWorkflowTampering,
+  analyzeWormIndicators,
+  provenanceCoverage,
+} from './supply/index.js';

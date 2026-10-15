@@ -1,0 +1,8 @@
+{
+  "name": "vex-app-fixture",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "called-leaf": "1.0.0"
+  }
+}

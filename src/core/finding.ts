@@ -9,7 +9,7 @@ export type ModuleName = (typeof MODULE_NAMES)[number];
 export type Confidence = 'low' | 'medium' | 'high';
 
 export interface FixProposal {
-  kind: 'dependency-bump' | 'code-patch' | 'config-add';
+  kind: 'dependency-bump' | 'code-patch' | 'config-add' | 'dependency-override';
   /** Only safe fixes apply without --unsafe. */
   safe: boolean;
   /** Unified diff. */

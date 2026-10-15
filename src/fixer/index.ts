@@ -1,12 +1,27 @@
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 
 import { scan, type ScanOptions } from '../core/engine.js';
 import type { Finding, ModuleName } from '../core/finding.js';
 import { createFixBranch, isDirty, isGitRepo, listDirtyPaths } from './git.js';
+import {
+  applyLockfileOverride,
+  collectManifestOverrides,
+  lockfileKind,
+  withManifestOverride,
+  type LockfileKind,
+} from './override.js';
 import { applyUnifiedDiff, proposeFix } from './patches.js';
+
+const LOCKFILE_NAMES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'] as const;
+
+function detectLockKind(cwd: string): LockfileKind {
+  if (existsSync(join(cwd, 'yarn.lock'))) return 'yarn';
+  if (existsSync(join(cwd, 'pnpm-lock.yaml'))) return 'pnpm';
+  return 'npm';
+}
 
 export interface FixOptions {
   cwd?: string;
@@ -39,8 +54,36 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
 
   const byFile = new Map<string, string>();
   const patches: FixPatch[] = [];
+  let appliedOverride = false;
+  const lockKind = detectLockKind(cwd);
 
   for (const finding of result.findings) {
+    if (finding.fix?.kind === 'dependency-override') {
+      let manifest = byFile.get('package.json');
+      if (manifest === undefined) {
+        try {
+          manifest = await readFile(join(cwd, 'package.json'), 'utf8');
+          byFile.set('package.json', manifest);
+        } catch {
+          continue;
+        }
+      }
+      patches.push({
+        file: 'package.json',
+        ruleId: finding.ruleId,
+        safe: finding.fix.safe,
+        diff: finding.fix.diff,
+      });
+      if (finding.fix.safe !== true && options.unsafe !== true) continue;
+      const next = applyUnifiedDiff(manifest, finding.fix.diff);
+      let merged = byFile.get('package.json') ?? manifest;
+      for (const [name, version] of collectManifestOverrides(next)) {
+        merged = withManifestOverride(merged, lockKind, name, version);
+      }
+      byFile.set('package.json', merged);
+      appliedOverride = true;
+      continue;
+    }
     const file = finding.file;
     if (file === undefined) continue;
     if (!byFile.has(file)) {
@@ -66,6 +109,29 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
     if (proposed.safe !== true && options.unsafe !== true) continue;
     const after = applyUnifiedDiff(source, proposed.diff);
     byFile.set(sourceFile, after);
+  }
+
+  if (appliedOverride) {
+    const manifest = byFile.get('package.json');
+    if (manifest !== undefined) {
+      const targets = collectManifestOverrides(manifest);
+      for (const lockName of LOCKFILE_NAMES) {
+        if (lockfileKind(lockName) === undefined) continue;
+        let lock = byFile.get(lockName);
+        if (lock === undefined) {
+          try {
+            lock = await readFile(join(cwd, lockName), 'utf8');
+          } catch {
+            continue;
+          }
+        }
+        let next = lock;
+        for (const [name, version] of targets) {
+          next = applyLockfileOverride(lockName, next, name, version);
+        }
+        byFile.set(lockName, next);
+      }
+    }
   }
 
   if (options.apply !== true) {

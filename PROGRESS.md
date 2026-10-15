@@ -713,3 +713,24 @@ goof is a **seen holdout**. `cr0hn/vulnerable-node` @ `d68f2a3c9277ece2c2feb9976
 **Verify (`npm run verify:phase 26`, PASSED):** 498 tests. 92.24% lines / 83.03% branches. expected 30/30. vulnerable-app 35. clean-app 0 high/critical.
 
 Do not start Phase 28.
+
+## Phase 31 — supply chain, advanced + VEX (on `phase-31`)
+
+**Built (experimental, `FULLSHIELD_EXPERIMENTAL_VEX=1` / `scan --experimental-vex`):**
+- `SUPPLY-WORM-001` (critical): static token read (`~/.npmrc`, `NPM_TOKEN`, `GITHUB_TOKEN`) plus `npm publish`, registry PUT, GitHub API repo/workflow creation, or writing `.github/workflows/*`.
+- `SUPPLY-WORKFLOW-001`: install scripts/code writing `.github/`, `.git/hooks/`, or CI config.
+- Transitive `FixProposal.kind = 'dependency-override'` (unsafe) when the parent has no OSV-listed fixed release. `fix --apply --unsafe` writes npm/pnpm/yarn override fields and rewrites the lockfile version.
+- Provenance coverage score (unknown is not counted as present) + history-DB trend helpers.
+- `fullshield vex --format openvex|cyclonedx` from reachability. `not_affected` + `vulnerable_code_not_in_execute_path` only for `not-imported`; otherwise `under_investigation`.
+
+Default `scan` does not emit the new IDs without the flag. No new hard dependencies.
+
+**Verify (`npm run verify:phase 31`, PASSED):**
+
+| phase | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|---|
+| 31 | 547 | 92.07% | 82.15% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+
+**Gaps / incomplete:** provenance attestations are not fetched from the registry (offline cache/map only; no new deps). Override apply rewrites the lockfile version in-tree and does not run `npm install`. VEX validators are structural (same approach as the existing CycloneDX 1.5 checker), not a bundled copy of the full published JSON Schemas. Worm/workflow checks are static; packages are never executed.
+
+Do not start Phase 32. No PR, no merge to `next`.
