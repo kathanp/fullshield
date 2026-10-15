@@ -150,7 +150,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           if (process.env.FULLSHIELD_EXPERIMENTAL_VPATCH !== '1') {
             throw new Error('--emit-virtual-patches requires FULLSHIELD_EXPERIMENTAL_VPATCH=1');
           }
-          const { emitVirtualPatches } = await import('../runtime/rasp/vpatch.js');
+          const { emitVirtualPatches } = await import('../runtime/rasp/vpatchIo.js');
           const out =
             typeof opts.emitVirtualPatches === 'string'
               ? resolve(opts.emitVirtualPatches)
@@ -576,7 +576,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         if (process.env.FULLSHIELD_EXPERIMENTAL_HONEY !== '1') {
           throw new Error('honey init requires FULLSHIELD_EXPERIMENTAL_HONEY=1');
         }
-        const { honeyInit } = await import('../runtime/rasp/honey.js');
+        const { honeyInit } = await import('../runtime/rasp/honeyInit.js');
         const canaries = honeyInit(resolve(path));
         io.out(`wrote honeytokens (.env.backup). decoys: /admin.php /.git/config /wp-login.php`);
         io.out(`canary prefix ${canaries.awsKey.slice(0, 4)}****`);

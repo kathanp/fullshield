@@ -15,11 +15,12 @@ export default defineConfig({
       // it is exercised by the e2e tests against the built binary.
       exclude: ['src/cli/index.ts'],
       reporter: ['text', 'json-summary', 'lcov'],
-      // Spec 0.1: lines >= 80%, branches >= 75% for src/ (Core);
+      // Spec 0.1: lines >= 80%, branches >= 75% for src/ (Core).
+      // Release-check: branches >= 82% so PRs have headroom above the 80% warn line.
       // src/modules/** >= 85% (active since Phase 2).
       thresholds: {
         lines: 80,
-        branches: 75,
+        branches: 82,
         'src/modules/**/*.ts': {
           lines: 85,
           branches: 75,

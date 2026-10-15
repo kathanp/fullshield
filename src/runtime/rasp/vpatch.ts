@@ -1,6 +1,3 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { basename, dirname, extname } from 'node:path';
-
 import type { SinkKind } from './types.js';
 
 export interface VirtualPatch {
@@ -19,7 +16,7 @@ export interface VpatchFinding {
   route?: string;
 }
 
-function sinkFromRule(ruleId: string): string | undefined {
+export function sinkFromRule(ruleId: string): string | undefined {
   const id = ruleId.toUpperCase();
   if (id.includes('SQLI') || id.includes('SQL-')) return 'sql';
   if (id.includes('CMDI') || id.includes('SHELL')) return 'shell';
@@ -30,12 +27,15 @@ function sinkFromRule(ruleId: string): string | undefined {
   return undefined;
 }
 
-function routeFromFinding(f: VpatchFinding): string | undefined {
+export function routeFromFinding(f: VpatchFinding): string | undefined {
   if (typeof f.route === 'string' && f.route.startsWith('/')) return f.route;
   const fromMsg = (f.message ?? '').match(/\/[A-Za-z0-9._/-]+/);
   if (fromMsg) return fromMsg[0];
   if (f.file) {
-    const base = basename(f.file, extname(f.file));
+    const lastSlash = Math.max(f.file.lastIndexOf('/'), f.file.lastIndexOf('\\'));
+    const baseWithExt = lastSlash >= 0 ? f.file.slice(lastSlash + 1) : f.file;
+    const dot = baseWithExt.lastIndexOf('.');
+    const base = dot > 0 ? baseWithExt.slice(0, dot) : baseWithExt;
     if (base && base !== 'index') return `/${base}`;
   }
   return undefined;
@@ -49,18 +49,6 @@ export function findingsToVpatches(findings: VpatchFinding[]): VirtualPatch[] {
     sink: sinkFromRule(f.ruleId),
     route: routeFromFinding(f),
   }));
-}
-
-export function emitVirtualPatches(findings: VpatchFinding[], outPath: string): VirtualPatch[] {
-  const patches = findingsToVpatches(findings);
-  mkdirSync(dirname(outPath), { recursive: true });
-  writeFileSync(outPath, `${JSON.stringify({ patches }, null, 2)}\n`, 'utf8');
-  return patches;
-}
-
-export function loadVirtualPatches(path: string): VirtualPatch[] {
-  const raw = JSON.parse(readFileSync(path, 'utf8')) as { patches?: VirtualPatch[] } | VirtualPatch[];
-  return Array.isArray(raw) ? raw : (raw.patches ?? []);
 }
 
 export function patchForcesBlock(patches: readonly VirtualPatch[], route: string, kind: SinkKind): boolean {

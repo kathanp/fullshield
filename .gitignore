@@ -1,6 +1,7 @@
 node_modules/
 dist/
 coverage/
+CAPABILITIES.md
 .fullshield/
 .fullshield-verify-phase6/
 .fullshield-verify-phase7/

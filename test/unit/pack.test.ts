@@ -30,5 +30,17 @@ describe('npm pack contents', () => {
     };
     expect(pkg.publishConfig?.provenance).toBeUndefined();
   });
+
+  it('does not ship source maps', () => {
+    const result = spawnSync('npm', ['pack', '--dry-run', '--json'], {
+      cwd: root,
+      encoding: 'utf8',
+      shell: process.platform === 'win32',
+    });
+    expect(result.status).toBe(0);
+    const files = JSON.parse(result.stdout) as Array<{ files: Array<{ path: string }> }>;
+    const paths = (files[0]?.files ?? []).map((f) => f.path);
+    expect(paths.some((p) => p.endsWith('.map'))).toBe(false);
+  });
 });
 

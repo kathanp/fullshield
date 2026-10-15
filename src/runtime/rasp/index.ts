@@ -4,10 +4,12 @@ export { decideSink, detectStructureChange, scoreCorpus, scoreCorpusByKind } fro
 export type { CorpusKindScore } from './decide.js';
 export { hostIsBlocked, isPrivateOrMetadata, normalizeHost, setSsrfLookup, ssrfHostFromUser } from './ssrf.js';
 export { clearRaspEvents, disableRasp, enableRasp, enableRaspFromEnv, getRaspEvents, isRaspEnabled, raspModeFor } from './enable.js';
-export { emitVirtualPatches, loadVirtualPatches, patchForcesBlock } from './vpatch.js';
+export { findingsToVpatches, patchForcesBlock, routeFromFinding, sinkFromRule } from './vpatch.js';
+export { emitVirtualPatches, loadVirtualPatches } from './vpatchIo.js';
 export type { VirtualPatch } from './vpatch.js';
 export { egressAllowed } from './egress.js';
-export { honeyInit, isHoneyCanary, isHoneyRoute, noteHoneyRouteHit } from './honey.js';
+export { honeyInit } from './honeyInit.js';
+export { isHoneyCanary, isHoneyRoute, noteHoneyRouteHit } from './honey.js';
 export { addThreat, clearThreats, decideResponse, isIpBlocked, threatScore } from './threat.js';
 export type { RaspOptions } from './enable.js';
 export { wrapKnownPackage } from './hooks.js';

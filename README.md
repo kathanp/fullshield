@@ -1,6 +1,6 @@
 # FullShield
 
-**v0.1.0 / alpha.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → prevent (CI gate + runtime guard).
+**v0.1.0 / alpha.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
 
 **Headline: dependency reachability.** A lockfile CVE is not the same as an unused package. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (lockfile path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), `not-imported` (−2, only when no such path exists), or `reachability-unknown` (severity kept) when the lockfile format has no parsed dependency edges. DevDependency-only vulns are `info` with a `dev-only` note unless production sources import the package. Pair it with `fullshield sbom --format cyclonedx`.
 
@@ -20,7 +20,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 | Dependencies (now + new CVEs later) | `deps` (OSV + **reachability**) + `watch` |
 | Secrets | `secrets` + `scan --staged` / pre-commit hook |
 | App/server config | `config` |
-| Live app-layer attacks | `runtime` (`fullshield/runtime/express` or `/fastify`); **experimental** RASP sink hooks via `--import fullshield/runtime/register` |
+| Live app-layer signals | `runtime` (`fullshield/runtime/express` or `/fastify`) in **monitor** mode; **experimental** RASP sink hooks via `--import fullshield/runtime/register` (fail-open; not a prevention guarantee) |
 | Edge/DDoS layer | `edge` checks that a CDN/WAF **exists** (headers only). Actual DDoS mitigation is the CDN. |
 | AI assist (opt-in, **experimental**) | `scan --ai explain` and `fix --ai` only. Off by default: zero AI network calls. Explain never shows a verdict. Triage and logic hunter are not shipped. |
 | LLM-app code (opt-in, **experimental**) | `LLM-001`–`LLM-005` (`FULLSHIELD_EXPERIMENTAL_LLM=1`). Phrase/AST heuristics, not a jailbreak defense. |
@@ -45,7 +45,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 - Does **not** auto-delete code. `fix --apply` writes patches on a clean git tree. If project tests fail, each written file is restored from a byte-for-byte snapshot taken before the write — never `git checkout --`. `--force` on a dirty tree still refuses to touch files that have uncommitted changes.
 - v1 is **JS/TS only**. Other languages are out of scope.
 - Cross-file taint follows `require`/`import` and method calls up to 5 hops and records a `trace` (also SARIF `codeFlows`). Nested closures and some dynamic dispatch are still missed.
-- Runtime v1 is **signature-based** (payload regex + rate limit + body-size guard). It is a **stopgap**. Prefer **`mode: 'monitor'`** in production until you have measured false-positive rate. Sink-hooking RASP is **experimental** (off by default; see below).
+- Runtime v1 is **signature-based** (payload regex + rate limit + body-size guard). It is a **stopgap monitor**, not a WAF. Prefer **`mode: 'monitor'`** in production until you have measured false-positive rate. Sink-hooking RASP is **experimental** (off by default; see below) and does not claim to prevent attacks.
 - Only scan hosts and repos you own or are authorized to test.
 - **Experimental features are off by default and are not product claims:**
   - RASP / virtual patches / honeytokens / threat auto-block: fail-open hooks; decoy-route hits are low and never auto-block; auto-block is opt-in (shared-IP / NAT risk).
@@ -55,6 +55,15 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
   - Threat-model / incremental / dashboard: a route sketch and a local history UI. Not a STRIDE workshop or a hosted SOC.
   - `report --compliance` / `iac`: evidence-style mapping and a short IaC ruleset. **Not a certification or audit.**
   - `agent`: opens PRs against a **mock/localhost API and a local git remote**. It never talks to real GitHub, never merges, never pushes to protected branches.
+
+## Known limitations
+
+Experimental RASP structure-change scoring on the vendored PayloadsAllTheThings corpus (not a claim that live attacks are blocked):
+
+- **SQL 40/44.** Missed payloads `"-"`, `" "`, `"&"`, `"^"`: each is wholly inside a single-quoted SQL string in `WHERE name = '…'`, so the tokenizer sees one string token and no structure change. Those payloads only break out of a **double-quoted** SQL context.
+- **Shell 43/47.** Missed payloads `";id;"`, `';id;'`, `"|id|"`, `'|id|'`: each is passed as a quoted argument to `ls`, so `;` / `|` stay inside one word token and are not command separators. They only inject when concatenated **unquoted**.
+
+Path 51/51 and SSRF 39/39 on the same corpus. Benign corpus stays 0 blocked. Prefer `mode: 'monitor'`.
 
 ## Quick start
 

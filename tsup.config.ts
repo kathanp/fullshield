@@ -27,7 +27,7 @@ export default defineConfig({
   platform: 'node',
   target: 'node20',
   dts: { entry: { index: 'src/index.ts' } },
-  sourcemap: true,
+  sourcemap: false,
   clean: true,
   treeshake: true,
   splitting: false,

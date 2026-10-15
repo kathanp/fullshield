@@ -70,6 +70,46 @@ describe('Phase 22 incremental + workspaces', () => {
     expect(listWorkspaces(dir, { experimental: true })).toEqual(['packages/a', 'packages/b']);
     expect(listWorkspaces(dir)).toEqual([]);
   });
+
+  it('reads workspaces.packages, pnpm-workspace.yaml, and empty/invalid manifests', () => {
+    expect(listWorkspaces('/no/such/fullshield-ws', { experimental: true })).toEqual([]);
+
+    const empty = mkdtempSync(join(tmpdir(), 'fullshield-ws-empty-'));
+    dirs.push(empty);
+    expect(listWorkspaces(empty, { experimental: true })).toEqual([]);
+
+    const bad = mkdtempSync(join(tmpdir(), 'fullshield-ws-bad-'));
+    dirs.push(bad);
+    writeFileSync(join(bad, 'package.json'), '{not json');
+    expect(listWorkspaces(bad, { experimental: true })).toEqual([]);
+
+    const obj = mkdtempSync(join(tmpdir(), 'fullshield-ws-obj-'));
+    dirs.push(obj);
+    writeFileSync(join(obj, 'package.json'), JSON.stringify({ workspaces: { packages: ['apps/*'] } }));
+    expect(listWorkspaces(obj, { experimental: true })).toEqual(['apps/*']);
+
+    const pnpm = mkdtempSync(join(tmpdir(), 'fullshield-ws-pnpm-'));
+    dirs.push(pnpm);
+    writeFileSync(join(pnpm, 'package.json'), JSON.stringify({ name: 'root' }));
+    writeFileSync(join(pnpm, 'pnpm-workspace.yaml'), 'packages:\n- packages/*\n- apps/*\n');
+    expect(listWorkspaces(pnpm, { experimental: true })).toEqual(['packages/*', 'apps/*']);
+
+    expect(resolveChangedFiles(vuln, { experimental: true })).toEqual([]);
+    expect(
+      resolveChangedFiles(vuln, {
+        experimental: true,
+        since: 'HEAD',
+        git: () => 'src/a.js\n\nsrc/b.js\n',
+      }),
+    ).toEqual(['src/a.js', 'src/b.js']);
+    expect(
+      resolveChangedFiles(vuln, {
+        experimental: true,
+        changed: true,
+        git: () => 'staged.js\n',
+      }),
+    ).toEqual(['staged.js']);
+  });
 });
 
 describe('Phase 22 dashboard (127.0.0.1 + Host lock)', () => {
