@@ -4,6 +4,8 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+## 0.1.1 — 2026-10-15
+
 ### Phase 25 — 0.1.1 hardening (Windows + lazy SQLite)
 
 - CI matrix is Linux, macOS, and Windows × Node 22 and 24.

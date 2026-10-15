@@ -1,6 +1,6 @@
 {
   "name": "fullshield",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Full-cycle security scanner for Node.js/TypeScript backends: detect, classify, report, notify, fix, prevent.",
   "license": "MIT",
   "type": "module",
