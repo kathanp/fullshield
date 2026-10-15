@@ -8,10 +8,19 @@ All notable changes to FullShield are documented here.
 
 ### Phase 26b — stable public-bench misses
 
-- Stable SAST: Mongo `$where` with a tainted string; destructured `{ query }` taint for `res.redirect`; `md5(tainted)` reset tokens; `autoescape: false`.
-- Stable config: commented-out `helmet`; `serveIndex()` directory listing (`CONFIG-DIRLIST-001`).
-- Stable secrets: hardcoded `express-session` secret (`SECRET-SESSION-001`).
-- Remaining in-scope misses (Swig `{{ }}` template line, JSON XSS, `includes()` allowlist, nested `{ _id: req.body.id }`, deps lockfile/offline, DVNA calc vs eval) stay in README Known limitations. Ground truth and triage files were not edited.
+**New stable findings — may change CI results; use `--update-baseline`:**
+
+- `SAST-NOSQLI-001` — Mongo `$where` with a tainted string
+- `SAST-REDIRECT-001` — destructured `{ query }` as a taint source (`res.redirect(query.to)`)
+- `SAST-CRYPTO-001` — `md5(tainted)` used as a reset token
+- `SAST-XSS-001` — `autoescape: false`
+- `CONFIG-HELMET-001` — commented-out `helmet` (line-attributed; not a new detection on NodeGoat)
+- `CONFIG-DIRLIST-001` — `serveIndex()` directory listing
+- `SECRET-SESSION-001` — hardcoded `express-session` secret
+
+Remaining in-scope misses (Swig `{{ }}` template line, JSON XSS, `includes()` allowlist, nested `{ _id: req.body.id }`, deps lockfile/offline, DVNA calc vs eval) stay in README Known limitations. Ground truth files were not edited to improve numbers.
+
+Holdout: `bench:public` also clones pinned `snyk-labs/nodejs-goof`. Rules are not tuned from that app.
 
 ### Phase 27 — SAST + RASP coverage gaps
 

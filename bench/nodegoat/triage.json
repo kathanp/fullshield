@@ -774,6 +774,13 @@
     {
       "ruleId": "CONFIG-HELMET-001",
       "file": "server.js",
+      "line": 10,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-HELMET-001",
+      "file": "server.js",
       "line": 58,
       "verdict": "realIssue",
       "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"

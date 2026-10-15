@@ -92,18 +92,41 @@ export function findingKey(finding: FindingLike): string {
   return `${finding.ruleId}|${normFile(finding.file ?? '')}|${finding.line ?? 0}`;
 }
 
-export function isTruePositive(finding: FindingLike, truth: GroundTruthEntry): boolean {
-  if (classForRule(finding.ruleId) !== truth.class) return false;
+function filesMatch(finding: FindingLike, truth: GroundTruthEntry): boolean {
   if (!finding.file) return false;
   const ff = normFile(finding.file);
   const tf = normFile(truth.file);
-  if (ff !== tf && !ff.endsWith(`/${tf}`) && !tf.endsWith(`/${ff}`)) return false;
+  return ff === tf || ff.endsWith(`/${tf}`) || tf.endsWith(`/${ff}`);
+}
+
+export function isFileLevelFinding(finding: FindingLike): boolean {
+  return finding.line === undefined || finding.line === 0;
+}
+
+export function isTruePositive(finding: FindingLike, truth: GroundTruthEntry): boolean {
+  if (classForRule(finding.ruleId) !== truth.class) return false;
+  if (!filesMatch(finding, truth)) return false;
   const line = finding.line ?? 0;
   return Math.abs(line - truth.line) <= 3;
 }
 
+/** Lined hit plus a no-line finding of the same rule+file — detection already existed. */
+export function isLineAttributionOnly(findings: FindingLike[], truth: GroundTruthEntry): boolean {
+  const same = findings.filter((f) => classForRule(f.ruleId) === truth.class && filesMatch(f, truth));
+  const ruleIds = new Set(same.map((f) => f.ruleId));
+  for (const ruleId of ruleIds) {
+    const group = same.filter((f) => f.ruleId === ruleId);
+    const lined = group.some((f) => !isFileLevelFinding(f) && Math.abs((f.line ?? 0) - truth.line) <= 3);
+    const fileLevel = group.some((f) => isFileLevelFinding(f));
+    if (lined && fileLevel) return true;
+  }
+  return false;
+}
+
 export interface ScoreResult {
   truePositives: GroundTruthEntry[];
+  /** Same-file file-level finding already existed; a later line number is not a recall gain. */
+  lineAttributionOnly: GroundTruthEntry[];
   inScopeMisses: GroundTruthEntry[];
   outOfScope: GroundTruthEntry[];
   unmatched: FindingLike[];
@@ -112,18 +135,24 @@ export interface ScoreResult {
 export function scoreFindings(findings: FindingLike[], truth: GroundTruthEntry[]): ScoreResult {
   const used = new Set<number>();
   const truePositives: GroundTruthEntry[] = [];
+  const lineAttributionOnly: GroundTruthEntry[] = [];
   const inScope = truth.filter((e) => e.inScope === true);
   const outOfScope = truth.filter((e) => e.inScope !== true);
   for (const entry of inScope) {
+    if (isLineAttributionOnly(findings, entry)) {
+      lineAttributionOnly.push(entry);
+      continue;
+    }
     const hit = findings.findIndex((f, i) => !used.has(i) && isTruePositive(f, entry));
     if (hit >= 0) {
       used.add(hit);
       truePositives.push(entry);
     }
   }
-  const inScopeMisses = inScope.filter((e) => !truePositives.includes(e));
+  const counted = new Set([...truePositives, ...lineAttributionOnly]);
+  const inScopeMisses = inScope.filter((e) => !counted.has(e));
   const unmatched = findings.filter((_, i) => !used.has(i));
-  return { truePositives, inScopeMisses, outOfScope, unmatched };
+  return { truePositives, lineAttributionOnly, inScopeMisses, outOfScope, unmatched };
 }
 
 export function precisionFromTriage(entries: Array<{ verdict: TriageVerdict; reason: string }>): {

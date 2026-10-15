@@ -1017,7 +1017,7 @@ s.listen(0, '127.0.0.1', () => {
     if (!cliHelp.stdout.includes('--offline-safe')) {
       fail('phase 26 acceptance: scan --help missing --offline-safe');
     }
-    for (const app of ['nodegoat', 'juice-shop', 'dvna']) {
+    for (const app of ['nodegoat', 'juice-shop', 'dvna', 'goof']) {
       const path = join(root, 'bench', app, 'ground-truth.json');
       if (!existsSync(path)) fail(`phase 26 acceptance: missing ${relative(root, path)}`);
       const truth = JSON.parse(readFileSync(path, 'utf8'));
@@ -1053,8 +1053,12 @@ s.listen(0, '127.0.0.1', () => {
     if (!existsSync(benchMd)) fail('phase 26 acceptance: BENCHMARK.md missing (run npm run bench:public)');
     const md = readFileSync(benchMd, 'utf8');
     if (!/UNREVIEWED/.test(md)) fail('phase 26 acceptance: BENCHMARK.md must say UNREVIEWED while ground truth is unreviewed');
-    for (const app of ['nodegoat', 'juice-shop', 'dvna']) {
+    for (const app of ['nodegoat', 'juice-shop', 'dvna', 'goof']) {
       if (!md.toLowerCase().includes(app)) fail(`phase 26 acceptance: BENCHMARK.md missing ${app}`);
+    }
+    if (!/holdout/i.test(md)) fail('phase 26 acceptance: BENCHMARK.md must label the goof holdout');
+    if (!/Line attribution/i.test(md) && !/line-attribution/i.test(md)) {
+      fail('phase 26 acceptance: BENCHMARK.md must explain helmet line-attribution is not a recall gain');
     }
     if (!/Known misses/i.test(md)) fail('phase 26 acceptance: BENCHMARK.md missing Known misses table');
     if (!/in-scope/i.test(md) || !/unsure/i.test(md)) {

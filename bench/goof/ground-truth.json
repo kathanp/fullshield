@@ -1,0 +1,151 @@
+{
+  "reviewed": false,
+  "app": "goof",
+  "holdout": true,
+  "repo": "https://github.com/snyk-labs/nodejs-goof",
+  "commit": "add14ba59e98240d9e00a235dd7d42cd61ae9912",
+  "entries": [
+    {
+      "class": "nosqli",
+      "file": "routes/index.js",
+      "line": 52,
+      "description": "NoSQL injection: login User.find() uses req.body.password as-is, so {\"$gt\":\"\"} authenticates as admin.",
+      "source": "https://github.com/snyk-labs/nodejs-goof/blob/add14ba59e98240d9e00a235dd7d42cd61ae9912/README.md",
+      "inScope": true
+    },
+    {
+      "class": "redirect",
+      "file": "routes/index.js",
+      "line": 74,
+      "description": "Open redirect: admin login follows redirectPage with no local-URL check (README cites index.js:72; sink is res.redirect at this SHA).",
+      "source": "https://github.com/snyk-labs/nodejs-goof/blob/add14ba59e98240d9e00a235dd7d42cd61ae9912/README.md",
+      "inScope": true
+    },
+    {
+      "class": "xss",
+      "file": "views/admin.ejs",
+      "line": 17,
+      "description": "Reflected XSS: redirectPage is rendered with <%- %> in the admin login form.",
+      "source": "https://github.com/snyk-labs/nodejs-goof/blob/add14ba59e98240d9e00a235dd7d42cd61ae9912/README.md",
+      "inScope": true
+    },
+    {
+      "class": "xss",
+      "file": "views/index.ejs",
+      "line": 20,
+      "description": "Stored XSS: todo content is markdown-rendered with marked() inside <%- %>.",
+      "source": "https://github.com/snyk-labs/nodejs-goof/blob/add14ba59e98240d9e00a235dd7d42cd61ae9912/exploits/marked-exploit.sh",
+      "inScope": true
+    },
+    {
+      "class": "cmdi",
+      "file": "routes/index.js",
+      "line": 174,
+      "description": "Command injection: markdown image URL is concatenated into exec('identify ' + url).",
+      "source": "https://github.com/snyk-labs/nodejs-goof/blob/add14ba59e98240d9e00a235dd7d42cd61ae9912/exploits/shell-injection.md",
+      "inScope": true
+    },
+    {
+      "class": "secrets",
+      "file": "app.js",
+      "line": 43,
+      "description": "Hardcoded express-session secret 'keyboard cat' (README cites app.js:40).",
+      "source": "https://github.com/snyk-labs/nodejs-goof/blob/add14ba59e98240d9e00a235dd7d42cd61ae9912/README.md",
+      "inScope": true
+    },
+    {
+      "class": "proto",
+      "file": "routes/index.js",
+      "line": 360,
+      "description": "Prototype pollution: chat messages are _.merge'd with req.body.message, allowing __proto__.canDelete.",
+      "source": "https://github.com/snyk-labs/nodejs-goof/blob/add14ba59e98240d9e00a235dd7d42cd61ae9912/exploits/prototype-pollution.sh",
+      "inScope": true
+    },
+    {
+      "class": "deps",
+      "file": "package.json",
+      "line": 35,
+      "description": "marked@0.3.5 is listed as an exploitable XSS-capable markdown parser.",
+      "source": "https://github.com/snyk-labs/nodejs-goof/blob/add14ba59e98240d9e00a235dd7d42cd61ae9912/README.md",
+      "inScope": true
+    },
+    {
+      "class": "deps",
+      "file": "package.json",
+      "line": 46,
+      "description": "st@0.2.4 is listed as an exploitable directory-traversal static server.",
+      "source": "https://github.com/snyk-labs/nodejs-goof/blob/add14ba59e98240d9e00a235dd7d42cd61ae9912/README.md",
+      "inScope": true
+    },
+    {
+      "class": "config",
+      "file": "app.js",
+      "line": 28,
+      "description": "Security misconfiguration: Express app is created without helmet / hardened headers (README: exposes server information).",
+      "source": "https://github.com/snyk-labs/nodejs-goof/blob/add14ba59e98240d9e00a235dd7d42cd61ae9912/README.md",
+      "inScope": true
+    },
+    {
+      "class": "path",
+      "file": "routes/index.js",
+      "line": 270,
+      "description": "Zip-slip: AdmZip.extractAllTo writes archive entries to /tmp without sanitizing names.",
+      "source": "https://github.com/snyk-labs/nodejs-goof/tree/add14ba59e98240d9e00a235dd7d42cd61ae9912/exploits/zip-slip",
+      "inScope": true
+    },
+    {
+      "class": "eval",
+      "file": "routes/index.js",
+      "line": 313,
+      "description": "DustJS template injection / RCE via req.query.device on /about_new.",
+      "source": "https://github.com/snyk-labs/nodejs-goof/blob/add14ba59e98240d9e00a235dd7d42cd61ae9912/exploits/dustjs-exploits.sh",
+      "inScope": false,
+      "reason": "Dust compile-time RCE is not SAST-EVAL (eval/Function/vm)"
+    },
+    {
+      "class": "path",
+      "file": "routes/index.js",
+      "line": 120,
+      "description": "Handlebars layout LFI: extra req.body.layout field is passed through to res.render('account.hbs', profile).",
+      "source": "https://github.com/snyk-labs/nodejs-goof/blob/add14ba59e98240d9e00a235dd7d42cd61ae9912/README.md",
+      "inScope": false,
+      "reason": "template layout LFI is not a filesystem path sink"
+    },
+    {
+      "class": "other",
+      "file": "routes/index.js",
+      "line": 106,
+      "description": "ReDoS via validator.isEmail(..., {allow_display_name:true}) and validator.rtrim on account_details.",
+      "source": "https://github.com/snyk-labs/nodejs-goof/blob/add14ba59e98240d9e00a235dd7d42cd61ae9912/README.md",
+      "inScope": false,
+      "reason": "ReDoS is SAST-REDOS (Phase 29)"
+    },
+    {
+      "class": "config",
+      "file": "app.js",
+      "line": 45,
+      "description": "Session cookie is missing httpOnly (README notes Snyk Code quality finding).",
+      "source": "https://github.com/snyk-labs/nodejs-goof/blob/add14ba59e98240d9e00a235dd7d42cd61ae9912/README.md",
+      "inScope": false,
+      "reason": "cookie flags are SAST-COOKIE (Phase 29)"
+    },
+    {
+      "class": "other",
+      "file": "app.js",
+      "line": 12,
+      "description": "Insecure protocol (HTTP) communication listed in README code vulns.",
+      "source": "https://github.com/snyk-labs/nodejs-goof/blob/add14ba59e98240d9e00a235dd7d42cd61ae9912/README.md",
+      "inScope": false,
+      "reason": "cleartext HTTP is not a shipped SAST class"
+    },
+    {
+      "class": "crypto",
+      "file": "routes/index.js",
+      "line": 330,
+      "description": "Admin chat user password is Math.random().toString(32) (unrelated to README crypto list; documented in-source).",
+      "source": "https://github.com/snyk-labs/nodejs-goof/blob/add14ba59e98240d9e00a235dd7d42cd61ae9912/exploits/prototype-pollution.sh",
+      "inScope": false,
+      "reason": "not listed in README code-vuln classes; Math.random password is not SAST-CRYPTO weak-hash"
+    }
+  ]
+}

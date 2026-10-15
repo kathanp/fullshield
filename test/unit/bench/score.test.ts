@@ -102,6 +102,49 @@ describe('bench score matching', () => {
     expect(scored.unmatched[0]?.ruleId).toBe('CONFIG-HELMET-001');
   });
 
+  it('does not count CONFIG-HELMET as a recall TP when a file-level finding already exists', () => {
+    const truth = {
+      class: 'config' as const,
+      file: 'server.js',
+      line: 10,
+      description: 'commented helmet',
+      source: 'https://example.test',
+      inScope: true,
+    };
+    const both = scoreFindings(
+      [
+        { ruleId: 'CONFIG-HELMET-001', file: 'server.js' },
+        { ruleId: 'CONFIG-HELMET-001', file: 'server.js', line: 10 },
+      ],
+      [truth],
+    );
+    expect(both.truePositives).toHaveLength(0);
+    expect(both.lineAttributionOnly).toEqual([truth]);
+    expect(both.inScopeMisses).toHaveLength(0);
+
+    const linedOnly = scoreFindings([{ ruleId: 'CONFIG-HELMET-001', file: 'server.js', line: 10 }], [truth]);
+    expect(linedOnly.truePositives).toEqual([truth]);
+    expect(linedOnly.lineAttributionOnly).toEqual([]);
+
+    const dirlist = {
+      class: 'config' as const,
+      file: 'server.ts',
+      line: 290,
+      description: 'serveIndex',
+      source: 'https://example.test',
+      inScope: true,
+    };
+    const mixed = scoreFindings(
+      [
+        { ruleId: 'CONFIG-HELMET-001', file: 'server.ts' },
+        { ruleId: 'CONFIG-DIRLIST-001', file: 'server.ts', line: 290 },
+      ],
+      [dirlist],
+    );
+    expect(mixed.truePositives).toEqual([dirlist]);
+    expect(mixed.lineAttributionOnly).toEqual([]);
+  });
+
   it('computes precision from triage verdicts and counts unsure separately', () => {
     const prec = precisionFromTriage([
       { verdict: 'falsePositive', reason: 'docs example' },

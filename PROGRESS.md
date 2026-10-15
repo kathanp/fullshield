@@ -680,10 +680,12 @@ The secrets registry test gained `SECRET-SESSION-001` (additive ID list). clean-
 
 **In-scope recall (bench:public, `"reviewed": false`):**
 
-| app | before (a64ab8b) | after |
+| app | before (a64ab8b) | after (c830d3a detectors; helmet line-attribution not counted) |
 |---|---|---|
-| NodeGoat | 4/7 (57.1%) | 5/7 (71.4%) |
+| NodeGoat | 4/7 (57.1%) | 4/7 (57.1%) — CONFIG-HELMET comment line is the same file-level finding |
 | Juice Shop | 4/12 (33.3%) | 9/12 (75.0%) |
 | DVNA | 6/10 (60.0%) | 8/10 (80.0%) |
 
-Verify: 486 tests, 92.09% lines / 82.7% branches. clean-app 0 high/critical.
+Holdout `snyk-labs/nodejs-goof` @ `add14ba59e98240d9e00a235dd7d42cd61ae9912`: **4/11 (36.4%)**. Rules were not changed from that run.
+
+Verify: 487 tests, 92.11% lines / 82.78% branches. clean-app 0 high/critical.

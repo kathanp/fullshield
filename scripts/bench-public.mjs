@@ -37,6 +37,12 @@ const APPS = [
     repo: 'https://github.com/appsecco/dvna.git',
     sha: '9ba473add536f66ac9007966acb2a775dd31277a',
   },
+  {
+    id: 'goof',
+    repo: 'https://github.com/snyk-labs/nodejs-goof.git',
+    sha: 'add14ba59e98240d9e00a235dd7d42cd61ae9912',
+    holdout: true,
+  },
 ];
 
 function fail(msg) {
@@ -186,10 +192,12 @@ for (const app of APPS) {
   const inScope = truth.entries.filter((e) => e.inScope);
   const tp = scored.truePositives.length;
   const miss = scored.inScopeMisses.length;
+  const lineAttr = scored.lineAttributionOnly.length;
   results.push({
     id: app.id,
     sha: app.sha,
     repo: app.repo,
+    holdout: app.holdout === true,
     reviewed: truth.reviewed === true,
     scan,
     scored,
@@ -197,8 +205,9 @@ for (const app of APPS) {
     outOfScope: scored.outOfScope.length,
     tp,
     miss,
+    lineAttr,
     unmatched: scored.unmatched.length,
-    recall: pct(tp, tp + miss),
+    recall: pct(tp, tp + miss + lineAttr),
     precision: prec.precision,
     triage: prec,
     truthByClass: byClass(inScope),
@@ -240,16 +249,23 @@ lines.push(`- Generated: ${new Date().toISOString()}`);
 lines.push('- Matching: same class + same file, line within ±3');
 lines.push('- Recall: in-scope ground-truth entries only');
 lines.push(
+  '- Line attribution: a file-level (no-line) finding plus a later comment/line number on the same file is **not** counted as a recall gain.',
+);
+lines.push(
   '- Precision: `realIssue / (realIssue + falsePositive)` on unmatched findings listed in `bench/<app>/triage.json`. `unsure` is excluded from the denominator and counted separately.',
 );
+lines.push('- Holdout apps are scored the same way. Rules are not tuned from holdout results.');
 lines.push('- Scan: `node dist/cli/index.js scan <app> --json --offline-safe`');
 lines.push('');
 
 for (const r of results) {
-  lines.push(`## ${r.id}`);
+  lines.push(`## ${r.id}${r.holdout ? ' (holdout)' : ''}`);
   lines.push('');
   lines.push(`- Repo: ${r.repo}`);
   lines.push(`- Commit: \`${r.sha}\``);
+  if (r.holdout) {
+    lines.push('- Holdout: yes. Do not change rules based on this app.');
+  }
   lines.push(`- Scan time: ${r.scan.ms} ms`);
   lines.push(`- Ground truth reviewed: ${r.reviewed}`);
   lines.push(`- Ground truth entries: ${r.inScope} in-scope / ${r.outOfScope} out-of-scope`);
@@ -257,6 +273,14 @@ for (const r of results) {
   lines.push(`- Findings emitted: ${r.scan.findings.length}`);
   lines.push(`- In-scope true positives: ${r.tp}`);
   lines.push(`- In-scope misses: ${r.miss}`);
+  if (r.lineAttr > 0) {
+    const why = r.scored.lineAttributionOnly
+      .map((e) => `${e.file}:${e.line} (${e.class})`)
+      .join('; ');
+    lines.push(
+      `- Line-attribution only (not a recall gain): ${r.lineAttr} — ${why}`,
+    );
+  }
   lines.push(`- Unmatched findings (triaged): ${r.unmatched}`);
   lines.push(`- Recall (in-scope): ${r.recall}`);
   lines.push(
@@ -300,6 +324,8 @@ console.log(
       outOfScope: r.outOfScope,
       tp: r.tp,
       miss: r.miss,
+      lineAttr: r.lineAttr,
+      holdout: r.holdout,
       precision: r.precision,
       unsure: r.triage.unsure,
       ms: r.scan.ms,

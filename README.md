@@ -144,7 +144,7 @@ See [`rules/README.md`](rules/README.md).
 
 ## Benchmarks
 
-Public-app detection results (OWASP NodeGoat, Juice Shop, DVNA) live in [`BENCHMARK.md`](BENCHMARK.md). Those ground-truth files are still `"reviewed": false` — do not cite headline precision/recall until a human flips that flag. Self-authored fixture notes live in [`benchmarks/REPORT.md`](benchmarks/REPORT.md). Live Ollama smoke results (not CI) live in [`benchmarks/AI-REPORT.md`](benchmarks/AI-REPORT.md).
+Public-app detection results (OWASP NodeGoat, Juice Shop, DVNA, plus holdout `snyk-labs/nodejs-goof`) live in [`BENCHMARK.md`](BENCHMARK.md). Those ground-truth files are still `"reviewed": false` — do not cite headline precision/recall until a human flips that flag. Holdout results do not drive rule changes. Self-authored fixture notes live in [`benchmarks/REPORT.md`](benchmarks/REPORT.md). Live Ollama smoke results (not CI) live in [`benchmarks/AI-REPORT.md`](benchmarks/AI-REPORT.md).
 
 ### Cursor MCP (`mcp.json`)
 
