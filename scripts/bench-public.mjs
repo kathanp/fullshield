@@ -42,6 +42,13 @@ const APPS = [
     repo: 'https://github.com/snyk-labs/nodejs-goof.git',
     sha: 'add14ba59e98240d9e00a235dd7d42cd61ae9912',
     holdout: true,
+    seenHoldout: true,
+  },
+  {
+    id: 'vulnerable-node',
+    repo: 'https://github.com/cr0hn/vulnerable-node.git',
+    sha: 'd68f2a3c9277ece2c2feb9976052033bdecd7fbe',
+    holdout: true,
   },
 ];
 
@@ -198,6 +205,7 @@ for (const app of APPS) {
     sha: app.sha,
     repo: app.repo,
     holdout: app.holdout === true,
+    seenHoldout: app.seenHoldout === true,
     reviewed: truth.reviewed === true,
     scan,
     scored,
@@ -247,24 +255,29 @@ if (anyUnreviewed) {
 lines.push(`- FullShield version: ${pkg.version}`);
 lines.push(`- Generated: ${new Date().toISOString()}`);
 lines.push('- Matching: same class + same file, line within ±3');
-lines.push('- Recall: in-scope ground-truth entries only');
+lines.push('- In-scope score: true positives / in-scope ground-truth entries (unreviewed).');
 lines.push(
   '- Line attribution: a file-level (no-line) finding plus a later comment/line number on the same file is **not** counted as a recall gain.',
 );
 lines.push(
-  '- Precision: `realIssue / (realIssue + falsePositive)` on unmatched findings listed in `bench/<app>/triage.json`. `unsure` is excluded from the denominator and counted separately.',
+  '- Precision: self-triaged, unverified. `realIssue / (realIssue + falsePositive)` on unmatched findings listed in `bench/<app>/triage.json`. `unsure` is excluded from the denominator and counted separately per app.',
 );
-lines.push('- Holdout apps are scored the same way. Rules are not tuned from holdout results.');
+lines.push(
+  '- Holdout apps are scored the same way. A seen holdout was used to find engine gaps; an untouched holdout is scanned once and does not drive rule changes.',
+);
 lines.push('- Scan: `node dist/cli/index.js scan <app> --json --offline-safe`');
 lines.push('');
 
 for (const r of results) {
-  lines.push(`## ${r.id}${r.holdout ? ' (holdout)' : ''}`);
+  const holdoutLabel = r.seenHoldout ? ' (seen holdout)' : r.holdout ? ' (holdout)' : '';
+  lines.push(`## ${r.id}${holdoutLabel}`);
   lines.push('');
   lines.push(`- Repo: ${r.repo}`);
   lines.push(`- Commit: \`${r.sha}\``);
-  if (r.holdout) {
-    lines.push('- Holdout: yes. Do not change rules based on this app.');
+  if (r.seenHoldout) {
+    lines.push('- Seen holdout: yes. Engine gaps were taken from this app; do not count this re-run as a recall gain.');
+  } else if (r.holdout) {
+    lines.push('- Holdout: yes. Untouched. Do not change rules based on this app.');
   }
   lines.push(`- Scan time: ${r.scan.ms} ms`);
   lines.push(`- Ground truth reviewed: ${r.reviewed}`);
@@ -282,9 +295,9 @@ for (const r of results) {
     );
   }
   lines.push(`- Unmatched findings (triaged): ${r.unmatched}`);
-  lines.push(`- Recall (in-scope): ${r.recall}`);
+  lines.push(`- In-scope true positives / in-scope truth: ${r.tp}/${r.inScope}`);
   lines.push(
-    `- Precision (triaged): ${r.precision} (${r.triage.realIssue} realIssue / ${r.triage.falsePositive} falsePositive; ${r.triage.unsure} unsure excluded)`,
+    `- Precision: self-triaged, unverified (${r.triage.realIssue} realIssue / ${r.triage.falsePositive} falsePositive; ${r.triage.unsure} unsure)`,
   );
   lines.push('');
   lines.push('| class | in-scope truth | TP | triaged FP | in-scope misses |');

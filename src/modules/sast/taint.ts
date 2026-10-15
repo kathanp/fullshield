@@ -1,4 +1,5 @@
 import {
+  assignedNameOf,
   attachParents,
   boundNames,
   calleeName,
@@ -23,6 +24,8 @@ export interface ScopeFacts {
   hasPasswordName: boolean;
   /** Identifiers bound to req.body/query/params themselves (not a property). */
   requestObjects: Set<string>;
+  /** Local names of functions whose return value is tainted. */
+  returners: Set<string>;
 }
 
 const SCHEMA_ROOT = /^(z|zod|joi|yup|schema)$/i;
@@ -72,37 +75,58 @@ export function isXssSanitizerCall(node: AstNode | undefined): boolean {
   return false;
 }
 
-function exprIsTainted(node: AstNode | undefined, tainted: Set<string>): boolean {
+const NO_RETURNERS: ReadonlySet<string> = new Set();
+
+function exprIsTainted(
+  node: AstNode | undefined,
+  tainted: Set<string>,
+  returners: ReadonlySet<string> = NO_RETURNERS,
+): boolean {
   if (node === undefined) return false;
   if (isTaintSource(node)) return true;
   switch (node.type) {
     case 'Identifier':
       return tainted.has(node.name);
     case 'MemberExpression':
-      return exprIsTainted(node.object, tainted);
+      return exprIsTainted(node.object, tainted, returners);
     case 'CallExpression':
       if (isSchemaValidatorCall(node)) return false;
-      return node.arguments.some((arg) => arg.type !== 'SpreadElement' && exprIsTainted(arg, tainted));
+      if (node.callee.type === 'Identifier' && returners.has(node.callee.name)) return true;
+      if (node.callee.type === 'MemberExpression' && exprIsTainted(node.callee.object, tainted, returners)) {
+        return true;
+      }
+      return node.arguments.some(
+        (arg) => arg.type !== 'SpreadElement' && exprIsTainted(arg, tainted, returners),
+      );
     case 'NewExpression':
-      return node.arguments.some((arg) => arg.type !== 'SpreadElement' && exprIsTainted(arg, tainted));
+      if (exprIsTainted(node.callee, tainted, returners)) return true;
+      return node.arguments.some(
+        (arg) => arg.type !== 'SpreadElement' && exprIsTainted(arg, tainted, returners),
+      );
     case 'TemplateLiteral':
-      return node.expressions.some((expr) => exprIsTainted(expr, tainted));
+      return node.expressions.some((expr) => exprIsTainted(expr, tainted, returners));
     case 'TaggedTemplateExpression':
-      return exprIsTainted(node.quasi, tainted);
+      return exprIsTainted(node.quasi, tainted, returners);
     case 'BinaryExpression':
-      return node.operator === '+' && (exprIsTainted(node.left, tainted) || exprIsTainted(node.right, tainted));
+      return (
+        node.operator === '+' &&
+        (exprIsTainted(node.left, tainted, returners) || exprIsTainted(node.right, tainted, returners))
+      );
     case 'AssignmentExpression':
-      return exprIsTainted(node.right, tainted);
+      return exprIsTainted(node.right, tainted, returners);
     case 'LogicalExpression':
-      return exprIsTainted(node.left, tainted) || exprIsTainted(node.right, tainted);
+      return exprIsTainted(node.left, tainted, returners) || exprIsTainted(node.right, tainted, returners);
     case 'ConditionalExpression':
-      return exprIsTainted(node.consequent, tainted) || exprIsTainted(node.alternate, tainted);
+      return (
+        exprIsTainted(node.consequent, tainted, returners) ||
+        exprIsTainted(node.alternate, tainted, returners)
+      );
     case 'ChainExpression':
-      return exprIsTainted(node.expression, tainted);
+      return exprIsTainted(node.expression, tainted, returners);
     case 'TSAsExpression':
     case 'TSNonNullExpression':
     case 'TSTypeAssertion':
-      return exprIsTainted(node.expression, tainted);
+      return exprIsTainted(node.expression, tainted, returners);
     default:
       return false;
   }
@@ -113,11 +137,12 @@ function exprIsSanitized(
   tainted: Set<string>,
   names: Set<string>,
   isCall: (n: AstNode | undefined) => boolean,
+  returners: ReadonlySet<string> = NO_RETURNERS,
 ): boolean {
   if (node === undefined) return true;
   if (isCall(node)) return true;
   if (node.type === 'Identifier') return names.has(node.name) || !tainted.has(node.name);
-  if (!exprIsTainted(node, tainted)) return true;
+  if (!exprIsTainted(node, tainted, returners)) return true;
   if (node.type === 'BinaryExpression' && node.operator === '+') {
     return (
       exprIsSanitized(node.left, tainted, names, isCall) &&
@@ -171,7 +196,11 @@ function seedDestructuredRequestParams(scope: AstNode, tainted: Set<string>): vo
   }
 }
 
-function analyzeScope(scope: AstNode, seed: Iterable<string> = []): ScopeFacts {
+function analyzeScope(
+  scope: AstNode,
+  seed: Iterable<string> = [],
+  returners: ReadonlySet<string> = NO_RETURNERS,
+): ScopeFacts {
   const tainted = new Set<string>(seed);
   seedDestructuredRequestParams(scope, tainted);
   const urlSanitized = new Set<string>();
@@ -189,7 +218,7 @@ function analyzeScope(scope: AstNode, seed: Iterable<string> = []): ScopeFacts {
         if (isXssSanitizerCall(init)) {
           for (const name of boundNames(node.id)) xssSanitized.add(name);
         }
-        if (exprIsTainted(init, tainted)) {
+        if (exprIsTainted(init, tainted, returners)) {
           for (const name of boundNames(node.id)) {
             if (!tainted.has(name)) {
               tainted.add(name);
@@ -206,7 +235,7 @@ function analyzeScope(scope: AstNode, seed: Iterable<string> = []): ScopeFacts {
         if (isXssSanitizerCall(node.right)) {
           for (const name of boundNames(node.left)) xssSanitized.add(name);
         }
-        if (exprIsTainted(node.right, tainted)) {
+        if (exprIsTainted(node.right, tainted, returners)) {
           for (const name of boundNames(node.left)) {
             if (!tainted.has(name)) {
               tainted.add(name);
@@ -257,17 +286,114 @@ function analyzeScope(scope: AstNode, seed: Iterable<string> = []): ScopeFacts {
     }
   });
 
-  return { tainted, pathSanitized, urlSanitized, xssSanitized, hasPasswordName, requestObjects };
+  return {
+    tainted,
+    pathSanitized,
+    urlSanitized,
+    xssSanitized,
+    hasPasswordName,
+    requestObjects,
+    returners: new Set(returners),
+  };
 }
 
-export function analyzeFile(ast: AstNode): WeakMap<AstNode, ScopeFacts> {
+function functionName(fn: AstNode): string | undefined {
+  if (fn.type === 'FunctionDeclaration' && fn.id !== null) return fn.id.name;
+  if (isFunctionNode(fn) && fn.id !== null && fn.id.type === 'Identifier') return fn.id.name;
+  return assignedNameOf(fn);
+}
+
+function scopeReturnsTaint(
+  scope: AstNode,
+  tainted: Set<string>,
+  returners: ReadonlySet<string>,
+): boolean {
+  let yes = false;
+  walkScope(scope, (node) => {
+    if (node.type === 'ReturnStatement' && node.argument !== null) {
+      if (exprIsTainted(node.argument, tainted, returners)) yes = true;
+    }
+  });
+  return yes;
+}
+
+const MAX_TAINT_HOPS = 5;
+
+export function analyzeFile(
+  ast: AstNode,
+  extraReturners: ReadonlySet<string> = NO_RETURNERS,
+): WeakMap<AstNode, ScopeFacts> {
   attachParents(ast);
   const facts = new WeakMap<AstNode, ScopeFacts>();
-  facts.set(ast, analyzeScope(ast));
+  const functions: AstNode[] = [];
   walk(ast, (node) => {
-    if (isFunctionNode(node)) facts.set(node, analyzeScope(node));
+    if (isFunctionNode(node)) functions.push(node);
   });
+  const nameToFn = new Map<string, AstNode>();
+  for (const fn of functions) {
+    const name = functionName(fn);
+    if (name !== undefined) nameToFn.set(name, fn);
+  }
+  const seeds = new Map<AstNode, Set<string>>();
+  for (const fn of functions) seeds.set(fn, new Set());
+  const returners = new Set<string>(extraReturners);
+
+  for (let hop = 0; hop < MAX_TAINT_HOPS; hop += 1) {
+    let changed = false;
+    facts.set(ast, analyzeScope(ast, [], returners));
+    for (const fn of functions) {
+      facts.set(fn, analyzeScope(fn, seeds.get(fn) ?? [], returners));
+    }
+    for (const fn of functions) {
+      const name = functionName(fn);
+      const f = facts.get(fn);
+      if (name === undefined || f === undefined) continue;
+      if (scopeReturnsTaint(fn, f.tainted, returners) && !returners.has(name)) {
+        returners.add(name);
+        changed = true;
+      }
+    }
+    for (const fn of functions) {
+      const f = facts.get(fn);
+      if (f === undefined) continue;
+      walkScope(fn, (node) => {
+        if (node.type !== 'CallExpression') return;
+        if (node.callee.type !== 'Identifier') return;
+        const callee = nameToFn.get(node.callee.name);
+        if (callee === undefined || !isFunctionNode(callee)) return;
+        node.arguments.forEach((arg, i) => {
+          if (arg.type === 'SpreadElement') return;
+          if (!exprIsTainted(arg, f.tainted, returners)) return;
+          const param = callee.params[i];
+          if (param === undefined) return;
+          const pname = boundNames(param)[0];
+          if (pname === undefined) return;
+          const set = seeds.get(callee) ?? new Set<string>();
+          if (!set.has(pname)) {
+            set.add(pname);
+            seeds.set(callee, set);
+            changed = true;
+          }
+        });
+      });
+    }
+    if (!changed) break;
+  }
   return facts;
+}
+
+export function functionsThatReturnTaint(ast: AstNode): Set<string> {
+  attachParents(ast);
+  const names = new Set<string>();
+  const facts = analyzeFile(ast);
+  walk(ast, (node) => {
+    if (!isFunctionNode(node)) return;
+    const name = functionName(node);
+    const f = facts.get(node);
+    if (name === undefined || f === undefined) return;
+    if (scopeReturnsTaint(node, f.tainted, f.returners)) names.add(name);
+  });
+  return names;
 }
 
 /** Analyze one function with extra tainted names (cross-file parameter taint). */
@@ -287,12 +413,14 @@ export function factsFor(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): Scop
       xssSanitized: new Set(),
       hasPasswordName: false,
       requestObjects: new Set(),
+      returners: new Set(),
     }
   );
 }
 
 export function nodeIsTainted(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): boolean {
-  return exprIsTainted(node, factsFor(node, map).tainted);
+  const facts = factsFor(node, map);
+  return exprIsTainted(node, facts.tainted, facts.returners);
 }
 
 export function nodeIsPathSanitized(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): boolean {
@@ -306,8 +434,10 @@ export function nodeIsSanitizedFor(
   kind: SinkSanitizer,
 ): boolean {
   const facts = factsFor(node, map);
-  if (kind === 'url') return exprIsSanitized(node, facts.tainted, facts.urlSanitized, isUrlSanitizerCall);
-  return exprIsSanitized(node, facts.tainted, facts.xssSanitized, isXssSanitizerCall);
+  if (kind === 'url') {
+    return exprIsSanitized(node, facts.tainted, facts.urlSanitized, isUrlSanitizerCall, facts.returners);
+  }
+  return exprIsSanitized(node, facts.tainted, facts.xssSanitized, isXssSanitizerCall, facts.returners);
 }
 
 export function nodeIsRequestObject(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): boolean {

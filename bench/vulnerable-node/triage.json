@@ -1,0 +1,334 @@
+{
+  "reviewed": false,
+  "findings": [
+    {
+      "ruleId": "SECRET-DBURL-001",
+      "file": "config.js",
+      "line": 17,
+      "verdict": "unsure",
+      "reason": "no auto-triage rule for this finding"
+    },
+    {
+      "ruleId": "SECRET-DBURL-001",
+      "file": "docker-compose.yml",
+      "line": 46,
+      "verdict": "falsePositive",
+      "reason": "secret-shaped text in documentation or challenge YAML"
+    },
+    {
+      "ruleId": "SECRET-AWS-001",
+      "file": "mocks/imds/server.js",
+      "line": 11,
+      "verdict": "unsure",
+      "reason": "no auto-triage rule for this finding"
+    },
+    {
+      "ruleId": "SAST-REDIRECT-001",
+      "file": "routes/auth.js",
+      "line": 35,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-PATH-001",
+      "file": "routes/progress.js",
+      "line": 67,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-REDIRECT-001",
+      "file": "routes/shop.js",
+      "line": 84,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-XSS-001",
+      "file": "sast/seeds/clean-escaped.js",
+      "line": 14,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-REDIRECT-001",
+      "file": "sast/seeds/clean-escaped.js",
+      "line": 23,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SECRET-DBURL-001",
+      "file": "sast/seeds/clean-parameterized.js",
+      "line": 4,
+      "verdict": "unsure",
+      "reason": "no auto-triage rule for this finding"
+    },
+    {
+      "ruleId": "SAST-CMDI-001",
+      "file": "sast/seeds/deserialization.js",
+      "line": 21,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-EVAL-001",
+      "file": "sast/seeds/eval-code.js",
+      "line": 7,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SECRET-AWS-001",
+      "file": "sast/seeds/hardcoded-secret.js",
+      "line": 11,
+      "verdict": "unsure",
+      "reason": "no auto-triage rule for this finding"
+    },
+    {
+      "ruleId": "SAST-REDIRECT-001",
+      "file": "sast/seeds/open-redirect.js",
+      "line": 7,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-PATH-001",
+      "file": "sast/seeds/path-traversal.js",
+      "line": 12,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-PROTO-001",
+      "file": "sast/seeds/prototype-pollution.js",
+      "line": 6,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-PROTO-001",
+      "file": "sast/seeds/prototype-pollution.js",
+      "line": 16,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SECRET-DBURL-001",
+      "file": "sast/seeds/sqli-concat.js",
+      "line": 3,
+      "verdict": "unsure",
+      "reason": "no auto-triage rule for this finding"
+    },
+    {
+      "ruleId": "SAST-SSRF-001",
+      "file": "sast/seeds/ssrf-fetch.js",
+      "line": 7,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-XSS-001",
+      "file": "sast/seeds/xss-raw-echo.js",
+      "line": 7,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-XSS-001",
+      "file": "views/layout.ejs",
+      "line": 36,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-XSS-001",
+      "file": "views/products.ejs",
+      "line": 14,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SECRET-JWT-001",
+      "file": "docker-compose.yml",
+      "line": 52,
+      "verdict": "falsePositive",
+      "reason": "secret-shaped text in documentation or challenge YAML"
+    },
+    {
+      "ruleId": "CONFIG-DOCKER-ROOT-001",
+      "file": "mocks/imds/Dockerfile",
+      "line": 0,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-DOCKER-ROOT-001",
+      "file": "mocks/vault/Dockerfile",
+      "line": 0,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-RATELIMIT-001",
+      "file": "routes/api/v1.js",
+      "line": 14,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-RATELIMIT-001",
+      "file": "routes/auth.js",
+      "line": 7,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-RATELIMIT-001",
+      "file": "routes/auth.js",
+      "line": 20,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-HELMET-001",
+      "file": "sast/seeds/clean-escaped.js",
+      "line": 4,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "SAST-CRYPTO-001",
+      "file": "sast/seeds/crypto-weak.js",
+      "line": 5,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "CONFIG-HELMET-001",
+      "file": "sast/seeds/deserialization.js",
+      "line": 4,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-HELMET-001",
+      "file": "sast/seeds/eval-code.js",
+      "line": 3,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "SECRET-ENTROPY-001",
+      "file": "sast/seeds/hardcoded-secret.js",
+      "line": 4,
+      "verdict": "unsure",
+      "reason": "no auto-triage rule for this finding"
+    },
+    {
+      "ruleId": "SECRET-ENTROPY-001",
+      "file": "sast/seeds/hardcoded-secret.js",
+      "line": 12,
+      "verdict": "unsure",
+      "reason": "no auto-triage rule for this finding"
+    },
+    {
+      "ruleId": "CONFIG-HELMET-001",
+      "file": "sast/seeds/open-redirect.js",
+      "line": 3,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-RATELIMIT-001",
+      "file": "sast/seeds/open-redirect.js",
+      "line": 5,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-HELMET-001",
+      "file": "sast/seeds/ssrf-fetch.js",
+      "line": 3,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-HELMET-001",
+      "file": "sast/seeds/xss-raw-echo.js",
+      "line": 3,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-HELMET-001",
+      "file": "server.js",
+      "line": 19,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "SECRET-JWT-001",
+      "file": "tests/exploits.js",
+      "line": 17,
+      "verdict": "unsure",
+      "reason": "no auto-triage rule for this finding"
+    },
+    {
+      "ruleId": "SAST-AUTH-001",
+      "file": "routes/api/v1.js",
+      "line": 14,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-AUTH-001",
+      "file": "routes/auth.js",
+      "line": 50,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-AUTH-001",
+      "file": "routes/pages.js",
+      "line": 24,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-AUTH-001",
+      "file": "routes/shop.js",
+      "line": 35,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-AUTH-001",
+      "file": "routes/shop.js",
+      "line": 51,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "CONFIG-BODYLIMIT-001",
+      "file": "sast/seeds/eval-code.js",
+      "line": 4,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-BODYLIMIT-001",
+      "file": "sast/seeds/ssrf-fetch.js",
+      "line": 4,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-BODYLIMIT-001",
+      "file": "server.js",
+      "line": 47,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    }
+  ]
+}

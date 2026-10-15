@@ -66,6 +66,13 @@
     },
     {
       "ruleId": "SAST-PATH-001",
+      "file": "routes/fileServer.ts",
+      "line": 32,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-PATH-001",
       "file": "routes/keyServer.ts",
       "line": 14,
       "verdict": "unsure",
@@ -82,6 +89,13 @@
       "ruleId": "SAST-SSRF-001",
       "file": "routes/profileImageUrlUpload.ts",
       "line": 24,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-PATH-001",
+      "file": "routes/profileImageUrlUpload.ts",
+      "line": 29,
       "verdict": "unsure",
       "reason": "SAST hit did not match an in-scope ground-truth file/line"
     },

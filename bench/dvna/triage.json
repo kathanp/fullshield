@@ -4,28 +4,21 @@
     {
       "ruleId": "DEPS-VULN-001",
       "file": "package.json",
-      "line": 0,
+      "line": 25,
       "verdict": "realIssue",
       "reason": "OSV/lockfile advisory on an installed package"
     },
     {
       "ruleId": "DEPS-VULN-001",
       "file": "package.json",
-      "line": 0,
+      "line": 29,
       "verdict": "realIssue",
       "reason": "OSV/lockfile advisory on an installed package"
     },
     {
       "ruleId": "DEPS-VULN-001",
       "file": "package.json",
-      "line": 0,
-      "verdict": "realIssue",
-      "reason": "OSV/lockfile advisory on an installed package"
-    },
-    {
-      "ruleId": "DEPS-VULN-001",
-      "file": "package.json",
-      "line": 0,
+      "line": 25,
       "verdict": "realIssue",
       "reason": "OSV/lockfile advisory on an installed package"
     },
@@ -95,7 +88,7 @@
     {
       "ruleId": "CONFIG-HELMET-001",
       "file": "server.js",
-      "line": 0,
+      "line": 11,
       "verdict": "realIssue",
       "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
     },

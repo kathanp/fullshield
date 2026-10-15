@@ -46,6 +46,7 @@ export async function runConfigAstChecks(file: string, source: string): Promise<
 
   const findings: Finding[] = [];
   let createsApp = false;
+  let createsAppLine: number | undefined;
   let usesHelmet = false;
 
   walk(ast, (node) => {
@@ -54,7 +55,10 @@ export async function runConfigAstChecks(file: string, source: string): Promise<
       if (name === 'helmet') usesHelmet = true;
       // `express()` constructs an app. `express.Router()` does not — helmet
       // belongs on the app, not on every file that imports the package.
-      if (name === 'express' && node.callee.type === 'Identifier') createsApp = true;
+      if (name === 'express' && node.callee.type === 'Identifier') {
+        createsApp = true;
+        createsAppLine = node.loc?.start.line;
+      }
 
       if (
         node.callee.type === 'MemberExpression' &&
@@ -165,11 +169,14 @@ export async function runConfigAstChecks(file: string, source: string): Promise<
     }
   });
 
+  const commentedLines: number[] = [];
   if (!usesHelmet) {
     const commented =
       /^\s*\/\/\s*(?:(?:const|let|var)\s+helmet\b|app\.use\(\s*helmet\b|.*require\(\s*['"]helmet['"]\s*\))/gim;
     for (const match of source.matchAll(commented)) {
       const index = match.index ?? 0;
+      const line = lineAt(source, index);
+      commentedLines.push(line);
       findings.push(
         configFinding(
           'CONFIG-HELMET-001',
@@ -178,7 +185,7 @@ export async function runConfigAstChecks(file: string, source: string): Promise<
           file,
           'helmet is commented out; security headers are not applied.',
           'Uncomment or add app.use(helmet()) to set standard security headers.',
-          lineAt(source, index),
+          line,
         ),
       );
     }
@@ -193,6 +200,9 @@ export async function runConfigAstChecks(file: string, source: string): Promise<
         file,
         'An Express app is created but helmet() is never applied.',
         'Add app.use(helmet()) to set standard security headers.',
+        // Keep a file-level finding when a comment already carries the line so
+        // scoring treats that as line-attribution, not a new detection.
+        commentedLines.length > 0 ? undefined : createsAppLine,
       ),
     );
   }

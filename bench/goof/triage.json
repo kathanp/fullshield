@@ -178,29 +178,22 @@
     },
     {
       "ruleId": "DEPS-VULN-001",
-      "file": "package-lock.json",
-      "line": 0,
+      "file": "package.json",
+      "line": 35,
       "verdict": "realIssue",
       "reason": "OSV/lockfile advisory on an installed package"
     },
     {
       "ruleId": "DEPS-VULN-001",
-      "file": "package-lock.json",
-      "line": 0,
+      "file": "package.json",
+      "line": 35,
       "verdict": "realIssue",
       "reason": "OSV/lockfile advisory on an installed package"
     },
     {
       "ruleId": "DEPS-VULN-001",
-      "file": "package-lock.json",
-      "line": 0,
-      "verdict": "realIssue",
-      "reason": "OSV/lockfile advisory on an installed package"
-    },
-    {
-      "ruleId": "DEPS-VULN-001",
-      "file": "package-lock.json",
-      "line": 0,
+      "file": "package.json",
+      "line": 35,
       "verdict": "realIssue",
       "reason": "OSV/lockfile advisory on an installed package"
     },
@@ -217,13 +210,6 @@
       "line": 12,
       "verdict": "unsure",
       "reason": "SAST hit did not match an in-scope ground-truth file/line"
-    },
-    {
-      "ruleId": "CONFIG-HELMET-001",
-      "file": "app.js",
-      "line": 0,
-      "verdict": "realIssue",
-      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
     },
     {
       "ruleId": "CONFIG-RATELIMIT-001",
@@ -339,43 +325,43 @@
     },
     {
       "ruleId": "DEPS-VULN-001",
-      "file": "package-lock.json",
-      "line": 0,
+      "file": "package.json",
+      "line": 34,
       "verdict": "realIssue",
       "reason": "OSV/lockfile advisory on an installed package"
     },
     {
       "ruleId": "DEPS-VULN-001",
-      "file": "package-lock.json",
-      "line": 0,
+      "file": "package.json",
+      "line": 34,
       "verdict": "realIssue",
       "reason": "OSV/lockfile advisory on an installed package"
     },
     {
       "ruleId": "DEPS-VULN-001",
-      "file": "package-lock.json",
-      "line": 0,
+      "file": "package.json",
+      "line": 35,
       "verdict": "realIssue",
       "reason": "OSV/lockfile advisory on an installed package"
     },
     {
       "ruleId": "DEPS-VULN-001",
-      "file": "package-lock.json",
-      "line": 0,
+      "file": "package.json",
+      "line": 35,
       "verdict": "realIssue",
       "reason": "OSV/lockfile advisory on an installed package"
     },
     {
       "ruleId": "DEPS-VULN-001",
-      "file": "package-lock.json",
-      "line": 0,
+      "file": "package.json",
+      "line": 35,
       "verdict": "realIssue",
       "reason": "OSV/lockfile advisory on an installed package"
     },
     {
       "ruleId": "DEPS-VULN-001",
-      "file": "package-lock.json",
-      "line": 0,
+      "file": "package.json",
+      "line": 41,
       "verdict": "realIssue",
       "reason": "OSV/lockfile advisory on an installed package"
     },

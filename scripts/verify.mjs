@@ -1017,7 +1017,7 @@ s.listen(0, '127.0.0.1', () => {
     if (!cliHelp.stdout.includes('--offline-safe')) {
       fail('phase 26 acceptance: scan --help missing --offline-safe');
     }
-    for (const app of ['nodegoat', 'juice-shop', 'dvna', 'goof']) {
+    for (const app of ['nodegoat', 'juice-shop', 'dvna', 'goof', 'vulnerable-node']) {
       const path = join(root, 'bench', app, 'ground-truth.json');
       if (!existsSync(path)) fail(`phase 26 acceptance: missing ${relative(root, path)}`);
       const truth = JSON.parse(readFileSync(path, 'utf8'));
@@ -1053,10 +1053,16 @@ s.listen(0, '127.0.0.1', () => {
     if (!existsSync(benchMd)) fail('phase 26 acceptance: BENCHMARK.md missing (run npm run bench:public)');
     const md = readFileSync(benchMd, 'utf8');
     if (!/UNREVIEWED/.test(md)) fail('phase 26 acceptance: BENCHMARK.md must say UNREVIEWED while ground truth is unreviewed');
-    for (const app of ['nodegoat', 'juice-shop', 'dvna', 'goof']) {
+    for (const app of ['nodegoat', 'juice-shop', 'dvna', 'goof', 'vulnerable-node']) {
       if (!md.toLowerCase().includes(app)) fail(`phase 26 acceptance: BENCHMARK.md missing ${app}`);
     }
     if (!/holdout/i.test(md)) fail('phase 26 acceptance: BENCHMARK.md must label the goof holdout');
+    if (!/seen holdout/i.test(md)) {
+      fail('phase 26c acceptance: BENCHMARK.md must label goof as seen holdout');
+    }
+    if (!/self-triaged, unverified/i.test(md)) {
+      fail('phase 26c acceptance: BENCHMARK.md must mark precision as self-triaged, unverified');
+    }
     if (!/Line attribution/i.test(md) && !/line-attribution/i.test(md)) {
       fail('phase 26 acceptance: BENCHMARK.md must explain helmet line-attribution is not a recall gain');
     }
@@ -1082,11 +1088,17 @@ s.listen(0, '127.0.0.1', () => {
       join(root, 'test', 'unit', 'modules', 'sast', 'bench-misses.test.ts'),
       join(root, 'test', 'unit', 'modules', 'config', 'bench-misses.test.ts'),
       join(root, 'test', 'unit', 'modules', 'secrets', 'bench-misses.test.ts'),
+      join(root, 'test', 'unit', 'modules', 'sast', 'engine-gaps.test.ts'),
+      join(root, 'test', 'unit', 'modules', 'deps', 'manifest-line.test.ts'),
     ]) {
-      if (!existsSync(path)) fail(`phase 26b acceptance: missing ${relative(root, path)}`);
+      if (!existsSync(path)) fail(`phase 26b/26c acceptance: missing ${relative(root, path)}`);
+    }
+    if (!/unreviewed/i.test(readme) || !/holdout/i.test(readme)) {
+      fail('phase 26c acceptance: README Known limitations must cite holdout numbers on unreviewed ground truth');
     }
     console.log('  ✔ public bench harness, unreviewed ground truth, non-blocking CI bench job');
     console.log('  ✔ phase 26b fixtures + Known limitations for remaining in-scope misses');
+    console.log('  ✔ phase 26c engine-gap fixtures, seen holdout, untouched vulnerable-node holdout');
   },
   // Phase 27: SAST + RASP coverage gaps (numeric SQL, ORM raw, template shell).
   27: async () => {

@@ -64,7 +64,7 @@ function boundNamesFromParams(node: AstNode): string[] {
   return node.params.flatMap((p) => boundNames(p));
 }
 
-function collectRequires(file: string, ast: AstNode, files: Set<string>): Map<string, string> {
+export function collectRequires(file: string, ast: AstNode, files: Set<string>): Map<string, string> {
   /** local binding → resolved file or file#exportName */
   const ns = new Map<string, string>();
   const bind = (local: string, spec: string, exportName?: string): void => {

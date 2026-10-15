@@ -6,6 +6,15 @@ All notable changes to FullShield are documented here.
 
 - Publish CI uses `npm publish --provenance --access public` (no staged-manifest edits). The unpublished `v0.1.2` tag was deleted.
 
+### Phase 26c — engine gaps from the goof holdout
+
+- Taint: method-call return inherits receiver taint; same-file helper parameters are seeded from tainted arguments; imported functions that return taint taint their call sites.
+- Path: `extractAllTo` / `extractAll` / `extract` on a tainted archive object (zip-slip receiver).
+- Config: missing helmet is attributed to the `express()` line when no commented-out helmet is present.
+- Deps: OSV hits on direct dependencies are attributed to the `package.json` name line when a hit exists (still no invented advisories under `--offline-safe`).
+- Multipart uploads: `req.files` is a taint source.
+- `nodejs-goof` is a seen holdout. `cr0hn/vulnerable-node` is an untouched holdout scanned once. Precision in `BENCHMARK.md` is labeled self-triaged, unverified.
+
 ### Phase 26b — stable public-bench misses
 
 **New stable findings — may change CI results; use `--update-baseline`:**

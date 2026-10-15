@@ -125,7 +125,7 @@ export function attachParents(node: AstNode, parent?: AstNode): void {
   }
 }
 
-export const REQUEST_SOURCE_PROPS = new Set(['query', 'body', 'params', 'headers']);
+export const REQUEST_SOURCE_PROPS = new Set(['query', 'body', 'params', 'headers', 'files']);
 const SOURCE_PROPS = REQUEST_SOURCE_PROPS;
 
 export function isTaintSource(node: AstNode): boolean {
@@ -169,6 +169,7 @@ export function assignedNameOf(node: AstNode): string | undefined {
     return parent.id.name;
   }
   if (parent.type === 'AssignmentExpression' && parent.right === node) {
+    if (parent.left.type === 'MemberExpression') return propName(parent.left);
     const names = boundNames(parent.left);
     return names[0];
   }
