@@ -15,3 +15,6 @@ SECURITY_SCANNER_SPEC (*).md
 !.env.example
 # Fixture .env files are intentionally committed (fake values only)
 !test/fixtures/**/.env
+# Phase 30 built-bundle fixtures (repo-root dist/ stays ignored)
+!test/fixtures/**/dist/
+!test/fixtures/**/dist/**
