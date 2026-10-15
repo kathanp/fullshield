@@ -65,6 +65,8 @@ Experimental RASP structure-change scoring on the vendored PayloadsAllTheThings 
 
 Path 51/51 and SSRF 39/39 on the same corpus. Benign corpus stays 0 blocked. Prefer `mode: 'monitor'`.
 
+These fixtures are self-authored and cover **string-concatenation sinks only**. Untested contexts include numeric SQL (`WHERE id = ` + input), ORM raw queries, and template-literal shell calls.
+
 ## Quick start
 
 ```bash
