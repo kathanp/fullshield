@@ -18,7 +18,7 @@ git push -u origin main
 ```
 
    If GitHub push protection flags the AWS documentation example key in older test commits, open the block link, choose “It’s used in tests,” and push again.
-3. Confirm CI: Linux, macOS, and Windows on Node 20 and 22 (6 jobs) are green. Stop if Windows is red.
+3. Confirm CI: Linux, macOS, and Windows on Node 22 and 24 (6 jobs) are green. Stop if Windows is red.
 4. GitHub **Settings → Code security**: Secret scanning, Push protection, Dependabot alerts. **Settings → Branches**: require the CI checks on `main`.
 5. On npmjs.com, open **fullshield → Settings → Trusted Publisher → GitHub Actions**:
    - Organization or user: `kathanp`

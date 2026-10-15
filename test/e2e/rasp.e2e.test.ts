@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 const root = process.cwd();
 const register = join(root, 'dist', 'runtime', 'register.js');
+const registerHref = pathToFileURL(register).href;
 
 const SCRIPT = `
 import { DatabaseSync } from 'node:sqlite';
@@ -26,23 +27,33 @@ db.close();
 `;
 
 describe('RASP --import register (built)', () => {
-  it('does not hook sinks without FULLSHIELD_EXPERIMENTAL_RASP', () => {
-    const result = spawnSync(process.execPath, ['--import', register, '--input-type=module', '-e', SCRIPT], {
+  it('does not load node:sqlite on --import register -e 1 (no ExperimentalWarning)', () => {
+    const result = spawnSync(process.execPath, ['--import', registerHref, '-e', '1'], {
       cwd: root,
       encoding: 'utf8',
-      env: { ...process.env, FULLSHIELD_REGISTER_URL: pathToFileURL(register).href },
+      env: { ...process.env, FULLSHIELD_EXPERIMENTAL_RASP: '1' },
+    });
+    expect(result.status).toBe(0);
+    expect(`${result.stderr}`).not.toMatch(/ExperimentalWarning:[^\n]*SQLite/i);
+  });
+
+  it('does not hook sinks without FULLSHIELD_EXPERIMENTAL_RASP', () => {
+    const result = spawnSync(process.execPath, ['--import', registerHref, '--input-type=module', '-e', SCRIPT], {
+      cwd: root,
+      encoding: 'utf8',
+      env: { ...process.env, FULLSHIELD_REGISTER_URL: registerHref },
     });
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('QUERY_RAN');
   });
 
   it('blocks concatenated SQLi when experimental rasp is enabled in block mode', () => {
-    const result = spawnSync(process.execPath, ['--import', register, '--input-type=module', '-e', SCRIPT], {
+    const result = spawnSync(process.execPath, ['--import', registerHref, '--input-type=module', '-e', SCRIPT], {
       cwd: root,
       encoding: 'utf8',
       env: {
         ...process.env,
-        FULLSHIELD_REGISTER_URL: pathToFileURL(register).href,
+        FULLSHIELD_REGISTER_URL: registerHref,
         FULLSHIELD_EXPERIMENTAL_RASP: '1',
         FULLSHIELD_RASP_MODE: 'block',
       },

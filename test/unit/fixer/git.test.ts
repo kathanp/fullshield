@@ -44,7 +44,16 @@ describe('fixer git helpers', () => {
     expect(dirty.has('tracked.txt')).toBe(true);
     expect(dirty.has('untracked.txt')).toBe(true);
     expect(dirty.has('new-name.txt') || dirty.has('old-name.txt')).toBe(true);
+  });
 
+  // Windows rejects `"` in filenames (CreateFile ENOENT). This case is POSIX-only.
+  it.skipIf(process.platform === 'win32')('lists dirty paths that include a quoted filename', async () => {
+    execFileSync('git', ['init'], { cwd: dir });
+    execFileSync('git', ['config', 'user.email', 'git@test.local'], { cwd: dir });
+    execFileSync('git', ['config', 'user.name', 'Git Test'], { cwd: dir });
+    await writeFile(join(dir, 'tracked.txt'), 'a\n');
+    execFileSync('git', ['add', '.'], { cwd: dir });
+    execFileSync('git', ['commit', '-m', 'init'], { cwd: dir });
     await writeFile(join(dir, 'file "quoted".txt'), 'q\n');
     const withQuote = await listDirtyPaths(dir);
     expect([...withQuote].some((p) => p.includes('quoted'))).toBe(true);

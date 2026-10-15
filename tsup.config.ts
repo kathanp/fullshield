@@ -25,7 +25,7 @@ export default defineConfig({
   },
   format: ['esm'],
   platform: 'node',
-  target: 'node20',
+  target: 'node22',
   dts: { entry: { index: 'src/index.ts' } },
   sourcemap: false,
   clean: true,

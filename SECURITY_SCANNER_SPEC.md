@@ -1,7 +1,7 @@
 # FullShield — Build Spec for Cursor
 
 > Package name: `fullshield` (npm name confirmed available on 2026-10-13; reserve it with a 0.0.1 publish before building).
-> Language: TypeScript (strict). Runtime: Node.js ≥ 20. Distribution: npm (CLI + library + Express/Fastify middleware).
+> Language: TypeScript (strict). Runtime: Node.js ≥ 22.13. Distribution: npm (CLI + library + Express/Fastify middleware).
 
 ---
 
@@ -61,7 +61,7 @@
 - After each phase, paste the full `npm run verify:phase N` output into the phase summary.
 
 ### CI (`.github/workflows/ci.yml`)
-- Runs `npm ci && npm run verify` on Node 20 and 22, on Linux, macOS, Windows.
+- Runs `npm ci && npm run verify` on Node 22 and 24, on Linux, macOS, Windows.
 - Uploads coverage report and SARIF as artifacts.
 
 ---

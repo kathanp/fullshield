@@ -4,6 +4,10 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+- Runtime requirement is Node.js **>= 22.13** (Node 20 is EOL). CI matrix is Node 22 and 24 on Linux, macOS, and Windows. `node:sqlite` is unflagged from 22.13.0 and is loaded only when history/confirm actually open a database — `node --import fullshield/runtime/register -e "1"` must not emit a SQLite `ExperimentalWarning`.
+- Dashboard `HistoryDb.close()` releases `history.db` (Windows cannot unlink an open SQLite handle).
+- Remediation agent runs `npm.cmd` on Windows and restores untracked files without `git checkout --`.
+
 ## 0.1.0 — 2026-10-14
 
 First public alpha (Core 1–10, Pro 11–16, Frontier 17–24 behind flags, harden-1–6).

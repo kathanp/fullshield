@@ -93,7 +93,7 @@ function defaultLookup(host: string): string[] {
   if (parseIpv4(h) || h.includes(':')) return [h];
   if (lookupImpl) return lookupImpl(h);
   try {
-    // Node 22+: sync lookup. Node 20: skip (hostname-only checks still apply).
+    // Node 22+: dns.lookupSync. If missing, hostname-only checks still apply.
     const lookupSync = (dns as { lookupSync?: (hostname: string, opts: { all: boolean }) => Array<{ address: string }> })
       .lookupSync;
     if (typeof lookupSync === 'function') {

@@ -14,6 +14,7 @@ export interface HistoryRow {
 export interface HistoryDb {
   list(): HistoryRow[];
   insert(row: HistoryRow): void;
+  close(): void;
 }
 
 function sqliteDb(file: string): HistoryDb {
@@ -32,6 +33,9 @@ function sqliteDb(file: string): HistoryDb {
         row.total,
         row.highCrit,
       );
+    },
+    close() {
+      db.close();
     },
   };
 }
@@ -112,7 +116,8 @@ export function createDashboardHandler(opts: {
 
 export function startDashboard(opts: { dir: string; experimental?: boolean; port?: number }): Promise<{ close: () => Promise<void>; port: number }> {
   if (!existsSync(opts.dir)) mkdirSync(opts.dir, { recursive: true });
-  const handler = createDashboardHandler({ dbPath: opts.dir, experimental: opts.experimental });
+  const db = openHistory(opts.dir);
+  const handler = createDashboardHandler({ dbPath: opts.dir, experimental: opts.experimental, db });
   const server = createServer(handler);
   return new Promise((resolve, reject) => {
     server.listen(opts.port ?? 0, '127.0.0.1', () => {
@@ -122,7 +127,15 @@ export function startDashboard(opts: { dir: string; experimental?: boolean; port
         port,
         close: () =>
           new Promise((res, rej) => {
-            server.close((err) => (err ? rej(err) : res()));
+            server.close((err) => {
+              try {
+                db.close();
+              } catch {
+                // already closed
+              }
+              if (err) rej(err);
+              else res();
+            });
           }),
       });
     });

@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 import { scan } from '../core/engine.js';
@@ -51,8 +51,25 @@ export function assertLocalAgentApi(url: string): true {
   return true;
 }
 
+function npmBin(): string {
+  return process.platform === 'win32' ? 'npm.cmd' : 'npm';
+}
+
 function git(cwd: string, args: string[]): string {
   return execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
+}
+
+function revertAgentFile(cwd: string, file: string, original: string, existed: boolean): void {
+  const path = join(cwd, file);
+  if (!existed) {
+    try {
+      unlinkSync(path);
+    } catch {
+      writeFileSync(path, original, 'utf8');
+    }
+    return;
+  }
+  writeFileSync(path, original, 'utf8');
 }
 
 function currentBranch(cwd: string): string {
@@ -63,7 +80,11 @@ function defaultTests(cwd: string): { ok: boolean; output: string } {
   try {
     const pkg = JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8')) as { scripts?: { test?: string } };
     if (!pkg.scripts?.test) return { ok: true, output: 'no test script' };
-    const out = execFileSync('npm', ['test', '--silent'], { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    const out = execFileSync(npmBin(), ['test', '--silent'], {
+      cwd,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
     return { ok: true, output: out };
   } catch (error) {
     return { ok: false, output: error instanceof Error ? error.message : String(error) };
@@ -140,20 +161,14 @@ export async function runAgent(options: AgentOptions = {}): Promise<AgentResult>
       throw new Error('refusing to use a protected branch name');
     }
     git(cwd, ['checkout', '-B', branch, baseBranch]);
+    const targetPath = join(cwd, src.file);
+    const existed = existsSync(targetPath);
     const after = applyUnifiedDiff(src.source, proposed.diff);
-    writeFileSync(join(cwd, src.file), after, 'utf8');
+    writeFileSync(targetPath, after, 'utf8');
 
     const tests = options.runTests ? await options.runTests(cwd) : defaultTests(cwd);
     if (!tests.ok) {
-      try {
-        git(cwd, ['checkout', '--', src.file]);
-      } catch {
-        try {
-          writeFileSync(join(cwd, src.file), src.source, 'utf8');
-        } catch {
-          // untracked file written by the agent; leave the tree and stop
-        }
-      }
+      revertAgentFile(cwd, src.file, src.source, existed);
       git(cwd, ['checkout', baseBranch]);
       stoppedOnTestFailure = true;
       break;

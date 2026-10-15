@@ -12,6 +12,8 @@ npx fullshield scan --sarif fullshield.sarif
 
 This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 
+**Requires Node.js >= 22.13.** `node:sqlite` runs without `--experimental-sqlite` from 22.13.0 (the module is still experimental and is loaded only by history/confirm, not by `--import` register).
+
 ## Coverage map
 
 | Layer | Covered by |

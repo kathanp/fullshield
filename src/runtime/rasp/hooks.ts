@@ -14,6 +14,8 @@ const require = createRequire(import.meta.url);
 
 const restorers: Array<() => void> = [];
 const wrappedPackages = new WeakSet<object>();
+let hooksLive = false;
+let sqliteHookRegistered = false;
 
 function sampleOf(sink: unknown): string {
   if (typeof sink === 'string') return sink.slice(0, 40);
@@ -157,16 +159,62 @@ function wrapSsrf(obj: object, key: string, urlOf: (args: unknown[]) => string):
   });
 }
 
-function wrapBuiltins(): void {
-  try {
-    const sqlite = require('node:sqlite') as { DatabaseSync?: { prototype: object } };
-    if (sqlite.DatabaseSync?.prototype) {
-      wrapSqlMethod(sqlite.DatabaseSync.prototype, 'exec');
-      wrapSqlMethod(sqlite.DatabaseSync.prototype, 'prepare');
+const WRAP_SQLITE = Symbol.for('fullshield.rasp.wrapSqlite');
+const SQLITE_WRAPPED = Symbol.for('fullshield.rasp.sqliteWrapped');
+
+let origModuleLoad: ((request: unknown, parent: unknown, isMain: unknown) => unknown) | undefined;
+
+function protoFrom(value: unknown): (object & Record<symbol, unknown>) | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const proto = (value as { DatabaseSync?: { prototype?: object } }).DatabaseSync?.prototype;
+  if (proto && typeof proto === 'object') return proto as object & Record<symbol, unknown>;
+  return undefined;
+}
+
+function sqlitePrototype(hint?: unknown): (object & Record<symbol, unknown>) | undefined {
+  const fromHint = protoFrom(hint);
+  if (fromHint) return fromHint;
+  const getBuiltin = (process as { getBuiltinModule?: (id: string) => unknown }).getBuiltinModule;
+  if (typeof getBuiltin === 'function') {
+    try {
+      const fromBuiltin = protoFrom(getBuiltin.call(process, 'node:sqlite') ?? getBuiltin.call(process, 'sqlite'));
+      if (fromBuiltin) return fromBuiltin;
+    } catch {
+      // not loaded
     }
-  } catch {
-    // node:sqlite is optional on older Node
   }
+  if (origModuleLoad) {
+    try {
+      return protoFrom(origModuleLoad('node:sqlite', undefined, false));
+    } catch {
+      // not loaded
+    }
+  }
+  return undefined;
+}
+
+function sqliteAlreadyLoaded(): boolean {
+  const list = (process as { moduleLoadList?: string[] }).moduleLoadList;
+  return Array.isArray(list) && list.some((entry) => /(?:^| )sqlite$/i.test(entry));
+}
+
+function wrapSqliteNow(hint?: unknown): void {
+  try {
+    const proto = sqlitePrototype(hint);
+    if (!proto || proto[SQLITE_WRAPPED]) return;
+    Object.defineProperty(proto, SQLITE_WRAPPED, { value: true, configurable: true });
+    wrapSqlMethod(proto, 'exec');
+    wrapSqlMethod(proto, 'prepare');
+    restorers.push(() => {
+      delete proto[SQLITE_WRAPPED];
+    });
+  } catch {
+    // node:sqlite is loaded only when the app (or history/confirm) actually imports it
+  }
+}
+
+function wrapBuiltins(): void {
+  (globalThis as Record<symbol, unknown>)[WRAP_SQLITE] = wrapSqliteNow;
 
   const cp = require('node:child_process') as object;
   const cpAlias = require('child_process') as object;
@@ -266,6 +314,7 @@ function wrapBuiltins(): void {
   }
 
   const Module = require('node:module') as { _load: (...args: unknown[]) => unknown };
+  origModuleLoad = Module._load.bind(Module);
   const origLoad = Module._load;
   Module._load = function (this: unknown, request: unknown, parent: unknown, isMain: unknown) {
     const exported = origLoad.call(this, request, parent, isMain);
@@ -283,7 +332,26 @@ function wrapBuiltins(): void {
   };
   restorers.push(() => {
     Module._load = origLoad;
+    origModuleLoad = undefined;
   });
+
+  const registerHooks = (Module as { registerHooks?: (hooks: {
+    load?: (url: string, context: unknown, nextLoad: (url: string, context: unknown) => unknown) => unknown;
+  }) => void }).registerHooks;
+  if (typeof registerHooks === 'function' && !sqliteHookRegistered) {
+    sqliteHookRegistered = true;
+    registerHooks({
+      load(url, context, nextLoad) {
+        const result = nextLoad(url, context);
+        if (hooksLive && typeof url === 'string' && (url === 'node:sqlite' || url.startsWith('node:sqlite'))) {
+          wrapSqliteNow();
+        }
+        return result;
+      },
+    });
+  }
+
+  if (sqliteAlreadyLoaded()) wrapSqliteNow();
 }
 
 function wrapExpressLike(exported: unknown): void {
@@ -319,6 +387,11 @@ export function wrapKnownPackage(request: string, exported: unknown): unknown {
   const obj = exported;
   if (wrappedPackages.has(obj)) return exported;
   const name = request.replace(/^node:/, '');
+
+  if (name === 'sqlite') {
+    wrapSqliteNow(exported);
+    return exported;
+  }
 
   if (name === 'pg' || name.endsWith('/pg')) {
     const pg = exported as { Client?: { prototype: object }; Pool?: { prototype: object } };
@@ -405,10 +478,13 @@ export function wrapKnownPackage(request: string, exported: unknown): unknown {
 }
 
 export function installHooks(): void {
+  hooksLive = true;
   wrapBuiltins();
 }
 
 export function restoreHooks(): void {
+  hooksLive = false;
+  delete (globalThis as Record<symbol, unknown>)[WRAP_SQLITE];
   while (restorers.length > 0) restorers.pop()?.();
 }
 

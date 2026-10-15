@@ -1,5 +1,5 @@
 fullshield:
-  image: node:20
+  image: node:22
   script:
     - npm ci
     - npx fullshield scan --json --fail-on high

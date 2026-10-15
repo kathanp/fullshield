@@ -128,7 +128,7 @@ describe('Phase 22 dashboard (127.0.0.1 + Host lock)', () => {
     dirs.push(dir);
     const db = openHistory(dir);
     recordHistory(db, { scannedAt: '2026-10-14T00:00:00Z', total: 2, highCrit: 1 });
-    const handler = createDashboardHandler({ dbPath: dir, experimental: true });
+    const handler = createDashboardHandler({ dbPath: dir, experimental: true, db });
     const server = createServer(handler);
     await new Promise<void>((resolve) => {
       server.listen(0, '127.0.0.1', () => resolve());
@@ -167,7 +167,17 @@ describe('Phase 22 dashboard (127.0.0.1 + Host lock)', () => {
       await new Promise<void>((resolve, reject) => {
         server.close((err) => (err ? reject(err) : resolve()));
       });
+      db.close();
     }
+  });
+
+  it('close() releases history.db so the directory can be removed', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'fullshield-dash-close-'));
+    dirs.push(dir);
+    const db = openHistory(dir);
+    recordHistory(db, { scannedAt: '2026-10-14T00:00:00Z', total: 1, highCrit: 0 });
+    db.close();
+    expect(() => rmSync(join(dir, '.fullshield'), { recursive: true, force: true })).not.toThrow();
   });
 
   it('is a no-op without experimental', () => {

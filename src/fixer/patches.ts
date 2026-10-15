@@ -49,8 +49,11 @@ function cryptoFix(file: string, source: string): FixProposal | undefined {
 
 function gitignoreFix(file: string, source: string): FixProposal | undefined {
   const target = file.endsWith('.gitignore') ? file : '.gitignore';
-  if (/(^|\n)\.env(\n|$)/.test(source)) return undefined;
-  const after = source.length === 0 || source.endsWith('\n') ? `${source}.env\n` : `${source}\n.env\n`;
+  if (/(^|[\r\n])\.env(\r?\n|$)/.test(source)) return undefined;
+  const after =
+    source.length === 0 || source.endsWith('\n') || source.endsWith('\r')
+      ? `${source}.env\n`
+      : `${source}\n.env\n`;
   return { kind: 'config-add', safe: true, diff: unifiedDiff(target, source, after) };
 }
 

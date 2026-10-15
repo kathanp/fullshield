@@ -9,7 +9,7 @@
     "url": "git+https://github.com/kathanp/fullshield.git"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.13"
   },
   "bin": {
     "fullshield": "./dist/cli/index.js"
