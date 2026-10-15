@@ -48,6 +48,7 @@ interface ScanCliOptions {
   modules?: string;
   staged?: boolean;
   offline?: boolean;
+  offlineSafe?: boolean;
   config?: string;
   sarif?: string;
   markdown?: string;
@@ -106,6 +107,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option('--modules <modules>', 'comma-separated subset of modules to run')
     .option('--staged', 'scan only files staged in git (pre-commit mode)')
     .option('--offline', 'use the OSV cache only (no network)')
+    .option('--offline-safe', 'alias of --offline')
     .option('--config <path>', 'path to fullshield.config.json')
     .option('--sarif <file>', 'write a SARIF 2.1.0 report to this path')
     .option('--markdown <file>', 'write a Markdown report to this path')
@@ -126,7 +128,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           modules,
           configPath: opts.config,
           staged: opts.staged === true,
-          offline: opts.offline === true,
+          offline: opts.offline === true || opts.offlineSafe === true,
           updateBaseline: opts.updateBaseline === true,
           ai,
           changed: opts.changed === true,

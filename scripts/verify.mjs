@@ -68,6 +68,7 @@ const PREVIOUS_PHASE_TESTS = {
   22: 392,
   23: 401,
   24: 407,
+  25: 439,
 };
 
 function listFilesRecursive(dir, out = []) {
@@ -991,6 +992,57 @@ s.listen(0, '127.0.0.1', () => {
       }
     }
     console.log('  ✔ CI Windows×Node 22/24; --import file:// silent; register budget; no static sqlite');
+  },
+  // Phase 26: public NodeGoat / Juice Shop / DVNA bench. Numbers stay unreviewed.
+  26: () => {
+    const ci = readFileSync(join(root, '.github/workflows/ci.yml'), 'utf8');
+    if (!/^ {2}bench:\s*$/m.test(ci)) fail('phase 26 acceptance: CI must have a job named bench');
+    if (!/continue-on-error:\s*true/.test(ci)) {
+      fail('phase 26 acceptance: bench job must be continue-on-error (not a required check)');
+    }
+    if (!ci.includes('npm run bench:public') || !ci.includes('BENCHMARK.md')) {
+      fail('phase 26 acceptance: bench job must run bench:public and upload BENCHMARK.md');
+    }
+    const pkgText = readFileSync(join(root, 'package.json'), 'utf8');
+    if (!pkgText.includes('"bench:public"')) fail('phase 26 acceptance: missing npm script bench:public');
+    if (!existsSync(join(root, 'scripts', 'bench-public.mjs'))) {
+      fail('phase 26 acceptance: missing scripts/bench-public.mjs');
+    }
+    const cliHelp = spawnSync(
+      process.execPath,
+      [join(root, 'dist', 'cli', 'index.js'), 'scan', '--help'],
+      { cwd: root, encoding: 'utf8' },
+    );
+    if (!cliHelp.stdout.includes('--offline-safe')) {
+      fail('phase 26 acceptance: scan --help missing --offline-safe');
+    }
+    for (const app of ['nodegoat', 'juice-shop', 'dvna']) {
+      const path = join(root, 'bench', app, 'ground-truth.json');
+      if (!existsSync(path)) fail(`phase 26 acceptance: missing ${relative(root, path)}`);
+      const truth = JSON.parse(readFileSync(path, 'utf8'));
+      if (truth.reviewed !== false) {
+        fail(`phase 26 acceptance: ${app} ground truth must stay reviewed:false until a human flips it`);
+      }
+      if (!Array.isArray(truth.entries) || truth.entries.length === 0) {
+        fail(`phase 26 acceptance: ${app} ground truth has no entries`);
+      }
+      for (const e of truth.entries) {
+        if (typeof e.source !== 'string' || !/^https:\/\//.test(e.source)) {
+          fail(`phase 26 acceptance: ${app} entry missing https source`);
+        }
+      }
+    }
+    const benchMd = join(root, 'BENCHMARK.md');
+    if (!existsSync(benchMd)) fail('phase 26 acceptance: BENCHMARK.md missing (run npm run bench:public)');
+    const md = readFileSync(benchMd, 'utf8');
+    if (!/UNREVIEWED/.test(md)) fail('phase 26 acceptance: BENCHMARK.md must say UNREVIEWED while ground truth is unreviewed');
+    for (const app of ['nodegoat', 'juice-shop', 'dvna']) {
+      if (!md.toLowerCase().includes(app)) fail(`phase 26 acceptance: BENCHMARK.md missing ${app}`);
+    }
+    if (!/Known misses/i.test(md)) fail('phase 26 acceptance: BENCHMARK.md missing Known misses table');
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!readme.includes('BENCHMARK.md')) fail('phase 26 acceptance: README must link BENCHMARK.md');
+    console.log('  ✔ public bench harness, unreviewed ground truth, non-blocking CI bench job');
   },
 };
 

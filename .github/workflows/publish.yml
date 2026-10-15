@@ -35,6 +35,6 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: npm run build
 
-      - name: Stage with provenance (OIDC, no token)
+      - name: Publish with provenance (OIDC, no token)
         if: startsWith(github.ref, 'refs/tags/v')
-        run: node scripts/npm-stage-publish.mjs
+        run: npm publish --provenance --access public

@@ -8,8 +8,6 @@ import { createRequire } from 'node:module';
 import { readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { manifestForRegistry } from './publish-manifest.mjs';
-
 const PACKAGE = 'fullshield';
 const REGISTRY = 'https://registry.npmjs.org';
 const authKey = '//registry.npmjs.org/:_authToken';
@@ -79,10 +77,7 @@ function printErr(label, err) {
   console.error('body:', JSON.stringify(err.body, null, 2));
 }
 
-const pkg = manifestForRegistry(
-  JSON.parse(readFileSync('package.json', 'utf8')),
-  readFileSync('README.md', 'utf8'),
-);
+const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 const token = await npmToken();
 const tarball = packTarball(pkg.version);
 

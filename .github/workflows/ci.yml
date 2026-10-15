@@ -44,3 +44,29 @@ jobs:
           name: sarif-${{ matrix.os }}-node${{ matrix.node }}
           path: '**/*.sarif'
           if-no-files-found: ignore
+
+  bench:
+    name: bench
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - run: npm run bench:public
+
+      - name: Upload BENCHMARK.md
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: BENCHMARK.md
+          path: BENCHMARK.md
+          if-no-files-found: ignore

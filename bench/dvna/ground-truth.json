@@ -1,0 +1,43 @@
+{
+  "reviewed": false,
+  "app": "dvna",
+  "repo": "https://github.com/appsecco/dvna",
+  "commit": "9ba473add536f66ac9007966acb2a775dd31277a",
+  "entries": [
+    {
+      "class": "sqli",
+      "file": "core/appHandler.js",
+      "line": 10,
+      "description": "SQL injection in user search: login concatenated into a Sequelize query string.",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a1-injection.md"
+    },
+    {
+      "class": "cmdi",
+      "file": "core/appHandler.js",
+      "line": 39,
+      "description": "Command injection in connectivity test: exec('ping -c 2 ' + req.body.address).",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a1-injection.md"
+    },
+    {
+      "class": "redirect",
+      "file": "core/appHandler.js",
+      "line": 188,
+      "description": "Unvalidated redirect to req.query.url.",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/ax-unvalidated-redirects-and-forwards.md"
+    },
+    {
+      "class": "other",
+      "file": "core/appHandler.js",
+      "line": 218,
+      "description": "Insecure deserialization: serialize.unserialize on uploaded bulk products.",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a8-insecure-deserialization.md"
+    },
+    {
+      "class": "other",
+      "file": "core/appHandler.js",
+      "line": 197,
+      "description": "Calculator evaluates attacker-controlled mathjs.eval(req.body.eqn).",
+      "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a1-injection.md"
+    }
+  ]
+}

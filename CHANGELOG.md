@@ -4,10 +4,13 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
-## 0.1.2 — 2026-10-15
+- Publish CI uses `npm publish --provenance --access public` (no staged-manifest edits). The unpublished `v0.1.2` tag was deleted.
 
-- Staging via libnpmpublish now injects `README.md` into the registry manifest. The 0.1.0 tarball already contained root `README.md`, but the packument `readme` stayed empty because the CLI injects that field and our stage script did not.
-- 0.1.1 was staged with provenance and never 2FA-approved, so `latest` stayed 0.1.0.
+### Phase 26 — public benchmark harness
+
+- `npm run bench:public` clones pinned OWASP NodeGoat, Juice Shop, and DVNA SHAs, scans with `--json --offline-safe`, and writes `BENCHMARK.md`. Ground truth is `"reviewed": false`.
+- CI job `bench` (ubuntu-24.04, Node 24) uploads `BENCHMARK.md` and is non-blocking.
+- `scan --offline-safe` is an alias of `--offline`.
 
 ## 0.1.1 — 2026-10-15
 

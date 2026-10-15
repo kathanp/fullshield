@@ -1,0 +1,29 @@
+{
+  "reviewed": false,
+  "app": "juice-shop",
+  "repo": "https://github.com/juice-shop/juice-shop",
+  "commit": "e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4",
+  "entries": [
+    {
+      "class": "sqli",
+      "file": "routes/login.ts",
+      "line": 34,
+      "description": "Login SQL injection: email and password concatenated into sequelize.query.",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html"
+    },
+    {
+      "class": "sqli",
+      "file": "routes/search.ts",
+      "line": 23,
+      "description": "UNION SQL injection in product search (criteria interpolated into SELECT).",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/injection.html"
+    },
+    {
+      "class": "redirect",
+      "file": "routes/redirect.ts",
+      "line": 18,
+      "description": "Unvalidated redirect: /redirect follows toUrl when the allowlist check uses includes().",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/unvalidated-redirects.html"
+    }
+  ]
+}

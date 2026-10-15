@@ -22,6 +22,7 @@ export default defineConfig({
     compliance: 'src/compliance/index.ts',
     iac: 'src/iac/index.ts',
     agent: 'src/agent/index.ts',
+    'bench/score': 'src/bench/score.ts',
   },
   format: ['esm'],
   platform: 'node',

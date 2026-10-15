@@ -1,8 +1,8 @@
 # FullShield — Build Spec for Cursor
 
-> Package name: `fullshield` (published **0.1.2** on npm 2026-10-15; maintainer `kathan2404`; placeholders `0.0.0-stage` / `0.0.1` are **deprecated** — do not republish them).
+> Package name: `fullshield` (published **0.1.1** on npm 2026-10-15; maintainer `kathan2404`; placeholders `0.0.0-stage` / `0.0.1` are **deprecated** — do not republish them).
 > Repo: https://github.com/kathanp/fullshield. Language: TypeScript (strict). Runtime: Node.js ≥ 22.13. Distribution: npm (CLI + library + Express/Fastify middleware).
-> Spec revision: 2026-10-15 — Section 1.1 is **Comparison and limits** (no stakeholder “Yes”). `latest` on npm is **0.1.2** with provenance; placeholders `0.0.0-stage` / `0.0.1` are deprecated.
+> Spec revision: 2026-10-15 — Section 1.1 is **Comparison and limits** (no stakeholder “Yes”). `latest` on npm is **0.1.1** with provenance; placeholders `0.0.0-stage` / `0.0.1` are deprecated.
 
 ---
 
@@ -111,7 +111,7 @@ The category is crowded. Snyk, Socket, Semgrep, Gitleaks, Dependabot, Helmet, an
 
 **Packaging rule this section exists to protect:** never split these layers into separately published packages. One install (`npm i -D fullshield`). Runtime subpath must load zero scanner code (Section 13). If a layer cannot meet its acceptance test, ship it behind an `experimental` flag.
 
-**Name status:** `fullshield` on npm is **ours**. `latest` is `0.1.2` (published with provenance). Placeholders `0.0.0-stage` and `0.0.1` are **deprecated**. Category remains crowded; this exact all-in-one open-source CLI is this repo.
+**Name status:** `fullshield` on npm is **ours**. `latest` is `0.1.1` (published with provenance). Placeholders `0.0.0-stage` and `0.0.1` are **deprecated**. Category remains crowded; this exact all-in-one open-source CLI is this repo.
 
 ---
 
@@ -632,7 +632,17 @@ Goal: turn "possible vulnerability" into "**confirmed**, here's the proof" so de
 | 23 | Compliance mapping + IaC rules | Every rule has OWASP/CWE mapping (test enforces); IaC fixtures pass |
 | 24 | Remediation agent + benchmark publishing in CI | Agent opens PR against a test repo with passing tests; benchmark report generated per release |
 | 25 | 0.1.1 hardening: Windows CI + lazy `node:sqlite` + CRLF-safe diffs + `file://` `--import` | 6-way CI (Linux/macOS/Windows × Node 22/24); `node --import …/register -e 1` silent; register bundle under budget; history.db handle closed |
+| 26 | Public benchmark on pinned OWASP NodeGoat, Juice Shop, and DVNA | `npm run bench:public` writes `BENCHMARK.md` (per-app TP/FP/misses, per-class, scan time, version, SHA, Known misses). Ground truth stays `"reviewed": false` until a human flips it. CI job `bench` is non-blocking. Do not tune rules from this run. |
 
-**Next (26–35)** stay in the local draft spec until 0.1.0 is published and this phase's verify passes. Do not start Phase 26 from this file.
+### Phase 26 — Public benchmark run (credibility first)
+
+- `bench/<app>/ground-truth.json` for NodeGoat, Juice Shop, and DVNA. Each entry is `{class, file, line, description, source}` with an http(s) citation from that app’s own docs. Cursor-drafted files stay `"reviewed": false`.
+- `npm run bench:public` clones the pinned SHAs into a temp directory (not committed), runs `node dist/cli/index.js scan <app> --json --offline-safe`, and scores same class + same file + line ±3.
+- Write `BENCHMARK.md` with per-app and per-class TP/FP/misses/precision/recall, scan time, FullShield version, commit SHA, and a **Known misses** table. Do not cite headline numbers while `reviewed` is false.
+- CI job named `bench` (ubuntu-24.04, Node 24) uploads `BENCHMARK.md`. `continue-on-error: true`; not a required check.
+- `--offline-safe` is an alias of `--offline` on `scan`.
+- Do not retune rules to chase these apps. Do not change existing tests or `expected-findings.json`. Do not tag a Phase 26 release.
+
+Acceptance: `npm run bench:public` produces `BENCHMARK.md` reproducibly; CI job `bench` (non-blocking) uploads it; README links the results without citing unreviewed counts.
 
 - Show a real before/after: run it on a public, intentionally vulnerable Node app (e.g. OWASP NodeGoat or Juice Shop), list what it found and what it missed. Publishing the misses builds more trust than hiding them.

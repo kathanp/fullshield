@@ -1,0 +1,43 @@
+{
+  "reviewed": false,
+  "app": "nodegoat",
+  "repo": "https://github.com/OWASP/NodeGoat",
+  "commit": "c5cb68a7084e4ae7dcc60e6a98768720a81841e8",
+  "entries": [
+    {
+      "class": "other",
+      "file": "app/routes/contributions.js",
+      "line": 32,
+      "description": "Server-side JS injection: eval() on contribution amounts (preTax/afterTax/roth).",
+      "source": "https://github.com/OWASP/NodeGoat/blob/c5cb68a7084e4ae7dcc60e6a98768720a81841e8/app/views/tutorial/a1.html"
+    },
+    {
+      "class": "nosqli",
+      "file": "app/data/allocations-dao.js",
+      "line": 78,
+      "description": "NoSQL injection via MongoDB $where built from the allocations threshold query.",
+      "source": "https://github.com/OWASP/NodeGoat/blob/c5cb68a7084e4ae7dcc60e6a98768720a81841e8/app/views/tutorial/a1.html"
+    },
+    {
+      "class": "other",
+      "file": "app/routes/session.js",
+      "line": 64,
+      "description": "Log injection: unsanitized userName written to console.log on failed login.",
+      "source": "https://github.com/OWASP/NodeGoat/blob/c5cb68a7084e4ae7dcc60e6a98768720a81841e8/app/views/tutorial/a1.html"
+    },
+    {
+      "class": "ssrf",
+      "file": "app/routes/research.js",
+      "line": 16,
+      "description": "SSRF: stock lookup fetches attacker-controlled req.query.url with needle.get.",
+      "source": "https://github.com/OWASP/NodeGoat/blob/c5cb68a7084e4ae7dcc60e6a98768720a81841e8/app/views/tutorial/ssrf.html"
+    },
+    {
+      "class": "redirect",
+      "file": "app/routes/index.js",
+      "line": 72,
+      "description": "Open redirect: learning-resources link redirects to req.query.url.",
+      "source": "https://github.com/OWASP/NodeGoat/blob/c5cb68a7084e4ae7dcc60e6a98768720a81841e8/app/views/tutorial/a10.html"
+    }
+  ]
+}
