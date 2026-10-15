@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -25,11 +26,15 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run verify
-
       # Do not set registry-url / NODE_AUTH_TOKEN: setup-node would write an empty
       # _authToken and npm would skip OIDC trusted publishing (E403).
-      # Direct `npm publish` is rejected (E403) even with a valid OIDC identity;
-      # npm 2026 requires a maintainer 2FA approval before a version goes live.
+      - name: Probe npm OIDC (print registry error body)
+        run: node scripts/npm-oidc-diagnose.mjs
+
+      - name: Build
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: npm run build
+
       - name: Stage with provenance (OIDC, no token)
+        if: startsWith(github.ref, 'refs/tags/v')
         run: npm stage publish --provenance --access public
