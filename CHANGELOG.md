@@ -5,6 +5,24 @@ All notable changes to FullShield are documented here.
 ## Unreleased
 
 - Publish CI uses `npm publish --provenance --access public` (no staged-manifest edits). The unpublished `v0.1.2` tag was deleted.
+- CI: push to `next` runs `verify` on ubuntu-24.04 × Node 24 only. The full 6-job matrix (and the non-blocking `bench` job) runs on pull requests to `main` and on push to `main`. Required checks on `main` stay the six matrix jobs.
+
+### NoSQL constructed-filter values
+
+**New stable findings — may change CI results; use `--update-baseline`:**
+
+- `SAST-NOSQLI-001` — request input used as a Mongo filter value (e.g. `{ password: req.body.password }`) at medium confidence, unless the value is coerced (`String()` / `Number()` / `Boolean()`), schema-validated (zod / joi / yup `.parse`), or `mongo-sanitize` / `express-mongo-sanitize` is applied. SQL ORM `update(values, { where })` / `find({ where })` is not treated as a Mongo filter.
+
+`cr0hn/vulnerable-node` is now a seen holdout (no longer untouched).
+
+### Phase 26c — engine gaps from the goof holdout
+
+- Taint: method-call return inherits receiver taint; same-file helper parameters are seeded from tainted arguments; imported functions that return taint taint their call sites.
+- Path: `extractAllTo` / `extractAll` / `extract` on a tainted archive object (zip-slip receiver).
+- Config: missing helmet is attributed to the `express()` line when no commented-out helmet is present.
+- Deps: OSV hits on direct dependencies are attributed to the `package.json` name line when a hit exists (still no invented advisories under `--offline-safe`).
+- Multipart uploads: `req.files` is a taint source.
+- `nodejs-goof` is a seen holdout. `cr0hn/vulnerable-node` is an untouched holdout scanned once. Precision in `BENCHMARK.md` is labeled self-triaged, unverified.
 
 ### Phase 26b — stable public-bench misses
 

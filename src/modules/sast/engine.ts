@@ -4,8 +4,17 @@ import { join } from 'node:path';
 import type { ScanModule } from '../../core/engine.js';
 import { makeFindingId, type Finding } from '../../core/finding.js';
 import { assignedNameOf, walk } from './ast.js';
-import { runInterproc, type ParsedSource } from './interproc.js';
-import { analyzeFile, factsFor, nodeIsPathSanitized, nodeIsRequestObject, nodeIsSanitizedFor, nodeIsTainted } from './taint.js';
+import { collectRequires, runInterproc, type ParsedSource } from './interproc.js';
+import {
+  analyzeFile,
+  factsFor,
+  functionsThatReturnTaint,
+  nodeIsNosqlSanitized,
+  nodeIsPathSanitized,
+  nodeIsRequestObject,
+  nodeIsSanitizedFor,
+  nodeIsTainted,
+} from './taint.js';
 import { authRule } from './rules/auth.js';
 import { cmdiRule } from './rules/cmdi.js';
 import { cryptoRule } from './rules/crypto.js';
@@ -55,15 +64,20 @@ function snippetOf(source: string, node: AstNode): string {
   return source.slice(node.range[0], node.range[1]).replace(/\s+/g, ' ').trim().slice(0, 120);
 }
 
-export function findingsFromAst(filename: string, source: string, ast: AstNode): Finding[] {
-  const facts = analyzeFile(ast);
+export function findingsFromAst(
+  filename: string,
+  source: string,
+  ast: AstNode,
+  extraReturners: ReadonlySet<string> = new Set(),
+): Finding[] {
+  const facts = analyzeFile(ast, extraReturners);
   const findings: Finding[] = [];
 
   for (const rule of sastRules) {
     const ctx: RuleContext = {
       filename,
       source,
-      report: ({ node, message }) => {
+      report: ({ node, message, confidence }) => {
         const snippet = snippetOf(source, node);
         findings.push({
           id: makeFindingId(rule.meta.id, filename, `${node.loc?.start.line ?? 0}|${snippet}`),
@@ -71,7 +85,7 @@ export function findingsFromAst(filename: string, source: string, ast: AstNode):
           module: 'sast',
           title: rule.meta.title,
           severity: rule.meta.severity,
-          confidence: 'high',
+          confidence: confidence ?? 'high',
           cwe: rule.meta.cwe,
           file: filename,
           line: node.loc?.start.line,
@@ -85,6 +99,7 @@ export function findingsFromAst(filename: string, source: string, ast: AstNode):
       isTainted: (node) => nodeIsTainted(node, facts),
       isPathSanitized: (node) => nodeIsPathSanitized(node, facts),
       isSanitizedFor: (node, kind) => nodeIsSanitizedFor(node, facts, kind),
+      isNosqlSanitized: (node) => nodeIsNosqlSanitized(node, facts),
       isRequestObject: (node) => nodeIsRequestObject(node, facts),
       functionHasPasswordName: (node) => factsFor(node, facts).hasPasswordName,
       assignedName: (node) => assignedNameOf(node),
@@ -125,6 +140,7 @@ function findingsFromTemplate(filename: string, source: string): Finding[] {
     isTainted: () => false,
     isPathSanitized: () => false,
     isSanitizedFor: () => false,
+    isNosqlSanitized: () => false,
     isRequestObject: () => false,
     functionHasPasswordName: () => false,
     assignedName: () => undefined,
@@ -163,10 +179,25 @@ export const sastModule: ScanModule = {
       try {
         const ast = await parseSource(source);
         parsed.push({ file: rel, source, ast });
-        findings.push(...findingsFromAst(rel, source, ast));
       } catch {
         // Unparseable file: skip. A scanner must not execute or crash on user code.
       }
+    }
+    const files = new Set(parsed.map((p) => p.file));
+    const returning = new Map<string, Set<string>>();
+    for (const p of parsed) {
+      returning.set(p.file, functionsThatReturnTaint(p.ast));
+    }
+    for (const p of parsed) {
+      const ns = collectRequires(p.file, p.ast, files);
+      const extra = new Set<string>(returning.get(p.file));
+      for (const [local, spec] of ns) {
+        const hash = spec.indexOf('#');
+        const file = hash >= 0 ? spec.slice(0, hash) : spec;
+        const exp = hash >= 0 ? spec.slice(hash + 1) : local;
+        if (returning.get(file)?.has(exp)) extra.add(local);
+      }
+      findings.push(...findingsFromAst(p.file, p.source, p.ast, extra));
     }
     findings.push(...runInterproc(parsed));
     return findings;

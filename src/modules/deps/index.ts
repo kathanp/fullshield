@@ -6,7 +6,7 @@ import type { ScanModule } from '../../core/engine.js';
 import { makeFindingId, type Finding } from '../../core/finding.js';
 import { parseLockfileGraph, type LockedPackage, type LockfileGraph } from './lockfile.js';
 import { isMaliciousAdvisory, queryOsv, type OsvVuln } from './osv.js';
-import { exactPinsFromManifest } from './pins.js';
+import { exactPinsFromManifest, lineOfManifestDep } from './pins.js';
 import { applyReachability, indexPackageUsage, isProductionSource } from './reachability.js';
 import { minFixedVersion, osvSeverity, sameMajor } from './semver.js';
 import { findTyposquats, type TyposquatHit } from './typosquat.js';
@@ -36,20 +36,27 @@ async function readDirectDependencyNames(cwd: string): Promise<Set<string> | und
   }
 }
 
-function vulnFinding(lockFile: string, pkg: LockedPackage, vuln: OsvVuln): Finding {
+function vulnFinding(
+  lockFile: string,
+  pkg: LockedPackage,
+  vuln: OsvVuln,
+  loc?: { file: string; line?: number },
+): Finding {
   const snippet = `${pkg.name}@${pkg.version}`;
   const aliases = (vuln.aliases ?? []).filter((a) => a.startsWith('CVE-'));
   const references = [vuln.id, ...aliases];
   const summary = vuln.summary ?? 'known vulnerability';
   const fixed = minFixedVersion(vuln.affected ?? []);
+  const file = loc?.file ?? lockFile;
   const finding: Finding = {
-    id: makeFindingId('DEPS-VULN-001', lockFile, `${snippet}|${vuln.id}`),
+    id: makeFindingId('DEPS-VULN-001', file, `${snippet}|${vuln.id}`),
     ruleId: 'DEPS-VULN-001',
     module: 'deps',
     title: `Vulnerable dependency ${snippet}`,
     severity: osvSeverity(vuln),
     confidence: 'high',
-    file: lockFile,
+    file,
+    line: loc?.line,
     snippet,
     message: `${snippet} is affected by ${vuln.id} (${summary}).`,
     remediation: fixed
@@ -146,15 +153,24 @@ export const depsModule: ScanModule = {
         : defaultCacheDir();
     const osvOpts = { cacheDir, offline: ctx.config.deps.offline };
 
+    let manifestRaw: string | undefined;
+    try {
+      manifestRaw = await readFile(join(ctx.cwd, 'package.json'), 'utf8');
+    } catch {
+      manifestRaw = undefined;
+    }
+    const depLoc = (name: string): { file: string; line?: number } | undefined => {
+      if (manifestRaw === undefined) return undefined;
+      const line = lineOfManifestDep(manifestRaw, name);
+      return line === undefined ? undefined : { file: 'package.json', line };
+    };
+
     if (lockFile === undefined) {
       if (!ctx.files.includes('package.json')) return [];
       const findings: Finding[] = [noLockFinding()];
       let manifest: Record<string, unknown> = {};
       try {
-        manifest = JSON.parse(await readFile(join(ctx.cwd, 'package.json'), 'utf8')) as Record<
-          string,
-          unknown
-        >;
+        manifest = JSON.parse(manifestRaw ?? '{}') as Record<string, unknown>;
       } catch {
         return findings;
       }
@@ -169,7 +185,7 @@ export const depsModule: ScanModule = {
           findings.push(
             isMaliciousAdvisory(vuln)
               ? maliciousFinding('package.json', hit.pkg, vuln)
-              : vulnFinding('package.json', hit.pkg, vuln),
+              : vulnFinding('package.json', hit.pkg, vuln, depLoc(hit.pkg.name)),
           );
         }
       }
@@ -203,7 +219,7 @@ export const depsModule: ScanModule = {
         findings.push(
           isMaliciousAdvisory(vuln)
             ? maliciousFinding(lockFile, hit.pkg, vuln)
-            : vulnFinding(lockFile, hit.pkg, vuln),
+            : vulnFinding(lockFile, hit.pkg, vuln, depLoc(hit.pkg.name)),
         );
       }
     }

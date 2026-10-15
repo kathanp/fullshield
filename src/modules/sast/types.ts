@@ -1,6 +1,6 @@
 import type { TSESTree } from '@typescript-eslint/typescript-estree';
 
-import type { Severity } from '../../core/finding.js';
+import type { Confidence, Severity } from '../../core/finding.js';
 
 export type AstNode = TSESTree.Node;
 
@@ -15,6 +15,7 @@ export interface SastRuleMeta {
 export interface SastReport {
   node: AstNode;
   message: string;
+  confidence?: Confidence;
 }
 
 export interface RuleContext {
@@ -24,6 +25,7 @@ export interface RuleContext {
   isTainted(node: AstNode): boolean;
   isPathSanitized(node: AstNode): boolean;
   isSanitizedFor(node: AstNode, kind: 'url' | 'xss'): boolean;
+  isNosqlSanitized(node: AstNode): boolean;
   isRequestObject(node: AstNode): boolean;
   functionHasPasswordName(node: AstNode): boolean;
   assignedName(node: AstNode): string | undefined;

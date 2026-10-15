@@ -678,14 +678,25 @@ Per in-scope miss: a fixture (positive + negative). Stable rule fixes vs README 
 
 The secrets registry test gained `SECRET-SESSION-001` (additive ID list). clean-app stays 0 findings.
 
-**In-scope recall (bench:public, `"reviewed": false`):**
-
-| app | before (a64ab8b) | after (c830d3a detectors; helmet line-attribution not counted) |
-|---|---|---|
-| NodeGoat | 4/7 (57.1%) | 4/7 (57.1%) — CONFIG-HELMET comment line is the same file-level finding |
-| Juice Shop | 4/12 (33.3%) | 9/12 (75.0%) |
-| DVNA | 6/10 (60.0%) | 8/10 (80.0%) |
-
-Holdout `snyk-labs/nodejs-goof` @ `add14ba59e98240d9e00a235dd7d42cd61ae9912`: **4/11 (36.4%)**. Rules were not changed from that run.
+Public-app in-scope counts live in README Known limitations (unreviewed ground truth). Do not treat them as product recall.
 
 Verify: 487 tests, 92.11% lines / 82.78% branches. clean-app 0 high/critical.
+
+## Phase 26c — engine gaps from the goof holdout (on `next`)
+
+Root-cause (posted before the engine edits):
+
+- NoSQL `$gt` / constructed `{ field: req.body.x }` — **sink matching**. Existing tests require constructed Mongo filters not to be flagged. Left as a Known limitation (cannot edit those tests).
+- `exec` of `tainted.match()[1]` — **propagation through returns** (receiver taint on method calls).
+- `res.redirect` via a helper parameter — **propagation through function params**.
+- Zip-slip `extractAllTo` — **sink matching** (tainted archive receiver; dest is a literal).
+- Deps `package.json:N` — **lockfile attribution** (map direct dep name → manifest line when an OSV hit exists). `--offline-safe` still invents no advisories.
+- Helmet `express()` line — **line attribution**. File-level finding kept when a commented-out helmet already carries the line.
+
+Generic fixtures (not copied goof) in `test/unit/modules/sast/engine-gaps.test.ts` and `test/unit/modules/deps/manifest-line.test.ts`.
+
+goof is a **seen holdout**. `cr0hn/vulnerable-node` @ `d68f2a3c9277ece2c2feb9976052033bdecd7fbe` is an **untouched holdout** (GT from `docs/labs/`, `"reviewed": false`). In-scope counts after the one post-fix `bench:public` run are in README Known limitations only.
+
+**Verify (`npm run verify:phase 26`, PASSED):** 498 tests. 92.24% lines / 83.03% branches. expected 30/30. vulnerable-app 35. clean-app 0 high/critical.
+
+Do not start Phase 28.

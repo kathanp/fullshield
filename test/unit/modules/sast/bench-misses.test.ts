@@ -95,10 +95,16 @@ describe('phase 26b — in-scope bench misses (stable)', () => {
   });
 
   describe('known limitations (not claimed)', () => {
-    it('does not flag Mongo { _id: req.body.id } operator injection', async () => {
+    it('flags Mongo { _id: req.body.id } unless the value is coerced', async () => {
       await expect(
         has(
           `app.post('/reviews', (req, res) => {\n  db.reviewsCollection.update({ _id: req.body.id }, { $set: { message: req.body.message } }, { multi: true });\n});`,
+          'SAST-NOSQLI-001',
+        ),
+      ).resolves.toBe(true);
+      await expect(
+        has(
+          `app.post('/reviews', (req, res) => {\n  db.reviewsCollection.update({ _id: String(req.body.id) }, { $set: { message: String(req.body.message) } }, { multi: true });\n});`,
           'SAST-NOSQLI-001',
         ),
       ).resolves.toBe(false);

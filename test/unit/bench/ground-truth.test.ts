@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { BENCH_CLASSES } from '../../../src/bench/score.js';
 
-const APPS = ['nodegoat', 'juice-shop', 'dvna', 'goof'] as const;
+const APPS = ['nodegoat', 'juice-shop', 'dvna', 'goof', 'vulnerable-node'] as const;
 
 describe('public bench ground truth', () => {
   it('marks every app unreviewed, sets inScope, and cites an http(s) source per entry', () => {

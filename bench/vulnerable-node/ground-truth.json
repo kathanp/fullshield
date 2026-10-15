@@ -1,0 +1,186 @@
+{
+  "reviewed": false,
+  "app": "vulnerable-node",
+  "holdout": true,
+  "repo": "https://github.com/cr0hn/vulnerable-node",
+  "commit": "d68f2a3c9277ece2c2feb9976052033bdecd7fbe",
+  "entries": [
+    {
+      "class": "ssrf",
+      "file": "routes/tools.js",
+      "line": 21,
+      "description": "SSRF: /tools/fetch passes the user URL to fetch() with no host allowlist (IMDS/vault).",
+      "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/02-ssrf-imds.md",
+      "inScope": true
+    },
+    {
+      "class": "sqli",
+      "file": "model/db.js",
+      "line": 14,
+      "description": "SQL injection: login concatenates username and password into the query string.",
+      "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/03-sqli.md",
+      "inScope": true
+    },
+    {
+      "class": "sqli",
+      "file": "model/db.js",
+      "line": 26,
+      "description": "SQL injection: searchProducts interpolates q into ILIKE patterns.",
+      "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/03-sqli.md",
+      "inScope": true
+    },
+    {
+      "class": "sqli",
+      "file": "model/db.js",
+      "line": 101,
+      "description": "SQL injection: ordersForUserSorted interpolates sort into ORDER BY.",
+      "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/03-sqli.md",
+      "inScope": true
+    },
+    {
+      "class": "nosqli",
+      "file": "routes/shop.js",
+      "line": 41,
+      "description": "NoSQL injection: /api/tags-filter passes req.body.tags into col.find() as the origin value.",
+      "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/03b-nosql.md",
+      "inScope": true
+    },
+    {
+      "class": "nosqli",
+      "file": "routes/shop.js",
+      "line": 58,
+      "description": "NoSQL injection: /api/meta assigns req.query.origin onto a Mongo filter.",
+      "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/03b-nosql.md",
+      "inScope": true
+    },
+    {
+      "class": "xss",
+      "file": "views/product_detail.ejs",
+      "line": 71,
+      "description": "Stored XSS: review bodies render unescaped with <%- r.body %>.",
+      "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/05-xss-token-theft.md",
+      "inScope": true
+    },
+    {
+      "class": "jwt",
+      "file": "middleware/auth.js",
+      "line": 30,
+      "description": "Forgeable JWTs: jwt.verify uses the public jwt-super-secret (lab also cites config.js jwtSecret).",
+      "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/07-jwt-weak-secret.md",
+      "inScope": true
+    },
+    {
+      "class": "config",
+      "file": "views/error.ejs",
+      "line": 4,
+      "description": "Debug misconfiguration: error.stack is rendered when DEBUG_ERRORS=1.",
+      "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/09-misconfig-debug.md",
+      "inScope": true
+    },
+    {
+      "class": "proto",
+      "file": "routes/account.js",
+      "line": 45,
+      "description": "Prototype pollution: /preferences deep-merges req.body (lab also cites model/merge.js).",
+      "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/13-prototype-pollution.md",
+      "inScope": true
+    },
+    {
+      "class": "path",
+      "file": "routes/extras.js",
+      "line": 17,
+      "description": "Path traversal: /download joins ?file= onto the images dir and fs.readFile's it.",
+      "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/15-path-traversal.md",
+      "inScope": true
+    },
+    {
+      "class": "cmdi",
+      "file": "routes/extras.js",
+      "line": 33,
+      "description": "Command injection: /tools/ping concatenates host into exec(`ping ... ${host}`).",
+      "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/16-command-injection.md",
+      "inScope": true
+    },
+    {
+      "class": "other",
+      "file": "routes/orders.js",
+      "line": 66,
+      "description": "BOLA/IDOR: any logged-in user can read any order id.",
+      "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/01-bola-idor.md",
+      "inScope": false,
+      "reason": "IDOR/BOLA is not a shipped SAST class"
+    },
+    {
+      "class": "other",
+      "file": "routes/account.js",
+      "line": 30,
+      "description": "Mass assignment: /account copies every profile field including role and balance.",
+      "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/04-mass-assignment.md",
+      "inScope": false,
+      "reason": "mass assignment is not a shipped SAST class"
+    },
+    {
+      "class": "other",
+      "file": "routes/orders.js",
+      "line": 28,
+      "description": "Checkout price tampering: amount_cents is taken from the client form.",
+      "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/06-price-tamper-checkout.md",
+      "inScope": false,
+      "reason": "business-logic price tampering is not a shipped SAST class"
+    },
+    {
+      "class": "other",
+      "file": "routes/orders.js",
+      "line": 22,
+      "description": "CSRF: checkout POST has no anti-CSRF token.",
+      "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/06b-csrf.md",
+      "inScope": false,
+      "reason": "CSRF is not a shipped SAST class"
+    },
+    {
+      "class": "other",
+      "file": "routes/auth.js",
+      "line": 23,
+      "description": "Logging failures: login prints the password and raw username (CRLF forge).",
+      "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/10-logging-failures.md",
+      "inScope": false,
+      "reason": "log injection / logging secrets is not a shipped SAST class"
+    },
+    {
+      "class": "other",
+      "file": ".github/workflows/ci.yml",
+      "line": 7,
+      "description": "Poisoned CI: workflow documents pull_request_target + secrets on PR builds.",
+      "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/11-poisoned-pipelines.md",
+      "inScope": false,
+      "reason": "GitHub Actions poisoning is experimental IaC, not the stable config module"
+    },
+    {
+      "class": "secrets",
+      "file": "README.md",
+      "line": 133,
+      "description": "Secret still in git history: PIPELINE_TOKEN was committed then deleted from HEAD.",
+      "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/12-secrets-in-git.md",
+      "inScope": false,
+      "reason": "history-only secrets are not in the current tree the scanner walks"
+    },
+    {
+      "class": "other",
+      "file": "routes/tools.js",
+      "line": 44,
+      "description": "ReDoS: /tools/regex compiles a user pattern with new RegExp.",
+      "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/14-redos.md",
+      "inScope": false,
+      "reason": "ReDoS is SAST-REDOS (Phase 29)"
+    },
+    {
+      "class": "config",
+      "file": "Dockerfile",
+      "line": 21,
+      "description": "Docker hardening lab: historical root USER; this SHA already has USER node.",
+      "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/17-docker-hardening.md",
+      "inScope": false,
+      "reason": "this pinned SHA already runs as USER node; not a current in-tree vuln"
+    }
+  ]
+}

@@ -1,6 +1,8 @@
 import { calleeName } from '../ast.js';
 import type { SastRule } from '../types.js';
 
+const EXTRACT_SINKS = new Set(['extractAllTo', 'extractAll', 'extract']);
+
 const PATH_SINKS = new Set([
   'sendFile',
   'readFile',
@@ -43,7 +45,19 @@ export const pathRule: SastRule = {
       CallExpression(node) {
         if (node.type !== 'CallExpression') return;
         const name = calleeName(node);
-        if (name === undefined || !PATH_SINKS.has(name)) return;
+        if (name === undefined) return;
+        if (
+          EXTRACT_SINKS.has(name) &&
+          node.callee.type === 'MemberExpression' &&
+          ctx.isTainted(node.callee.object)
+        ) {
+          ctx.report({
+            node,
+            message: 'A tainted archive is extracted to the filesystem (zip-slip).',
+          });
+          return;
+        }
+        if (!PATH_SINKS.has(name) && !EXTRACT_SINKS.has(name)) return;
         const pathArg = node.arguments[0];
         if (pathArg === undefined || pathArg.type === 'SpreadElement') return;
         if (!ctx.isTainted(pathArg)) return;

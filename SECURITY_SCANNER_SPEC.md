@@ -62,8 +62,9 @@
 - After each phase, paste the full `npm run verify:phase N` output into the phase summary.
 
 ### CI (`.github/workflows/ci.yml`)
-- Runs `npm ci && npm run verify` on Node 22 and 24, on Linux, macOS, Windows.
-- Uploads coverage report and SARIF as artifacts.
+- Push to `next`: one job, `verify` on ubuntu-24.04 × Node 24.
+- Pull request to `main` and push to `main`: the full 6-job matrix (Linux/macOS/Windows × Node 22/24). Required checks on `main` stay those six jobs.
+- Uploads coverage report and SARIF as artifacts. The `bench` job stays non-blocking and runs on `main` PRs/pushes only.
 
 ---
 
@@ -241,7 +242,7 @@ Taint-lite approach: mark sources (`req.body`, `req.query`, `req.params`, `req.h
 | ID | Rule | CWE |
 |---|---|---|
 | SAST-SQLI-001 | Tainted input concatenated into SQL string passed to query/execute | CWE-89 |
-| SAST-NOSQLI-001 | `req.body`/`req.query` object passed directly into Mongo filter | CWE-943 |
+| SAST-NOSQLI-001 | `req.body`/`req.query` object passed directly into Mongo filter, or a request field used as a filter value without coercion / schema / mongo-sanitize (medium) | CWE-943 |
 | SAST-CMDI-001 | Tainted input reaching `exec`/`execSync`/`spawn` with `shell: true` | CWE-78 |
 | SAST-PATH-001 | Tainted input in `fs.*` path or `res.sendFile` without `path.resolve` + prefix check | CWE-22 |
 | SAST-EVAL-001 | `eval`, `new Function`, `vm.runInNewContext` with non-literal | CWE-95 |
@@ -634,6 +635,7 @@ Goal: turn "possible vulnerability" into "**confirmed**, here's the proof" so de
 | 25 | 0.1.1 hardening: Windows CI + lazy `node:sqlite` + CRLF-safe diffs + `file://` `--import` | 6-way CI (Linux/macOS/Windows × Node 22/24); `node --import …/register -e 1` silent; register bundle under budget; history.db handle closed |
 | 26 | Public benchmark on pinned OWASP NodeGoat, Juice Shop, and DVNA | `npm run bench:public` writes `BENCHMARK.md` (per-app TP/FP/misses, per-class, scan time, version, SHA, Known misses). Ground truth stays `"reviewed": false` until a human flips it. CI job `bench` is non-blocking. Do not tune rules from this run. |
 | 26b | Close stable in-scope misses from that bench | Fixture per miss (positive + negative). Fix the stable rule when it is a real gap in a claimed class; otherwise README Known limitations. Do not edit `ground-truth.json` or `triage.json`. |
+| 26c | Engine gaps from the goof holdout | Root-cause engine components (taint source, param/return propagation, cross-file calls, sink matching, lockfile attribution). Generic fixtures, not copied goof. goof becomes a seen holdout. Second untouched holdout scanned once. README holdout numbers only, on unreviewed ground truth. |
 | 27 | SAST + RASP coverage gaps: numeric SQL, ORM raw sinks, template-literal shell | Every new sink has positive + negative fixtures; attack corpus ≥ 10 cases per new context; benign corpus 0 blocked; extra SAST sinks behind `FULLSHIELD_EXPERIMENTAL_SAST_GAPS` / `--experimental-sast-gaps` |
 
 ### Phase 26 — Public benchmark run (credibility first)

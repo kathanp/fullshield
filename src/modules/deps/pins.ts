@@ -12,6 +12,33 @@ export function isExactNpmVersion(spec: string): boolean {
   return /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(bare);
 }
 
+const MANIFEST_DEP_FIELDS = /"(dependencies|devDependencies|optionalDependencies)"\s*:/;
+
+/** 1-based line of `"name":` inside a dependencies block, or undefined. */
+export function lineOfManifestDep(raw: string, name: string): number | undefined {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const depLine = new RegExp(`^\\s*"${escaped}"\\s*:`);
+  let inBlock = false;
+  let depth = 0;
+  const lines = raw.split(/\n/);
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i] ?? '';
+    const startsBlock = MANIFEST_DEP_FIELDS.test(line);
+    if (startsBlock) {
+      inBlock = true;
+      depth = 0;
+    }
+    if (!inBlock) continue;
+    for (const ch of line) {
+      if (ch === '{') depth += 1;
+      if (ch === '}') depth -= 1;
+    }
+    if (depLine.test(line) && depth >= 1) return i + 1;
+    if (depth <= 0 && !startsBlock) inBlock = false;
+  }
+  return undefined;
+}
+
 export function exactPinsFromManifest(pkg: Record<string, unknown>): LockedPackage[] {
   const out: LockedPackage[] = [];
   for (const field of MANIFEST_FIELDS) {
