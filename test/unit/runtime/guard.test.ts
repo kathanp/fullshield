@@ -65,6 +65,11 @@ describe('runtime payload blocking', () => {
       rateLimit: { windowMs: 60_000, max: 20, maxKeys },
       anomaly: { learnMinutes: 60, maxRoutes, maxParamNames },
     });
+    const collect = (): void => {
+      const gc = (globalThis as { gc?: () => void }).gc;
+      gc?.();
+    };
+    collect();
     const before = process.memoryUsage().heapUsed;
     for (let i = 0; i < 100_000; i += 1) {
       inspect({
@@ -91,6 +96,7 @@ describe('runtime payload blocking', () => {
     }
     expect(inspect.routeCount).toBeLessThanOrEqual(maxRoutes);
 
+    collect();
     const after = process.memoryUsage().heapUsed;
     expect(after - before).toBeLessThan(80 * 1024 * 1024);
   });

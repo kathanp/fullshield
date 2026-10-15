@@ -16,7 +16,20 @@ export function createRateLimiter(options: RateLimitOptions) {
   return {
     allow(key: string, now = Date.now()): boolean {
       const windowStart = now - options.windowMs;
-      const prev = (hits.get(key) ?? []).filter((t) => t > windowStart);
+      const prev = hits.get(key);
+      if (prev === undefined) {
+        hits.set(key, [now]);
+        return true;
+      }
+      let keep = 0;
+      for (let i = 0; i < prev.length; i += 1) {
+        const t = prev[i];
+        if (t !== undefined && t > windowStart) {
+          prev[keep] = t;
+          keep += 1;
+        }
+      }
+      prev.length = keep;
       if (prev.length >= options.max) {
         hits.set(key, prev);
         return false;

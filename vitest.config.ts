@@ -6,7 +6,13 @@ export default defineConfig({
     // Coverage + RASP p95 + 100k flood tests contend for the same cores.
     pool: 'forks',
     poolOptions: {
-      forks: { minForks: 1, maxForks: 4 },
+      forks: {
+        minForks: 1,
+        maxForks: 4,
+        // Flood test measures retained heap; without this, Node 24 + v8 coverage
+        // reports uncollected garbage (~82 MB) against an 80 MB retained cap.
+        execArgv: ['--expose-gc'],
+      },
     },
     coverage: {
       provider: 'v8',
