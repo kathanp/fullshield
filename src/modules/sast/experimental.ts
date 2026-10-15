@@ -2,3 +2,8 @@
 export function sastGapsEnabled(): boolean {
   return process.env.FULLSHIELD_EXPERIMENTAL_SAST_GAPS === '1';
 }
+
+/** Phase 28 Next/Nest/Hono/Koa taint + AUTH. Off unless the env flag or CLI option is set. */
+export function frameworksEnabled(): boolean {
+  return process.env.FULLSHIELD_EXPERIMENTAL_FRAMEWORKS === '1';
+}

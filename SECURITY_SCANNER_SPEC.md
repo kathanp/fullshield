@@ -637,6 +637,7 @@ Goal: turn "possible vulnerability" into "**confirmed**, here's the proof" so de
 | 26b | Close stable in-scope misses from that bench | Fixture per miss (positive + negative). Fix the stable rule when it is a real gap in a claimed class; otherwise README Known limitations. Do not edit `ground-truth.json` or `triage.json`. |
 | 26c | Engine gaps from the goof holdout | Root-cause engine components (taint source, param/return propagation, cross-file calls, sink matching, lockfile attribution). Generic fixtures, not copied goof. goof becomes a seen holdout. Second untouched holdout scanned once. README holdout numbers only, on unreviewed ground truth. |
 | 27 | SAST + RASP coverage gaps: numeric SQL, ORM raw sinks, template-literal shell | Every new sink has positive + negative fixtures; attack corpus ≥ 10 cases per new context; benign corpus 0 blocked; extra SAST sinks behind `FULLSHIELD_EXPERIMENTAL_SAST_GAPS` / `--experimental-sast-gaps` |
+| 28 | Framework coverage: Next.js, NestJS, Hono, Koa taint sources + AUTH + runtime adapters | One vulnerable + one clean fixture per framework; route inventory lists every route; no new runtime deps; behind `FULLSHIELD_EXPERIMENTAL_FRAMEWORKS` / `--experimental-frameworks` |
 
 ### Phase 26 — Public benchmark run (credibility first)
 
@@ -659,5 +660,17 @@ Extra SAST sinks are **experimental** (`FULLSHIELD_EXPERIMENTAL_SAST_GAPS=1` or 
 - Template-literal shell: `exec(\`... ${x}\`)`, `execSync`, `spawn('sh', ['-c', ...])` even without `shell: true`, `execa` with `shell: true`, zx `$` only when interpolation is not auto-escaped (`$.raw`, `{ quote: false }`).
 
 Acceptance: every new sink has positive + negative fixtures; attack corpus ≥ 10 cases per new context (`numeric-sql`, `orm-raw`, `template-shell`); benign corpus still 0 blocked; Known Limitations updated.
+
+### Phase 28 — Framework coverage
+
+Taint sources and AUTH are **experimental** (`FULLSHIELD_EXPERIMENTAL_FRAMEWORKS=1` or `scan --experimental-frameworks`). Default `scan` is unchanged.
+
+- Next.js App Router `request.json()` / `searchParams`, Server Actions `formData.get`, Pages API `req.query`.
+- NestJS `@Body()` / `@Query()` / `@Param()` / `@Headers()`; `@UseGuards` counts as auth.
+- Hono `c.req.query()` / `c.req.json()` / `c.req.param()`.
+- Koa `ctx.request.body` / `ctx.query` / `ctx.params`.
+- Runtime adapters `fullshield/runtime/koa` and `fullshield/runtime/hono` (optional peers; no new required deps).
+
+Acceptance: one vulnerable + one clean fixture per framework; route inventory lists every route; no new runtime dependencies.
 
 - Show a real before/after: run it on a public, intentionally vulnerable Node app (e.g. OWASP NodeGoat or Juice Shop), list what it found and what it missed. Publishing the misses builds more trust than hiding them.

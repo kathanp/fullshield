@@ -70,6 +70,7 @@ const PREVIOUS_PHASE_TESTS = {
   24: 407,
   25: 439,
   26: 443,
+  27: 505,
 };
 
 function listFilesRecursive(dir, out = []) {
@@ -986,7 +987,7 @@ s.listen(0, '127.0.0.1', () => {
     if (bytes <= 0 || bytes >= 256_000) {
       fail(`phase 25 acceptance: register bundle size ${bytes} outside budget`);
     }
-    for (const name of ['register.js', 'auto.js', 'express.js', 'fastify.js', 'index.js']) {
+    for (const name of ['register.js', 'auto.js', 'express.js', 'fastify.js', 'koa.js', 'hono.js', 'index.js']) {
       const text = readFileSync(join(root, 'dist', 'runtime', name), 'utf8');
       if (/from\s+['"]node:sqlite['"]/.test(text) || /require\(\s*['"]node:sqlite['"]\s*\)/.test(text)) {
         fail(`phase 25 acceptance: ${name} statically loads node:sqlite`);
@@ -1137,6 +1138,47 @@ s.listen(0, '127.0.0.1', () => {
       fail('phase 27 acceptance: README Known Limitations still lists numeric SQL/ORM/template-shell as untested');
     }
     console.log('  ✔ numeric/ORM/template-shell corpora blocked; benign 0; extra SAST sinks experimental');
+  },
+  // Phase 28: Next/Nest/Hono/Koa taint sources + AUTH + runtime adapters (experimental).
+  28: () => {
+    const cliHelp = spawnSync(
+      process.execPath,
+      [join(root, 'dist', 'cli', 'index.js'), 'scan', '--help'],
+      { cwd: root, encoding: 'utf8' },
+    );
+    if (!cliHelp.stdout.includes('--experimental-frameworks')) {
+      fail('phase 28 acceptance: scan --help missing --experimental-frameworks');
+    }
+    const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+    if (pkg.dependencies?.koa !== undefined || pkg.dependencies?.hono !== undefined) {
+      fail('phase 28 acceptance: koa/hono must not be runtime dependencies');
+    }
+    if (pkg.peerDependencies?.koa === undefined || pkg.peerDependencies?.hono === undefined) {
+      fail('phase 28 acceptance: koa and hono must be optional peerDependencies');
+    }
+    if (pkg.peerDependenciesMeta?.koa?.optional !== true || pkg.peerDependenciesMeta?.hono?.optional !== true) {
+      fail('phase 28 acceptance: koa/hono peers must be optional');
+    }
+    if (pkg.exports?.['./runtime/koa'] === undefined || pkg.exports?.['./runtime/hono'] === undefined) {
+      fail('phase 28 acceptance: package exports missing runtime/koa or runtime/hono');
+    }
+    for (const rel of [
+      'test/fixtures/frameworks/next-vuln/app/api/items/route.ts',
+      'test/fixtures/frameworks/next-clean/app/api/items/route.ts',
+      'test/fixtures/frameworks/nest-vuln/items.controller.ts',
+      'test/fixtures/frameworks/nest-clean/items.controller.ts',
+      'test/fixtures/frameworks/hono-vuln/index.ts',
+      'test/fixtures/frameworks/hono-clean/index.ts',
+      'test/fixtures/frameworks/koa-vuln/index.ts',
+      'test/fixtures/frameworks/koa-clean/index.ts',
+    ]) {
+      if (!existsSync(join(root, rel))) fail(`phase 28 acceptance: missing fixture ${rel}`);
+    }
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!readme.includes('FULLSHIELD_EXPERIMENTAL_FRAMEWORKS')) {
+      fail('phase 28 acceptance: README must document FULLSHIELD_EXPERIMENTAL_FRAMEWORKS');
+    }
+    console.log('  ✔ experimental Next/Nest/Hono/Koa taint; optional runtime peers; vuln+clean fixtures');
   },
 };
 

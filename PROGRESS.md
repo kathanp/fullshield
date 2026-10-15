@@ -649,6 +649,19 @@ Acceptance: CI Windows×Node 22/24; `--import` file:// silent; register budget; 
 
 **Launch status (corrected):** `fullshield@0.1.0` **is live** on npm (`latest=0.1.0`, provenance). Placeholders `0.0.0-stage` and `0.0.1` are deprecated. Phase 25 is committed and pushed as `3c507d6`.
 
+## Phase 28 — framework coverage (on `next`)
+
+Experimental (`FULLSHIELD_EXPERIMENTAL_FRAMEWORKS=1` / `scan --experimental-frameworks`). Default `scan` unchanged.
+
+- Next.js: `request.json()`, `searchParams.get`, Server Action `formData.get`, Pages `req.query`; AUTH via `auth()` / `cookies()`.
+- NestJS: `@Body/@Query/@Param/@Headers`; AUTH via `@UseGuards`.
+- Hono: `c.req.query/json/param`; AUTH via named middleware.
+- Koa: `ctx.request.body` / `ctx.query` / `ctx.params`; AUTH via named middleware.
+- Runtime: `fullshield/runtime/koa`, `fullshield/runtime/hono` (optional peers).
+- Route inventory lists every fixture route.
+
+**Verify (`npm run verify:phase 28`, PASSED):** 520 tests. 92.44% lines / 82.98% branches. expected 30/30. vulnerable-app 35. clean-app 0 high/critical.
+
 ## Phase 27 — SAST + RASP coverage gaps (on `next`)
 
 **Tests: 469** (was 443). Extra SAST sinks are **experimental** (`FULLSHIELD_EXPERIMENTAL_SAST_GAPS=1` / `scan --experimental-sast-gaps`). Default `scan` is unchanged.
@@ -666,7 +679,7 @@ Acceptance: CI Windows×Node 22/24; `--import` file:// silent; register budget; 
 
 **Stable behavior:** unchanged unless the experimental flag is set. RASP ORM hooks extend existing experimental RASP (`FULLSHIELD_EXPERIMENTAL_RASP=1`).
 
-**Deferred:** Phases 28–29 (frameworks, new vuln classes). Not merged to main. Not tagged.
+**Deferred:** Phase 28–29 were next; 28 is now in progress on `next`.
 
 ## Phase 26b — stable public-bench misses (on `next`)
 

@@ -1,6 +1,12 @@
 import type { TSESTree } from '@typescript-eslint/typescript-estree';
 
 import { calleeName, isFunctionNode, literalString, walk } from '../ast.js';
+import {
+  handlerHasFrameworkAuth,
+  isNestHttpMethod,
+  isNextHandler,
+  nestMethodHasGuard,
+} from '../frameworks.js';
 import type { AstNode, SastRule } from '../types.js';
 
 const ROUTES = new Set(['get', 'post', 'put', 'patch', 'delete', 'all']);
@@ -51,6 +57,22 @@ export const authRule: SastRule = {
         ctx.report({
           node,
           message: `Route ${path ?? '(dynamic)'} touches database/user data with no auth middleware in the chain.`,
+        });
+      },
+      FunctionDeclaration(node) {
+        if (!isNextHandler(node) || !handlerTouchesDb(node) || handlerHasFrameworkAuth(node)) return;
+        ctx.report({
+          node,
+          message: `Next.js handler ${node.type === 'FunctionDeclaration' && node.id ? node.id.name : ''} touches database/user data with no auth() / session check.`,
+        });
+      },
+      MethodDefinition(node) {
+        if (node.type !== 'MethodDefinition' || !isNestHttpMethod(node)) return;
+        if (nestMethodHasGuard(node)) return;
+        if (!handlerTouchesDb(node.value)) return;
+        ctx.report({
+          node,
+          message: 'NestJS handler touches database/user data with no UseGuards / AuthGuard.',
         });
       },
     };

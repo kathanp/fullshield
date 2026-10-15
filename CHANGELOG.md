@@ -7,6 +7,11 @@ All notable changes to FullShield are documented here.
 - Publish CI uses `npm publish --provenance --access public` (no staged-manifest edits). The unpublished `v0.1.2` tag was deleted.
 - CI: push to `next` runs `verify` on ubuntu-24.04 × Node 24 only. The full 6-job matrix (and the non-blocking `bench` job) runs on pull requests to `main` and on push to `main`. Required checks on `main` stay the six matrix jobs.
 
+### Phase 28 — framework coverage
+
+- Experimental Next.js / NestJS / Hono / Koa taint sources and AUTH (`FULLSHIELD_EXPERIMENTAL_FRAMEWORKS=1` / `scan --experimental-frameworks`). Default `scan` is unchanged.
+- Runtime adapters `fullshield/runtime/koa` and `fullshield/runtime/hono` (optional peers; not required dependencies).
+
 ### NoSQL constructed-filter values
 
 **New stable findings — may change CI results; use `--update-baseline`:**

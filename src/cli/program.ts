@@ -59,6 +59,7 @@ interface ScanCliOptions {
   changed?: boolean;
   since?: string;
   experimentalSastGaps?: boolean;
+  experimentalFrameworks?: boolean;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -122,6 +123,10 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       '--experimental-sast-gaps',
       'experimental: ORM raw / sh -c / execa / zx sinks (FULLSHIELD_EXPERIMENTAL_SAST_GAPS=1)',
     )
+    .option(
+      '--experimental-frameworks',
+      'experimental: Next.js / NestJS / Hono / Koa taint + AUTH (FULLSHIELD_EXPERIMENTAL_FRAMEWORKS=1)',
+    )
     .action(async (path: string, opts: ScanCliOptions) => {
       try {
         const failOnOverride = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;
@@ -129,6 +134,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         const ai = parseAiMode(opts.ai);
         if (opts.experimentalSastGaps === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_SAST_GAPS = '1';
+        }
+        if (opts.experimentalFrameworks === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_FRAMEWORKS = '1';
         }
 
         const result = await scan({

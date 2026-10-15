@@ -12,6 +12,14 @@ import {
   REQUEST_SOURCE_PROPS,
   walk,
 } from './ast.js';
+import {
+  isFrameworkMemberTaint,
+  isFrameworkRequestObject,
+  isFrameworkTaintCall,
+  nestDecoratorArgCount,
+  nestInputDecorator,
+} from './frameworks.js';
+import { frameworksEnabled } from './experimental.js';
 import type { AstNode } from './types.js';
 
 export type SinkSanitizer = 'url' | 'xss';
@@ -95,8 +103,10 @@ function exprIsTainted(
   returners: ReadonlySet<string> = NO_RETURNERS,
 ): boolean {
   if (node === undefined) return false;
-  if (isTaintSource(node)) return true;
+  if (isTaintSource(node) || isFrameworkMemberTaint(node) || isFrameworkTaintCall(node)) return true;
   switch (node.type) {
+    case 'AwaitExpression':
+      return exprIsTainted(node.argument, tainted, returners);
     case 'Identifier':
       return tainted.has(node.name);
     case 'MemberExpression':
@@ -208,6 +218,16 @@ function seedDestructuredRequestParams(scope: AstNode, tainted: Set<string>): vo
   }
 }
 
+function seedFrameworkParams(scope: AstNode, tainted: Set<string>): void {
+  if (!frameworksEnabled() || !isFunctionNode(scope)) return;
+  for (const param of scope.params) {
+    if (param.type === 'Identifier' && param.name === 'formData') tainted.add('formData');
+    const nest = nestInputDecorator(param);
+    if (nest === undefined) continue;
+    for (const name of boundNames(param)) tainted.add(name);
+  }
+}
+
 function analyzeScope(
   scope: AstNode,
   seed: Iterable<string> = [],
@@ -215,6 +235,7 @@ function analyzeScope(
 ): ScopeFacts {
   const tainted = new Set<string>(seed);
   seedDestructuredRequestParams(scope, tainted);
+  seedFrameworkParams(scope, tainted);
   const urlSanitized = new Set<string>();
   const xssSanitized = new Set<string>();
   const nosqlSanitized = new Set<string>();
@@ -296,11 +317,27 @@ function analyzeScope(
   }
 
   const requestObjects = new Set<string>();
+  if (frameworksEnabled() && isFunctionNode(scope)) {
+    for (const param of scope.params) {
+      const nest = nestInputDecorator(param);
+      if (nest === 'Body' || nest === 'Query' || nest === 'Param') {
+        if (nestDecoratorArgCount(param, nest) === 0) {
+          for (const name of boundNames(param)) requestObjects.add(name);
+        }
+      }
+    }
+  }
   walkScope(scope, (node) => {
     if (node.type === 'VariableDeclarator' && node.init !== null && isRequestObjectNode(node.init)) {
       for (const name of boundNames(node.id)) requestObjects.add(name);
     }
     if (node.type === 'AssignmentExpression' && isRequestObjectNode(node.right)) {
+      for (const name of boundNames(node.left)) requestObjects.add(name);
+    }
+    if (node.type === 'VariableDeclarator' && node.init !== null && isFrameworkRequestObject(node.init)) {
+      for (const name of boundNames(node.id)) requestObjects.add(name);
+    }
+    if (node.type === 'AssignmentExpression' && isFrameworkRequestObject(node.right)) {
       for (const name of boundNames(node.left)) requestObjects.add(name);
     }
   });
@@ -462,7 +499,7 @@ export function nodeIsSanitizedFor(
 }
 
 export function nodeIsRequestObject(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): boolean {
-  if (isRequestObjectNode(node)) return true;
+  if (isRequestObjectNode(node) || isFrameworkRequestObject(node)) return true;
   if (node.type === 'Identifier') return factsFor(node, map).requestObjects.has(node.name);
   return false;
 }

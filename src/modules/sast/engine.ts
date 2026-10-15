@@ -47,7 +47,7 @@ export const sastRules: readonly SastRule[] = [
 
 const SOURCE_EXT = /\.[cm]?[jt]sx?$/;
 
-async function parseSource(code: string): Promise<AstNode> {
+export async function parseSource(code: string): Promise<AstNode> {
   const { parse } = await import('@typescript-eslint/typescript-estree');
   return parse(code, {
     loc: true,

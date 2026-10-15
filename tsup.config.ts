@@ -7,6 +7,8 @@ export default defineConfig({
     'runtime/index': 'src/runtime/index.ts',
     'runtime/express': 'src/runtime/express.ts',
     'runtime/fastify': 'src/runtime/fastify.ts',
+    'runtime/koa': 'src/runtime/koa.ts',
+    'runtime/hono': 'src/runtime/hono.ts',
     'runtime/rasp': 'src/runtime/rasp/index.ts',
     'runtime/register': 'src/runtime/register.ts',
     'runtime/auto': 'src/runtime/auto.ts',
