@@ -1,6 +1,6 @@
 # SAST-NOSQLI-001
 
-**req.body/req.query passed as a Mongo filter.** CWE-943.
+**req.body/req.query passed as a Mongo filter, or a tainted `$where` string.** CWE-943.
 
 ## Remediation
 

@@ -1,6 +1,6 @@
 # FullShield
 
-**v0.1.2 / alpha.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
+**v0.1.1 / alpha.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
 
 **Headline: dependency reachability.** A lockfile CVE is not the same as an unused package. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (lockfile path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), `not-imported` (−2, only when no such path exists), or `reachability-unknown` (severity kept) when the lockfile format has no parsed dependency edges. DevDependency-only vulns are `info` with a `dev-only` note unless production sources import the package. Pair it with `fullshield sbom --format cyclonedx`.
 
@@ -71,7 +71,16 @@ Experimental RASP structure-change scoring on the vendored PayloadsAllTheThings 
 
 Path 51/51 and SSRF 39/39 on the same corpus. Benign corpus stays 0 blocked. Prefer `mode: 'monitor'`.
 
-These fixtures are self-authored and cover **string-concatenation sinks only**. Untested contexts include numeric SQL (`WHERE id = ` + input), ORM raw queries, and template-literal shell calls.
+These fixtures are self-authored. Numeric SQL (`WHERE id = ` + input), ORM raw-query APIs (Prisma/Sequelize/Knex/TypeORM/Drizzle/`$where`), and template-literal shell (`exec(\`…${x}\`)`, `spawn('sh', ['-c', …])`, execa `shell: true`, zx `$.raw`) are covered in the attack corpus. Extra SAST sinks for those ORM / `sh -c` / execa / zx shapes stay behind `FULLSHIELD_EXPERIMENTAL_SAST_GAPS=1` (or `scan --experimental-sast-gaps`) so default `scan` behavior does not change. Mongo `$where` strings are **stable** SAST (Juice Shop track-order / reviews).
+
+In-scope public-bench patterns we still do not claim (one line each):
+
+- Swig `{{firstName}}` in `.html` — XSS only if autoescape is off in another file; we flag `autoescape: false`, not the template line.
+- Juice Shop track-order XSS — server returns `res.json`; we do not treat JSON fields as HTML sinks.
+- Juice Shop `url.includes(allowedUrl)` — weak allowlist helper is not a redirect sink; we flag `res.redirect(tainted)`.
+- Juice Shop `{ _id: req.body.id }` — nested Mongo operator injection, not a whole `req.body` filter.
+- `DEPS-VULN-001` — attributed to the lockfile with no line; `--offline-safe` on a cache-less clone emits no OSV hits (`package.json:N` will not match).
+- DVNA calculator “stack leak” — that line is `mathjs.eval` (`SAST-EVAL-001`), not `err.stack`.
 
 ## Quick start
 
@@ -125,6 +134,7 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | `iac` | **Experimental** light IaC (`FULLSHIELD_EXPERIMENTAL_IAC=1`): GHA, Terraform, Kubernetes, docker-compose. Not a full IaC scanner. |
 | `agent` | **Experimental** remediation agent (`FULLSHIELD_EXPERIMENTAL_AGENT=1`). Mock/localhost GitHub API + local git remote only — never a real network. Never merges, never pushes to `main`/`master`. `--max-prs` (default 3). |
 | `scan --changed` / `--since` | **Experimental** incremental scan (`FULLSHIELD_EXPERIMENTAL_PLATFORM=1`). |
+| `scan --experimental-sast-gaps` | **Experimental** extra SAST sinks: ORM raw SQL, mongoose `$where`, `spawn('sh', ['-c'])`, execa `shell: true`, zx `$.raw` (`FULLSHIELD_EXPERIMENTAL_SAST_GAPS=1`). |
 
 Inline ignore (reason required): `// fullshield-ignore SAST-SQLI-001: reviewed`
 
@@ -134,7 +144,7 @@ See [`rules/README.md`](rules/README.md).
 
 ## Benchmarks
 
-Honest NodeGoat / DVNA results (what we found and what we missed) live in [`benchmarks/REPORT.md`](benchmarks/REPORT.md). Live Ollama smoke results (not CI) live in [`benchmarks/AI-REPORT.md`](benchmarks/AI-REPORT.md).
+Public-app detection results (OWASP NodeGoat, Juice Shop, DVNA, plus holdout `snyk-labs/nodejs-goof`) live in [`BENCHMARK.md`](BENCHMARK.md). Those ground-truth files are still `"reviewed": false` — do not cite headline precision/recall until a human flips that flag. Holdout results do not drive rule changes. Self-authored fixture notes live in [`benchmarks/REPORT.md`](benchmarks/REPORT.md). Live Ollama smoke results (not CI) live in [`benchmarks/AI-REPORT.md`](benchmarks/AI-REPORT.md).
 
 ### Cursor MCP (`mcp.json`)
 

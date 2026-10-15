@@ -4,10 +4,36 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
-## 0.1.2 — 2026-10-15
+- Publish CI uses `npm publish --provenance --access public` (no staged-manifest edits). The unpublished `v0.1.2` tag was deleted.
 
-- Staging via libnpmpublish now injects `README.md` into the registry manifest. The 0.1.0 tarball already contained root `README.md`, but the packument `readme` stayed empty because the CLI injects that field and our stage script did not.
-- 0.1.1 was staged with provenance and never 2FA-approved, so `latest` stayed 0.1.0.
+### Phase 26b — stable public-bench misses
+
+**New stable findings — may change CI results; use `--update-baseline`:**
+
+- `SAST-NOSQLI-001` — Mongo `$where` with a tainted string
+- `SAST-REDIRECT-001` — destructured `{ query }` as a taint source (`res.redirect(query.to)`)
+- `SAST-CRYPTO-001` — `md5(tainted)` used as a reset token
+- `SAST-XSS-001` — `autoescape: false`
+- `CONFIG-HELMET-001` — commented-out `helmet` (line-attributed; not a new detection on NodeGoat)
+- `CONFIG-DIRLIST-001` — `serveIndex()` directory listing
+- `SECRET-SESSION-001` — hardcoded `express-session` secret
+
+Remaining in-scope misses (Swig `{{ }}` template line, JSON XSS, `includes()` allowlist, nested `{ _id: req.body.id }`, deps lockfile/offline, DVNA calc vs eval) stay in README Known limitations. Ground truth files were not edited to improve numbers.
+
+Holdout: `bench:public` also clones pinned `snyk-labs/nodejs-goof`. Rules are not tuned from that app.
+
+### Phase 27 — SAST + RASP coverage gaps
+
+- RASP treats extra tokens in unquoted numeric SQL (`WHERE id = 1 OR 1=1`) as a structure change; a single number (`42`) stays allowed.
+- Experimental SAST sinks (`FULLSHIELD_EXPERIMENTAL_SAST_GAPS=1` / `scan --experimental-sast-gaps`): Prisma `$queryRawUnsafe` / `$executeRawUnsafe` / `Prisma.raw`, Knex `raw`/`whereRaw`/`orderByRaw`, TypeORM `createQueryBuilder().where(concat)`, Drizzle `sql.raw`, mongoose `$where`, `spawn('sh', ['-c'])`, execa `shell: true`, zx `$.raw` / `{ quote: false }`. Prisma `$queryRaw` tagged templates and default zx `$` are not flagged. Default `scan` is unchanged.
+- RASP load-time hooks for `@prisma/client`, `sequelize`, `knex`, `typeorm`, `drizzle-orm`, and mongoose `$where`.
+- Attack corpus adds ≥10 cases each for `numeric-sql`, `orm-raw`, and `template-shell`. Benign corpus still 0 blocked.
+
+### Phase 26 — public benchmark harness
+
+- `npm run bench:public` clones pinned OWASP NodeGoat, Juice Shop, and DVNA SHAs, scans with `--json --offline-safe`, and writes `BENCHMARK.md`. Ground truth is exhaustive vs each app’s official docs, with `inScope` and `"reviewed": false`. Unmatched findings are triaged in `bench/<app>/triage.json`.
+- CI job `bench` (ubuntu-24.04, Node 24) uploads `BENCHMARK.md` and is non-blocking.
+- `scan --offline-safe` is an alias of `--offline`.
 
 ## 0.1.1 — 2026-10-15
 

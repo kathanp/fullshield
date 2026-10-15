@@ -19,6 +19,12 @@ Experimental. Off unless `FULLSHIELD_EXPERIMENTAL_RASP=1`. Default mode `monitor
 | `better-sqlite3` `prototype.exec` / `prepare` | `Module._load` | SQL text |
 | `mongodb` `Collection.prototype.find` | `Module._load` | NoSQL `$` operators from user input |
 | `mongoose` `Query.prototype.find` | `Module._load` | NoSQL `$` operators from user input |
+| `mongoose` `Query.prototype.$where` / `Model.prototype.$where` | `Module._load` | `$where` JS string structure-change |
+| `@prisma/client` `PrismaClient.$queryRawUnsafe` / `$executeRawUnsafe` / `$queryRaw` / `$executeRaw`, `Prisma.raw` | `Module._load` | SQL text |
+| `sequelize` `Sequelize.prototype.query` / `literal` | `Module._load` | SQL text |
+| `knex` `.raw` / `Client.prototype.raw` / `whereRaw` / `orderByRaw` / `query` | `Module._load` | SQL text |
+| `typeorm` `DataSource`/`EntityManager`/`QueryRunner`/`Connection.query`, `SelectQueryBuilder.where` | `Module._load` | SQL text |
+| `drizzle-orm` `sql.raw` | `Module._load` | SQL text |
 | `axios` `request` / `get` / `post` | `Module._load` | SSRF URL |
 | `express()` | `Module._load` | installs `raspContext()` (ALS + proto keys); `response.redirect` is SSRF-checked |
 
@@ -32,7 +38,7 @@ Request context is `AsyncLocalStorage` (`enterRaspContext` / `raspContext` middl
 | Template render (`ejs` / `pug` / `nunjucks` / `<%-`) | Not hooked. |
 | `child_process.spawn` / `execFile` **without** `shell: true` | Args are data, not a shell string. |
 | `mongodb` `aggregate` / `update*` / `findOne` | Only `find` is wrapped. |
-| `mongoose` other Query methods | Only `find` is wrapped. |
+| `mongoose` other Query methods | `find` and `$where` are wrapped; `update*` / `aggregate` are not. |
 | `axios` `put` / `patch` / `delete` / instance clients | Only `request` / `get` / `post` on the export. |
 | `undici.request` / `dispatcher` | Only `fetch` and `http(s).request`. |
 | `pg` query values (bind params) | Only SQL `text` is tokenized. |

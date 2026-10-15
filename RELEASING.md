@@ -1,6 +1,6 @@
 # Releasing FullShield
 
-Published from GitHub Actions with [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) (OIDC). There is no `NPM_TOKEN` secret. CI runs `npm stage publish --provenance --access public`; a maintainer then approves with 2FA so the version goes live. Provenance only works from a **public** GitHub repository.
+Published from GitHub Actions with [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) (OIDC). There is no `NPM_TOKEN` secret. CI runs `npm publish --provenance --access public`. Do not edit the staged manifest. Provenance only works from a **public** GitHub repository.
 
 The npm package `fullshield` already exists (`0.0.0-stage` and `0.0.1` placeholders, maintainer `kathan2404`). Do not publish another placeholder.
 
@@ -25,7 +25,7 @@ git push -u origin main
    - Repository: `fullshield`
    - Workflow filename: `publish.yml`
    - Environment: leave blank
-   - Allow npm publish: optional (CI uses `npm stage publish`, which is always allowed)
+   - Allow npm publish: required for `npm publish --provenance`
    - Save. Do not add `NPM_TOKEN`. Do not create a GitHub Environment for publish.
 6. Confirm the GitHub repo is **public**, then publish 0.1.0 from CI:
 
@@ -35,8 +35,7 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-   Watch the Actions **Publish** job until it is green (OIDC probe, `npm run build`, then `npm stage publish --provenance --access public`). CI on `main` is the test gate; Publish does not re-run `verify`. Direct `npm publish` from CI is rejected with `E403`.
-   Then approve the staged `0.1.0` with 2FA (npmjs.com → **Staged Packages → Approve**, or `npm stage list` / `npm stage approve <id>`).
+   Watch the Actions **Publish** job until it is green (OIDC probe, `npm run build`, then `npm publish --provenance --access public`). CI on `main` is the test gate; Publish does not re-run `verify`.
 7. Deprecate placeholders and confirm `latest`:
 
 ```bash
@@ -54,6 +53,8 @@ npx fullshield@0.1.0 scan ~/fullshield-bench/NodeGoat --offline
 ```
 
 If a published version is broken: bump (never reuse a number), tag, then deprecate the bad version. Do not unpublish.
+
+**Staged approval and README:** Approving a staged package can leave the registry packument `readme` empty even when the tarball contains `package/README.md` (`npm view fullshield@<version> readme` is blank; npmjs.com may keep showing the previous version). This is an npm registry/website issue, not a missing file in the pack. See [npm/cli#9405](https://github.com/npm/cli/issues/9405). Keep 2FA approval on. Do not inject README text into the staged manifest (Cloudflare WAF blocked that). Do not change the publish command to work around it.
 
 ## Later releases
 

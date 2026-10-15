@@ -1,0 +1,110 @@
+{
+  "reviewed": false,
+  "findings": [
+    {
+      "ruleId": "DEPS-VULN-001",
+      "file": "package.json",
+      "line": 0,
+      "verdict": "realIssue",
+      "reason": "OSV/lockfile advisory on an installed package"
+    },
+    {
+      "ruleId": "DEPS-VULN-001",
+      "file": "package.json",
+      "line": 0,
+      "verdict": "realIssue",
+      "reason": "OSV/lockfile advisory on an installed package"
+    },
+    {
+      "ruleId": "DEPS-VULN-001",
+      "file": "package.json",
+      "line": 0,
+      "verdict": "realIssue",
+      "reason": "OSV/lockfile advisory on an installed package"
+    },
+    {
+      "ruleId": "DEPS-VULN-001",
+      "file": "package.json",
+      "line": 0,
+      "verdict": "realIssue",
+      "reason": "OSV/lockfile advisory on an installed package"
+    },
+    {
+      "ruleId": "SAST-XSS-001",
+      "file": "views/app/products.ejs",
+      "line": 50,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-XSS-001",
+      "file": "views/app/products.ejs",
+      "line": 51,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-XSS-001",
+      "file": "views/app/products.ejs",
+      "line": 52,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-XSS-001",
+      "file": "views/app/products.ejs",
+      "line": 53,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "SAST-CRYPTO-001",
+      "file": "core/authHandler.js",
+      "line": 78,
+      "verdict": "unsure",
+      "reason": "SAST hit did not match an in-scope ground-truth file/line"
+    },
+    {
+      "ruleId": "CONFIG-DOCKER-ROOT-001",
+      "file": "Dockerfile",
+      "line": 0,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "SECRET-SESSION-001",
+      "file": "docs/solution/a2-broken-auth.md",
+      "line": 50,
+      "verdict": "falsePositive",
+      "reason": "secret-shaped text in documentation or challenge YAML"
+    },
+    {
+      "ruleId": "CONFIG-RATELIMIT-001",
+      "file": "routes/main.js",
+      "line": 10,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-RATELIMIT-001",
+      "file": "routes/main.js",
+      "line": 51,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "CONFIG-HELMET-001",
+      "file": "server.js",
+      "line": 0,
+      "verdict": "realIssue",
+      "reason": "config rule hit a real missing header/limit/CORS/rate-limit pattern"
+    },
+    {
+      "ruleId": "DEPS-NOLOCK-001",
+      "file": "package.json",
+      "line": 0,
+      "verdict": "realIssue",
+      "reason": "OSV/lockfile advisory on an installed package"
+    }
+  ]
+}

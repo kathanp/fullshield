@@ -48,6 +48,7 @@ interface ScanCliOptions {
   modules?: string;
   staged?: boolean;
   offline?: boolean;
+  offlineSafe?: boolean;
   config?: string;
   sarif?: string;
   markdown?: string;
@@ -57,6 +58,7 @@ interface ScanCliOptions {
   emitVirtualPatches?: boolean | string;
   changed?: boolean;
   since?: string;
+  experimentalSastGaps?: boolean;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -106,6 +108,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option('--modules <modules>', 'comma-separated subset of modules to run')
     .option('--staged', 'scan only files staged in git (pre-commit mode)')
     .option('--offline', 'use the OSV cache only (no network)')
+    .option('--offline-safe', 'alias of --offline')
     .option('--config <path>', 'path to fullshield.config.json')
     .option('--sarif <file>', 'write a SARIF 2.1.0 report to this path')
     .option('--markdown <file>', 'write a Markdown report to this path')
@@ -115,18 +118,25 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option('--emit-virtual-patches [file]', 'experimental: write .fullshield/vpatches.json')
     .option('--changed', 'experimental: scan git staged/changed files only')
     .option('--since <ref>', 'experimental: scan files changed since a git ref')
+    .option(
+      '--experimental-sast-gaps',
+      'experimental: ORM raw / sh -c / execa / zx sinks (FULLSHIELD_EXPERIMENTAL_SAST_GAPS=1)',
+    )
     .action(async (path: string, opts: ScanCliOptions) => {
       try {
         const failOnOverride = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;
         const modules = opts.modules !== undefined ? parseModules(opts.modules) : undefined;
         const ai = parseAiMode(opts.ai);
+        if (opts.experimentalSastGaps === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_SAST_GAPS = '1';
+        }
 
         const result = await scan({
           cwd: resolve(path),
           modules,
           configPath: opts.config,
           staged: opts.staged === true,
-          offline: opts.offline === true,
+          offline: opts.offline === true || opts.offlineSafe === true,
           updateBaseline: opts.updateBaseline === true,
           ai,
           changed: opts.changed === true,

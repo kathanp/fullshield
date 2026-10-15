@@ -83,16 +83,37 @@ function patchMethod(obj: object, key: string, wrapper: (orig: (...args: never[]
   });
 }
 
+function sqlTextFrom(sql: unknown): string {
+  if (typeof sql === 'string') return sql;
+  if (Array.isArray(sql)) {
+    return sql.filter((part): part is string => typeof part === 'string').join(' ');
+  }
+  if (sql !== null && typeof sql === 'object') {
+    const rec = sql as Record<string, unknown>;
+    if (typeof rec.text === 'string') return rec.text;
+    if (typeof rec.sql === 'string') return rec.sql;
+    if (Array.isArray(rec.strings)) {
+      return rec.strings.filter((part): part is string => typeof part === 'string').join(' ');
+    }
+  }
+  return '';
+}
+
 function wrapSqlMethod(obj: object, key: string): void {
   patchMethod(obj, key, (orig) => {
     return function (this: unknown, sql: unknown, ...rest: unknown[]) {
-      const text =
-        typeof sql === 'string'
-          ? sql
-          : sql && typeof sql === 'object' && 'text' in sql && typeof sql.text === 'string'
-            ? sql.text
-            : '';
-      return applySink('sql', text, undefined, () => orig.call(this, sql as never, ...(rest as never[])));
+      return applySink('sql', sqlTextFrom(sql), undefined, () =>
+        orig.call(this, sql as never, ...(rest as never[])),
+      );
+    };
+  });
+}
+
+function wrapNosqlWhere(obj: object, key: string): void {
+  patchMethod(obj, key, (orig) => {
+    return function (this: unknown, expr: unknown, ...rest: unknown[]) {
+      const sink = typeof expr === 'string' ? { $where: expr } : (expr ?? {});
+      return applySink('nosql', sink, undefined, () => orig.call(this, expr as never, ...(rest as never[])));
     };
   });
 }
@@ -419,6 +440,57 @@ export function wrapKnownPackage(request: string, exported: unknown): unknown {
     wrappedPackages.add(obj);
     return exported;
   }
+  if (name === '@prisma/client' || name === 'prisma' || name.endsWith('/@prisma/client')) {
+    const client = (exported as { PrismaClient?: { prototype: object } }).PrismaClient?.prototype;
+    if (client) {
+      wrapSqlMethod(client, '$queryRawUnsafe');
+      wrapSqlMethod(client, '$executeRawUnsafe');
+      wrapSqlMethod(client, '$queryRaw');
+      wrapSqlMethod(client, '$executeRaw');
+    }
+    const Prisma = (exported as { Prisma?: object }).Prisma;
+    if (Prisma) wrapSqlMethod(Prisma, 'raw');
+    wrappedPackages.add(obj);
+    return exported;
+  }
+  if (name === 'sequelize' || name.endsWith('/sequelize')) {
+    const rec = exported as { Sequelize?: { prototype?: object; literal?: unknown }; prototype?: object; literal?: unknown };
+    const proto = rec.Sequelize?.prototype ?? rec.prototype;
+    if (proto) wrapSqlMethod(proto, 'query');
+    if (typeof rec.literal === 'function') wrapSqlMethod(rec, 'literal');
+    if (rec.Sequelize && typeof rec.Sequelize.literal === 'function') wrapSqlMethod(rec.Sequelize, 'literal');
+    wrappedPackages.add(obj);
+    return exported;
+  }
+  if (name === 'knex' || name.endsWith('/knex')) {
+    if (typeof (exported as { raw?: unknown }).raw === 'function') wrapSqlMethod(obj, 'raw');
+    const client = (exported as { Client?: { prototype?: object } }).Client?.prototype;
+    if (client) {
+      wrapSqlMethod(client, 'raw');
+      wrapSqlMethod(client, 'whereRaw');
+      wrapSqlMethod(client, 'orderByRaw');
+      wrapSqlMethod(client, 'query');
+    }
+    wrappedPackages.add(obj);
+    return exported;
+  }
+  if (name === 'typeorm' || name.endsWith('/typeorm')) {
+    const rec = exported as Record<string, { prototype?: object } | undefined>;
+    for (const cls of ['DataSource', 'EntityManager', 'QueryRunner', 'Connection']) {
+      const proto = rec[cls]?.prototype;
+      if (proto) wrapSqlMethod(proto, 'query');
+    }
+    const qb = rec.SelectQueryBuilder?.prototype ?? rec.QueryBuilder?.prototype;
+    if (qb) wrapSqlMethod(qb, 'where');
+    wrappedPackages.add(obj);
+    return exported;
+  }
+  if (name === 'drizzle-orm' || name.endsWith('/drizzle-orm')) {
+    const sql = (exported as { sql?: object }).sql;
+    if (sql) wrapSqlMethod(sql, 'raw');
+    wrappedPackages.add(obj);
+    return exported;
+  }
   if (name === 'mongodb' || name.includes('mongodb')) {
     const col = (exported as { Collection?: { prototype: object } }).Collection?.prototype;
     if (col) {
@@ -439,7 +511,10 @@ export function wrapKnownPackage(request: string, exported: unknown): unknown {
           return applySink('nosql', query ?? {}, undefined, () => orig.call(this, query as never, ...(rest as never[])));
         };
       });
+      wrapNosqlWhere(q, '$where');
     }
+    const model = (exported as { Model?: { prototype?: object } }).Model?.prototype;
+    if (model) wrapNosqlWhere(model, '$where');
     wrappedPackages.add(obj);
     return exported;
   }

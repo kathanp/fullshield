@@ -1,0 +1,145 @@
+{
+  "reviewed": false,
+  "app": "nodegoat",
+  "repo": "https://github.com/OWASP/NodeGoat",
+  "commit": "c5cb68a7084e4ae7dcc60e6a98768720a81841e8",
+  "entries": [
+    {
+      "class": "eval",
+      "file": "app/routes/contributions.js",
+      "line": 32,
+      "description": "Server-side JS injection: eval() on contribution amounts (preTax/afterTax/roth).",
+      "source": "https://github.com/OWASP/NodeGoat/blob/c5cb68a7084e4ae7dcc60e6a98768720a81841e8/app/views/tutorial/a1.html",
+      "inScope": true
+    },
+    {
+      "class": "nosqli",
+      "file": "app/data/allocations-dao.js",
+      "line": 78,
+      "description": "NoSQL injection via MongoDB $where built from the allocations threshold query.",
+      "source": "https://github.com/OWASP/NodeGoat/blob/c5cb68a7084e4ae7dcc60e6a98768720a81841e8/app/views/tutorial/a1.html",
+      "inScope": true
+    },
+    {
+      "class": "other",
+      "file": "app/routes/session.js",
+      "line": 64,
+      "description": "Log injection: unsanitized userName written to console.log on failed login.",
+      "source": "https://github.com/OWASP/NodeGoat/blob/c5cb68a7084e4ae7dcc60e6a98768720a81841e8/app/views/tutorial/a1.html",
+      "inScope": false,
+      "reason": "log forging is not a shipped SAST class"
+    },
+    {
+      "class": "crypto",
+      "file": "app/data/user-dao.js",
+      "line": 25,
+      "description": "A2: user passwords stored in MongoDB in plaintext (bcrypt hash is commented out).",
+      "source": "https://github.com/OWASP/NodeGoat/blob/c5cb68a7084e4ae7dcc60e6a98768720a81841e8/app/views/tutorial/a2.html",
+      "inScope": false,
+      "reason": "plaintext password storage is SAST-HASH (Phase 29), not shipped crypto-weak-hash detection"
+    },
+    {
+      "class": "config",
+      "file": "app/routes/session.js",
+      "line": 116,
+      "description": "A2: session cookie lacks httpOnly/secure; session id stored after login.",
+      "source": "https://github.com/OWASP/NodeGoat/blob/c5cb68a7084e4ae7dcc60e6a98768720a81841e8/app/views/tutorial/a2.html",
+      "inScope": false,
+      "reason": "cookie flags are SAST-COOKIE (Phase 29)"
+    },
+    {
+      "class": "other",
+      "file": "app/routes/session.js",
+      "line": 138,
+      "description": "A2: weak signup password regex /^.{1,20}$/ and username-enumeration error messages.",
+      "source": "https://github.com/OWASP/NodeGoat/blob/c5cb68a7084e4ae7dcc60e6a98768720a81841e8/app/views/tutorial/a2.html",
+      "inScope": false,
+      "reason": "password policy and user enumeration are auth/business logic"
+    },
+    {
+      "class": "xss",
+      "file": "app/views/layout.html",
+      "line": 75,
+      "description": "A3: stored XSS — profile firstName/lastName rendered unescaped in the layout nav.",
+      "source": "https://github.com/OWASP/NodeGoat/blob/c5cb68a7084e4ae7dcc60e6a98768720a81841e8/app/views/tutorial/a3.html",
+      "inScope": true
+    },
+    {
+      "class": "other",
+      "file": "app/routes/allocations.js",
+      "line": 14,
+      "description": "A4 IDOR: /allocations/:userId exposes another user's allocations.",
+      "source": "https://github.com/OWASP/NodeGoat/blob/c5cb68a7084e4ae7dcc60e6a98768720a81841e8/app/views/tutorial/a4.html",
+      "inScope": false,
+      "reason": "IDOR / broken access control is business logic"
+    },
+    {
+      "class": "config",
+      "file": "server.js",
+      "line": 10,
+      "description": "A5: helmet security headers are commented out (x-powered-by, frameguard, HSTS, CSP).",
+      "source": "https://github.com/OWASP/NodeGoat/blob/c5cb68a7084e4ae7dcc60e6a98768720a81841e8/app/views/tutorial/a5.html",
+      "inScope": true
+    },
+    {
+      "class": "other",
+      "file": "app/data/profile-dao.js",
+      "line": 42,
+      "description": "A6: SSN and bank routing stored unencrypted in the profile document.",
+      "source": "https://github.com/OWASP/NodeGoat/blob/c5cb68a7084e4ae7dcc60e6a98768720a81841e8/app/views/tutorial/a6.html",
+      "inScope": false,
+      "reason": "PII at rest is not a shipped SAST class"
+    },
+    {
+      "class": "other",
+      "file": "app/routes/benefits.js",
+      "line": 31,
+      "description": "A7: missing function-level access control — any logged-in user can POST /benefits.",
+      "source": "https://github.com/OWASP/NodeGoat/blob/c5cb68a7084e4ae7dcc60e6a98768720a81841e8/app/views/tutorial/a7.html",
+      "inScope": false,
+      "reason": "missing authorization is auth/IDOR, not a claimed static class"
+    },
+    {
+      "class": "other",
+      "file": "server.js",
+      "line": 7,
+      "description": "A8: csurf is commented out; profile form has no CSRF token.",
+      "source": "https://github.com/OWASP/NodeGoat/blob/c5cb68a7084e4ae7dcc60e6a98768720a81841e8/app/views/tutorial/a8.html",
+      "inScope": false,
+      "reason": "CSRF is SAST-CSRF (Phase 29)"
+    },
+    {
+      "class": "deps",
+      "file": "package.json",
+      "line": 18,
+      "description": "A9: marked@0.3.5 is a known-vulnerable markdown parser used to render user memos (XSS).",
+      "source": "https://github.com/OWASP/NodeGoat/blob/c5cb68a7084e4ae7dcc60e6a98768720a81841e8/app/views/tutorial/a9.html",
+      "inScope": true
+    },
+    {
+      "class": "redirect",
+      "file": "app/routes/index.js",
+      "line": 72,
+      "description": "A10: open redirect — /learn?url= redirects to req.query.url.",
+      "source": "https://github.com/OWASP/NodeGoat/blob/c5cb68a7084e4ae7dcc60e6a98768720a81841e8/app/views/tutorial/a10.html",
+      "inScope": true
+    },
+    {
+      "class": "other",
+      "file": "app/routes/profile.js",
+      "line": 59,
+      "description": "ReDoS: bank routing regex /([0-9]+)+#/ on untrusted profile input.",
+      "source": "https://github.com/OWASP/NodeGoat/blob/c5cb68a7084e4ae7dcc60e6a98768720a81841e8/app/views/tutorial/redos.html",
+      "inScope": false,
+      "reason": "ReDoS is SAST-REDOS (Phase 29)"
+    },
+    {
+      "class": "ssrf",
+      "file": "app/routes/research.js",
+      "line": 16,
+      "description": "SSRF: stock lookup fetches attacker-controlled req.query.url with needle.get.",
+      "source": "https://github.com/OWASP/NodeGoat/blob/c5cb68a7084e4ae7dcc60e6a98768720a81841e8/app/views/tutorial/ssrf.html",
+      "inScope": true
+    }
+  ]
+}

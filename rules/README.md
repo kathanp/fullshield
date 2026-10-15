@@ -16,6 +16,7 @@ negative counterpart in `test/fixtures/clean-app`.
 | [SECRET-PRIVKEY-001](SECRET-PRIVKEY-001.md) | PEM private key |
 | [SECRET-DBURL-001](SECRET-DBURL-001.md) | DB URL with inline password |
 | [SECRET-JWT-001](SECRET-JWT-001.md) | Hardcoded JWT secret |
+| [SECRET-SESSION-001](SECRET-SESSION-001.md) | Hardcoded express-session secret |
 | [SECRET-ENTROPY-001](SECRET-ENTROPY-001.md) | High-entropy assignment (low confidence) |
 | [SECRET-ENVFILE-001](SECRET-ENVFILE-001.md) | Committed `.env` file |
 
@@ -54,6 +55,7 @@ negative counterpart in `test/fixtures/clean-app`.
 | [CONFIG-CORS-001](CONFIG-CORS-001.md) | `origin:'*'` + `credentials:true` |
 | [CONFIG-RATELIMIT-001](CONFIG-RATELIMIT-001.md) | Auth route without a limiter |
 | [CONFIG-ERRSTACK-001](CONFIG-ERRSTACK-001.md) | `err.stack` sent to the client |
+| [CONFIG-DIRLIST-001](CONFIG-DIRLIST-001.md) | `serveIndex()` directory listing |
 | [CONFIG-DOCKER-LATEST-001](CONFIG-DOCKER-LATEST-001.md) | `FROM *:latest` |
 | [CONFIG-DOCKER-ROOT-001](CONFIG-DOCKER-ROOT-001.md) | Dockerfile with no `USER` |
 | [CONFIG-DOCKER-ENV-001](CONFIG-DOCKER-ENV-001.md) | `ENV *_SECRET=` / `*_KEY=` |

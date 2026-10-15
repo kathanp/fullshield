@@ -3431,6 +3431,112 @@
       "sink": "ls '|id|'",
       "input": "'|id|'",
       "note": "Not exploitable here: | stays inside one single-quoted word. Genuine breakouts use a matching quote that closes the argument."
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 0",
+      "input": "0",
+      "context": "numeric-sql"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 1",
+      "input": "1",
+      "context": "numeric-sql"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 7",
+      "input": "7",
+      "context": "numeric-sql"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 10",
+      "input": "10",
+      "context": "numeric-sql"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 42",
+      "input": "42",
+      "context": "numeric-sql"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 99",
+      "input": "99",
+      "context": "numeric-sql"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 100",
+      "input": "100",
+      "context": "numeric-sql"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 3.14",
+      "input": "3.14",
+      "context": "numeric-sql"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users LIMIT 10",
+      "input": "10",
+      "context": "numeric-sql"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM User WHERE id = $1",
+      "input": "42",
+      "context": "orm-raw"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM User WHERE name = $1",
+      "input": "ada",
+      "context": "orm-raw"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "$where": "this.n == 42"
+      },
+      "input": "42",
+      "context": "orm-raw"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "name": "ada"
+      },
+      "input": "ada",
+      "context": "orm-raw"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls 'readme.txt'",
+      "input": "readme.txt",
+      "context": "template-shell"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls 'file-name.txt'",
+      "input": "file-name.txt",
+      "context": "template-shell"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls 'photo.jpg'",
+      "input": "photo.jpg",
+      "context": "template-shell"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls 'report.csv'",
+      "input": "report.csv",
+      "context": "template-shell"
     }
   ]
 }

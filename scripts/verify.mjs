@@ -68,6 +68,8 @@ const PREVIOUS_PHASE_TESTS = {
   22: 392,
   23: 401,
   24: 407,
+  25: 439,
+  26: 443,
 };
 
 function listFilesRecursive(dir, out = []) {
@@ -991,6 +993,138 @@ s.listen(0, '127.0.0.1', () => {
       }
     }
     console.log('  ✔ CI Windows×Node 22/24; --import file:// silent; register budget; no static sqlite');
+  },
+  // Phase 26: public NodeGoat / Juice Shop / DVNA bench. Numbers stay unreviewed.
+  26: () => {
+    const ci = readFileSync(join(root, '.github/workflows/ci.yml'), 'utf8');
+    if (!/^ {2}bench:\s*$/m.test(ci)) fail('phase 26 acceptance: CI must have a job named bench');
+    if (!/continue-on-error:\s*true/.test(ci)) {
+      fail('phase 26 acceptance: bench job must be continue-on-error (not a required check)');
+    }
+    if (!ci.includes('npm run bench:public') || !ci.includes('BENCHMARK.md')) {
+      fail('phase 26 acceptance: bench job must run bench:public and upload BENCHMARK.md');
+    }
+    const pkgText = readFileSync(join(root, 'package.json'), 'utf8');
+    if (!pkgText.includes('"bench:public"')) fail('phase 26 acceptance: missing npm script bench:public');
+    if (!existsSync(join(root, 'scripts', 'bench-public.mjs'))) {
+      fail('phase 26 acceptance: missing scripts/bench-public.mjs');
+    }
+    const cliHelp = spawnSync(
+      process.execPath,
+      [join(root, 'dist', 'cli', 'index.js'), 'scan', '--help'],
+      { cwd: root, encoding: 'utf8' },
+    );
+    if (!cliHelp.stdout.includes('--offline-safe')) {
+      fail('phase 26 acceptance: scan --help missing --offline-safe');
+    }
+    for (const app of ['nodegoat', 'juice-shop', 'dvna', 'goof']) {
+      const path = join(root, 'bench', app, 'ground-truth.json');
+      if (!existsSync(path)) fail(`phase 26 acceptance: missing ${relative(root, path)}`);
+      const truth = JSON.parse(readFileSync(path, 'utf8'));
+      if (truth.reviewed !== false) {
+        fail(`phase 26 acceptance: ${app} ground truth must stay reviewed:false until a human flips it`);
+      }
+      if (!Array.isArray(truth.entries) || truth.entries.length === 0) {
+        fail(`phase 26 acceptance: ${app} ground truth has no entries`);
+      }
+      for (const e of truth.entries) {
+        if (typeof e.source !== 'string' || !/^https:\/\//.test(e.source)) {
+          fail(`phase 26 acceptance: ${app} entry missing https source`);
+        }
+        if (typeof e.inScope !== 'boolean') {
+          fail(`phase 26 acceptance: ${app} entry missing inScope`);
+        }
+        if (e.inScope === false && !e.reason) {
+          fail(`phase 26 acceptance: ${app} out-of-scope entry needs reason`);
+        }
+      }
+      const triagePath = join(root, 'bench', app, 'triage.json');
+      if (!existsSync(triagePath)) fail(`phase 26 acceptance: missing ${relative(root, triagePath)}`);
+      const triage = JSON.parse(readFileSync(triagePath, 'utf8'));
+      if (!Array.isArray(triage.findings)) fail(`phase 26 acceptance: ${app} triage.json needs findings[]`);
+      for (const f of triage.findings) {
+        if (!['realIssue', 'falsePositive', 'unsure'].includes(f.verdict)) {
+          fail(`phase 26 acceptance: ${app} triage verdict ${f.verdict}`);
+        }
+        if (!f.reason) fail(`phase 26 acceptance: ${app} triage entry missing reason`);
+      }
+    }
+    const benchMd = join(root, 'BENCHMARK.md');
+    if (!existsSync(benchMd)) fail('phase 26 acceptance: BENCHMARK.md missing (run npm run bench:public)');
+    const md = readFileSync(benchMd, 'utf8');
+    if (!/UNREVIEWED/.test(md)) fail('phase 26 acceptance: BENCHMARK.md must say UNREVIEWED while ground truth is unreviewed');
+    for (const app of ['nodegoat', 'juice-shop', 'dvna', 'goof']) {
+      if (!md.toLowerCase().includes(app)) fail(`phase 26 acceptance: BENCHMARK.md missing ${app}`);
+    }
+    if (!/holdout/i.test(md)) fail('phase 26 acceptance: BENCHMARK.md must label the goof holdout');
+    if (!/Line attribution/i.test(md) && !/line-attribution/i.test(md)) {
+      fail('phase 26 acceptance: BENCHMARK.md must explain helmet line-attribution is not a recall gain');
+    }
+    if (!/Known misses/i.test(md)) fail('phase 26 acceptance: BENCHMARK.md missing Known misses table');
+    if (!/in-scope/i.test(md) || !/unsure/i.test(md)) {
+      fail('phase 26 acceptance: BENCHMARK.md must report in-scope recall and unsure triage count');
+    }
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!readme.includes('BENCHMARK.md')) fail('phase 26 acceptance: README must link BENCHMARK.md');
+    for (const needle of [
+      'url.includes(allowedUrl)',
+      '{ _id: req.body.id }',
+      'res.json',
+      'autoescape',
+      'package.json:N',
+      'mathjs.eval',
+    ]) {
+      if (!readme.includes(needle)) {
+        fail(`phase 26b acceptance: README Known limitations missing ${needle}`);
+      }
+    }
+    for (const path of [
+      join(root, 'test', 'unit', 'modules', 'sast', 'bench-misses.test.ts'),
+      join(root, 'test', 'unit', 'modules', 'config', 'bench-misses.test.ts'),
+      join(root, 'test', 'unit', 'modules', 'secrets', 'bench-misses.test.ts'),
+    ]) {
+      if (!existsSync(path)) fail(`phase 26b acceptance: missing ${relative(root, path)}`);
+    }
+    console.log('  ✔ public bench harness, unreviewed ground truth, non-blocking CI bench job');
+    console.log('  ✔ phase 26b fixtures + Known limitations for remaining in-scope misses');
+  },
+  // Phase 27: SAST + RASP coverage gaps (numeric SQL, ORM raw, template shell).
+  27: async () => {
+    const raspUrl = pathToFileURL(join(root, 'dist', 'runtime', 'rasp.js')).href;
+    const rasp = await import(raspUrl);
+    const attack = JSON.parse(readFileSync(join(root, 'test', 'fixtures', 'rasp', 'attack-corpus.json'), 'utf8'));
+    const benign = JSON.parse(readFileSync(join(root, 'test', 'fixtures', 'rasp', 'benign-corpus.json'), 'utf8'));
+    for (const ctx of ['numeric-sql', 'orm-raw', 'template-shell']) {
+      const n = attack.cases.filter((c) => c.context === ctx).length;
+      if (n < 10) fail(`phase 27 acceptance: attack context ${ctx} has ${n} < 10 cases`);
+    }
+    const extra = attack.cases.filter(
+      (c) => c.context === 'numeric-sql' || c.context === 'orm-raw' || c.context === 'template-shell',
+    );
+    const extraScore = rasp.scoreCorpusByKind(extra);
+    if (extraScore.blocked !== extraScore.total) {
+      fail(`phase 27 acceptance: new-context attacks ${extraScore.blocked}/${extraScore.total}`);
+    }
+    const benignScore = rasp.scoreCorpusByKind(benign.cases);
+    if (benignScore.blocked !== 0) {
+      fail(`phase 27 acceptance: benign corpus blocked ${benignScore.blocked}`);
+    }
+    const cliHelp = spawnSync(
+      process.execPath,
+      [join(root, 'dist', 'cli', 'index.js'), 'scan', '--help'],
+      { cwd: root, encoding: 'utf8' },
+    );
+    if (!cliHelp.stdout.includes('--experimental-sast-gaps')) {
+      fail('phase 27 acceptance: scan --help missing --experimental-sast-gaps');
+    }
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!readme.includes('FULLSHIELD_EXPERIMENTAL_SAST_GAPS')) {
+      fail('phase 27 acceptance: README must document FULLSHIELD_EXPERIMENTAL_SAST_GAPS');
+    }
+    if (/Untested contexts include numeric SQL/.test(readme)) {
+      fail('phase 27 acceptance: README Known Limitations still lists numeric SQL/ORM/template-shell as untested');
+    }
+    console.log('  ✔ numeric/ORM/template-shell corpora blocked; benign 0; extra SAST sinks experimental');
   },
 };
 

@@ -1,6 +1,6 @@
 {
   "name": "fullshield",
-  "version": "0.1.2",
+  "version": "0.1.1",
   "description": "Full-cycle security scanner for Node.js/TypeScript backends: detect, classify, report, notify, fix, prevent.",
   "license": "MIT",
   "type": "module",
@@ -72,6 +72,7 @@
     "test:e2e": "vitest run test/e2e",
     "test:live-ai": "npm run build && node scripts/live-ai.mjs",
     "bench": "node scripts/bench.mjs",
+    "bench:public": "node scripts/bench-public.mjs",
     "verify": "node scripts/verify.mjs",
     "verify:phase": "node scripts/verify.mjs --phase"
   },

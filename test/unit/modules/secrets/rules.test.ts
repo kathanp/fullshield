@@ -23,6 +23,7 @@ describe('secrets rule registry', () => {
         'SECRET-GITHUB-001',
         'SECRET-GOOGLE-001',
         'SECRET-JWT-001',
+        'SECRET-SESSION-001',
         'SECRET-PRIVKEY-001',
         'SECRET-SLACK-001',
         'SECRET-STRIPE-001',

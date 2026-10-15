@@ -9,7 +9,16 @@ export const configAstRuleIds = [
   'CONFIG-CORS-001',
   'CONFIG-RATELIMIT-001',
   'CONFIG-ERRSTACK-001',
+  'CONFIG-DIRLIST-001',
 ] as const;
+
+function lineAt(source: string, index: number): number {
+  let line = 1;
+  for (let i = 0; i < index; i += 1) {
+    if (source[i] === '\n') line += 1;
+  }
+  return line;
+}
 
 function objectProp(
   node: AstNode,
@@ -68,6 +77,20 @@ export async function runConfigAstChecks(file: string, source: string): Promise<
             ),
           );
         }
+      }
+
+      if (name === 'serveIndex') {
+        findings.push(
+          configFinding(
+            'CONFIG-DIRLIST-001',
+            'Directory listing enabled',
+            'medium',
+            file,
+            'serveIndex() exposes directory contents over HTTP.',
+            'Remove serve-index or restrict it behind auth; do not list ftp/logs/keys.',
+            node.loc?.start.line,
+          ),
+        );
       }
 
       if (name === 'cors') {
@@ -141,6 +164,25 @@ export async function runConfigAstChecks(file: string, source: string): Promise<
       );
     }
   });
+
+  if (!usesHelmet) {
+    const commented =
+      /^\s*\/\/\s*(?:(?:const|let|var)\s+helmet\b|app\.use\(\s*helmet\b|.*require\(\s*['"]helmet['"]\s*\))/gim;
+    for (const match of source.matchAll(commented)) {
+      const index = match.index ?? 0;
+      findings.push(
+        configFinding(
+          'CONFIG-HELMET-001',
+          'Express app does not use helmet',
+          'medium',
+          file,
+          'helmet is commented out; security headers are not applied.',
+          'Uncomment or add app.use(helmet()) to set standard security headers.',
+          lineAt(source, index),
+        ),
+      );
+    }
+  }
 
   if (createsApp && !usesHelmet) {
     findings.push(

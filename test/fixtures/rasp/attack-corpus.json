@@ -940,6 +940,236 @@
       "sink": "ls \"\"; id; \"\"",
       "input": "\"; id; \"",
       "note": "genuine double-quote breakout of a quoted ls argument"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 1 OR 1=1",
+      "input": "1 OR 1=1",
+      "context": "numeric-sql"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 1; DROP TABLE users--",
+      "input": "1; DROP TABLE users--",
+      "context": "numeric-sql"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 1 UNION SELECT password FROM users",
+      "input": "1 UNION SELECT password FROM users",
+      "context": "numeric-sql"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 1 AND SLEEP(5)",
+      "input": "1 AND SLEEP(5)",
+      "context": "numeric-sql"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 1 AND 1=1",
+      "input": "1 AND 1=1",
+      "context": "numeric-sql"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 1) OR (1=1",
+      "input": "1) OR (1=1",
+      "context": "numeric-sql"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 1; SELECT 1",
+      "input": "1; SELECT 1",
+      "context": "numeric-sql"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 1 AND 1=2",
+      "input": "1 AND 1=2",
+      "context": "numeric-sql"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 1 UNION ALL SELECT NULL",
+      "input": "1 UNION ALL SELECT NULL",
+      "context": "numeric-sql"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 1 OR true",
+      "input": "1 OR true",
+      "context": "numeric-sql"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 2 OR 2=2",
+      "input": "2 OR 2=2",
+      "context": "numeric-sql"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE id = 1; WAITFOR DELAY",
+      "input": "1; WAITFOR DELAY",
+      "context": "numeric-sql"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM User WHERE name = '' OR 1=1 --'",
+      "input": "' OR 1=1 --",
+      "context": "orm-raw"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM User WHERE name = ''; DROP TABLE User; --'",
+      "input": "'; DROP TABLE User; --",
+      "context": "orm-raw"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM User WHERE id = 1 OR 1=1",
+      "input": "1 OR 1=1",
+      "context": "orm-raw"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM User WHERE name = 'admin'--'",
+      "input": "admin'--",
+      "context": "orm-raw"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM User WHERE id = 1 UNION SELECT 1",
+      "input": "1 UNION SELECT 1",
+      "context": "orm-raw"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "$where": "this.n == 1 || true"
+      },
+      "input": "1 || true",
+      "context": "orm-raw"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "$where": "this.n == 1 || 1==1"
+      },
+      "input": "1 || 1==1",
+      "context": "orm-raw"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "$where": "this.n == 1; return true"
+      },
+      "input": "1; return true",
+      "context": "orm-raw"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "$where": "this.n == 1 || process.exit()"
+      },
+      "input": "1 || process.exit()",
+      "context": "orm-raw"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "$where": "this.n == 1 || this.password"
+      },
+      "input": "1 || this.password",
+      "context": "orm-raw"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "$where": "this.n == 0 || true"
+      },
+      "input": "0 || true",
+      "context": "orm-raw"
+    },
+    {
+      "kind": "nosql",
+      "sink": {
+        "$where": "this.n == 1 && true"
+      },
+      "input": "1 && true",
+      "context": "orm-raw"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls ; id;",
+      "input": "; id;",
+      "context": "template-shell"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls | id",
+      "input": "| id",
+      "context": "template-shell"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls && id",
+      "input": "&& id",
+      "context": "template-shell"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls || id",
+      "input": "|| id",
+      "context": "template-shell"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls $(id)",
+      "input": "$(id)",
+      "context": "template-shell"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls `id`",
+      "input": "`id`",
+      "context": "template-shell"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls ; cat /etc/passwd",
+      "input": "; cat /etc/passwd",
+      "context": "template-shell"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls | whoami",
+      "input": "| whoami",
+      "context": "template-shell"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls ; sleep 1;",
+      "input": "; sleep 1;",
+      "context": "template-shell"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls $(whoami)",
+      "input": "$(whoami)",
+      "context": "template-shell"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls ; echo pwn;",
+      "input": "; echo pwn;",
+      "context": "template-shell"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls & id &",
+      "input": "& id &",
+      "context": "template-shell"
     }
   ]
 }

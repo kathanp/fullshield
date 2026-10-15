@@ -40,6 +40,8 @@ export const RULE_MAP: readonly RuleMapping[] = [
   ROW('SECRET-PRIVKEY-001', 'A02:2021 Cryptographic Failures', 'CWE-321', 'V6.4.1', 'PCI DSS 3.5 / 4.2'),
   ROW('SECRET-DBURL-001', 'A02:2021 Cryptographic Failures', 'CWE-798', 'V6.4.1', 'PCI DSS 3.2 / 8.3'),
   ROW('SECRET-JWT-001', 'A02:2021 Cryptographic Failures', 'CWE-798', 'V6.4.1', 'PCI DSS 3.5'),
+  ROW('SECRET-SESSION-001', 'A02:2021 Cryptographic Failures', 'CWE-798', 'V6.4.1', 'PCI DSS 3.5 / 6.2.4'),
+  ROW('CONFIG-DIRLIST-001', 'A05:2021 Security Misconfiguration', 'CWE-548', 'V12.1.1', 'PCI DSS 2.2 / 6.4.3'),
   ROW('SECRET-ENVFILE-001', 'A02:2021 Cryptographic Failures', 'CWE-312', 'V8.3.4', 'PCI DSS 3.2'),
   ROW('SECRET-ENTROPY-001', 'A02:2021 Cryptographic Failures', 'CWE-798', 'V6.4.1', 'PCI DSS 8.3'),
   ROW('DEPS-VULN-001', 'A06:2021 Vulnerable Components', 'CWE-1104', 'V14.2.1', 'PCI DSS 6.3.3'),
