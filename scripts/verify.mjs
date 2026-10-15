@@ -1180,6 +1180,57 @@ s.listen(0, '127.0.0.1', () => {
     }
     console.log('  ✔ experimental Next/Nest/Hono/Koa taint; optional runtime peers; vuln+clean fixtures');
   },
+  // Phase 30: experimental git-history / bundle / verify-secrets.
+  30: () => {
+    const cliHelp = spawnSync(
+      process.execPath,
+      [join(root, 'dist', 'cli', 'index.js'), 'scan', '--help'],
+      { cwd: root, encoding: 'utf8' },
+    );
+    for (const flag of [
+      '--experimental-secrets-adv',
+      '--history',
+      '--bundle',
+      '--verify-secrets',
+      '--i-own-these-credentials',
+    ]) {
+      if (!cliHelp.stdout.includes(flag)) {
+        fail(`phase 30 acceptance: scan --help missing ${flag}`);
+      }
+    }
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!readme.includes('FULLSHIELD_EXPERIMENTAL_SECRETS_ADV')) {
+      fail('phase 30 acceptance: README must document FULLSHIELD_EXPERIMENTAL_SECRETS_ADV');
+    }
+    if (!readme.includes('--verify-secrets')) {
+      fail('phase 30 acceptance: README must document --verify-secrets');
+    }
+    for (const rel of [
+      'templates/github-workflow.yml',
+      'templates/gitlab-ci.yml',
+      'templates/github-watch.yml',
+      'templates/pre-commit.sh',
+    ]) {
+      const text = readFileSync(join(root, rel), 'utf8');
+      if (text.includes('--verify-secrets') || text.includes('i-own-these-credentials')) {
+        fail(`phase 30 acceptance: ${rel} must not enable --verify-secrets`);
+      }
+    }
+    const phase30ids = ['SECRET-BUNDLE-001'];
+    for (const id of phase30ids) {
+      if (foundRuleIds.has(id)) {
+        fail(`phase 30 acceptance: default vulnerable-app scan emitted Phase-30-only ${id}`);
+      }
+      if (clean.report.findings.some((f) => f.ruleId === id)) {
+        fail(`phase 30 acceptance: default clean-app scan emitted Phase-30-only ${id}`);
+      }
+    }
+    const srcHist = readFileSync(join(root, 'src', 'modules', 'secrets', 'history.ts'), 'utf8');
+    if (!srcHist.includes("'log'") || !srcHist.includes("'-p'")) {
+      fail('phase 30 acceptance: history scan must stream git log -p');
+    }
+    console.log('  ✔ history/bundle/verify-secrets experimental; default scan unchanged; verify not in CI templates');
+  },
 };
 
 if (phase !== null) {

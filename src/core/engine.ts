@@ -6,6 +6,8 @@ import { configModule } from '../modules/config/index.js';
 import { depsModule } from '../modules/deps/index.js';
 import { sastModule } from '../modules/sast/index.js';
 import { secretsModule } from '../modules/secrets/index.js';
+import { secretsAdvEnabled } from '../modules/secrets/experimental.js';
+import type { SecretHit } from '../modules/secrets/types.js';
 import { applyExplain, applyTriage } from '../ai/triage.js';
 import { runLogicHunt } from '../ai/logic.js';
 import { createAiClient, isInternalAi, isLiveAi } from '../ai/provider.js';
@@ -55,6 +57,15 @@ export interface ScanOptions {
   since?: string;
   experimentalIncremental?: boolean;
   changedFiles?: string[];
+  /** Phase 30: scan git history for secrets (`FULLSHIELD_EXPERIMENTAL_SECRETS_ADV=1`). */
+  history?: boolean;
+  /** Phase 30: scan a built client bundle directory. */
+  bundle?: string;
+  /** Phase 30: opt-in live identity check. Never default. Requires iOwnTheseCredentials. */
+  verifySecrets?: boolean;
+  iOwnTheseCredentials?: boolean;
+  /** Injected fetch for --verify-secrets tests. */
+  verifyFetch?: typeof fetch;
 }
 
 export interface ScanMetadata {
@@ -159,6 +170,23 @@ export async function runScan(
     }
   }
 
+  const extraHits: SecretHit[] = [];
+  const secretsWanted = modulesRequested.includes('secrets');
+  if (secretsAdvEnabled() && secretsWanted) {
+    if (options.history === true) {
+      const { scanGitHistory } = await import('../modules/secrets/history.js');
+      const hist = await scanGitHistory(cwd);
+      extraHits.push(...hist.hits);
+      collected.push(...hist.findings);
+    }
+    if (options.bundle !== undefined && options.bundle.length > 0) {
+      const { scanBundle } = await import('../modules/secrets/bundle.js');
+      const bun = await scanBundle(options.bundle);
+      extraHits.push(...bun.hits);
+      collected.push(...bun.findings);
+    }
+  }
+
   const sources: Record<string, string> = {};
   for (const file of new Set(collected.map((f) => f.file).filter((f): f is string => f !== undefined))) {
     try {
@@ -173,6 +201,41 @@ export async function runScan(
     await writeBaseline(baselinePath, unsuppressed);
   }
   let findings = sortFindings(applyBaseline(unsuppressed, await readBaseline(baselinePath)));
+
+  if (
+    secretsAdvEnabled() &&
+    secretsWanted &&
+    options.verifySecrets === true &&
+    options.iOwnTheseCredentials === true
+  ) {
+    const { applyVerification } = await import('../modules/secrets/verify.js');
+    const { scanTextForSecretHits } = await import('../modules/secrets/index.js');
+    const secretById = new Map<string, string>();
+    for (const hit of extraHits) {
+      if (hit.secret !== undefined) secretById.set(hit.finding.id, hit.secret);
+    }
+    for (const finding of findings) {
+      if (finding.module !== 'secrets' || finding.file === undefined || secretById.has(finding.id)) {
+        continue;
+      }
+      let text = sources[finding.file];
+      if (text === undefined) {
+        try {
+          text = await readFile(join(cwd, finding.file), 'utf8');
+        } catch {
+          continue;
+        }
+      }
+      for (const hit of scanTextForSecretHits(finding.file, text)) {
+        if (hit.secret !== undefined) secretById.set(hit.finding.id, hit.secret);
+      }
+    }
+    findings = sortFindings(
+      await applyVerification(findings, secretById, {
+        fetchImpl: options.verifyFetch,
+      }),
+    );
+  }
 
   const aiMode = options.ai;
   const aiEnabled =

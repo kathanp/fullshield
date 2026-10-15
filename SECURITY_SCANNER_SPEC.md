@@ -638,6 +638,7 @@ Goal: turn "possible vulnerability" into "**confirmed**, here's the proof" so de
 | 26c | Engine gaps from the goof holdout | Root-cause engine components (taint source, param/return propagation, cross-file calls, sink matching, lockfile attribution). Generic fixtures, not copied goof. goof becomes a seen holdout. Second untouched holdout scanned once. README holdout numbers only, on unreviewed ground truth. |
 | 27 | SAST + RASP coverage gaps: numeric SQL, ORM raw sinks, template-literal shell | Every new sink has positive + negative fixtures; attack corpus ≥ 10 cases per new context; benign corpus 0 blocked; extra SAST sinks behind `FULLSHIELD_EXPERIMENTAL_SAST_GAPS` / `--experimental-sast-gaps` |
 | 28 | Framework coverage: Next.js, NestJS, Hono, Koa taint sources + AUTH + runtime adapters | One vulnerable + one clean fixture per framework; route inventory lists every route; no new runtime deps; behind `FULLSHIELD_EXPERIMENTAL_FRAMEWORKS` / `--experimental-frameworks` |
+| 30 | Secrets, advanced: git history, client bundles, opt-in live identity checks | History finds a secret added then removed; bundle finds a key in a built fixture; verify calls mocked; live verification impossible without both `--verify-secrets` and `--i-own-these-credentials`. Behind `FULLSHIELD_EXPERIMENTAL_SECRETS_ADV` |
 
 ### Phase 26 — Public benchmark run (credibility first)
 
@@ -672,5 +673,15 @@ Taint sources and AUTH are **experimental** (`FULLSHIELD_EXPERIMENTAL_FRAMEWORKS
 - Runtime adapters `fullshield/runtime/koa` and `fullshield/runtime/hono` (optional peers; no new required deps).
 
 Acceptance: one vulnerable + one clean fixture per framework; route inventory lists every route; no new runtime dependencies.
+
+### Phase 30 — Secrets, advanced
+
+Experimental (`FULLSHIELD_EXPERIMENTAL_SECRETS_ADV=1` or `scan --experimental-secrets-adv`). Default `scan` is unchanged. CLI flags do nothing useful without that flag.
+
+- `scan --history`: scan every commit reachable from HEAD (`git log -p` streamed, deduplicated by blob hash), report first-introduced commit and whether the secret still exists at HEAD. Respects baseline and suppressions.
+- `scan --bundle <dir>`: scan built client bundles (`dist/`, `.next/static`, `build/`) for keys exposed to the browser, including `NEXT_PUBLIC_*`/`VITE_*` env vars that hold secret-shaped values (`SECRET-BUNDLE-001`).
+- `--verify-secrets` (opt-in, never default, never in generated CI templates): check whether a detected key is live using **read-only identity endpoints only** (AWS STS `GetCallerIdentity`, GitHub `GET /user`, Stripe `GET /v1/balance` with restricted check, Slack `auth.test`). Requires an explicit `--i-own-these-credentials` flag. Results: `live | revoked | unknown`. Never logs the key.
+
+Acceptance: history scan finds a secret added and removed in a fixture repo; bundle scan finds a key in a built fixture; verify calls mocked in tests; live verification is impossible without both flags (test asserts).
 
 - Show a real before/after: run it on a public, intentionally vulnerable Node app (e.g. OWASP NodeGoat or Juice Shop), list what it found and what it missed. Publishing the misses builds more trust than hiding them.

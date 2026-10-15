@@ -39,6 +39,14 @@ function renderFinding(finding: Finding): string[] {
   if (finding.explanation !== undefined && finding.explanation.length > 0) {
     lines.push(`    ${pc.dim(`explain: ${finding.explanation}`)}`);
   }
+  if (finding.introducedIn !== undefined) {
+    lines.push(
+      `    ${pc.dim(`introduced in ${finding.introducedIn}${finding.stillAtHead === false ? ' (not at HEAD)' : finding.stillAtHead === true ? ' (still at HEAD)' : ''}`)}`,
+    );
+  }
+  if (finding.verification !== undefined) {
+    lines.push(`    ${pc.dim(`verification: ${finding.verification}`)}`);
+  }
   return lines;
 }
 

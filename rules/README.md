@@ -19,6 +19,7 @@ negative counterpart in `test/fixtures/clean-app`.
 | [SECRET-SESSION-001](SECRET-SESSION-001.md) | Hardcoded express-session secret |
 | [SECRET-ENTROPY-001](SECRET-ENTROPY-001.md) | High-entropy assignment (low confidence) |
 | [SECRET-ENVFILE-001](SECRET-ENVFILE-001.md) | Committed `.env` file |
+| [SECRET-BUNDLE-001](SECRET-BUNDLE-001.md) | Secret-shaped `NEXT_PUBLIC_`/`VITE_` value in a client bundle (experimental) |
 
 ## Dependencies
 

@@ -713,3 +713,20 @@ goof is a **seen holdout**. `cr0hn/vulnerable-node` @ `d68f2a3c9277ece2c2feb9976
 **Verify (`npm run verify:phase 26`, PASSED):** 498 tests. 92.24% lines / 83.03% branches. expected 30/30. vulnerable-app 35. clean-app 0 high/critical.
 
 Do not start Phase 28.
+
+## Phase 30 — secrets, advanced (experimental)
+
+Behind `FULLSHIELD_EXPERIMENTAL_SECRETS_ADV=1` / `scan --experimental-secrets-adv`. Default `scan` does not emit Phase-30-only IDs (`SECRET-BUNDLE-001`).
+
+- `--history`: streamed `git log -p`, blob-hash dedupe, `introducedIn` + `stillAtHead`. Baseline and inline suppressions apply.
+- `--bundle <dir>`: `dist/` `.next/static` `build/` plus `NEXT_PUBLIC_*`/`VITE_*` secret-shaped values.
+- `--verify-secrets` + `--i-own-these-credentials`: AWS STS GetCallerIdentity, GitHub GET /user, Stripe GET /v1/balance, Slack auth.test. Never default, never in CI templates, never logs the key. Mocked in tests.
+
+**Verify (`npm run verify:phase 30`, PASSED):**
+
+| phase | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|---|
+| 30 | 547 | 92.53% | 82.9% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+
+**Deferred / gaps:** Phase 29 is not in this worktree (PREVIOUS_PHASE_TESTS[29] unset; test-count gate skipped). Live AWS STS without a signing secret key reports `unknown`. `--verify-secrets` is never in generated CI templates.
+

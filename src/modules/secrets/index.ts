@@ -16,7 +16,7 @@ import { privateKeyRule } from './rules/privateKey.js';
 import { sessionSecretRule } from './rules/sessionSecret.js';
 import { slackRule } from './rules/slack.js';
 import { stripeRule } from './rules/stripe.js';
-import type { SecretsRule } from './types.js';
+import type { SecretHit, SecretsRule } from './types.js';
 
 export const secretsRules: readonly SecretsRule[] = [
   awsRule,
@@ -38,10 +38,10 @@ const REMEDIATION =
   'Removing it from the code is NOT enough: it remains visible in git history.';
 
 /** Scan one file's text with every secrets rule. Secrets are always masked. */
-export function scanTextForSecrets(path: string, text: string): Finding[] {
+export function scanTextForSecretHits(path: string, text: string): SecretHit[] {
   const rawLines = text.split(/\r?\n/);
   const lines = rawLines.map(foldStringConcat);
-  const findings: Finding[] = [];
+  const hits: SecretHit[] = [];
   for (const rule of secretsRules) {
     rule.check({
       path,
@@ -49,24 +49,32 @@ export function scanTextForSecrets(path: string, text: string): Finding[] {
       rawLines,
       report: ({ line, secret, message }) => {
         const masked = secret !== undefined ? maskSecret(secret) : undefined;
-        findings.push({
-          id: makeFindingId(rule.meta.id, path, `${line}|${masked ?? 'file'}`),
-          ruleId: rule.meta.id,
-          module: 'secrets',
-          title: rule.meta.title,
-          severity: rule.meta.severity,
-          confidence: rule.meta.confidence,
-          cwe: rule.meta.cwe,
-          file: path,
-          line,
-          snippet: masked,
-          message: message ?? `${rule.meta.title}${masked !== undefined ? ` (${masked})` : ''}.`,
-          remediation: REMEDIATION,
+        hits.push({
+          finding: {
+            id: makeFindingId(rule.meta.id, path, `${line}|${masked ?? 'file'}`),
+            ruleId: rule.meta.id,
+            module: 'secrets',
+            title: rule.meta.title,
+            severity: rule.meta.severity,
+            confidence: rule.meta.confidence,
+            cwe: rule.meta.cwe,
+            file: path,
+            line,
+            snippet: masked,
+            message: message ?? `${rule.meta.title}${masked !== undefined ? ` (${masked})` : ''}.`,
+            remediation: REMEDIATION,
+          },
+          secret,
         });
       },
     });
   }
-  return findings;
+  return hits;
+}
+
+/** Scan one file's text with every secrets rule. Secrets are always masked. */
+export function scanTextForSecrets(path: string, text: string): Finding[] {
+  return scanTextForSecretHits(path, text).map((hit) => hit.finding);
 }
 
 /** Skip files larger than 1 MiB or containing NUL bytes (binary). */

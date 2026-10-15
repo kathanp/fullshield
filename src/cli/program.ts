@@ -60,6 +60,11 @@ interface ScanCliOptions {
   since?: string;
   experimentalSastGaps?: boolean;
   experimentalFrameworks?: boolean;
+  experimentalSecretsAdv?: boolean;
+  history?: boolean;
+  bundle?: string;
+  verifySecrets?: boolean;
+  iOwnTheseCredentials?: boolean;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -127,6 +132,23 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       '--experimental-frameworks',
       'experimental: Next.js / NestJS / Hono / Koa taint + AUTH (FULLSHIELD_EXPERIMENTAL_FRAMEWORKS=1)',
     )
+    .option(
+      '--experimental-secrets-adv',
+      'experimental: history/bundle/verify-secrets (FULLSHIELD_EXPERIMENTAL_SECRETS_ADV=1)',
+    )
+    .option('--history', 'experimental: scan git history for secrets (requires FULLSHIELD_EXPERIMENTAL_SECRETS_ADV=1)')
+    .option(
+      '--bundle <dir>',
+      'experimental: scan a built client bundle for browser-exposed keys (requires FULLSHIELD_EXPERIMENTAL_SECRETS_ADV=1)',
+    )
+    .option(
+      '--verify-secrets',
+      'experimental: check whether detected keys are live (never default; requires --i-own-these-credentials)',
+    )
+    .option(
+      '--i-own-these-credentials',
+      'required with --verify-secrets: you own these credentials; read-only identity checks only',
+    )
     .action(async (path: string, opts: ScanCliOptions) => {
       try {
         const failOnOverride = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;
@@ -137,6 +159,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
         if (opts.experimentalFrameworks === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_FRAMEWORKS = '1';
+        }
+        if (opts.experimentalSecretsAdv === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_SECRETS_ADV = '1';
         }
 
         const result = await scan({
@@ -150,6 +175,10 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           changed: opts.changed === true,
           since: opts.since,
           experimentalIncremental: process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM === '1',
+          history: opts.history === true,
+          bundle: opts.bundle !== undefined ? resolve(path, opts.bundle) : undefined,
+          verifySecrets: opts.verifySecrets === true,
+          iOwnTheseCredentials: opts.iOwnTheseCredentials === true,
         });
 
         if (opts.sarif !== undefined) {

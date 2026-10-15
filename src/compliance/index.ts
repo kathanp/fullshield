@@ -106,6 +106,7 @@ export const RULE_MAP: readonly RuleMapping[] = [
   ROW('RUNTIME-ANOMALY-001', 'A04:2021 Insecure Design', 'CWE-754', 'V14.4.3', 'PCI DSS 10.2'),
   ROW('AI-IDOR-001', 'A01:2021 Broken Access Control', 'CWE-639', 'V4.1.1', 'PCI DSS 7.2'),
   ROW('AI-MASSASSIGN-001', 'A01:2021 Broken Access Control', 'CWE-915', 'V5.1.1', 'PCI DSS 6.2.4'),
+  ROW('SECRET-BUNDLE-001', 'A02:2021 Cryptographic Failures', 'CWE-798', 'V6.4.1', 'PCI DSS 3.2 / 8.3'),
 ];
 
 const byId = new Map(RULE_MAP.map((r) => [r.ruleId, r]));
