@@ -31,6 +31,7 @@ import { renderSarifReport } from '../reporters/sarif.js';
 import { buildSbom } from '../sbom/index.js';
 import { validateCycloneDx15 } from '../sbom/cyclonedx.js';
 import { runEdge } from '../modules/edge/index.js';
+import { runHostCheck } from '../host/index.js';
 
 export interface ProgramIO {
   out(text: string): void;
@@ -578,6 +579,70 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           token: process.env.FULLSHIELD_AGENT_TOKEN,
         });
         io.out(JSON.stringify({ prs: result.prs, stoppedOnTestFailure: result.stoppedOnTestFailure, merged: result.merged }));
+      } catch (error) {
+        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('host')
+    .description('Experimental host SSH exposure check (Linux only; FULLSHIELD_EXPERIMENTAL_HOST=1)')
+    .option('--experimental-host', 'required: enable experimental host OpenSSH check')
+    .option('--json', 'machine-readable JSON output')
+    .option('--offline', 'do not contact OSV; use upstream version fallback')
+    .option('--attempt-threshold <n>', 'auth.log Timeout-before-authentication per-IP flag threshold', '5')
+    .action(async (opts: {
+      experimentalHost?: boolean;
+      json?: boolean;
+      offline?: boolean;
+      attemptThreshold?: string;
+    }) => {
+      try {
+        if (opts.experimentalHost !== true) {
+          throw new Error('host requires --experimental-host (FULLSHIELD_EXPERIMENTAL_HOST=1)');
+        }
+        process.env.FULLSHIELD_EXPERIMENTAL_HOST = '1';
+        const parsed = Number(opts.attemptThreshold ?? '5');
+        const attemptThreshold = Number.isFinite(parsed) && parsed >= 0 ? parsed : 5;
+        const result = await runHostCheck({
+          experimental: true,
+          offline: opts.offline === true,
+          attemptThreshold,
+        });
+        const note =
+          'Detection/reporting only. FullShield does not block, patch, or harden OS services.';
+        if (result.skipped) {
+          if (opts.json === true) {
+            io.out(JSON.stringify({ skipped: true, reason: result.reason, findings: [], note }, null, 2));
+          } else {
+            io.out(`FullShield host: skipped (${result.reason}) ${note}`);
+          }
+          return;
+        }
+        if (opts.json === true) {
+          io.out(
+            JSON.stringify(
+              {
+                skipped: false,
+                findings: result.findings,
+                exposure: result.exposure,
+                mitigated: result.mitigated,
+                versionVulnerable: result.versionVulnerable,
+                note,
+              },
+              null,
+              2,
+            ),
+          );
+        } else {
+          io.out(`FullShield host — ${result.findings.length} finding(s)`);
+          for (const f of result.findings) io.out(`  [${f.severity}] ${f.ruleId} ${f.message}`);
+          if (result.findings.length === 0) {
+            io.out('No HOST-SSH findings. FullShield does not stop OS or SSH exploits.');
+          }
+        }
+        if (result.findings.some((f) => meetsThreshold(f.severity, 'high'))) process.exitCode = 1;
       } catch (error) {
         io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
         process.exitCode = 2;

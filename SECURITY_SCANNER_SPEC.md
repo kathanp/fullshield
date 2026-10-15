@@ -673,4 +673,18 @@ Taint sources and AUTH are **experimental** (`FULLSHIELD_EXPERIMENTAL_FRAMEWORKS
 
 Acceptance: one vulnerable + one clean fixture per framework; route inventory lists every route; no new runtime dependencies.
 
+### Phase 35 — Host exposure check (experimental, Linux only)
+
+Goal: report whether the host running the Node app is exposed to known OS-level service vulnerabilities, starting with OpenSSH regreSSHion (CVE-2024-6387). **Detection/reporting only — FullShield does not block, patch, or harden OS services.**
+
+Command: `fullshield host` (flag `--experimental-host`, `FULLSHIELD_EXPERIMENTAL_HOST=1`). Skips with an info message on macOS, Windows, containers without sshd, and PaaS. Command refuses without `--experimental-host`. Default `scan` is unchanged (no `HOST-*`).
+
+Checks:
+1. OpenSSH version: distro package (`dpkg-query -W openssh-server` / `rpm -q openssh-server` / `apk info`), NOT `ssh -V`. Match OSV ecosystems (Ubuntu, Debian, Red Hat, Alpine) so backported fixes are not false positives. Upstream fallback: vulnerable if 8.5p1 ≤ v < 9.8p1, or v < 4.4p1.
+2. Mitigation: `sshd -T` if permitted; otherwise parse `/etc/ssh/sshd_config` + `Include` for `logingracetime 0`.
+3. Exposure: whether sshd listens on a non-loopback address (`ss -ltn`).
+4. Optional log signal (readable without elevation; never request sudo): `Timeout before authentication` per source IP in the last 24h.
+
+Rule IDs: `HOST-SSH-001` version, `HOST-SSH-002` no mitigation, `HOST-SSH-003` attempt pattern. Critical only for vulnerable + unmitigated + publicly listening.
+
 - Show a real before/after: run it on a public, intentionally vulnerable Node app (e.g. OWASP NodeGoat or Juice Shop), list what it found and what it missed. Publishing the misses builds more trust than hiding them.

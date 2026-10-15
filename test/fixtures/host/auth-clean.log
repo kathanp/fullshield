@@ -1,0 +1,2 @@
+Oct 15 16:00:01 ci sshd[4100]: Accepted publickey for deploy from 10.0.0.1 port 22 ssh2
+Oct 15 16:01:01 ci sshd[4101]: Connection from 10.0.0.2 port 4242

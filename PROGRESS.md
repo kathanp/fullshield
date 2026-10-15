@@ -713,3 +713,15 @@ goof is a **seen holdout**. `cr0hn/vulnerable-node` @ `d68f2a3c9277ece2c2feb9976
 **Verify (`npm run verify:phase 26`, PASSED):** 498 tests. 92.24% lines / 83.03% branches. expected 30/30. vulnerable-app 35. clean-app 0 high/critical.
 
 Do not start Phase 28.
+
+## Phase 35 — experimental host SSH exposure check (on `phase-35`)
+
+**Built:** `fullshield host --experimental-host` (`FULLSHIELD_EXPERIMENTAL_HOST=1`). Linux-only OpenSSH/regreSSHion (CVE-2024-6387) report: distro package version via `dpkg-query` / `rpm` / `apk` (not `ssh -V`), OSV distro advisories with upstream fallback `8.5p1 ≤ v < 9.8p1` or `v < 4.4p1`, `sshd -T` / `sshd_config` `LoginGraceTime 0`, `ss -ltn` exposure, optional auth.log / journalctl `Timeout before authentication` last 24h if readable without sudo. Rules `HOST-SSH-001`..`003`. Critical only if vulnerable + unmitigated + publicly listening. Detection/reporting only — no block/patch/harden. Skips macOS, Windows, containers without sshd, PaaS. Command refuses without `--experimental-host`. Default `scan` unchanged.
+
+**Verify (`npm run verify:phase 35`, PASSED):**
+
+| phase | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|---|
+| 35 | 559 | 92.37% | 82.7% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+
+**Incomplete / gaps:** live Linux sshd is not required in CI (fixtures only). OSV is mocked in tests. `HOST-SSH-003` is omitted when logs are unreadable without sudo. Only OpenSSH/regreSSHion is checked, not other OS services. FullShield does not stop OS or SSH exploits.

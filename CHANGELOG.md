@@ -4,6 +4,10 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+### Phase 35 — experimental host SSH exposure check
+
+- `fullshield host --experimental-host` (`FULLSHIELD_EXPERIMENTAL_HOST=1`) reports OpenSSH CVE-2024-6387 (regreSSHion) exposure on Linux: distro package version via `dpkg-query` / `rpm` / `apk` (not `ssh -V`), OSV distro advisories with upstream fallback, `LoginGraceTime 0`, `ss -ltn` listen address, and optional auth.log timeout patterns. Detection/reporting only — no block, patch, or harden. Skips macOS, Windows, containers without sshd, and PaaS. Command refuses without `--experimental-host`. Default `scan` is unchanged.
+
 - Publish CI uses `npm publish --provenance --access public` (no staged-manifest edits). The unpublished `v0.1.2` tag was deleted.
 - CI: push to `next` runs `verify` on ubuntu-24.04 × Node 24 only. The full 6-job matrix (and the non-blocking `bench` job) runs on pull requests to `main` and on push to `main`. Required checks on `main` stay the six matrix jobs.
 

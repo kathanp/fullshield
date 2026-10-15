@@ -60,3 +60,11 @@ negative counterpart in `test/fixtures/clean-app`.
 | [CONFIG-DOCKER-ROOT-001](CONFIG-DOCKER-ROOT-001.md) | Dockerfile with no `USER` |
 | [CONFIG-DOCKER-ENV-001](CONFIG-DOCKER-ENV-001.md) | `ENV *_SECRET=` / `*_KEY=` |
 | [CONFIG-INSTALLSCRIPT-001](CONFIG-INSTALLSCRIPT-001.md) | Lockfile `hasInstallScript` |
+
+## Host (experimental, `fullshield host --experimental-host`)
+
+| ID | What |
+|---|---|
+| [HOST-SSH-001](HOST-SSH-001.md) | OpenSSH version in the CVE-2024-6387 range |
+| [HOST-SSH-002](HOST-SSH-002.md) | Vulnerable OpenSSH without `LoginGraceTime 0` |
+| [HOST-SSH-003](HOST-SSH-003.md) | Possible SSH authentication-timeout attempts |

@@ -1,0 +1,5 @@
+Port 22
+ListenAddress 0.0.0.0
+LoginGraceTime 0
+PermitRootLogin prohibit-password
+Include /etc/ssh/sshd_config.d/*.conf

@@ -1,0 +1,9 @@
+{
+  "vulns": [
+    {
+      "id": "CVE-2024-6387",
+      "summary": "OpenSSH regreSSHion: signal handler race condition",
+      "aliases": ["CVE-2024-6387"]
+    }
+  ]
+}
