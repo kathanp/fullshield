@@ -12,6 +12,7 @@ export default defineConfig({
     'runtime/rasp': 'src/runtime/rasp/index.ts',
     'runtime/register': 'src/runtime/register.ts',
     'runtime/auto': 'src/runtime/auto.ts',
+    'runtime/dlp': 'src/runtime/dlp/index.ts',
     'runtime/rasp/loader': 'src/runtime/rasp/loader.ts',
     supply: 'src/supply/index.ts',
     confirm: 'src/confirm/index.ts',

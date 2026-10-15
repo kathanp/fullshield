@@ -60,3 +60,15 @@ negative counterpart in `test/fixtures/clean-app`.
 | [CONFIG-DOCKER-ROOT-001](CONFIG-DOCKER-ROOT-001.md) | Dockerfile with no `USER` |
 | [CONFIG-DOCKER-ENV-001](CONFIG-DOCKER-ENV-001.md) | `ENV *_SECRET=` / `*_KEY=` |
 | [CONFIG-INSTALLSCRIPT-001](CONFIG-INSTALLSCRIPT-001.md) | Lockfile `hasInstallScript` |
+
+## Runtime DLP (experimental)
+
+Requires `FULLSHIELD_EXPERIMENTAL_DLP=1` and `shieldGuard({ dlp: { mode } })`. Not a scan module.
+
+| ID | What |
+|---|---|
+| [DLP-SECRET-001](DLP-SECRET-001.md) | Secret pattern in a JSON/text response |
+| [DLP-STACK-001](DLP-STACK-001.md) | Stack trace in a response |
+| [DLP-INTERNAL-001](DLP-INTERNAL-001.md) | Internal IP or hostname in a response |
+| [DLP-CARD-001](DLP-CARD-001.md) | Luhn-valid card number in a response |
+| [DLP-PII-001](DLP-PII-001.md) | Many emails on a one-email route |

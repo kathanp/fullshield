@@ -4,6 +4,11 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+### Phase 32 — experimental response DLP
+
+- Optional `shieldGuard({ dlp: { mode: 'monitor' | 'mask' | 'block' } })` inspects outgoing JSON/text (size-capped at 64 KB) for secret patterns (same regexes as the secrets module), stack traces, internal IPs/hostnames, Luhn card numbers, and bulk emails on a one-email route.
+- Behind `FULLSHIELD_EXPERIMENTAL_DLP=1`. Without the flag, `shieldGuard` and default `scan` are unchanged. `mask` replaces matches; `block` returns 500 `{ error: 'internal error' }`. Events go to `onEvent`. Over-cap bodies are skipped and counted.
+
 - Publish CI uses `npm publish --provenance --access public` (no staged-manifest edits). The unpublished `v0.1.2` tag was deleted.
 - CI: push to `next` runs `verify` on ubuntu-24.04 × Node 24 only. The full 6-job matrix (and the non-blocking `bench` job) runs on pull requests to `main` and on push to `main`. Required checks on `main` stay the six matrix jobs.
 

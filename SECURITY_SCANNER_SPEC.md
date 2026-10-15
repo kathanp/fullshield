@@ -638,6 +638,7 @@ Goal: turn "possible vulnerability" into "**confirmed**, here's the proof" so de
 | 26c | Engine gaps from the goof holdout | Root-cause engine components (taint source, param/return propagation, cross-file calls, sink matching, lockfile attribution). Generic fixtures, not copied goof. goof becomes a seen holdout. Second untouched holdout scanned once. README holdout numbers only, on unreviewed ground truth. |
 | 27 | SAST + RASP coverage gaps: numeric SQL, ORM raw sinks, template-literal shell | Every new sink has positive + negative fixtures; attack corpus ≥ 10 cases per new context; benign corpus 0 blocked; extra SAST sinks behind `FULLSHIELD_EXPERIMENTAL_SAST_GAPS` / `--experimental-sast-gaps` |
 | 28 | Framework coverage: Next.js, NestJS, Hono, Koa taint sources + AUTH + runtime adapters | One vulnerable + one clean fixture per framework; route inventory lists every route; no new runtime deps; behind `FULLSHIELD_EXPERIMENTAL_FRAMEWORKS` / `--experimental-frameworks` |
+| 32 | Runtime response DLP (outgoing JSON/text) | Fixtures per leak type; zero masking on a benign corpus; p95 extra < 1ms for ≤64 KB; behind `FULLSHIELD_EXPERIMENTAL_DLP=1` |
 
 ### Phase 26 — Public benchmark run (credibility first)
 
@@ -672,5 +673,15 @@ Taint sources and AUTH are **experimental** (`FULLSHIELD_EXPERIMENTAL_FRAMEWORKS
 - Runtime adapters `fullshield/runtime/koa` and `fullshield/runtime/hono` (optional peers; no new required deps).
 
 Acceptance: one vulnerable + one clean fixture per framework; route inventory lists every route; no new runtime dependencies.
+
+### Phase 32 — Runtime response protection (DLP)
+
+Optional `shieldGuard({ dlp: { mode: 'monitor' | 'mask' | 'block' } })` inspects outgoing response bodies (JSON and text, size-capped) for: secret patterns (reuse `secrets` rules), stack traces, internal IPs/hostnames, card numbers (Luhn-validated), and bulk PII signals (many emails in one response from a route that normally returns one).
+
+- `mask` replaces matches; `block` returns 500 with a generic message. Events go to `onEvent`.
+- Performance budget: < 1ms p95 extra for responses ≤ 64 KB; responses above the cap are skipped and counted.
+- Behind `FULLSHIELD_EXPERIMENTAL_DLP=1`. Without the flag, `shieldGuard` behavior and default `scan` output are unchanged.
+
+Acceptance: fixtures for each leak type; zero masking on a benign response corpus; benchmark test enforces the budget.
 
 - Show a real before/after: run it on a public, intentionally vulnerable Node app (e.g. OWASP NodeGoat or Juice Shop), list what it found and what it missed. Publishing the misses builds more trust than hiding them.

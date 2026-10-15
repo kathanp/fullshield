@@ -1,0 +1,21 @@
+{
+  "type": "pii",
+  "ruleId": "DLP-PII-001",
+  "oneEmailRoute": { "path": "/me", "body": { "email": "user@example.com" } },
+  "bulk": {
+    "path": "/me",
+    "body": {
+      "users": [
+        "user0@example.com",
+        "user1@example.com",
+        "user2@example.com",
+        "user3@example.com",
+        "user4@example.com",
+        "user5@example.com",
+        "user6@example.com",
+        "user7@example.com"
+      ]
+    }
+  },
+  "bulkNormalRoute": { "path": "/export" }
+}

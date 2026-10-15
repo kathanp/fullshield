@@ -649,6 +649,20 @@ Acceptance: CI Windows×Node 22/24; `--import` file:// silent; register budget; 
 
 **Launch status (corrected):** `fullshield@0.1.0` **is live** on npm (`latest=0.1.0`, provenance). Placeholders `0.0.0-stage` and `0.0.1` are deprecated. Phase 25 is committed and pushed as `3c507d6`.
 
+## Phase 32 — experimental response DLP (on `phase-32`)
+
+Optional `shieldGuard({ dlp: { mode: 'monitor' | 'mask' | 'block' } })` inspects outgoing JSON/text (capped at 64 KB) for secret patterns (same regexes as the secrets module; runtime does not import the scanner), stack traces, internal IPs/hostnames, Luhn card numbers, and bulk emails on a one-email route.
+
+Behind `FULLSHIELD_EXPERIMENTAL_DLP=1`. Without the flag, `shieldGuard` stays inspect-only on the incoming request and default `scan` emits no `DLP-*` rule IDs. `mask` replaces matches; `block` returns 500 `{ error: 'internal error' }`. Events go to `onEvent`. Over-cap bodies are skipped and counted.
+
+**Verify (`npm run verify:phase 32`, PASSED):**
+
+| phase | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|---|
+| 32 | 540 | 92.62% | 83% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+
+**Deferred / gaps:** not a DLP product; JWT/session/entropy assignment rules are source-shaped and not applied to responses; chunked/streaming bodies are not inspected; IPv6 unique-local is not flagged. Budget is enforced on the built bundle via `scripts/dlp-bench.mjs`.
+
 ## Phase 28 — framework coverage (on `next`)
 
 Experimental (`FULLSHIELD_EXPERIMENTAL_FRAMEWORKS=1` / `scan --experimental-frameworks`). Default `scan` unchanged.

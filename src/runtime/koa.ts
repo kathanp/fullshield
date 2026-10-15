@@ -1,3 +1,4 @@
+import { applyDlpWrite, createDlpInspector } from './dlp/index.js';
 import { createInspector, type GuardOptions } from './inspect.js';
 
 interface KoaLikeCtx {
@@ -16,6 +17,7 @@ interface KoaLikeCtx {
 /** Koa middleware. Does not import the scanner. Optional peer `koa`. */
 export function shieldGuard(options: GuardOptions = {}) {
   const inspect = createInspector(options);
+  const dlp = createDlpInspector(options);
   return async function fullshieldKoa(ctx: KoaLikeCtx, next: () => Promise<void>): Promise<void> {
     const result = inspect({
       method: ctx.method,
@@ -33,5 +35,13 @@ export function shieldGuard(options: GuardOptions = {}) {
       return;
     }
     await next();
+    if (dlp === undefined) return;
+    const out = applyDlpWrite(dlp, ctx.body, { path: ctx.path ?? ctx.url?.split('?')[0] ?? '/', ip: ctx.ip });
+    if (out.block) {
+      ctx.status = 500;
+      ctx.body = { error: 'internal error' };
+      return;
+    }
+    ctx.body = out.body;
   };
 }
