@@ -95,10 +95,11 @@ describe('runtime payload blocking', () => {
       inspect({ path: `/r${i}`, ip: '198.51.100.11', query: { q: '1' } });
     }
     expect(inspect.routeCount).toBeLessThanOrEqual(maxRoutes);
+    expect(inspect.routeCount).toBe(maxRoutes);
 
     collect();
     const after = process.memoryUsage().heapUsed;
-    expect(after - before).toBeLessThan(80 * 1024 * 1024);
+    expect(after - before).toBeLessThan(10 * 1024 * 1024);
   });
 
   it('does not log the raw request body on events', () => {

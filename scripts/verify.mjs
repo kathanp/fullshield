@@ -962,8 +962,8 @@ s.listen(0, '127.0.0.1', () => {
   // Phase 25: Windows + lazy sqlite. Register --import must be a file:// URL and silent.
   25: () => {
     const ci = readFileSync(join(root, '.github/workflows/ci.yml'), 'utf8');
-    if (!ci.includes('windows-latest') || !ci.includes('macos-latest') || !ci.includes('ubuntu-latest')) {
-      fail('phase 25 acceptance: CI matrix must include ubuntu, macos, and windows');
+    if (!ci.includes('windows-latest') || !ci.includes('macos-latest') || !ci.includes('ubuntu-24.04')) {
+      fail('phase 25 acceptance: CI matrix must include ubuntu-24.04, macos, and windows');
     }
     if (!ci.includes('node: [22, 24]') && !/node:\s*\[22,\s*24\]/.test(ci)) {
       fail('phase 25 acceptance: CI must run Node 22 and 24');

@@ -11,6 +11,8 @@ All notable changes to FullShield are documented here.
 - Dashboard `HistoryDb.close()` is idempotent and uses try/finally so Windows can unlink `history.db`.
 - Fixer/agent diffs are `core.autocrlf`-independent: normalize to `\n` for compare, restore the file's original EOL on apply. Git pathspecs use POSIX slashes.
 - `--import` child processes use `pathToFileURL(...).href` (`importHref`), never a bare absolute path.
+- Flood test measures retained-heap delta after GC (< 10 MB) and asserts LRU sizes (512 / 64 / 128). Rate limiter covers the exact window edge and empty-then-refill.
+- CI pins `ubuntu-24.04` and uses checkout/setup-node/upload-artifact v7 (Node 24 runtime).
 - `@modelcontextprotocol/sdk` and `zod` are optional peerDependencies, lazy-imported only by `fullshield mcp`. Other scan/runtime deps stay required.
 - `npm pack` ships `README.md` at the tarball root. `package.json` has no empty `readme` field (that left the npm packument as `"readme": ""`).
 
