@@ -3383,6 +3383,54 @@
       "sink": "uploads/december.txt",
       "input": "december.txt",
       "base": "uploads"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '\"-\"'",
+      "input": "\"-\"",
+      "note": "Not exploitable here: payload stays inside one single-quoted SQL string token. Would only break out of a double-quoted SQL context."
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '\" \"'",
+      "input": "\" \"",
+      "note": "Not exploitable here: payload stays inside one single-quoted SQL string token. Would only break out of a double-quoted SQL context."
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '\"&\"'",
+      "input": "\"&\"",
+      "note": "Not exploitable here: payload stays inside one single-quoted SQL string token. Would only break out of a double-quoted SQL context."
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '\"^\"'",
+      "input": "\"^\"",
+      "note": "Not exploitable here: payload stays inside one single-quoted SQL string token. Would only break out of a double-quoted SQL context."
+    },
+    {
+      "kind": "shell",
+      "sink": "ls \";id;\"",
+      "input": "\";id;\"",
+      "note": "Not exploitable here: ; stays inside one double-quoted word. Genuine breakouts use a matching quote that closes the argument."
+    },
+    {
+      "kind": "shell",
+      "sink": "ls ';id;'",
+      "input": "';id;'",
+      "note": "Not exploitable here: ; stays inside one single-quoted word. Genuine breakouts use a matching quote that closes the argument."
+    },
+    {
+      "kind": "shell",
+      "sink": "ls \"|id|\"",
+      "input": "\"|id|\"",
+      "note": "Not exploitable here: | stays inside one double-quoted word. Genuine breakouts use a matching quote that closes the argument."
+    },
+    {
+      "kind": "shell",
+      "sink": "ls '|id|'",
+      "input": "'|id|'",
+      "note": "Not exploitable here: | stays inside one single-quoted word. Genuine breakouts use a matching quote that closes the argument."
     }
   ]
 }

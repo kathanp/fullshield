@@ -38,7 +38,8 @@ git push origin v0.1.0
 7. Deprecate placeholders and confirm `latest`:
 
 ```bash
-npm deprecate fullshield@"<0.1.0" "placeholder, use >=0.1.0"
+npm deprecate fullshield@0.0.0-stage "placeholder, use >=0.1.0"
+npm deprecate fullshield@0.0.1 "placeholder, use >=0.1.0"
 npm view fullshield dist-tags
 ```
 

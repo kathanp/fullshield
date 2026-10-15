@@ -60,8 +60,8 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 
 Experimental RASP structure-change scoring on the vendored PayloadsAllTheThings corpus (not a claim that live attacks are blocked):
 
-- **SQL 40/44.** Missed payloads `"-"`, `" "`, `"&"`, `"^"`: each is wholly inside a single-quoted SQL string in `WHERE name = '…'`, so the tokenizer sees one string token and no structure change. Those payloads only break out of a **double-quoted** SQL context.
-- **Shell 43/47.** Missed payloads `";id;"`, `';id;'`, `"|id|"`, `'|id|'`: each is passed as a quoted argument to `ls`, so `;` / `|` stay inside one word token and are not command separators. They only inject when concatenated **unquoted**.
+- **SQL 42/42.** Quote-breakouts inside `'…'` (`' OR 1=1 --`, `'; DROP TABLE x; --`) are detected. Payloads `"-"`, `" "`, `"&"`, `"^"` were moved to the benign set: they stay inside one single-quoted string token and are not exploitable in that sink.
+- **Shell 45/45.** Quote-breakouts that close a quoted `ls` argument (`'; id; '`, `"; id; "`) are detected. Payloads `";id;"`, `';id;'`, `"|id|"`, `'|id|'` were moved to the benign set: `;` / `|` stay inside one quoted word.
 
 Path 51/51 and SSRF 39/39 on the same corpus. Benign corpus stays 0 blocked. Prefer `mode: 'monitor'`.
 

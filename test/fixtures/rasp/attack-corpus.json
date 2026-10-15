@@ -913,49 +913,33 @@
       "input": "http://169.254.169.254/latest/meta-data/reservation-id"
     },
     {
-      "kind": "shell",
-      "sink": "ls \";id;\"",
-      "input": "\";id;\""
-    },
-    {
-      "kind": "shell",
-      "sink": "ls ';id;'",
-      "input": "';id;'"
-    },
-    {
-      "kind": "shell",
-      "sink": "ls \"|id|\"",
-      "input": "\"|id|\""
-    },
-    {
-      "kind": "sql",
-      "sink": "SELECT * FROM users WHERE name = '\"-\"'",
-      "input": "\"-\""
-    },
-    {
-      "kind": "shell",
-      "sink": "ls '|id|'",
-      "input": "'|id|'"
-    },
-    {
-      "kind": "sql",
-      "sink": "SELECT * FROM users WHERE name = '\" \"'",
-      "input": "\" \""
-    },
-    {
-      "kind": "sql",
-      "sink": "SELECT * FROM users WHERE name = '\"&\"'",
-      "input": "\"&\""
-    },
-    {
-      "kind": "sql",
-      "sink": "SELECT * FROM users WHERE name = '\"^\"'",
-      "input": "\"^\""
-    },
-    {
       "kind": "ssrf",
       "sink": "http://0/",
       "input": "http://0/"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = '' OR 1=1 --'",
+      "input": "' OR 1=1 --",
+      "note": "genuine single-quote breakout of WHERE name = '…'"
+    },
+    {
+      "kind": "sql",
+      "sink": "SELECT * FROM users WHERE name = ''; DROP TABLE x; --'",
+      "input": "'; DROP TABLE x; --",
+      "note": "genuine single-quote breakout of WHERE name = '…'"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls ''; id; ''",
+      "input": "'; id; '",
+      "note": "genuine single-quote breakout of a quoted ls argument"
+    },
+    {
+      "kind": "shell",
+      "sink": "ls \"\"; id; \"\"",
+      "input": "\"; id; \"",
+      "note": "genuine double-quote breakout of a quoted ls argument"
     }
   ]
 }

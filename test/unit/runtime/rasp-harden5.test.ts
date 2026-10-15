@@ -131,6 +131,22 @@ describe('harden-5 public corpora', () => {
     }
     expect(result.blocked).toBe(0);
   });
+
+  it('detects genuine quote-breakout payloads in the same quoted SQL/shell contexts', () => {
+    const breakouts = [
+      { kind: 'sql', input: "' OR 1=1 --" },
+      { kind: 'sql', input: "'; DROP TABLE x; --" },
+      { kind: 'shell', input: "'; id; '" },
+      { kind: 'shell', input: '"; id; "' },
+    ];
+    for (const want of breakouts) {
+      const c = attacks.cases.find((x) => x.kind === want.kind && x.input === want.input);
+      expect(c, `missing fixture ${want.kind} ${JSON.stringify(want.input)}`).toBeDefined();
+      const ctx = contextFromRequest({ query: { q: want.input } });
+      const hit = decideSink(want.kind as 'sql' | 'shell', c!.sink ?? c!.input, ctx).block;
+      expect(hit, `${want.kind} ${JSON.stringify(want.input)} should be blocked`).toBe(true);
+    }
+  });
 });
 
 describe('harden-5 async request context', () => {

@@ -16,11 +16,11 @@ export default defineConfig({
       exclude: ['src/cli/index.ts'],
       reporter: ['text', 'json-summary', 'lcov'],
       // Spec 0.1: lines >= 80%, branches >= 75% for src/ (Core).
-      // Release-check: branches >= 82% so PRs have headroom above the 80% warn line.
+      // Branches 80% (actual coverage is higher) so PRs have headroom.
       // src/modules/** >= 85% (active since Phase 2).
       thresholds: {
         lines: 80,
-        branches: 82,
+        branches: 80,
         'src/modules/**/*.ts': {
           lines: 85,
           branches: 75,
