@@ -645,4 +645,6 @@ CI already included `windows-latest` × Node 22/24. This phase made the product 
 
 Acceptance: CI Windows×Node 22/24; `--import` file:// silent; register budget; no static sqlite.
 
-**Deferred:** Phases 26–35 (public bench, SAST/ORM/frameworks, new rules, VEX, DLP, MCP-config, policy, host/SSH). Spec order is 25 → 26 first. Launch checklist (npm 0.1.0 stranger check) is still a human step. Nothing pushed. Nothing published.
+**Deferred:** Phases 26–35 (public bench, SAST/ORM/frameworks, new rules, VEX, DLP, MCP-config, policy, host/SSH). Spec order is 25 → 26 first.
+
+**Launch status (corrected):** `fullshield@0.1.0` **is live** on npm (`latest=0.1.0`, provenance). Placeholders `0.0.0-stage` and `0.0.1` are deprecated. Phase 25 is committed and pushed as `3c507d6`.

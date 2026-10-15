@@ -11,7 +11,7 @@ const vuln = join(process.cwd(), 'test', 'fixtures', 'vulnerable-app');
 
 describe('harden-6 official MCP SDK client', () => {
   it('lists and calls every tool through the SDK client handshake', async () => {
-    const server = createOfficialMcpServer({ experimental: true });
+    const server = await createOfficialMcpServer({ experimental: true });
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     const client = new Client({ name: 'fullshield-test', version: '0.0.0' });
     await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);

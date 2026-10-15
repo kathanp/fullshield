@@ -26,6 +26,9 @@ describe('npm pack contents', () => {
     });
     expect(result.status).toBe(0);
     const paths = packedPaths(result.stdout);
+    // Packument `readme` is extracted from a root README.md. Nested or missing
+    // files leave npm's packument as `"readme": ""`.
+    expect(paths).toContain('README.md');
     expect(paths.some((p) => p === 'README.md' || p.endsWith('/README.md'))).toBe(true);
     expect(paths.some((p) => p.includes('LICENSE'))).toBe(true);
     expect(paths.some((p) => p.startsWith('dist/'))).toBe(true);
@@ -37,8 +40,11 @@ describe('npm pack contents', () => {
     expect(readme).toMatch(/does \*\*not\*\*|Does \*\*not\*\*/);
     const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {
       bin?: { fullshield?: string };
+      readme?: string;
       publishConfig?: { provenance?: boolean };
     };
+    expect(pkg.readme === undefined || pkg.readme === 'README.md').toBe(true);
+    expect(pkg.readme).not.toBe('');
     expect(pkg.publishConfig?.provenance).toBeUndefined();
     // npm 11+ drops `./` bin paths ("script name … was invalid and removed") so npx would have no command.
     expect(pkg.bin?.fullshield).toBe('dist/cli/index.js');

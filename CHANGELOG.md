@@ -11,6 +11,8 @@ All notable changes to FullShield are documented here.
 - Dashboard `HistoryDb.close()` is idempotent and uses try/finally so Windows can unlink `history.db`.
 - Fixer/agent diffs are `core.autocrlf`-independent: normalize to `\n` for compare, restore the file's original EOL on apply. Git pathspecs use POSIX slashes.
 - `--import` child processes use `pathToFileURL(...).href` (`importHref`), never a bare absolute path.
+- `@modelcontextprotocol/sdk` and `zod` are optional peerDependencies, lazy-imported only by `fullshield mcp`. Other scan/runtime deps stay required.
+- `npm pack` ships `README.md` at the tarball root. `package.json` has no empty `readme` field (that left the npm packument as `"readme": ""`).
 
 ## 0.1.0 — 2026-10-14
 

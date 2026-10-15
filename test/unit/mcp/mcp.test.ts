@@ -3,7 +3,14 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { callMcpTool, createMcpSession, handleMcpRequest, listMcpTools } from '../../../src/mcp/index.js';
+import {
+  MCP_PEER_ERROR,
+  callMcpTool,
+  createMcpSession,
+  handleMcpRequest,
+  listMcpTools,
+  loadMcpPeers,
+} from '../../../src/mcp/index.js';
 
 const root = process.cwd();
 const vuln = join(root, 'test', 'fixtures', 'vulnerable-app');
@@ -66,6 +73,14 @@ describe('Phase 21 MCP server (read-only, experimental)', () => {
     expect(verified.originalUntouched).toBe(true);
     expect(verified.tempApplied).toBe(true);
     expect(readFileSync(file, 'utf8')).toBe(before);
+  });
+
+  it('loadMcpPeers throws a clear install hint when the optional SDK is missing', async () => {
+    await expect(
+      loadMcpPeers(() =>
+        Promise.reject(new Error('Cannot find package @modelcontextprotocol/sdk')),
+      ),
+    ).rejects.toThrow(MCP_PEER_ERROR);
   });
 
   it('handleMcpRequest answers tools/list over JSON-RPC', async () => {

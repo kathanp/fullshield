@@ -3,9 +3,7 @@ import { cpSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { z } from 'zod';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { scan } from '../core/engine.js';
 import type { Finding, ModuleName } from '../core/finding.js';
@@ -142,8 +140,42 @@ function textResult(value: unknown): { content: Array<{ type: 'text'; text: stri
   return { content: [{ type: 'text', text: JSON.stringify(value) }] };
 }
 
+export const MCP_PEER_ERROR =
+  'fullshield mcp requires optional peers @modelcontextprotocol/sdk and zod. Install with: npm i -D @modelcontextprotocol/sdk zod';
+
+type McpPeerImporter = () => Promise<{
+  McpServer: typeof import('@modelcontextprotocol/sdk/server/mcp.js').McpServer;
+  StdioServerTransport: typeof import('@modelcontextprotocol/sdk/server/stdio.js').StdioServerTransport;
+  z: typeof import('zod').z;
+}>;
+
+const defaultMcpPeerImporter: McpPeerImporter = async () => {
+  const [serverMod, stdioMod, zodMod] = await Promise.all([
+    import('@modelcontextprotocol/sdk/server/mcp.js'),
+    import('@modelcontextprotocol/sdk/server/stdio.js'),
+    import('zod'),
+  ]);
+  return {
+    McpServer: serverMod.McpServer,
+    StdioServerTransport: stdioMod.StdioServerTransport,
+    z: zodMod.z,
+  };
+};
+
+/** Lazy-load optional MCP peers. Used only by `fullshield mcp --stdio`. */
+export async function loadMcpPeers(importer: McpPeerImporter = defaultMcpPeerImporter): ReturnType<McpPeerImporter> {
+  try {
+    return await importer();
+  } catch {
+    throw new Error(MCP_PEER_ERROR);
+  }
+}
+
 /** Official MCP SDK server (stdio / in-memory). Tools stay read-only. */
-export function createOfficialMcpServer(opts: { experimental?: boolean } = {}): McpServer {
+export async function createOfficialMcpServer(
+  opts: { experimental?: boolean; loadPeers?: McpPeerImporter } = {},
+): Promise<McpServer> {
+  const { McpServer, z } = await loadMcpPeers(opts.loadPeers);
   const session = createMcpSession(opts);
   const server = new McpServer({ name: 'fullshield', version: '0.1.0' });
   const modulesSchema = z.array(z.enum(['deps', 'secrets', 'sast', 'config'])).optional();
@@ -191,8 +223,11 @@ export function createOfficialMcpServer(opts: { experimental?: boolean } = {}): 
   return server;
 }
 
-export async function startMcpStdio(opts: { experimental?: boolean } = {}): Promise<void> {
-  const server = createOfficialMcpServer(opts);
+export async function startMcpStdio(
+  opts: { experimental?: boolean; loadPeers?: McpPeerImporter } = {},
+): Promise<void> {
+  const { StdioServerTransport } = await loadMcpPeers(opts.loadPeers);
+  const server = await createOfficialMcpServer(opts);
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }

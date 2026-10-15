@@ -157,10 +157,8 @@ describe('Phase 24 remediation agent (experimental)', () => {
   it('opens a PR when the patched file uses CRLF (core.autocrlf-independent)', async () => {
     await writeFile(
       join(work, 'app.js'),
-      "const express = require('express');\r\nconst app = express();\r\napp.use(express.json());\r\n",
+      "const express = require('express');\r\nconst app = express();\r\napp.use(express.json());\r\n// crlf-fixture\r\n",
     );
-    git(work, ['add', '--', 'app.js']);
-    git(work, ['commit', '-m', 'crlf']);
     const mock = await startMockGithub();
     try {
       const result = await runAgent({

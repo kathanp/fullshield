@@ -1,8 +1,8 @@
 # FullShield — Build Spec for Cursor
 
-> Package name: `fullshield` (published **0.1.0** on npm 2026-10-15; maintainer `kathan2404`; placeholders `0.0.0-stage` / `0.0.1` exist — do not publish another placeholder).
+> Package name: `fullshield` (published **0.1.0** on npm 2026-10-15; maintainer `kathan2404`; placeholders `0.0.0-stage` / `0.0.1` are **deprecated** — do not republish them).
 > Repo: https://github.com/kathanp/fullshield. Language: TypeScript (strict). Runtime: Node.js ≥ 22.13. Distribution: npm (CLI + library + Express/Fastify middleware).
-> Spec revision: 2026-10-14 — adds **Section 1.1 Market position** (we provide all five crowded-category layers in one MIT CLI). Section 15.2 reachability classes match shipped 0.1.0.
+> Spec revision: 2026-10-15 — Section 1.1 is **Comparison and limits** (no stakeholder “Yes”). `latest` on npm is **0.1.0** with provenance; placeholders `0.0.0-stage` / `0.0.1` are deprecated.
 
 ---
 
@@ -39,7 +39,7 @@
 
 ### `scripts/verify.mjs` must run, in order, and stop on the first failure:
 1. `typecheck` → `lint` → `build`
-2. `test:coverage` with thresholds enforced in `vitest.config.ts`: **lines ≥ 80%, branches ≥ 75%** for `src/` (Core); `src/modules/**` ≥ 85%.
+2. `test:coverage` with thresholds enforced in `vitest.config.ts`: **lines ≥ 80%, branches ≥ 80%** for `src/` (Core); `src/modules/**` ≥ 85%. **Keep actual coverage at least 2 points above every threshold.**
 3. **Anti-cheat checks** (fail the run if any is true):
    - any `.only(`, `.skip(`, `it.todo(`, `xit(`, `xdescribe(` in `test/`
    - any test file with zero `expect(` calls
@@ -88,23 +88,20 @@ A single tool that covers the full cycle for Node.js/TypeScript backends:
 - Does NOT replace a penetration test.
 - Does NOT auto-delete code, ever.
 - v1 supports JS/TS only. Other languages are out of scope.
-- Does NOT detect cyber-physical or hardware attacks (industrial temperature / ICS-SCADA sabotage, exploding pagers or radios, firmware implants, RF devices). Those need OT monitoring or hardware supply-chain review. The closest in-scope analog is **npm** supply-chain heuristics (Section 18): malicious packages and install scripts — software only. Do not add a phase, rule, or stub that claims otherwise.
 
-### 1.1 Market position — do we provide all of it? **Yes.**
+### 1.1 Comparison and limits
 
-The category is crowded. Snyk, Socket, Semgrep, Gitleaks, Dependabot, Helmet, and Socket Firewall already sell or ship **pieces**. The idea is not unique. What *is* unique on npm as an MIT, no-SaaS, Node/TS CLI is the **combo**: one `npx fullshield` that does detect → classify → report → notify → fix → CI gate, plus optional runtime, with **no account**.
+The category is crowded. Snyk, Socket, Semgrep, Gitleaks, Dependabot, Helmet, and Socket Firewall already sell or ship **pieces**. The idea is not unique. What is uncommon on npm as an MIT, no-SaaS, Node/TS CLI is the **combo**: one `npx fullshield` that does detect → classify → report → notify → fix → CI gate, plus optional runtime, with **no account**. Depth is not the same as a paid platform.
 
-**Answer for stakeholders: Yes, FullShield provides every layer in that comparison.** Depth is not the same as a paid platform. Honesty is part of the spec.
+| Piece | Already exists as | How (0.1.0, honest) | Ship status |
+|---|---|---|---|
+| Deps + reachability | Snyk, Socket, Semgrep Supply Chain | OSV + lockfile graph. Classes: `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), `not-imported` (−2, only when no such path exists), `reachability-unknown` (severity kept) when edges are unparsed. DevDependency-only unused hits are `info`. `DEPS-MALICIOUS-001` is always critical. Pair with `fullshield sbom --format cyclonedx`. | **Stable** |
+| SAST | Semgrep, Snyk Code | Intra-function taint + cross-file call graph, depth 5, SARIF `codeFlows`. SQL/NoSQL/CMDi/path/`eval`/SSRF/redirect/JWT/crypto/proto/XSS/missing-auth (low confidence). Nested closures and some dynamic dispatch are still missed. Not a Semgrep rule marketplace. | **Stable** |
+| Secrets | Gitleaks, TruffleHog, Semgrep Secrets | AWS/Stripe/GitHub/Slack/Google/AI/PEM/DB URLs/JWT secrets/committed `.env` + entropy. Always masked. `scan --staged` + pre-commit from `init`. | **Stable** |
+| Fix + CI gate | Snyk, Dependabot | `fix` dry-run; `fix --apply` only `safe: true` on a clean git tree; snapshot restore if project tests fail (never `git checkout --`). `--fail-on` + `--update-baseline` + SARIF. Never auto-merges, never pushes to `main`/`master`. | **Stable** |
+| Runtime / install guard | Helmet, Socket Firewall | `fullshield/runtime/express` and `/fastify`: signature + rate-limit + body-size. Prefer `mode: 'monitor'`. Experimental RASP (`FULLSHIELD_EXPERIMENTAL_RASP=1`) is structure-change sink hooks, fail-open, not a WAF. `fullshield install` is static-only (`FULLSHIELD_EXPERIMENTAL_SUPPLY=1`); never a malware sandbox. | Runtime monitor **stable**; RASP + `install` **experimental** |
 
-| Piece | Already exists as | FullShield provides? | How (0.1.0, honest) | Ship status |
-|---|---|---|---|---|
-| Deps + reachability | Snyk, Socket, Semgrep Supply Chain | **Yes** | OSV + lockfile graph. Classes: `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), `not-imported` (−2, only when no such path exists), `reachability-unknown` (severity kept) when edges are unparsed. DevDependency-only unused hits are `info`. `DEPS-MALICIOUS-001` is always critical. Pair with `fullshield sbom --format cyclonedx`. | **Stable** |
-| SAST | Semgrep, Snyk Code | **Yes** | Intra-function taint + cross-file call graph, depth 5, SARIF `codeFlows`. SQL/NoSQL/CMDi/path/`eval`/SSRF/redirect/JWT/crypto/proto/XSS/missing-auth (low confidence). Nested closures and some dynamic dispatch are still missed. Not a Semgrep rule marketplace. | **Stable** |
-| Secrets | Gitleaks, TruffleHog, Semgrep Secrets | **Yes** | AWS/Stripe/GitHub/Slack/Google/AI/PEM/DB URLs/JWT secrets/committed `.env` + entropy. Always masked. `scan --staged` + pre-commit from `init`. | **Stable** |
-| Fix + CI gate | Snyk, Dependabot | **Yes** | `fix` dry-run; `fix --apply` only `safe: true` on a clean git tree; snapshot restore if project tests fail (never `git checkout --`). `--fail-on` + `--update-baseline` + SARIF. Never auto-merges, never pushes to `main`/`master`. | **Stable** |
-| Runtime / install guard | Helmet, Socket Firewall | **Yes** (runtime stable as a **stopgap monitor**; install-guard experimental) | `fullshield/runtime/express` and `/fastify`: signature + rate-limit + body-size. Prefer `mode: 'monitor'`. Experimental RASP (`FULLSHIELD_EXPERIMENTAL_RASP=1`) is structure-change sink hooks, fail-open, not a WAF. `fullshield install` is static-only (`FULLSHIELD_EXPERIMENTAL_SUPPLY=1`); never a malware sandbox. | Runtime monitor **stable**; RASP + `install` **experimental** |
-
-**What “Yes” does *not* mean (do not claim in README or sales copy):**
+**What this does *not* mean (do not claim in README or sales copy):**
 
 - Function-level GHSA reachability across every affected symbol (Snyk/Socket enterprise). FullShield uses import + any-call, plus lockfile path for transitives.
 - Multi-language SAST. v1 is JS/TS only.
@@ -112,9 +109,9 @@ The category is crowded. Snyk, Socket, Semgrep, Gitleaks, Dependabot, Helmet, an
 - Prevention by itself. CI `--fail-on` and runtime **monitor** are the gates. Block-mode RASP is not a production claim until the app’s benign corpus is measured.
 - Certification (`report --compliance pci` is evidence-style mapping). Not a pentest.
 
-**Packaging rule this section exists to protect:** never split these layers into separately published packages. One install (`npm i -D fullshield`). Runtime subpath must load zero scanner code (Section 13). If a layer cannot meet its acceptance test, ship it behind an `experimental` flag — never stub it as if the table above were false.
+**Packaging rule this section exists to protect:** never split these layers into separately published packages. One install (`npm i -D fullshield`). Runtime subpath must load zero scanner code (Section 13). If a layer cannot meet its acceptance test, ship it behind an `experimental` flag.
 
-**Name status:** `fullshield` on npm is **taken** (ours). `latest` is `0.1.0`. Category remains crowded; this exact all-in-one open-source CLI is this repo.
+**Name status:** `fullshield` on npm is **ours**. `latest` is `0.1.0` (published with provenance). Placeholders `0.0.0-stage` and `0.0.1` are **deprecated**. Category remains crowded; this exact all-in-one open-source CLI is this repo.
 
 ---
 
@@ -324,8 +321,8 @@ Baseline duties (still in `fullshield/runtime`):
 ## 8. Security of the Package Itself (non-negotiable)
 A security tool is a prime supply-chain target.
 - No `install`/`postinstall` scripts.
-- Minimal runtime deps (target ≤ 10). Pin versions; commit the lockfile.
-- Publish with `npm publish --provenance` from CI; npm account protected with 2FA.
+- Minimal runtime deps (target ≤ 10). Pin versions; commit the lockfile. Experimental-only libraries (`@modelcontextprotocol/sdk`, `zod`) are **optional peerDependencies**, lazy-imported only by `fullshield mcp`.
+- Publish **only from CI** via npm **trusted publishing (OIDC)** with `--provenance`. No long-lived `NPM_TOKEN`. Trusted publisher: GitHub repo `kathanp/fullshield`, workflow filename `publish.yml`, environment blank. npm CLI ≥ 11.5.1. npm and GitHub accounts protected with 2FA.
 - Scanned code is never executed. Parse only.
 - Network calls only to OSV and user-configured webhooks; `--offline` mode available.
 - Run FullShield on its own repo in CI (dogfooding).
@@ -403,7 +400,7 @@ Rules for keeping one package lean:
 - **Framework adapters as optional peer deps**: `express` and `fastify` are `peerDependenciesMeta: { optional: true }`, never bundled.
 - One version number and one CHANGELOG for everything.
 
-Coverage map to state in the README (honest "everything"). This is the same five-layer claim as Section 1.1, plus edge (headers only):
+Coverage map to state in the README (honest). This is the same five-layer comparison as Section 1.1, plus edge (headers only):
 | Layer | Covered by |
 |---|---|
 | Code vulnerabilities | `sast` (intra-function + cross-file taint, depth 5) |
@@ -428,14 +425,14 @@ npx fullshield edge https://example.com
 ## 14. Public GitHub Launch Checklist
 
 **Done (0.1.0, 2026-10-15):**
-- npm name reserved then published: `fullshield@0.1.0` is `latest` (maintainer `kathan2404`). Placeholders `0.0.0-stage` / `0.0.1` exist — deprecate by exact version, never republish a placeholder.
-- Public repo `kathanp/fullshield`, MIT, README coverage map + non-goals + Section 1.1 honesty (0.x / alpha).
+- npm name reserved then published: `fullshield@0.1.0` is `latest` (maintainer `kathan2404`, provenance). Placeholders `0.0.0-stage` / `0.0.1` are **deprecated** by exact version. Never republish a placeholder.
+- Public repo `kathanp/fullshield`, MIT, README coverage map + non-goals + Section 1.1 comparison and limits (0.x / alpha).
 - Publish from CI with trusted publishing + `--provenance`. No `NPM_TOKEN`.
 
 **Keep current:**
 - `SECURITY.md`, `CONTRIBUTING.md`, branch protection, Dependabot, secret scanning, 2FA on GitHub + npm.
 - **Fake secrets in fixtures will trip GitHub push protection.** Build them by string concatenation at test time (like the `"AKIA" + "XXXX..."` example) or generate them in a test setup step. Never commit realistic-looking keys.
-- README must keep stating: category is crowded; FullShield still provides all five layers (Section 1.1); APIs may change; not a pentest.
+- README must keep stating: category is crowded; APIs may change; not a pentest. Do not paste Section 1.1 “does not mean” as a claim that the app is safe.
 
 ---
 
