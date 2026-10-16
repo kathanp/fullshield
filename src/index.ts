@@ -6,6 +6,7 @@ export {
 } from './core/engine.js';
 export type {
   ModuleContext,
+  PolicyScanResult,
   ScanMetadata,
   ScanModule,
   ScanOptions,
@@ -44,9 +45,24 @@ export { runFix } from './fixer/index.js';
 export type { FixOptions, FixPatch, FixResult } from './fixer/index.js';
 export { createAiClient, isInternalAi, isLiveAi } from './ai/provider.js';
 export { scanTextForSecrets } from './modules/secrets/index.js';
+export { guardTools, mcpCfgEnabled, mcpHomeConfigPaths, scanMcpConfig } from './modules/mcp/index.js';
+export type { GuardTool, GuardToolCall, McpScanOptions } from './modules/mcp/index.js';
 export { runAiFix } from './ai/fixLoop.js';
 export { applyBaseline, readBaseline, writeBaseline } from './core/baseline.js';
 export type { BaselineFile } from './core/baseline.js';
+export {
+  POLICY_FILE_NAME,
+  POLICY_FLAG,
+  POLICY_PEER_ERROR,
+  PolicyError,
+  applyPolicy,
+  isPolicyEnabled,
+  loadPolicy,
+  parsePolicy,
+  renderPrSummary,
+  ruleDocsUrl,
+} from './policy/index.js';
+export type { AppliedPolicy, FullShieldPolicy, PolicyException } from './policy/index.js';
 export { applyInlineSuppressions, parseIgnore } from './core/suppression.js';
 export { renderConsoleReport } from './reporters/console.js';
 export { renderHtmlReport } from './reporters/html.js';
@@ -56,3 +72,16 @@ export { renderSarifReport, validateSarif21 } from './reporters/sarif.js';
 export { buildSbom } from './sbom/index.js';
 export { renderCycloneDx, validateCycloneDx15 } from './sbom/cyclonedx.js';
 export type { SbomComponent, SbomInput } from './sbom/cyclonedx.js';
+export {
+  buildCycloneDxVex,
+  buildOpenVex,
+  buildVex,
+  validateCycloneDxVex,
+  validateOpenVex,
+} from './vex/index.js';
+export { experimentalVex } from './supply/experimental.js';
+export {
+  analyzeWorkflowTampering,
+  analyzeWormIndicators,
+  provenanceCoverage,
+} from './supply/index.js';

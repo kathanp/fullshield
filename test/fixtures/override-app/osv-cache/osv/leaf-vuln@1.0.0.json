@@ -1,0 +1,22 @@
+{
+  "fetchedAt": "2026-10-13T00:00:00.000Z",
+  "vulns": [
+    {
+      "id": "GHSA-leaf-test-0001",
+      "summary": "Seeded transitive fixture vulnerability",
+      "aliases": ["CVE-2020-0001"],
+      "database_specific": { "severity": "HIGH" },
+      "affected": [
+        {
+          "package": { "ecosystem": "npm", "name": "leaf-vuln" },
+          "ranges": [
+            {
+              "type": "SEMVER",
+              "events": [{ "introduced": "0" }, { "fixed": "1.0.1" }]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

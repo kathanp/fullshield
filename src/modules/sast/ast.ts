@@ -129,15 +129,16 @@ export const REQUEST_SOURCE_PROPS = new Set(['query', 'body', 'params', 'headers
 const SOURCE_PROPS = REQUEST_SOURCE_PROPS;
 
 export function isTaintSource(node: AstNode): boolean {
-  if (node.type !== 'MemberExpression') return false;
-  const name = propName(node);
-  if (node.object.type === 'Identifier' && node.object.name === 'req' && name !== undefined && SOURCE_PROPS.has(name)) {
-    return true;
+  if (node.type === 'MemberExpression') {
+    const name = propName(node);
+    if (node.object.type === 'Identifier' && node.object.name === 'req' && name !== undefined && SOURCE_PROPS.has(name)) {
+      return true;
+    }
+    if (node.object.type === 'Identifier' && node.object.name === 'process' && name === 'argv') {
+      return true;
+    }
+    if (node.object.type === 'MemberExpression' && isTaintSource(node.object)) return true;
   }
-  if (node.object.type === 'Identifier' && node.object.name === 'process' && name === 'argv') {
-    return true;
-  }
-  if (node.object.type === 'MemberExpression' && isTaintSource(node.object)) return true;
   return false;
 }
 

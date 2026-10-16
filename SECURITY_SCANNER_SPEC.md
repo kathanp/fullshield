@@ -202,7 +202,7 @@ interface Finding {
 }
 
 interface FixProposal {
-  kind: 'dependency-bump' | 'code-patch' | 'config-add';
+  kind: 'dependency-bump' | 'code-patch' | 'config-add' | 'dependency-override';
   safe: boolean;           // only safe fixes apply without --unsafe
   diff: string;            // unified diff
 }
@@ -637,6 +637,14 @@ Goal: turn "possible vulnerability" into "**confirmed**, here's the proof" so de
 | 26b | Close stable in-scope misses from that bench | Fixture per miss (positive + negative). Fix the stable rule when it is a real gap in a claimed class; otherwise README Known limitations. Do not edit `ground-truth.json` or `triage.json`. |
 | 26c | Engine gaps from the goof holdout | Root-cause engine components (taint source, param/return propagation, cross-file calls, sink matching, lockfile attribution). Generic fixtures, not copied goof. goof becomes a seen holdout. Second untouched holdout scanned once. README holdout numbers only, on unreviewed ground truth. |
 | 27 | SAST + RASP coverage gaps: numeric SQL, ORM raw sinks, template-literal shell | Every new sink has positive + negative fixtures; attack corpus ≥ 10 cases per new context; benign corpus 0 blocked; extra SAST sinks behind `FULLSHIELD_EXPERIMENTAL_SAST_GAPS` / `--experimental-sast-gaps` |
+| 28 | Framework coverage: Next.js, NestJS, Hono, Koa taint sources + AUTH + runtime adapters | One vulnerable + one clean fixture per framework; route inventory lists every route; no new runtime deps; behind `FULLSHIELD_EXPERIMENTAL_FRAMEWORKS` / `--experimental-frameworks` |
+| 29 | New vulnerability classes: ReDoS, deser, XXE, upload, cookies, CSRF, mass assignment, timing, hash cost, GraphQL, trust-proxy | Each rule has positive + negative fixtures, mutation-smoke, docs, OWASP/CWE mapping; default scan emits no new IDs; behind `FULLSHIELD_EXPERIMENTAL_CLASSES` / `--experimental-classes` |
+| 30 | Secrets, advanced: git history, client bundles, opt-in live identity checks | History finds a secret added then removed; bundle finds a key in a built fixture; verify calls mocked; live verification impossible without both `--verify-secrets` and `--i-own-these-credentials`. Behind `FULLSHIELD_EXPERIMENTAL_SECRETS_ADV` |
+| 31 | Supply chain advanced + VEX: worm/workflow indicators, dependency overrides, provenance score | Seeded worm fixture behind the flag; override apply writes `package.json`, leaves `package-lock.json` byte-identical, and prints `run npm install`; VEX validates. Behind `FULLSHIELD_EXPERIMENTAL_VEX` |
+| 32 | Runtime response DLP (outgoing JSON/text) | Fixtures per leak type; zero masking on a benign corpus; p95 extra < 1ms for ≤64 KB; behind `FULLSHIELD_EXPERIMENTAL_DLP=1` |
+| 33 | MCP client/server config rules | Positive and negative fixtures for `MCP-001`–`MCP-005`; no network; home-dir scan impossible without `--include-home`; behind `FULLSHIELD_EXPERIMENTAL_MCPCFG` |
+| 34 | Policy-as-code + deterministic PR summary | Policy schema validated with zod; expired exception fails CI; PR summary golden-file tests; behind `FULLSHIELD_EXPERIMENTAL_POLICY=1` |
+| 35 | Host OpenSSH exposure check (Linux only) | Command refuses without `--experimental-host`; default scan emits no `HOST-*`; version from `dpkg-query` / `rpm` / `apk`, not `ssh -V`; behind `FULLSHIELD_EXPERIMENTAL_HOST` |
 
 ### Phase 26 — Public benchmark run (credibility first)
 
@@ -659,5 +667,85 @@ Extra SAST sinks are **experimental** (`FULLSHIELD_EXPERIMENTAL_SAST_GAPS=1` or 
 - Template-literal shell: `exec(\`... ${x}\`)`, `execSync`, `spawn('sh', ['-c', ...])` even without `shell: true`, `execa` with `shell: true`, zx `$` only when interpolation is not auto-escaped (`$.raw`, `{ quote: false }`).
 
 Acceptance: every new sink has positive + negative fixtures; attack corpus ≥ 10 cases per new context (`numeric-sql`, `orm-raw`, `template-shell`); benign corpus still 0 blocked; Known Limitations updated.
+
+### Phase 28 — Framework coverage
+
+Taint sources and AUTH are **experimental** (`FULLSHIELD_EXPERIMENTAL_FRAMEWORKS=1` or `scan --experimental-frameworks`). Default `scan` is unchanged.
+
+- Next.js App Router `request.json()` / `searchParams`, Server Actions `formData.get`, Pages API `req.query`.
+- NestJS `@Body()` / `@Query()` / `@Param()` / `@Headers()`; `@UseGuards` counts as auth.
+- Hono `c.req.query()` / `c.req.json()` / `c.req.param()`.
+- Koa `ctx.request.body` / `ctx.query` / `ctx.params`.
+- Runtime adapters `fullshield/runtime/koa` and `fullshield/runtime/hono` (optional peers; no new required deps).
+
+Acceptance: one vulnerable + one clean fixture per framework; route inventory lists every route; no new runtime dependencies.
+
+### Phase 30 — Secrets, advanced
+
+Experimental (`FULLSHIELD_EXPERIMENTAL_SECRETS_ADV=1` or `scan --experimental-secrets-adv`). Default `scan` is unchanged. CLI flags do nothing useful without that flag.
+
+- `scan --history`: scan every commit reachable from HEAD (`git log -p` streamed, deduplicated by blob hash), report first-introduced commit and whether the secret still exists at HEAD. Respects baseline and suppressions.
+- `scan --bundle <dir>`: scan built client bundles (`dist/`, `.next/static`, `build/`) for keys exposed to the browser, including `NEXT_PUBLIC_*`/`VITE_*` env vars that hold secret-shaped values (`SECRET-BUNDLE-001`).
+- `--verify-secrets` (opt-in, never default, never in generated CI templates): check whether a detected key is live using **read-only identity endpoints only** (AWS STS `GetCallerIdentity`, GitHub `GET /user`, Stripe `GET /v1/balance` with restricted check, Slack `auth.test`). Requires an explicit `--i-own-these-credentials` flag. Results: `live | revoked | unknown`. Never logs the key.
+
+Acceptance: history scan finds a secret added and removed in a fixture repo; bundle scan finds a key in a built fixture; verify calls mocked in tests; live verification is impossible without both flags (test asserts).
+
+### Phase 31 — Supply chain, advanced + VEX
+
+Experimental (`FULLSHIELD_EXPERIMENTAL_VEX=1` or `scan --experimental-vex`). Default `scan` must not emit new rule IDs without the flag.
+
+- **Self-replicating worm indicators** in dependency code (static): reads npm/GitHub tokens (`~/.npmrc`, `NPM_TOKEN`, `GITHUB_TOKEN`) combined with `npm publish`, registry PUT requests, GitHub API repo/workflow creation, or writing `.github/workflows/*` files → critical (`SUPPLY-WORM-001`).
+- **Workflow tampering:** flag dependencies whose install scripts or code write into `.github/`, `.git/hooks/`, or CI config files (`SUPPLY-WORKFLOW-001`).
+- **Transitive fix via overrides:** when a vulnerable package is transitive and the direct parent has no fixed release, propose an `overrides` (npm) / `pnpm.overrides` / `resolutions` (yarn) entry as `FixProposal.kind = 'dependency-override'` (unsafe by default). Apply writes that entry into `package.json` and prints `run npm install`. It does not edit `package-lock.json`.
+- **Provenance coverage score:** % of direct and transitive deps published with provenance; trend over time in history DB. Unknown is not counted as present.
+- **VEX output:** `fullshield vex --format openvex|cyclonedx` emits VEX statements from reachability results (`not_affected` with justification `vulnerable_code_not_in_execute_path` only when reachability proves not-imported; otherwise `under_investigation`). Never claim `not_affected` on a guess.
+
+Acceptance: seeded worm-like fixture package detected; after apply, `package.json` contains the override, `package-lock.json` is byte-identical, and the CLI prints `run npm install`; VEX validates against OpenVEX and CycloneDX schemas.
+
+### Phase 32 — Runtime response protection (DLP)
+
+Optional `shieldGuard({ dlp: { mode: 'monitor' | 'mask' | 'block' } })` inspects outgoing response bodies (JSON and text, size-capped) for: secret patterns (reuse `secrets` rules), stack traces, internal IPs/hostnames, card numbers (Luhn-validated), and bulk PII signals (many emails in one response from a route that normally returns one).
+
+- `mask` replaces matches; `block` returns 500 with a generic message. Events go to `onEvent`.
+- Performance budget: < 1ms p95 extra for responses ≤ 64 KB; responses above the cap are skipped and counted.
+- Behind `FULLSHIELD_EXPERIMENTAL_DLP=1`. Without the flag, `shieldGuard` behavior and default `scan` output are unchanged.
+
+Acceptance: fixtures for each leak type; zero masking on a benign response corpus; benchmark test enforces the budget.
+
+### Phase 33 — AI agent and MCP configuration security
+
+Experimental (`FULLSHIELD_EXPERIMENTAL_MCPCFG=1` or `scan --experimental-mcpcfg`). Default `scan` emits no `MCP-*` IDs. No network.
+
+- Scan MCP client configs in the repo and, only with `scan --include-home`, the user's home: `.cursor/mcp.json`, `.vscode/mcp.json`, `.mcp.json`, Claude Desktop config.
+- `MCP-001` secrets inline in config → high. `MCP-002` unpinned `npx` / `@latest` → medium. `MCP-003` shell/exec or unrestricted filesystem-write tools without an allowlist → medium. `MCP-004` tool-description instruction injection, hidden text, or zero-width characters → high. `MCP-005` remote MCP over plain `http://` → medium.
+- Model-provided MCP tool arguments are taint sources. Optional `guardTools(tools, { allow, confirm })` deny-lists dangerous tools, requires confirm for writes/payments, and logs every call. It is not auto-wrapped onto scanned servers.
+
+Acceptance: positive and negative fixtures for each rule; no network calls; home-dir scan impossible without `--include-home`.
+
+### Phase 34 — Policy-as-code + deterministic PR summary
+
+Policy and PR comments are **experimental** (`FULLSHIELD_EXPERIMENTAL_POLICY=1`). Default `scan` without the flag or a policy file is unchanged.
+
+- `fullshield.policy.json`: required modules, severity overrides per rule, `failOn` per branch, and **exceptions** that require `owner`, `reason`, and `expires` (ISO date). Expired exceptions fail CI with a clear message. Exceptions without an owner or expiry are rejected.
+- `scan --pr-summary`: deterministic Markdown comment for GitHub/GitLab PRs listing new findings vs base branch (no AI), with links to rule docs. Uses the existing baseline/diff logic.
+- Policy schema validated with zod (optional peer; lazy-imported). No new hard dependencies.
+
+Acceptance: expired exception test fails CI; PR summary golden-file tests.
+
+### Phase 35 — Host exposure check (experimental, Linux only)
+
+Goal: report whether the host running the Node app is exposed to known OS-level service vulnerabilities, starting with OpenSSH regreSSHion (CVE-2024-6387). **Detection/reporting only — FullShield does not block, patch, or harden OS services.**
+
+Command: `fullshield host` (flag `--experimental-host`, `FULLSHIELD_EXPERIMENTAL_HOST=1`). Skips with an info message on macOS, Windows, containers without sshd, and PaaS. Command refuses without `--experimental-host`. Default `scan` is unchanged (no `HOST-*`).
+
+Checks:
+1. OpenSSH version: distro package (`dpkg-query -W openssh-server` / `rpm -q openssh-server` / `apk info`), NOT `ssh -V`. Match OSV ecosystems (Ubuntu, Debian, Red Hat, Alpine) so backported fixes are not false positives. Upstream fallback: vulnerable if 8.5p1 ≤ v < 9.8p1, or v < 4.4p1.
+2. Mitigation: `sshd -T` if permitted; otherwise parse `/etc/ssh/sshd_config` + `Include` for `logingracetime 0`.
+3. Exposure: whether sshd listens on a non-loopback address (`ss -ltn`).
+4. Optional log signal (readable without elevation; never request sudo): `Timeout before authentication` per source IP in the last 24h.
+
+Rule IDs: `HOST-SSH-001` version, `HOST-SSH-002` no mitigation, `HOST-SSH-003` attempt pattern. Critical only for vulnerable + unmitigated + publicly listening.
+
+Acceptance: the command refuses without `--experimental-host`; default `scan` emits no `HOST-*` IDs; the version comes from the distro package query, not `ssh -V`.
 
 - Show a real before/after: run it on a public, intentionally vulnerable Node app (e.g. OWASP NodeGoat or Juice Shop), list what it found and what it missed. Publishing the misses builds more trust than hiding them.

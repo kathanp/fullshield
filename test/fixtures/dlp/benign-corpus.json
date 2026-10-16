@@ -1,0 +1,24 @@
+{
+  "cases": [
+    { "id": "ok-json", "body": { "ok": true, "message": "hello world" } },
+    { "id": "single-email", "body": { "email": "support@example.com" } },
+    { "id": "two-emails", "body": { "from": "a@example.com", "to": "b@example.com" } },
+    { "id": "public-dns", "body": { "resolver": "8.8.8.8" } },
+    { "id": "cloudflare-dns", "body": { "resolver": "1.1.1.1" } },
+    { "id": "docs-host", "body": { "host": "api.example.com" } },
+    { "id": "test-net", "body": { "ip": "203.0.113.5" } },
+    { "id": "not-rfc1918-172", "body": { "ip": "172.15.0.1" } },
+    { "id": "not-rfc1918-172b", "body": { "ip": "172.32.0.1" } },
+    { "id": "error-no-stack", "body": { "error": "Not found" } },
+    { "id": "at-prose", "body": { "note": "located at the front desk" } },
+    { "id": "akia-short", "body": { "id": "AKIA123" } },
+    { "id": "sk-short", "body": { "token": "sk-short" } },
+    { "id": "non-luhn", "body": { "order": "4111111111111112" } },
+    { "id": "phone", "body": { "phone": "555-123-4567" } },
+    { "id": "short-digits", "body": { "zip": "90210" } },
+    { "id": "all-zeros-pan", "body": { "n": "0000000000000000" } },
+    { "id": "count", "body": { "n": 42, "items": ["seat", "select your seat"] } },
+    { "id": "empty", "body": {} },
+    { "id": "text-ok", "body": "thanks for signing up" }
+  ]
+}

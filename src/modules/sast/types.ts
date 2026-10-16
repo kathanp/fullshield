@@ -29,6 +29,8 @@ export interface RuleContext {
   isRequestObject(node: AstNode): boolean;
   functionHasPasswordName(node: AstNode): boolean;
   assignedName(node: AstNode): string | undefined;
+  /** True when any file in this scan already applies a CSRF guard. */
+  projectCsrfProtected?: boolean;
 }
 
 export type Visitor = (node: AstNode) => void;

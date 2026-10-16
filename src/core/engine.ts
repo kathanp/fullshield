@@ -4,8 +4,11 @@ import { performance } from 'node:perf_hooks';
 
 import { configModule } from '../modules/config/index.js';
 import { depsModule } from '../modules/deps/index.js';
+import { scanMcpConfig } from '../modules/mcp/index.js';
 import { sastModule } from '../modules/sast/index.js';
 import { secretsModule } from '../modules/secrets/index.js';
+import { secretsAdvEnabled } from '../modules/secrets/experimental.js';
+import type { SecretHit } from '../modules/secrets/types.js';
 import { applyExplain, applyTriage } from '../ai/triage.js';
 import { runLogicHunt } from '../ai/logic.js';
 import { createAiClient, isInternalAi, isLiveAi } from '../ai/provider.js';
@@ -20,8 +23,17 @@ import {
   type Finding,
   type FindingSummary,
   type ModuleName,
+  type Severity,
 } from './finding.js';
 import { packageVersion } from './version.js';
+import {
+  POLICY_FILE_NAME,
+  applyPolicy,
+  loadPolicy,
+  mergeRequiredModules,
+  resolvePolicyBranch,
+  type FullShieldPolicy,
+} from '../policy/index.js';
 
 export interface ModuleContext {
   cwd: string;
@@ -55,6 +67,21 @@ export interface ScanOptions {
   since?: string;
   experimentalIncremental?: boolean;
   changedFiles?: string[];
+  /** Phase 30: scan git history for secrets (`FULLSHIELD_EXPERIMENTAL_SECRETS_ADV=1`). */
+  history?: boolean;
+  /** Phase 30: scan a built client bundle directory. */
+  bundle?: string;
+  /** Phase 30: opt-in live identity check. Never default. Requires iOwnTheseCredentials. */
+  verifySecrets?: boolean;
+  iOwnTheseCredentials?: boolean;
+  /** Injected fetch for --verify-secrets tests. */
+  verifyFetch?: typeof fetch;
+  /** Phase 33: scan MCP configs under the user home (requires FULLSHIELD_EXPERIMENTAL_MCPCFG=1). */
+  includeHome?: boolean;
+  /** Phase 34 policy-as-code (`FULLSHIELD_EXPERIMENTAL_POLICY=1`). */
+  experimentalPolicy?: boolean;
+  /** Override git/CI branch when applying `failOn` per branch. */
+  policyBranch?: string;
 }
 
 export interface ScanMetadata {
@@ -68,11 +95,21 @@ export interface ScanMetadata {
   modulesRun: ModuleName[];
 }
 
+export interface PolicyScanResult {
+  enabled: true;
+  file: string;
+  failOn?: Severity;
+  errors: string[];
+  policy: FullShieldPolicy;
+}
+
 export interface ScanResult {
   findings: Finding[];
   summary: FindingSummary;
   metadata: ScanMetadata;
   config: ResolvedConfig;
+  /** Present only when experimental policy was loaded from `fullshield.policy.json`. */
+  policy?: PolicyScanResult;
 }
 
 /**
@@ -124,7 +161,11 @@ export async function runScan(
       config = { ...config, ai: { ...config.ai, maxFindings } };
     }
   }
-  const modulesRequested = options.modules ?? config.modules;
+  const loadedPolicy = await loadPolicy(cwd, { experimental: options.experimentalPolicy });
+  const modulesRequested = mergeRequiredModules(
+    options.modules ?? config.modules,
+    loadedPolicy?.requiredModules,
+  );
   let files = await walkFiles({ cwd, ignore: config.ignore });
   if (options.staged === true) {
     const staged = new Set(await listStagedFiles(cwd));
@@ -158,6 +199,28 @@ export async function runScan(
       collected.push(...(await module.run(ctx)));
     }
   }
+  if (process.env.FULLSHIELD_EXPERIMENTAL_MCPCFG === '1') {
+    collected.push(
+      ...scanMcpConfig(cwd, { experimental: true, includeHome: options.includeHome === true }),
+    );
+  }
+
+  const extraHits: SecretHit[] = [];
+  const secretsWanted = modulesRequested.includes('secrets');
+  if (secretsAdvEnabled() && secretsWanted) {
+    if (options.history === true) {
+      const { scanGitHistory } = await import('../modules/secrets/history.js');
+      const hist = await scanGitHistory(cwd);
+      extraHits.push(...hist.hits);
+      collected.push(...hist.findings);
+    }
+    if (options.bundle !== undefined && options.bundle.length > 0) {
+      const { scanBundle } = await import('../modules/secrets/bundle.js');
+      const bun = await scanBundle(options.bundle);
+      extraHits.push(...bun.hits);
+      collected.push(...bun.findings);
+    }
+  }
 
   const sources: Record<string, string> = {};
   for (const file of new Set(collected.map((f) => f.file).filter((f): f is string => f !== undefined))) {
@@ -173,6 +236,57 @@ export async function runScan(
     await writeBaseline(baselinePath, unsuppressed);
   }
   let findings = sortFindings(applyBaseline(unsuppressed, await readBaseline(baselinePath)));
+
+  if (
+    secretsAdvEnabled() &&
+    secretsWanted &&
+    options.verifySecrets === true &&
+    options.iOwnTheseCredentials === true
+  ) {
+    const { applyVerification } = await import('../modules/secrets/verify.js');
+    const { scanTextForSecretHits } = await import('../modules/secrets/index.js');
+    const secretById = new Map<string, string>();
+    for (const hit of extraHits) {
+      if (hit.secret !== undefined) secretById.set(hit.finding.id, hit.secret);
+    }
+    for (const finding of findings) {
+      if (finding.module !== 'secrets' || finding.file === undefined || secretById.has(finding.id)) {
+        continue;
+      }
+      let text = sources[finding.file];
+      if (text === undefined) {
+        try {
+          text = await readFile(join(cwd, finding.file), 'utf8');
+        } catch {
+          continue;
+        }
+      }
+      for (const hit of scanTextForSecretHits(finding.file, text)) {
+        if (hit.secret !== undefined) secretById.set(hit.finding.id, hit.secret);
+      }
+    }
+    findings = sortFindings(
+      await applyVerification(findings, secretById, {
+        fetchImpl: options.verifyFetch,
+      }),
+    );
+  }
+
+  let policyResult: PolicyScanResult | undefined;
+  if (loadedPolicy !== undefined) {
+    const applied = applyPolicy(findings, loadedPolicy, {
+      branch: options.policyBranch ?? resolvePolicyBranch(cwd),
+      modulesRun,
+    });
+    findings = applied.findings;
+    policyResult = {
+      enabled: true,
+      file: join(cwd, POLICY_FILE_NAME),
+      failOn: applied.failOn,
+      errors: applied.errors,
+      policy: loadedPolicy,
+    };
+  }
 
   const aiMode = options.ai;
   const aiEnabled =
@@ -209,6 +323,7 @@ export async function runScan(
       modulesRun,
     },
     config,
+    policy: policyResult,
   };
 }
 

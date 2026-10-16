@@ -1,4 +1,5 @@
 import { calleeName, literalString, walk } from '../sast/ast.js';
+import { classesEnabled } from '../sast/experimental.js';
 import type { AstNode } from '../sast/types.js';
 import { configFinding } from './finding.js';
 import type { Finding } from '../../core/finding.js';
@@ -10,6 +11,7 @@ export const configAstRuleIds = [
   'CONFIG-RATELIMIT-001',
   'CONFIG-ERRSTACK-001',
   'CONFIG-DIRLIST-001',
+  'CONFIG-TRUSTPROXY-001',
 ] as const;
 
 function lineAt(source: string, index: number): number {
@@ -205,6 +207,49 @@ export async function runConfigAstChecks(file: string, source: string): Promise<
         commentedLines.length > 0 ? undefined : createsAppLine,
       ),
     );
+  }
+
+  if (classesEnabled()) {
+    let trustProxyTrue = false;
+    let ipRateLimit = false;
+    let trustLine: number | undefined;
+    walk(ast, (node) => {
+      if (node.type !== 'CallExpression') return;
+      const name = calleeName(node);
+      if (name === 'set' && literalString(node.arguments[0]) === 'trust proxy') {
+        const value = node.arguments[1];
+        if (value !== undefined && value.type === 'Literal' && value.value === true) {
+          trustProxyTrue = true;
+          trustLine = node.loc?.start.line;
+        }
+      }
+      if (name === 'enable' && literalString(node.arguments[0]) === 'trust proxy') {
+        trustProxyTrue = true;
+        trustLine = node.loc?.start.line;
+      }
+      if (name === 'rateLimit' || name === 'slowDown') {
+        const opts = node.arguments[0];
+        const keyGen =
+          opts !== undefined && opts.type !== 'SpreadElement' ? objectProp(opts, 'keyGenerator') : undefined;
+        const keyedByIp =
+          keyGen === undefined ||
+          (keyGen.type !== 'SpreadElement' && /ip/i.test(source.slice(keyGen.range?.[0] ?? 0, keyGen.range?.[1] ?? 0)));
+        if (keyedByIp) ipRateLimit = true;
+      }
+    });
+    if (trustProxyTrue && ipRateLimit) {
+      findings.push(
+        configFinding(
+          'CONFIG-TRUSTPROXY-001',
+          'trust proxy true with IP-based rate limiting',
+          'high',
+          file,
+          "app.set('trust proxy', true) makes X-Forwarded-For spoofable while rate limits key on IP.",
+          'Set trust proxy to a hop count or subnet, and key rate limits on a verified identity—not the raw client IP.',
+          trustLine,
+        ),
+      );
+    }
   }
 
   return findings;

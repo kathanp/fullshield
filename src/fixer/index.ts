@@ -1,12 +1,23 @@
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 
 import { scan, type ScanOptions } from '../core/engine.js';
 import type { Finding, ModuleName } from '../core/finding.js';
 import { createFixBranch, isDirty, isGitRepo, listDirtyPaths } from './git.js';
+import {
+  collectManifestOverrides,
+  withManifestOverride,
+  type LockfileKind,
+} from './override.js';
 import { applyUnifiedDiff, proposeFix } from './patches.js';
+
+function detectLockKind(cwd: string): LockfileKind {
+  if (existsSync(join(cwd, 'yarn.lock'))) return 'yarn';
+  if (existsSync(join(cwd, 'pnpm-lock.yaml'))) return 'pnpm';
+  return 'npm';
+}
 
 export interface FixOptions {
   cwd?: string;
@@ -30,6 +41,8 @@ export interface FixResult {
   branch?: string;
   patches: FixPatch[];
   findings: Finding[];
+  /** Set when an override was written to package.json. The lockfile is left unchanged. */
+  notice?: string;
 }
 
 export async function runFix(options: FixOptions = {}): Promise<FixResult> {
@@ -39,8 +52,36 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
 
   const byFile = new Map<string, string>();
   const patches: FixPatch[] = [];
+  let appliedOverride = false;
+  const lockKind = detectLockKind(cwd);
 
   for (const finding of result.findings) {
+    if (finding.fix?.kind === 'dependency-override') {
+      let manifest = byFile.get('package.json');
+      if (manifest === undefined) {
+        try {
+          manifest = await readFile(join(cwd, 'package.json'), 'utf8');
+          byFile.set('package.json', manifest);
+        } catch {
+          continue;
+        }
+      }
+      patches.push({
+        file: 'package.json',
+        ruleId: finding.ruleId,
+        safe: finding.fix.safe,
+        diff: finding.fix.diff,
+      });
+      if (finding.fix.safe !== true && options.unsafe !== true) continue;
+      const next = applyUnifiedDiff(manifest, finding.fix.diff);
+      let merged = byFile.get('package.json') ?? manifest;
+      for (const [name, version] of collectManifestOverrides(next)) {
+        merged = withManifestOverride(merged, lockKind, name, version);
+      }
+      byFile.set('package.json', merged);
+      appliedOverride = true;
+      continue;
+    }
     const file = finding.file;
     if (file === undefined) continue;
     if (!byFile.has(file)) {
@@ -68,8 +109,10 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
     byFile.set(sourceFile, after);
   }
 
+  const notice = appliedOverride ? 'run npm install' : undefined;
+
   if (options.apply !== true) {
-    return { applied: false, reverted: false, patches, findings: result.findings };
+    return { applied: false, reverted: false, patches, findings: result.findings, notice };
   }
 
   if (!(await isGitRepo(cwd)) && options.force !== true) {
@@ -108,7 +151,7 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
     return { applied: false, reverted: true, branch, patches, findings: result.findings };
   }
 
-  return { applied: true, reverted: false, branch, patches, findings: result.findings };
+  return { applied: true, reverted: false, branch, patches, findings: result.findings, notice };
 }
 
 async function restoreSnapshots(cwd: string, snapshots: Map<string, Buffer | null>): Promise<void> {

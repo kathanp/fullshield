@@ -27,6 +27,7 @@ import { redirectRule } from './rules/redirect.js';
 import { sqliRule } from './rules/sqli.js';
 import { ssrfRule } from './rules/ssrf.js';
 import { TEMPLATE_EXT, xssRule } from './rules/xss.js';
+import { phase29Rules, sourceHasCsrfGuard } from './rules/phase29.js';
 import type { AstNode, RuleContext, SastRule } from './types.js';
 import { scanPromptInjection } from '../../ai/injection.js';
 
@@ -43,11 +44,12 @@ export const sastRules: readonly SastRule[] = [
   protoRule,
   xssRule,
   authRule,
+  ...phase29Rules,
 ];
 
 const SOURCE_EXT = /\.[cm]?[jt]sx?$/;
 
-async function parseSource(code: string): Promise<AstNode> {
+export async function parseSource(code: string): Promise<AstNode> {
   const { parse } = await import('@typescript-eslint/typescript-estree');
   return parse(code, {
     loc: true,
@@ -69,6 +71,7 @@ export function findingsFromAst(
   source: string,
   ast: AstNode,
   extraReturners: ReadonlySet<string> = new Set(),
+  projectCsrfProtected = false,
 ): Finding[] {
   const facts = analyzeFile(ast, extraReturners);
   const findings: Finding[] = [];
@@ -103,6 +106,7 @@ export function findingsFromAst(
       isRequestObject: (node) => nodeIsRequestObject(node, facts),
       functionHasPasswordName: (node) => factsFor(node, facts).hasPasswordName,
       assignedName: (node) => assignedNameOf(node),
+      projectCsrfProtected,
     };
     const visitors = rule.create(ctx);
     walk(ast, (node) => {
@@ -144,6 +148,7 @@ function findingsFromTemplate(filename: string, source: string): Finding[] {
     isRequestObject: () => false,
     functionHasPasswordName: () => false,
     assignedName: () => undefined,
+    projectCsrfProtected: false,
   };
   xssRule.create(ctx);
   return findings;
@@ -184,6 +189,7 @@ export const sastModule: ScanModule = {
       }
     }
     const files = new Set(parsed.map((p) => p.file));
+    const projectCsrf = parsed.some((p) => sourceHasCsrfGuard(p.source));
     const returning = new Map<string, Set<string>>();
     for (const p of parsed) {
       returning.set(p.file, functionsThatReturnTaint(p.ast));
@@ -197,7 +203,7 @@ export const sastModule: ScanModule = {
         const exp = hash >= 0 ? spec.slice(hash + 1) : local;
         if (returning.get(file)?.has(exp)) extra.add(local);
       }
-      findings.push(...findingsFromAst(p.file, p.source, p.ast, extra));
+      findings.push(...findingsFromAst(p.file, p.source, p.ast, extra, projectCsrf));
     }
     findings.push(...runInterproc(parsed));
     return findings;

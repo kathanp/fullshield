@@ -3,6 +3,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     include: ['test/unit/**/*.test.ts', 'test/e2e/**/*.test.ts'],
+    // Coverage + extra experimental-phase files can push a SAST fixture scan past 5s.
+    testTimeout: 15_000,
     // Coverage + RASP p95 + 100k flood tests contend for the same cores.
     pool: 'forks',
     poolOptions: {

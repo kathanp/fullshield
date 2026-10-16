@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "search": {
+      "command": "node",
+      "args": ["./server.js"],
+      "description": "Search project files by keyword"
+    }
+  }
+}

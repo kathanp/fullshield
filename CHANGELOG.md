@@ -4,14 +4,59 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+### Phase 35 — experimental host SSH exposure check
+
+- `fullshield host --experimental-host` (`FULLSHIELD_EXPERIMENTAL_HOST=1`) reports OpenSSH CVE-2024-6387 (regreSSHion) exposure on Linux: distro package version via `dpkg-query` / `rpm` / `apk` (not `ssh -V`), OSV distro advisories with upstream fallback, `LoginGraceTime 0`, `ss -ltn` listen address, and optional auth.log timeout patterns. Detection/reporting only — no block, patch, or harden. Skips macOS, Windows, containers without sshd, and PaaS. Command refuses without `--experimental-host`. Default `scan` is unchanged.
+
+### Phase 34 — policy-as-code + PR summary
+
+- Experimental `fullshield.policy.json` (`FULLSHIELD_EXPERIMENTAL_POLICY=1`): required modules, per-rule severity overrides, `failOn` per git/CI branch, and exceptions that require `owner`, `reason`, and ISO `expires`. Expired exceptions fail CI with a clear message. Exceptions without owner or expiry are rejected. Schema is validated with the optional `zod` peer (lazy-imported; not a hard dependency).
+- `scan --pr-summary`: deterministic Markdown for GitHub/GitLab PR comments listing new findings versus baseline (no AI), with links to rule docs. Uses existing baseline/diff.
+- Default `scan` without the flag or a policy file is unchanged.
+
+### Phase 33 — MCP configuration security (experimental)
+
+- `FULLSHIELD_EXPERIMENTAL_MCPCFG=1` / `scan --experimental-mcpcfg` scans MCP client configs (`.cursor/mcp.json`, `.vscode/mcp.json`, `.mcp.json`, Claude Desktop) and MCP server code. Default `scan` emits no `MCP-*` IDs.
+- `MCP-001` inline secrets (high), `MCP-002` unpinned `npx` / `@latest` (medium), `MCP-003` shell/exec or unrestricted fs-write tools without an allowlist (medium), `MCP-004` tool-description instruction injection / hidden / zero-width characters (high), `MCP-005` remote MCP over `http://` (medium).
+- Home-dir configs are scanned only with `scan --include-home` (never implied). No network.
+- Model-provided MCP tool arguments are taint sources when the flag is on. Optional `guardTools(tools, { allow, confirm })` deny-lists dangerous tools, requires confirm for writes/payments, and logs every call.
+
+### Phase 32 — experimental response DLP
+
+- Optional `shieldGuard({ dlp: { mode: 'monitor' | 'mask' | 'block' } })` inspects outgoing JSON/text (size-capped at 64 KB) for secret patterns (same regexes as the secrets module), stack traces, internal IPs/hostnames, Luhn card numbers, and bulk emails on a one-email route.
+- Behind `FULLSHIELD_EXPERIMENTAL_DLP=1`. Without the flag, `shieldGuard` and default `scan` are unchanged. `mask` replaces matches; `block` returns 500 `{ error: 'internal error' }`. Events go to `onEvent`. Over-cap bodies are skipped and counted.
+
+### Phase 31 — supply chain, advanced + VEX
+
+- Experimental (`FULLSHIELD_EXPERIMENTAL_VEX=1` / `scan --experimental-vex`): self-replicating worm indicators (`SUPPLY-WORM-001`) and workflow/git-hook/CI writes (`SUPPLY-WORKFLOW-001`). Default `scan` is unchanged.
+- Transitive `FixProposal.kind = 'dependency-override'` (unsafe) when the parent has no fixed release. Writes npm `overrides` / pnpm `pnpm.overrides` / yarn `resolutions` into `package.json` and prints `run npm install`. The lockfile is not edited.
+- Provenance coverage score (% of deps with provenance; unknown is not counted as present) with history-DB trend helpers.
+- `fullshield vex --format openvex|cyclonedx` from reachability. `not_affected` + `vulnerable_code_not_in_execute_path` only when reachability is `not-imported`; otherwise `under_investigation`. Never guessed.
+
+### Phase 30 — secrets, advanced (experimental)
+
+- `scan --history` streams `git log -p`, dedupes by blob hash, and reports first-introduced commit + still-at-HEAD. Respects baseline and suppressions.
+- `scan --bundle <dir>` scans `dist/`, `.next/static`, and `build/` for browser-exposed keys, including `NEXT_PUBLIC_*` / `VITE_*` secret-shaped values (`SECRET-BUNDLE-001`).
+- `--verify-secrets` is opt-in, never default, never in generated CI templates. Requires `--i-own-these-credentials`. Read-only identity endpoints only (AWS STS GetCallerIdentity, GitHub `GET /user`, Stripe `GET /v1/balance`, Slack `auth.test`). Results: `live` \| `revoked` \| `unknown`. Never logs the key.
+- Behind `FULLSHIELD_EXPERIMENTAL_SECRETS_ADV=1` / `scan --experimental-secrets-adv`. CLI flags do nothing useful without that flag. Default `scan` does not emit Phase-30-only rule IDs.
+
+### Phase 29 — new vulnerability classes
+
+- Experimental extra SAST/config classes (`FULLSHIELD_EXPERIMENTAL_CLASSES=1` / `scan --experimental-classes`): ReDoS, insecure deserialization, XXE, unrestricted upload, cookie flags, CSRF, mass assignment, timing-safe compare, password-hash cost, GraphQL introspection/depth, and `trust proxy` + IP rate limits. Default `scan` is unchanged.
+
 - Publish CI uses `npm publish --provenance --access public` (no staged-manifest edits). The unpublished `v0.1.2` tag was deleted.
 - CI: push to `next` runs `verify` on ubuntu-24.04 × Node 24 only. The full 6-job matrix (and the non-blocking `bench` job) runs on pull requests to `main` and on push to `main`. Required checks on `main` stay the six matrix jobs.
+
+### Phase 28 — framework coverage
+
+- Experimental Next.js / NestJS / Hono / Koa taint sources and AUTH (`FULLSHIELD_EXPERIMENTAL_FRAMEWORKS=1` / `scan --experimental-frameworks`). Default `scan` is unchanged.
+- Runtime adapters `fullshield/runtime/koa` and `fullshield/runtime/hono` (optional peers; not required dependencies).
 
 ### NoSQL constructed-filter values
 
 **New stable findings — may change CI results; use `--update-baseline`:**
 
-- `SAST-NOSQLI-001` — request input used as a Mongo filter value (e.g. `{ password: req.body.password }`) at medium confidence, unless the value is coerced (`String()` / `Number()` / `Boolean()`), schema-validated (zod / joi / yup `.parse`), or `mongo-sanitize` / `express-mongo-sanitize` is applied. SQL ORM `update(values, { where })` / `find({ where })` is not treated as a Mongo filter.
+- `SAST-NOSQLI-001` — request input used as a Mongo filter value (e.g. `{ password: req.body.password }`) at medium confidence, unless the value is coerced (`String()` / `Number()` / `Boolean()`), schema-validated (zod / joi / yup `.parse`), or `mongo-sanitize` / `express-mongo-sanitize` is applied. Fires only on MongoDB/mongoose receivers (file imports `mongodb`/`mongoose`, `collection.find` / `*Collection`, or a PascalCase model). Never Sequelize, Prisma, TypeORM, Knex, Drizzle, or unknown receivers.
 
 `cr0hn/vulnerable-node` is now a seen holdout (no longer untouched).
 

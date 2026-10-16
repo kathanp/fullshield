@@ -1,0 +1,8 @@
+{
+  "type": "stack",
+  "ruleId": "DLP-STACK-001",
+  "positive": {
+    "error": "Error: boom\n    at handle (/app/src/routes/user.js:42:11)\n    at Layer.handle (/app/node_modules/express/lib/router/layer.js:95:5)"
+  },
+  "negative": { "error": "Not found" }
+}

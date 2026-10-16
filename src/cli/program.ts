@@ -1,5 +1,5 @@
 import { writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 
 import { Command } from 'commander';
 
@@ -28,9 +28,11 @@ import { renderHtmlReport } from '../reporters/html.js';
 import { renderJsonReport } from '../reporters/json.js';
 import { renderMarkdownReport } from '../reporters/markdown.js';
 import { renderSarifReport } from '../reporters/sarif.js';
+import { POLICY_FLAG, renderPrSummary } from '../policy/index.js';
 import { buildSbom } from '../sbom/index.js';
 import { validateCycloneDx15 } from '../sbom/cyclonedx.js';
 import { runEdge } from '../modules/edge/index.js';
+import { runHostCheck } from '../host/index.js';
 
 export interface ProgramIO {
   out(text: string): void;
@@ -59,6 +61,17 @@ interface ScanCliOptions {
   changed?: boolean;
   since?: string;
   experimentalSastGaps?: boolean;
+  experimentalFrameworks?: boolean;
+  experimentalClasses?: boolean;
+  experimentalSecretsAdv?: boolean;
+  history?: boolean;
+  bundle?: string;
+  verifySecrets?: boolean;
+  iOwnTheseCredentials?: boolean;
+  experimentalVex?: boolean;
+  experimentalMcpcfg?: boolean;
+  includeHome?: boolean;
+  prSummary?: boolean;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -122,6 +135,47 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       '--experimental-sast-gaps',
       'experimental: ORM raw / sh -c / execa / zx sinks (FULLSHIELD_EXPERIMENTAL_SAST_GAPS=1)',
     )
+    .option(
+      '--experimental-frameworks',
+      'experimental: Next.js / NestJS / Hono / Koa taint + AUTH (FULLSHIELD_EXPERIMENTAL_FRAMEWORKS=1)',
+    )
+    .option(
+      '--experimental-classes',
+      'experimental: ReDoS/deser/XXE/upload/cookie/CSRF/mass-assign/timing/hash/GQL/trust-proxy (FULLSHIELD_EXPERIMENTAL_CLASSES=1)',
+    )
+    .option(
+      '--experimental-secrets-adv',
+      'experimental: history/bundle/verify-secrets (FULLSHIELD_EXPERIMENTAL_SECRETS_ADV=1)',
+    )
+    .option('--history', 'experimental: scan git history for secrets (requires FULLSHIELD_EXPERIMENTAL_SECRETS_ADV=1)')
+    .option(
+      '--bundle <dir>',
+      'experimental: scan a built client bundle for browser-exposed keys (requires FULLSHIELD_EXPERIMENTAL_SECRETS_ADV=1)',
+    )
+    .option(
+      '--verify-secrets',
+      'experimental: check whether detected keys are live (never default; requires --i-own-these-credentials)',
+    )
+    .option(
+      '--i-own-these-credentials',
+      'required with --verify-secrets: you own these credentials; read-only identity checks only',
+    )
+    .option(
+      '--experimental-vex',
+      'experimental: worm/workflow indicators, overrides, provenance, VEX (FULLSHIELD_EXPERIMENTAL_VEX=1)',
+    )
+    .option(
+      '--experimental-mcpcfg',
+      'experimental: MCP client/server config rules (FULLSHIELD_EXPERIMENTAL_MCPCFG=1)',
+    )
+    .option(
+      '--include-home',
+      'experimental: also scan MCP configs in the home directory (requires FULLSHIELD_EXPERIMENTAL_MCPCFG=1)',
+    )
+    .option(
+      '--pr-summary',
+      'experimental: deterministic Markdown of new findings versus baseline (FULLSHIELD_EXPERIMENTAL_POLICY=1)',
+    )
     .action(async (path: string, opts: ScanCliOptions) => {
       try {
         const failOnOverride = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;
@@ -130,10 +184,29 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         if (opts.experimentalSastGaps === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_SAST_GAPS = '1';
         }
+        if (opts.experimentalFrameworks === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_FRAMEWORKS = '1';
+        }
+        if (opts.experimentalClasses === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_CLASSES = '1';
+        }
+        if (opts.experimentalSecretsAdv === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_SECRETS_ADV = '1';
+        }
+        if (opts.experimentalVex === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_VEX = '1';
+        }
+        if (opts.experimentalMcpcfg === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_MCPCFG = '1';
+        }
+        if (opts.prSummary === true && process.env[POLICY_FLAG] !== '1') {
+          throw new Error(`--pr-summary requires ${POLICY_FLAG}=1`);
+        }
 
         const result = await scan({
           cwd: resolve(path),
           modules,
+          includeHome: opts.includeHome === true,
           configPath: opts.config,
           staged: opts.staged === true,
           offline: opts.offline === true || opts.offlineSafe === true,
@@ -142,6 +215,11 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           changed: opts.changed === true,
           since: opts.since,
           experimentalIncremental: process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM === '1',
+          history: opts.history === true,
+          bundle: opts.bundle !== undefined ? resolve(path, opts.bundle) : undefined,
+          verifySecrets: opts.verifySecrets === true,
+          iOwnTheseCredentials: opts.iOwnTheseCredentials === true,
+          experimentalPolicy: process.env[POLICY_FLAG] === '1',
         });
 
         if (opts.sarif !== undefined) {
@@ -169,9 +247,19 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           io.err(`wrote virtual patches ${out}`);
         }
 
-        io.out(opts.json === true ? renderJsonReport(result) : renderConsoleReport(result));
+        if (opts.prSummary === true) {
+          io.out(renderPrSummary(result.findings));
+        } else {
+          io.out(opts.json === true ? renderJsonReport(result) : renderConsoleReport(result));
+        }
 
-        const failOn = failOnOverride ?? result.config.failOn;
+        if (result.policy !== undefined && result.policy.errors.length > 0) {
+          for (const message of result.policy.errors) {
+            io.err(`fullshield: ${message}`);
+          }
+          process.exitCode = 1;
+        }
+        const failOn = failOnOverride ?? result.policy?.failOn ?? result.config.failOn;
         if (result.findings.some((f) => failsCi(f, failOn))) {
           process.exitCode = 1;
         }
@@ -234,6 +322,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           process.exitCode = 1;
         } else if (opts.apply === true && result.applied) {
           io.out(`Applied ${result.patches.length} fix(es)${result.branch !== undefined ? ` on ${result.branch}` : ''}.`);
+          if (result.notice !== undefined) io.out(result.notice);
         } else if (opts.apply !== true) {
           io.out('Dry run. Re-run with --apply to write safe fixes.');
         }
@@ -577,6 +666,70 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     });
 
   program
+    .command('host')
+    .description('Experimental host SSH exposure check (Linux only; FULLSHIELD_EXPERIMENTAL_HOST=1)')
+    .option('--experimental-host', 'required: enable experimental host OpenSSH check')
+    .option('--json', 'machine-readable JSON output')
+    .option('--offline', 'do not contact OSV; use upstream version fallback')
+    .option('--attempt-threshold <n>', 'auth.log Timeout-before-authentication per-IP flag threshold', '5')
+    .action(async (opts: {
+      experimentalHost?: boolean;
+      json?: boolean;
+      offline?: boolean;
+      attemptThreshold?: string;
+    }) => {
+      try {
+        if (opts.experimentalHost !== true) {
+          throw new Error('host requires --experimental-host (FULLSHIELD_EXPERIMENTAL_HOST=1)');
+        }
+        process.env.FULLSHIELD_EXPERIMENTAL_HOST = '1';
+        const parsed = Number(opts.attemptThreshold ?? '5');
+        const attemptThreshold = Number.isFinite(parsed) && parsed >= 0 ? parsed : 5;
+        const result = await runHostCheck({
+          experimental: true,
+          offline: opts.offline === true,
+          attemptThreshold,
+        });
+        const note =
+          'Detection/reporting only. FullShield does not block, patch, or harden OS services.';
+        if (result.skipped) {
+          if (opts.json === true) {
+            io.out(JSON.stringify({ skipped: true, reason: result.reason, findings: [], note }, null, 2));
+          } else {
+            io.out(`FullShield host: skipped (${result.reason}) ${note}`);
+          }
+          return;
+        }
+        if (opts.json === true) {
+          io.out(
+            JSON.stringify(
+              {
+                skipped: false,
+                findings: result.findings,
+                exposure: result.exposure,
+                mitigated: result.mitigated,
+                versionVulnerable: result.versionVulnerable,
+                note,
+              },
+              null,
+              2,
+            ),
+          );
+        } else {
+          io.out(`FullShield host — ${result.findings.length} finding(s)`);
+          for (const f of result.findings) io.out(`  [${f.severity}] ${f.ruleId} ${f.message}`);
+          if (result.findings.length === 0) {
+            io.out('No HOST-SSH findings. FullShield does not stop OS or SSH exploits.');
+          }
+        }
+        if (result.findings.some((f) => meetsThreshold(f.severity, 'high'))) process.exitCode = 1;
+      } catch (error) {
+        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 2;
+      }
+    });
+
+  program
     .command('honey')
     .description('Experimental honeytokens (requires FULLSHIELD_EXPERIMENTAL_HONEY=1)')
     .command('init')
@@ -590,6 +743,53 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         const canaries = honeyInit(resolve(path));
         io.out(`wrote honeytokens (.env.backup). decoys: /admin.php /.git/config /wp-login.php`);
         io.out(`canary prefix ${canaries.awsKey.slice(0, 4)}****`);
+      } catch (error) {
+        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('vex')
+    .description('Experimental VEX from reachability (FULLSHIELD_EXPERIMENTAL_VEX=1)')
+    .argument('[path]', 'project directory', '.')
+    .option('--format <format>', 'openvex | cyclonedx', 'openvex')
+    .option('--out <file>', 'write to this file instead of stdout')
+    .action(async (path: string, opts: { format?: string; out?: string }) => {
+      try {
+        if (process.env.FULLSHIELD_EXPERIMENTAL_VEX !== '1') {
+          throw new Error('vex requires FULLSHIELD_EXPERIMENTAL_VEX=1');
+        }
+        const format = opts.format ?? 'openvex';
+        if (format !== 'openvex' && format !== 'cyclonedx') {
+          throw new Error(`unsupported VEX format "${format}" (valid: openvex, cyclonedx)`);
+        }
+        const cwd = resolve(path);
+        const result = await scan({ cwd, modules: ['deps'] });
+        let name = 'app';
+        let version = '0.0.0';
+        try {
+          const { readFile } = await import('node:fs/promises');
+          const pkg = JSON.parse(await readFile(join(cwd, 'package.json'), 'utf8')) as {
+            name?: unknown;
+            version?: unknown;
+          };
+          if (typeof pkg.name === 'string') name = pkg.name;
+          if (typeof pkg.version === 'string') version = pkg.version;
+        } catch {
+          // package.json optional
+        }
+        const { buildVex, validateCycloneDxVex, validateOpenVex } = await import('../vex/index.js');
+        const doc = buildVex(result.findings, format, { name, version });
+        const errors = format === 'cyclonedx' ? validateCycloneDxVex(doc) : validateOpenVex(doc);
+        if (errors.length > 0) throw new Error(`invalid VEX: ${errors.join('; ')}`);
+        const json = JSON.stringify(doc, null, 2);
+        if (opts.out !== undefined) {
+          await writeFile(resolve(opts.out), json, 'utf8');
+          io.out(`Wrote ${format} VEX to ${opts.out}`);
+        } else {
+          io.out(json);
+        }
       } catch (error) {
         io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
         process.exitCode = 2;

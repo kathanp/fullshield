@@ -70,6 +70,15 @@ const PREVIOUS_PHASE_TESTS = {
   24: 407,
   25: 439,
   26: 443,
+  27: 505,
+  28: 522,
+  29: 568,
+  30: 593,
+  31: 620,
+  32: 638,
+  33: 659,
+  34: 703,
+  35: 740,
 };
 
 function listFilesRecursive(dir, out = []) {
@@ -986,7 +995,7 @@ s.listen(0, '127.0.0.1', () => {
     if (bytes <= 0 || bytes >= 256_000) {
       fail(`phase 25 acceptance: register bundle size ${bytes} outside budget`);
     }
-    for (const name of ['register.js', 'auto.js', 'express.js', 'fastify.js', 'index.js']) {
+    for (const name of ['register.js', 'auto.js', 'express.js', 'fastify.js', 'koa.js', 'hono.js', 'index.js']) {
       const text = readFileSync(join(root, 'dist', 'runtime', name), 'utf8');
       if (/from\s+['"]node:sqlite['"]/.test(text) || /require\(\s*['"]node:sqlite['"]\s*\)/.test(text)) {
         fail(`phase 25 acceptance: ${name} statically loads node:sqlite`);
@@ -1137,6 +1146,460 @@ s.listen(0, '127.0.0.1', () => {
       fail('phase 27 acceptance: README Known Limitations still lists numeric SQL/ORM/template-shell as untested');
     }
     console.log('  ✔ numeric/ORM/template-shell corpora blocked; benign 0; extra SAST sinks experimental');
+  },
+  // Phase 28: Next/Nest/Hono/Koa taint sources + AUTH + runtime adapters (experimental).
+  28: () => {
+    const cliHelp = spawnSync(
+      process.execPath,
+      [join(root, 'dist', 'cli', 'index.js'), 'scan', '--help'],
+      { cwd: root, encoding: 'utf8' },
+    );
+    if (!cliHelp.stdout.includes('--experimental-frameworks')) {
+      fail('phase 28 acceptance: scan --help missing --experimental-frameworks');
+    }
+    const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+    if (pkg.dependencies?.koa !== undefined || pkg.dependencies?.hono !== undefined) {
+      fail('phase 28 acceptance: koa/hono must not be runtime dependencies');
+    }
+    if (pkg.peerDependencies?.koa === undefined || pkg.peerDependencies?.hono === undefined) {
+      fail('phase 28 acceptance: koa and hono must be optional peerDependencies');
+    }
+    if (pkg.peerDependenciesMeta?.koa?.optional !== true || pkg.peerDependenciesMeta?.hono?.optional !== true) {
+      fail('phase 28 acceptance: koa/hono peers must be optional');
+    }
+    if (pkg.exports?.['./runtime/koa'] === undefined || pkg.exports?.['./runtime/hono'] === undefined) {
+      fail('phase 28 acceptance: package exports missing runtime/koa or runtime/hono');
+    }
+    for (const rel of [
+      'test/fixtures/frameworks/next-vuln/app/api/items/route.ts',
+      'test/fixtures/frameworks/next-clean/app/api/items/route.ts',
+      'test/fixtures/frameworks/nest-vuln/items.controller.ts',
+      'test/fixtures/frameworks/nest-clean/items.controller.ts',
+      'test/fixtures/frameworks/hono-vuln/index.ts',
+      'test/fixtures/frameworks/hono-clean/index.ts',
+      'test/fixtures/frameworks/koa-vuln/index.ts',
+      'test/fixtures/frameworks/koa-clean/index.ts',
+    ]) {
+      if (!existsSync(join(root, rel))) fail(`phase 28 acceptance: missing fixture ${rel}`);
+    }
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!readme.includes('FULLSHIELD_EXPERIMENTAL_FRAMEWORKS')) {
+      fail('phase 28 acceptance: README must document FULLSHIELD_EXPERIMENTAL_FRAMEWORKS');
+    }
+    console.log('  ✔ experimental Next/Nest/Hono/Koa taint; optional runtime peers; vuln+clean fixtures');
+  },
+  // Phase 29: extra vuln classes behind FULLSHIELD_EXPERIMENTAL_CLASSES.
+  29: () => {
+    const cliHelp = spawnSync(
+      process.execPath,
+      [join(root, 'dist', 'cli', 'index.js'), 'scan', '--help'],
+      { cwd: root, encoding: 'utf8' },
+    );
+    if (!cliHelp.stdout.includes('--experimental-classes')) {
+      fail('phase 29 acceptance: scan --help missing --experimental-classes');
+    }
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!readme.includes('FULLSHIELD_EXPERIMENTAL_CLASSES')) {
+      fail('phase 29 acceptance: README must document FULLSHIELD_EXPERIMENTAL_CLASSES');
+    }
+    const phase29Ids = [
+      'SAST-REDOS-001',
+      'SAST-DESER-001',
+      'SAST-XXE-001',
+      'SAST-UPLOAD-001',
+      'SAST-COOKIE-001',
+      'SAST-CSRF-001',
+      'SAST-MASSASSIGN-001',
+      'SAST-TIMING-001',
+      'SAST-HASH-001',
+      'SAST-GQL-001',
+      'CONFIG-TRUSTPROXY-001',
+    ];
+    for (const id of phase29Ids) {
+      if (!existsSync(join(root, 'rules', `${id}.md`))) {
+        fail(`phase 29 acceptance: missing rules/${id}.md`);
+      }
+      if (foundRuleIds.has(id)) {
+        fail(`phase 29 acceptance: default scan of vulnerable-app emitted ${id}`);
+      }
+      if (clean.report.findings.some((f) => f.ruleId === id)) {
+        fail(`phase 29 acceptance: default scan of clean-app emitted ${id}`);
+      }
+    }
+    console.log('  ✔ experimental classes behind flag; default scan emits no Phase 29 rule IDs');
+  },
+  // Phase 30: experimental git-history / bundle / verify-secrets.
+  30: () => {
+    const cliHelp = spawnSync(
+      process.execPath,
+      [join(root, 'dist', 'cli', 'index.js'), 'scan', '--help'],
+      { cwd: root, encoding: 'utf8' },
+    );
+    for (const flag of [
+      '--experimental-secrets-adv',
+      '--history',
+      '--bundle',
+      '--verify-secrets',
+      '--i-own-these-credentials',
+    ]) {
+      if (!cliHelp.stdout.includes(flag)) {
+        fail(`phase 30 acceptance: scan --help missing ${flag}`);
+      }
+    }
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!readme.includes('FULLSHIELD_EXPERIMENTAL_SECRETS_ADV')) {
+      fail('phase 30 acceptance: README must document FULLSHIELD_EXPERIMENTAL_SECRETS_ADV');
+    }
+    if (!readme.includes('--verify-secrets')) {
+      fail('phase 30 acceptance: README must document --verify-secrets');
+    }
+    for (const rel of [
+      'templates/github-workflow.yml',
+      'templates/gitlab-ci.yml',
+      'templates/github-watch.yml',
+      'templates/pre-commit.sh',
+    ]) {
+      const text = readFileSync(join(root, rel), 'utf8');
+      if (text.includes('--verify-secrets') || text.includes('i-own-these-credentials')) {
+        fail(`phase 30 acceptance: ${rel} must not enable --verify-secrets`);
+      }
+    }
+    const phase30ids = ['SECRET-BUNDLE-001'];
+    for (const id of phase30ids) {
+      if (foundRuleIds.has(id)) {
+        fail(`phase 30 acceptance: default vulnerable-app scan emitted Phase-30-only ${id}`);
+      }
+      if (clean.report.findings.some((f) => f.ruleId === id)) {
+        fail(`phase 30 acceptance: default clean-app scan emitted Phase-30-only ${id}`);
+      }
+    }
+    const srcHist = readFileSync(join(root, 'src', 'modules', 'secrets', 'history.ts'), 'utf8');
+    if (!srcHist.includes("'log'") || !srcHist.includes("'-p'")) {
+      fail('phase 30 acceptance: history scan must stream git log -p');
+    }
+    console.log('  ✔ history/bundle/verify-secrets experimental; default scan unchanged; verify not in CI templates');
+  },
+  // Phase 31: worm/workflow indicators, transitive overrides, provenance score, VEX.
+  31: async () => {
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!readme.includes('FULLSHIELD_EXPERIMENTAL_VEX')) {
+      fail('phase 31 acceptance: README must document FULLSHIELD_EXPERIMENTAL_VEX');
+    }
+    const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+    const beforeDeps = ['@typescript-eslint/typescript-estree', 'commander', 'ignore', 'picocolors'];
+    const depNames = Object.keys(pkg.dependencies ?? {});
+    for (const extra of depNames.filter((n) => !beforeDeps.includes(n))) {
+      fail(`phase 31 acceptance: new hard dependency ${extra}`);
+    }
+
+    const supplyUrl = pathToFileURL(join(root, 'dist', 'supply.js')).href;
+    const supply = await import(supplyUrl);
+    const prev = process.env.FULLSHIELD_EXPERIMENTAL_VEX;
+    delete process.env.FULLSHIELD_EXPERIMENTAL_VEX;
+    const wormDir = join(root, 'test', 'fixtures', 'supply', 'worm-pkg');
+    const off = supply.analyzePackageDir(wormDir);
+    if (off.some((f) => f.ruleId === 'SUPPLY-WORM-001' || f.ruleId === 'SUPPLY-WORKFLOW-001')) {
+      fail('phase 31 acceptance: default analyzePackageDir must not emit new IDs without the flag');
+    }
+    process.env.FULLSHIELD_EXPERIMENTAL_VEX = '1';
+    const worm = supply.analyzeWormIndicators(wormDir);
+    if (!worm.some((f) => f.ruleId === 'SUPPLY-WORM-001' && f.severity === 'critical')) {
+      fail('phase 31 acceptance: seeded worm-like fixture not detected');
+    }
+    const tamper = supply.analyzeWorkflowTampering(join(root, 'test', 'fixtures', 'supply', 'workflow-tamper-pkg'));
+    if (!tamper.some((f) => f.ruleId === 'SUPPLY-WORKFLOW-001')) {
+      fail('phase 31 acceptance: workflow-tamper fixture not detected');
+    }
+    if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_VEX;
+    else process.env.FULLSHIELD_EXPERIMENTAL_VEX = prev;
+
+    const defaultScan = runCliJson(vulnerableApp, ['--modules', 'deps', '--offline']);
+    const leaked = defaultScan.report.findings.filter((f) =>
+      ['SUPPLY-WORM-001', 'SUPPLY-WORKFLOW-001'].includes(f.ruleId),
+    );
+    if (leaked.length > 0) fail('phase 31 acceptance: default scan emitted new Phase 31 IDs');
+    console.log('  ✔ seeded worm fixture detected behind flag; default scan emits no new IDs');
+
+    const vexApp = join(root, 'test', 'fixtures', 'vex-app');
+    const cli = join(root, 'dist', 'cli', 'index.js');
+    const refused = spawnSync(process.execPath, [cli, 'vex', vexApp, '--format', 'openvex'], {
+      cwd: root,
+      encoding: 'utf8',
+      env: { ...process.env, FULLSHIELD_EXPERIMENTAL_VEX: '' },
+    });
+    if (refused.status !== 2 || !/FULLSHIELD_EXPERIMENTAL_VEX/.test(refused.stderr)) {
+      fail('phase 31 acceptance: vex must refuse without FULLSHIELD_EXPERIMENTAL_VEX');
+    }
+    const { validateOpenVex, validateCycloneDxVex } = await import(
+      pathToFileURL(join(root, 'dist', 'index.js')).href
+    );
+    for (const format of ['openvex', 'cyclonedx']) {
+      const ran = spawnSync(process.execPath, [cli, 'vex', vexApp, '--format', format], {
+        cwd: root,
+        encoding: 'utf8',
+        env: { ...process.env, FULLSHIELD_EXPERIMENTAL_VEX: '1' },
+      });
+      if (ran.status !== 0) fail(`phase 31 acceptance: vex --format ${format} exited ${ran.status}`);
+      const doc = JSON.parse(ran.stdout);
+      const errors = format === 'cyclonedx' ? validateCycloneDxVex(doc) : validateOpenVex(doc);
+      if (errors.length > 0) fail(`phase 31 acceptance: ${format} VEX invalid: ${errors.join('; ')}`);
+    }
+    console.log('  ✔ VEX validates against OpenVEX and CycloneDX schemas');
+
+    const overrideApp = join(root, 'test', 'fixtures', 'override-app');
+    const tmp = join(root, '.fullshield-verify-phase31');
+    rmSync(tmp, { recursive: true, force: true });
+    mkdirSync(tmp, { recursive: true });
+    try {
+      const copy = join(tmp, 'override-app');
+      const copied = spawnSync('cp', ['-R', overrideApp, copy], { encoding: 'utf8' });
+      if (copied.status !== 0) fail('phase 31 acceptance: could not copy override-app');
+      const lockBefore = readFileSync(join(copy, 'package-lock.json'));
+      const env = { ...process.env, FULLSHIELD_EXPERIMENTAL_VEX: '1' };
+      const apply = spawnSync(
+        process.execPath,
+        [cli, 'fix', copy, '--apply', '--unsafe', '--force', '--no-branch', '--modules', 'deps'],
+        { cwd: root, encoding: 'utf8', env },
+      );
+      if (apply.status !== 0) {
+        fail(`phase 31 acceptance: override fix --apply exited ${apply.status}: ${apply.stderr}`);
+      }
+      if (!String(apply.stdout).includes('run npm install')) {
+        fail('phase 31 acceptance: fix --apply must print "run npm install"');
+      }
+      const manifest = JSON.parse(readFileSync(join(copy, 'package.json'), 'utf8'));
+      if (manifest.overrides?.['leaf-vuln'] !== '1.0.1') {
+        fail('phase 31 acceptance: package.json overrides did not pin leaf-vuln@1.0.1');
+      }
+      const lockAfter = readFileSync(join(copy, 'package-lock.json'));
+      if (!lockBefore.equals(lockAfter)) {
+        fail('phase 31 acceptance: package-lock.json must stay byte-identical');
+      }
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+    console.log('  ✔ override writes package.json, leaves package-lock.json byte-identical, prints run npm install');
+  },
+  // Phase 32: experimental response DLP behind FULLSHIELD_EXPERIMENTAL_DLP.
+  32: async () => {
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!readme.includes('FULLSHIELD_EXPERIMENTAL_DLP')) {
+      fail('phase 32 acceptance: README must document FULLSHIELD_EXPERIMENTAL_DLP');
+    }
+    const changelog = readFileSync(join(root, 'CHANGELOG.md'), 'utf8');
+    if (!changelog.includes('Phase 32') || !changelog.includes('FULLSHIELD_EXPERIMENTAL_DLP')) {
+      fail('phase 32 acceptance: CHANGELOG must document Phase 32 DLP');
+    }
+    for (const rel of [
+      'test/fixtures/dlp/secret.json',
+      'test/fixtures/dlp/stack.json',
+      'test/fixtures/dlp/internal.json',
+      'test/fixtures/dlp/card.json',
+      'test/fixtures/dlp/pii.json',
+      'test/fixtures/dlp/benign-corpus.json',
+      'test/unit/runtime/phase32-dlp.test.ts',
+      'src/runtime/dlp/index.ts',
+    ]) {
+      if (!existsSync(join(root, rel))) fail(`phase 32 acceptance: missing ${rel}`);
+    }
+    const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+    const hard = Object.keys(pkg.dependencies ?? {});
+    const allowed = ['@typescript-eslint/typescript-estree', 'commander', 'ignore', 'picocolors'];
+    for (const name of hard) {
+      if (!allowed.includes(name)) fail(`phase 32 acceptance: new hard dependency ${name}`);
+    }
+    const dlpSrc = listFilesRecursive(join(root, 'src', 'runtime')).filter((f) => f.endsWith('.ts'));
+    for (const file of dlpSrc) {
+      const text = readFileSync(file, 'utf8');
+      const rel = relative(root, file);
+      if (/from\s+['"]node:sqlite['"]/.test(text) || /require\(\s*['"]node:sqlite['"]\s*\)/.test(text)) {
+        fail(`phase 32 acceptance: ${rel} statically loads node:sqlite`);
+      }
+      if (/from\s+['"][^'"]*modules\/secrets/.test(text)) {
+        fail(`phase 32 acceptance: ${rel} imports the secrets scanner`);
+      }
+    }
+    const off = runCliJson(vulnerableApp);
+    const offClean = runCliJson(cleanApp);
+    const dlpIds = [...off.report.findings, ...offClean.report.findings]
+      .map((f) => f.ruleId)
+      .filter((id) => String(id).startsWith('DLP-'));
+    if (dlpIds.length > 0) {
+      fail(`phase 32 acceptance: default scan emitted DLP rule ids: ${dlpIds.join(',')}`);
+    }
+    const dlpMod = await import(pathToFileURL(join(root, 'dist', 'runtime', 'dlp.js')).href);
+    const prev = process.env.FULLSHIELD_EXPERIMENTAL_DLP;
+    process.env.FULLSHIELD_EXPERIMENTAL_DLP = '1';
+    const inspector = dlpMod.createDlpInspector({ dlp: { mode: 'mask' } });
+    if (inspector === undefined) fail('phase 32 acceptance: createDlpInspector returned undefined with flag set');
+    const hit = inspector.inspect({ host: '10.1.2.3' }, { path: '/i' });
+    if (!hit.hits.some((h) => h.ruleId === 'DLP-INTERNAL-001')) {
+      fail('phase 32 acceptance: internal IP fixture not detected');
+    }
+    const benignBody = { ok: true, email: 'support@example.com', resolver: '8.8.8.8' };
+    const cleanHit = inspector.inspect(benignBody, { path: '/benign' });
+    if (cleanHit.hits.length > 0 || cleanHit.action !== 'allow') {
+      fail('phase 32 acceptance: benign body was masked or flagged');
+    }
+    if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_DLP;
+    else process.env.FULLSHIELD_EXPERIMENTAL_DLP = prev;
+    console.log('  ✔ experimental DLP flag, fixtures, no default-scan DLP ids, runtime has no sqlite/scanner import');
+  },
+  // Phase 33: MCP client/server config rules behind FULLSHIELD_EXPERIMENTAL_MCPCFG.
+  33: async () => {
+    const mcp = await import(pathToFileURL(join(root, 'dist', 'index.js')).href);
+    const compliance = await import(pathToFileURL(join(root, 'dist', 'compliance.js')).href);
+    const app = join(root, 'test', 'fixtures', 'mcp-app');
+    const clean = join(root, 'test', 'fixtures', 'mcp-clean');
+    const bad = mcp.scanMcpConfig(app, { experimental: true });
+    for (const id of ['MCP-001', 'MCP-002', 'MCP-003', 'MCP-004', 'MCP-005']) {
+      if (!bad.some((f) => f.ruleId === id)) fail(`phase 33 acceptance: missing ${id} on mcp-app`);
+    }
+    const good = mcp.scanMcpConfig(clean, { experimental: true });
+    if (good.some((f) => String(f.ruleId).startsWith('MCP-'))) {
+      fail(`phase 33 acceptance: mcp-clean produced ${good.map((f) => f.ruleId).join(',')}`);
+    }
+    if (mcp.scanMcpConfig(app).some((f) => String(f.ruleId).startsWith('MCP-'))) {
+      fail('phase 33 acceptance: MCP rules ran without experimental flag');
+    }
+    const homeHits = mcp.scanMcpConfig(clean, { experimental: true, includeHome: false });
+    if (homeHits.some((f) => String(f.ruleId).startsWith('MCP-'))) {
+      fail('phase 33 acceptance: home scan ran without --include-home');
+    }
+    const mapped = new Set(compliance.RULE_MAP.map((r) => r.ruleId));
+    for (const id of ['MCP-001', 'MCP-002', 'MCP-003', 'MCP-004', 'MCP-005']) {
+      if (!mapped.has(id)) fail(`phase 33 acceptance: missing compliance row ${id}`);
+    }
+    const cliHelp = spawnSync(
+      process.execPath,
+      [join(root, 'dist', 'cli', 'index.js'), 'scan', '--help'],
+      { cwd: root, encoding: 'utf8' },
+    );
+
+    if (!cliHelp.stdout.includes('--include-home')) {
+      fail('phase 33 acceptance: scan --help missing --include-home');
+    }
+    if (!cliHelp.stdout.includes('--experimental-mcpcfg')) {
+      fail('phase 33 acceptance: scan --help missing --experimental-mcpcfg');
+    }
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!readme.includes('FULLSHIELD_EXPERIMENTAL_MCPCFG')) {
+      fail('phase 33 acceptance: README must document FULLSHIELD_EXPERIMENTAL_MCPCFG');
+    }
+    const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+    const depCount = Object.keys(pkg.dependencies ?? {}).length;
+    if (depCount > 10) fail(`phase 33 acceptance: new hard dependency added (${depCount} > 10)`);
+    console.log('  ✔ MCP-001..005 positive/negative; off without flag; home requires --include-home; no new deps');
+  },
+  // Phase 34: policy-as-code + deterministic PR summary (experimental).
+  34: () => {
+    const cliHelp = spawnSync(
+      process.execPath,
+      [join(root, 'dist', 'cli', 'index.js'), 'scan', '--help'],
+      { cwd: root, encoding: 'utf8' },
+    );
+
+    if (!cliHelp.stdout.includes('--pr-summary')) {
+      fail('phase 34 acceptance: scan --help missing --pr-summary');
+    }
+    const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+    if (pkg.dependencies?.zod !== undefined) {
+      fail('phase 34 acceptance: zod must not be a hard dependency (optional peer only)');
+    }
+    if (pkg.peerDependencies?.zod === undefined || pkg.peerDependenciesMeta?.zod?.optional !== true) {
+      fail('phase 34 acceptance: zod must remain an optional peerDependency');
+    }
+    const src = readFileSync(join(root, 'src', 'policy', 'index.ts'), 'utf8');
+    if (!src.includes("import('zod')") && !src.includes('import("zod")')) {
+      fail('phase 34 acceptance: policy must lazy-import zod');
+    }
+    for (const rel of [
+      'test/fixtures/policy/pr-summary.md',
+      'test/fixtures/policy/pr-summary-empty.md',
+      'test/unit/policy/policy.test.ts',
+      'test/unit/policy/pr-summary.test.ts',
+      'test/e2e/phase34.e2e.test.ts',
+    ]) {
+      if (!existsSync(join(root, rel))) fail(`phase 34 acceptance: missing ${rel}`);
+    }
+    const policyTests = [
+      readFileSync(join(root, 'test', 'unit', 'policy', 'policy.test.ts'), 'utf8'),
+      readFileSync(join(root, 'test', 'e2e', 'phase34.e2e.test.ts'), 'utf8'),
+    ].join('\n');
+    if (!/expired/i.test(policyTests)) {
+      fail('phase 34 acceptance: expired-exception CI failure must be tested');
+    }
+    const golden = readFileSync(join(root, 'test', 'fixtures', 'policy', 'pr-summary.md'), 'utf8');
+    if (!golden.includes('SAST-SQLI-001') || !golden.includes('rules/SAST-SQLI-001.md')) {
+      fail('phase 34 acceptance: PR summary golden must list findings with rule-doc links');
+    }
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!readme.includes('FULLSHIELD_EXPERIMENTAL_POLICY')) {
+      fail('phase 34 acceptance: README must document FULLSHIELD_EXPERIMENTAL_POLICY');
+    }
+    if (!readme.includes('fullshield.policy.json')) {
+      fail('phase 34 acceptance: README must document fullshield.policy.json');
+    }
+    if (!readme.includes('--pr-summary')) {
+      fail('phase 34 acceptance: README must document scan --pr-summary');
+    }
+    console.log('  ✔ experimental policy-as-code; expired exceptions fail CI; PR summary goldens');
+  },
+  // Phase 35: experimental Linux-only OpenSSH host exposure (detection/reporting only).
+  35: () => {
+    const cli = join(root, 'dist', 'cli', 'index.js');
+    const refused = spawnSync(process.execPath, [cli, 'host'], {
+      cwd: root,
+      encoding: 'utf8',
+      env: { ...process.env, FULLSHIELD_EXPERIMENTAL_HOST: '' },
+    });
+    if (refused.status !== 2) {
+      fail(`phase 35 acceptance: host without --experimental-host exited ${refused.status}, expected 2`);
+    }
+    if (!/experimental-host/.test(refused.stderr)) {
+      fail('phase 35 acceptance: host without --experimental-host must mention --experimental-host');
+    }
+    const help = spawnSync(process.execPath, [cli, 'host', '--help'], {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    if (!help.stdout.includes('--experimental-host')) {
+      fail('phase 35 acceptance: host --help missing --experimental-host');
+    }
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!/does not stop OS or SSH exploits/i.test(readme)) {
+      fail('phase 35 acceptance: README must state FullShield does not stop OS or SSH exploits');
+    }
+    if (!/What it does NOT do/i.test(readme)) {
+      fail('phase 35 acceptance: README must include What it does NOT do');
+    }
+    if (!readme.includes('FULLSHIELD_EXPERIMENTAL_HOST')) {
+      fail('phase 35 acceptance: README must document FULLSHIELD_EXPERIMENTAL_HOST');
+    }
+    for (const rel of [
+      'test/fixtures/host/dpkg-backport-patched.txt',
+      'test/fixtures/host/dpkg-vulnerable-upstream.txt',
+      'test/fixtures/host/dpkg-fixed.txt',
+      'test/fixtures/host/rpm-backport-patched.txt',
+      'test/fixtures/host/rpm-vulnerable-upstream.txt',
+      'test/fixtures/host/rpm-fixed.txt',
+      'test/fixtures/host/apk-backport-patched.txt',
+      'test/fixtures/host/apk-vulnerable-upstream.txt',
+      'test/fixtures/host/apk-fixed.txt',
+      'test/fixtures/host/sshd-T-mitigated.txt',
+      'test/fixtures/host/sshd-T-unmitigated.txt',
+      'test/fixtures/host/auth.log',
+    ]) {
+      if (!existsSync(join(root, rel))) fail(`phase 35 acceptance: missing fixture ${rel}`);
+    }
+    if (vuln.report.findings.some((f) => String(f.ruleId).startsWith('HOST-'))) {
+      fail('phase 35 acceptance: default scan emitted HOST-* without --experimental-host');
+    }
+    const hostSrc = readFileSync(join(root, 'src', 'host', 'index.ts'), 'utf8');
+    if (/\bssh\s+-V\b/.test(hostSrc)) {
+      fail('phase 35 acceptance: host check must not use ssh -V');
+    }
+    console.log('  ✔ experimental host SSH check; refuses without --experimental-host; default scan has no HOST-*');
   },
 };
 
