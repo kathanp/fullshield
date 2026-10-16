@@ -758,13 +758,13 @@ Experimental (`FULLSHIELD_EXPERIMENTAL_VEX=1` / `scan --experimental-vex`). Defa
 - Provenance coverage score (unknown is not counted as present).
 - `fullshield vex --format openvex|cyclonedx`. `not_affected` only when reachability is `not-imported`; otherwise `under_investigation`.
 
-Verified alone on `phase-31` (`9b87ded`), branched from `be68e49`. The table below is that solo run and does not include Phases 29–30.
+Verified alone on `phase-31` (`9b87ded`), branched from `be68e49`: 547 tests, 92.07% lines / 82.15% branches. That count does not include Phases 29–30.
 
-**Verify (`npm run verify:phase 31`, PASSED):**
+**Verify on `next` after the merge (`npm run verify:phase 31`, PASSED):**
 
 | phase | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
 |---|---|---|---|---|---|---|---|---|
-| 31 | 547 | 92.07% | 82.15% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+| 31 | 620 | 92.37% | 81.97% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
 
 Provenance attestations are not fetched from the registry. Override apply writes `package.json` and prints `run npm install`; it does not edit the lockfile. Packages are never executed. VEX validators are structural, not a bundled copy of the published JSON Schemas.
 
