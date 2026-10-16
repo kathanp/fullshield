@@ -1,6 +1,7 @@
+import { spawnSync } from 'node:child_process';
+
 import { describe, expect, it } from 'vitest';
 
-import { median, regressed } from '../../../bench/perf.mjs';
 import { parseCacheKey, parsePoolEnabled, parsePoolSize, parseWithPool } from '../../../src/core/parse-pool.js';
 import { findingsFromAst, parseSource } from '../../../src/modules/sast/engine.js';
 import type { AstNode } from '../../../src/modules/sast/types.js';
@@ -14,11 +15,24 @@ const source = `
 
 describe('Phase 42 parse pool', () => {
   it('flags a p50 that is more than 15% slower', () => {
-    expect(median([30, 10, 20])).toBe(20);
-    expect(median([4, 2])).toBe(3);
-    expect(regressed(100, 120)).toBe(true);
-    expect(regressed(100, 110)).toBe(false);
-    expect(regressed(0, 50)).toBe(false);
+    const result = spawnSync(
+      process.execPath,
+      [
+        '--input-type=module',
+        '-e',
+        `import { median, regressed } from './bench/perf.mjs';
+         console.log(JSON.stringify({
+           m1: median([30, 10, 20]),
+           m2: median([4, 2]),
+           r1: regressed(100, 120),
+           r2: regressed(100, 110),
+           r3: regressed(0, 50),
+         }));`,
+      ],
+      { encoding: 'utf8' },
+    );
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual({ m1: 20, m2: 3, r1: true, r2: false, r3: false });
   });
 
   it('returns the same command-injection finding as the in-process parser', async () => {
