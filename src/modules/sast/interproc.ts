@@ -2,6 +2,7 @@ import { posix } from 'node:path';
 
 import { makeFindingId, type Finding } from '../../core/finding.js';
 import { assignedNameOf, attachParents, boundNames, calleeName, isFunctionNode, literalString, propName, walk } from './ast.js';
+import { taintV2Enabled } from './experimental.js';
 import { analyzeFile, analyzeFunctionWithSeed, exprIsTainted, isSchemaValidatorCall, nodeIsTainted } from './taint.js';
 import type { AstNode } from './types.js';
 
@@ -120,6 +121,22 @@ function requireCall(node: AstNode): { spec: string; exportName?: string } | und
   return undefined;
 }
 
+function reexportsOf(ast: AstNode): Map<string, { spec: string; name: string }> {
+  const out = new Map<string, { spec: string; name: string }>();
+  walk(ast, (node) => {
+    if (node.type !== 'ExportNamedDeclaration' || node.source === null || node.source === undefined) return;
+    const spec = literalString(node.source);
+    if (spec === undefined) return;
+    for (const specNode of node.specifiers) {
+      if (specNode.type !== 'ExportSpecifier') continue;
+      const exported = specNode.exported.type === 'Identifier' ? specNode.exported.name : undefined;
+      const local = specNode.local.type === 'Identifier' ? specNode.local.name : exported;
+      if (exported !== undefined && local !== undefined) out.set(exported, { spec, name: local });
+    }
+  });
+  return out;
+}
+
 function resolveRelative(fromFile: string, spec: string, files: Set<string>): string | undefined {
   if (!spec.startsWith('.')) return undefined;
   const base = posix.normalize(posix.join(posix.dirname(fromFile), spec));
@@ -213,6 +230,23 @@ export function runInterproc(parsed: readonly ParsedSource[]): Finding[] {
     instances.set(p.file, collectInstances(p.ast, ns));
     for (const fn of collectFunctions(p.file, p.ast)) {
       functions.set(`${fn.file}#${fn.name}`, fn);
+    }
+  }
+
+  if (taintV2Enabled()) {
+    const barrels = new Map<string, Map<string, { spec: string; name: string }>>();
+    for (const p of parsed) barrels.set(p.file, reexportsOf(p.ast));
+    for (const ns of requires.values()) {
+      for (const [local, target] of ns) {
+        const hash = target.indexOf('#');
+        if (hash < 0) continue;
+        const file = target.slice(0, hash);
+        const name = target.slice(hash + 1);
+        const re = barrels.get(file)?.get(name);
+        if (re === undefined) continue;
+        const resolved = resolveRelative(file, re.spec, files);
+        if (resolved !== undefined) ns.set(local, `${resolved}#${re.name}`);
+      }
     }
   }
 

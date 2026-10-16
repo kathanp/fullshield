@@ -17,3 +17,8 @@ export function classesEnabled(): boolean {
 export function mcpCfgEnabled(): boolean {
   return process.env.FULLSHIELD_EXPERIMENTAL_MCPCFG === '1';
 }
+
+/** Phase 40 extra taint propagation. Off unless FULLSHIELD_EXPERIMENTAL_TAINT_V2=1. */
+export function taintV2Enabled(): boolean {
+  return process.env.FULLSHIELD_EXPERIMENTAL_TAINT_V2 === '1';
+}

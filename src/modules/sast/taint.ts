@@ -19,7 +19,7 @@ import {
   nestDecoratorArgCount,
   nestInputDecorator,
 } from './frameworks.js';
-import { frameworksEnabled } from './experimental.js';
+import { frameworksEnabled, taintV2Enabled } from './experimental.js';
 import { isMcpArgsTaintSource, isMcpToolHandler } from './mcp.js';
 import type { AstNode } from './types.js';
 
@@ -97,6 +97,27 @@ export function isXssSanitizerCall(node: AstNode | undefined): boolean {
 }
 
 const NO_RETURNERS: ReadonlySet<string> = new Set();
+const CALLBACK_METHODS = new Set([
+  'then',
+  'catch',
+  'finally',
+  'map',
+  'forEach',
+  'filter',
+  'flatMap',
+  'find',
+  'reduce',
+]);
+const taintedThisFields = new WeakMap<AstNode, Set<string>>();
+
+function enclosingClass(node: AstNode): AstNode | undefined {
+  let current: AstNode | undefined = (node as { parent?: AstNode }).parent;
+  while (current !== undefined) {
+    if (current.type === 'ClassDeclaration' || current.type === 'ClassExpression') return current;
+    current = (current as { parent?: AstNode }).parent;
+  }
+  return undefined;
+}
 
 function exprIsTainted(
   node: AstNode | undefined,
@@ -113,8 +134,40 @@ function exprIsTainted(
     case 'Identifier':
       return tainted.has(node.name);
     case 'MemberExpression':
+      if (taintV2Enabled() && node.object.type === 'ThisExpression') {
+        const cls = enclosingClass(node);
+        const name = propName(node);
+        if (cls !== undefined && name !== undefined && taintedThisFields.get(cls)?.has(name) === true) {
+          return true;
+        }
+      }
       return exprIsTainted(node.object, tainted, returners);
+    case 'ArrayExpression':
+      if (!taintV2Enabled()) return false;
+      return node.elements.some((el) => {
+        if (el === null) return false;
+        if (el.type === 'SpreadElement') return exprIsTainted(el.argument, tainted, returners);
+        return exprIsTainted(el, tainted, returners);
+      });
+    case 'ObjectExpression':
+      if (!taintV2Enabled()) return false;
+      return node.properties.some((prop) => {
+        if (prop.type === 'SpreadElement') return exprIsTainted(prop.argument, tainted, returners);
+        if (prop.type !== 'Property') return false;
+        return exprIsTainted(prop.value, tainted, returners);
+      });
     case 'CallExpression':
+      if (
+        taintV2Enabled() &&
+        node.callee.type === 'MemberExpression' &&
+        node.callee.object.type === 'Identifier' &&
+        node.callee.object.name === 'Object' &&
+        propName(node.callee) === 'assign'
+      ) {
+        return node.arguments.some(
+          (arg) => arg.type !== 'SpreadElement' && exprIsTainted(arg, tainted, returners),
+        );
+      }
       if (isSchemaValidatorCall(node)) return false;
       if (node.callee.type === 'Identifier' && returners.has(node.callee.name)) return true;
       if (node.callee.type === 'MemberExpression' && exprIsTainted(node.callee.object, tainted, returners)) {
@@ -385,7 +438,73 @@ function scopeReturnsTaint(
   return yes;
 }
 
-const MAX_TAINT_HOPS = 5;
+export const MAX_TAINT_HOPS = 5;
+
+function seedTaintV2(
+  functions: AstNode[],
+  facts: WeakMap<AstNode, ScopeFacts>,
+  seeds: Map<AstNode, Set<string>>,
+  returners: ReadonlySet<string>,
+  nameToFn: Map<string, AstNode>,
+): boolean {
+  let changed = false;
+  const mark = (fn: AstNode, name: string | undefined): void => {
+    if (name === undefined) return;
+    const set = seeds.get(fn) ?? new Set<string>();
+    if (set.has(name)) return;
+    set.add(name);
+    seeds.set(fn, set);
+    changed = true;
+  };
+  for (const fn of functions) {
+    const f = facts.get(fn);
+    if (f === undefined) continue;
+    let parent: AstNode | undefined = (fn as { parent?: AstNode }).parent;
+    while (parent !== undefined && !isFunctionNode(parent)) {
+      parent = (parent as { parent?: AstNode }).parent;
+    }
+    if (parent !== undefined && isFunctionNode(parent)) {
+      const outer = facts.get(parent);
+      if (outer !== undefined) {
+        for (const name of outer.tainted) mark(fn, name);
+      }
+    }
+    walkScope(fn, (node) => {
+      if (node.type === 'AssignmentExpression' && node.left.type === 'MemberExpression') {
+        if (node.left.object.type === 'ThisExpression' && exprIsTainted(node.right, f.tainted, returners)) {
+          const cls = enclosingClass(node);
+          const field = propName(node.left);
+          if (cls !== undefined && field !== undefined) {
+            const fields = taintedThisFields.get(cls) ?? new Set<string>();
+            if (!fields.has(field)) {
+              fields.add(field);
+              taintedThisFields.set(cls, fields);
+              changed = true;
+            }
+          }
+        }
+      }
+      if (node.type !== 'CallExpression' || node.callee.type !== 'MemberExpression') return;
+      const method = propName(node.callee);
+      if (method === undefined) return;
+      if (CALLBACK_METHODS.has(method) && exprIsTainted(node.callee.object, f.tainted, returners)) {
+        const callback = node.arguments[0];
+        if (callback !== undefined && isFunctionNode(callback)) {
+          mark(callback, boundNames(callback.params[0])[0]);
+        }
+      }
+      if ((method === 'call' || method === 'apply') && node.callee.object.type === 'Identifier') {
+        const target = nameToFn.get(node.callee.object.name);
+        if (target === undefined || !isFunctionNode(target)) return;
+        const arg = node.arguments[1];
+        if (arg !== undefined && arg.type !== 'SpreadElement' && exprIsTainted(arg, f.tainted, returners)) {
+          mark(target, boundNames(target.params[0])[0]);
+        }
+      }
+    });
+  }
+  return changed;
+}
 
 export function analyzeFile(
   ast: AstNode,
@@ -444,6 +563,9 @@ export function analyzeFile(
           }
         });
       });
+    }
+    if (taintV2Enabled() && seedTaintV2(functions, facts, seeds, returners, nameToFn)) {
+      changed = true;
     }
     if (!changed) break;
   }
