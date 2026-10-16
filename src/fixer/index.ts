@@ -7,15 +7,11 @@ import { scan, type ScanOptions } from '../core/engine.js';
 import type { Finding, ModuleName } from '../core/finding.js';
 import { createFixBranch, isDirty, isGitRepo, listDirtyPaths } from './git.js';
 import {
-  applyLockfileOverride,
   collectManifestOverrides,
-  lockfileKind,
   withManifestOverride,
   type LockfileKind,
 } from './override.js';
 import { applyUnifiedDiff, proposeFix } from './patches.js';
-
-const LOCKFILE_NAMES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'] as const;
 
 function detectLockKind(cwd: string): LockfileKind {
   if (existsSync(join(cwd, 'yarn.lock'))) return 'yarn';
@@ -45,6 +41,8 @@ export interface FixResult {
   branch?: string;
   patches: FixPatch[];
   findings: Finding[];
+  /** Set when an override was written to package.json. The lockfile is left unchanged. */
+  notice?: string;
 }
 
 export async function runFix(options: FixOptions = {}): Promise<FixResult> {
@@ -111,31 +109,10 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
     byFile.set(sourceFile, after);
   }
 
-  if (appliedOverride) {
-    const manifest = byFile.get('package.json');
-    if (manifest !== undefined) {
-      const targets = collectManifestOverrides(manifest);
-      for (const lockName of LOCKFILE_NAMES) {
-        if (lockfileKind(lockName) === undefined) continue;
-        let lock = byFile.get(lockName);
-        if (lock === undefined) {
-          try {
-            lock = await readFile(join(cwd, lockName), 'utf8');
-          } catch {
-            continue;
-          }
-        }
-        let next = lock;
-        for (const [name, version] of targets) {
-          next = applyLockfileOverride(lockName, next, name, version);
-        }
-        byFile.set(lockName, next);
-      }
-    }
-  }
+  const notice = appliedOverride ? 'run npm install' : undefined;
 
   if (options.apply !== true) {
-    return { applied: false, reverted: false, patches, findings: result.findings };
+    return { applied: false, reverted: false, patches, findings: result.findings, notice };
   }
 
   if (!(await isGitRepo(cwd)) && options.force !== true) {
@@ -174,7 +151,7 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
     return { applied: false, reverted: true, branch, patches, findings: result.findings };
   }
 
-  return { applied: true, reverted: false, branch, patches, findings: result.findings };
+  return { applied: true, reverted: false, branch, patches, findings: result.findings, notice };
 }
 
 async function restoreSnapshots(cwd: string, snapshots: Map<string, Buffer | null>): Promise<void> {

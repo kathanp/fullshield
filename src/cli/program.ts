@@ -250,6 +250,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           process.exitCode = 1;
         } else if (opts.apply === true && result.applied) {
           io.out(`Applied ${result.patches.length} fix(es)${result.branch !== undefined ? ` on ${result.branch}` : ''}.`);
+          if (result.notice !== undefined) io.out(result.notice);
         } else if (opts.apply !== true) {
           io.out('Dry run. Re-run with --apply to write safe fixes.');
         }

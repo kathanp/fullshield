@@ -54,7 +54,7 @@ describe('Phase 31 transitive dependency-override (experimental)', () => {
     expect(leaf?.fix?.diff).toMatch(/1\.0\.1/);
   });
 
-  it('applies the override to the fixture lockfile and removes the vuln on rescan', async () => {
+  it('writes package.json overrides, leaves package-lock.json byte-identical, and says to run npm install', async () => {
     process.env[FLAG] = '1';
     const dir = copyFixture();
     const before = await scan({ cwd: dir, modules: ['deps'], offline: true });
@@ -79,18 +79,11 @@ describe('Phase 31 transitive dependency-override (experimental)', () => {
       overrides?: Record<string, string>;
     };
     expect(manifest.overrides?.['leaf-vuln']).toBe('1.0.1');
+    expect(fixed.notice).toBe('run npm install');
 
-    const lock = JSON.parse(readFileSync(join(dir, 'package-lock.json'), 'utf8')) as {
-      packages: Record<string, { version?: string }>;
-    };
-    expect(lock.packages['node_modules/leaf-vuln']?.version).toBe('1.0.1');
-
-    const after = await scan({ cwd: dir, modules: ['deps'], offline: true });
-    expect(
-      after.findings.some(
-        (f) => f.ruleId === 'DEPS-VULN-001' && (f.snippet ?? '').includes('leaf-vuln@1.0.0'),
-      ),
-    ).toBe(false);
+    const lockBefore = readFileSync(join(fixture, 'package-lock.json'));
+    const lockAfter = readFileSync(join(dir, 'package-lock.json'));
+    expect(Buffer.compare(lockBefore, lockAfter)).toBe(0);
   });
 
   it('writes pnpm.overrides / yarn resolutions for those lockfile kinds', () => {
