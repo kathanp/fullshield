@@ -96,3 +96,11 @@ Requires `FULLSHIELD_EXPERIMENTAL_DLP=1` and `shieldGuard({ dlp: { mode } })`. N
 | [MCP-003](MCP-003.md) | Shell/exec or unrestricted fs-write tool, no allowlist |
 | [MCP-004](MCP-004.md) | Tool-description instruction injection / hidden / ZWC |
 | [MCP-005](MCP-005.md) | Remote MCP over plaintext `http://` |
+
+## Host (experimental, `fullshield host --experimental-host`)
+
+| ID | What |
+|---|---|
+| [HOST-SSH-001](HOST-SSH-001.md) | OpenSSH version in the CVE-2024-6387 range |
+| [HOST-SSH-002](HOST-SSH-002.md) | Vulnerable OpenSSH without `LoginGraceTime 0` |
+| [HOST-SSH-003](HOST-SSH-003.md) | Possible SSH authentication-timeout attempts |

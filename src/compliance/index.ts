@@ -130,6 +130,9 @@ export const RULE_MAP: readonly RuleMapping[] = [
   ROW('MCP-003', 'A01:2021 Broken Access Control', 'CWE-250', 'V4.1.1', 'PCI DSS 7.2'),
   ROW('MCP-004', 'A03:2021 Injection', 'CWE-74', 'V5.3.3', 'PCI DSS 6.2.4'),
   ROW('MCP-005', 'A02:2021 Cryptographic Failures', 'CWE-319', 'V9.1.1', 'PCI DSS 4.2'),
+  ROW('HOST-SSH-001', 'A06:2021 Vulnerable Components', 'CWE-364', 'V14.2.1', 'PCI DSS 6.3.3'),
+  ROW('HOST-SSH-002', 'A05:2021 Security Misconfiguration', 'CWE-693', 'V14.4.3', 'PCI DSS 2.2'),
+  ROW('HOST-SSH-003', 'A07:2021 Identification Failures', 'CWE-307', 'V7.1.1', 'PCI DSS 10.2 / 11.5'),
 ];
 
 const byId = new Map(RULE_MAP.map((r) => [r.ruleId, r]));
@@ -159,7 +162,7 @@ export function renderCompliance(
 
 export function collectRuleIdsFromSources(texts: readonly string[]): string[] {
   const ids = new Set<string>();
-  const re = /\b((?:SAST|SECRET|DEPS|CONFIG|EDGE|AI|LLM|SUPPLY|IAC|RASP|RUNTIME|DLP|MCP)(?:-[A-Z0-9]+)*-\d{3})\b/g;
+  const re = /\b((?:SAST|SECRET|DEPS|CONFIG|EDGE|AI|LLM|SUPPLY|IAC|RASP|RUNTIME|DLP|MCP|HOST)(?:-[A-Z0-9]+)*-\d{3})\b/g;
   for (const text of texts) {
     let m: RegExpExecArray | null;
     while ((m = re.exec(text)) !== null) ids.add(m[1] ?? '');

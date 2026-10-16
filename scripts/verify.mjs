@@ -78,6 +78,7 @@ const PREVIOUS_PHASE_TESTS = {
   32: 638,
   33: 659,
   34: 703,
+  35: 740,
 };
 
 function listFilesRecursive(dir, out = []) {
@@ -1543,6 +1544,62 @@ s.listen(0, '127.0.0.1', () => {
       fail('phase 34 acceptance: README must document scan --pr-summary');
     }
     console.log('  ✔ experimental policy-as-code; expired exceptions fail CI; PR summary goldens');
+  },
+  // Phase 35: experimental Linux-only OpenSSH host exposure (detection/reporting only).
+  35: () => {
+    const cli = join(root, 'dist', 'cli', 'index.js');
+    const refused = spawnSync(process.execPath, [cli, 'host'], {
+      cwd: root,
+      encoding: 'utf8',
+      env: { ...process.env, FULLSHIELD_EXPERIMENTAL_HOST: '' },
+    });
+    if (refused.status !== 2) {
+      fail(`phase 35 acceptance: host without --experimental-host exited ${refused.status}, expected 2`);
+    }
+    if (!/experimental-host/.test(refused.stderr)) {
+      fail('phase 35 acceptance: host without --experimental-host must mention --experimental-host');
+    }
+    const help = spawnSync(process.execPath, [cli, 'host', '--help'], {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    if (!help.stdout.includes('--experimental-host')) {
+      fail('phase 35 acceptance: host --help missing --experimental-host');
+    }
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!/does not stop OS or SSH exploits/i.test(readme)) {
+      fail('phase 35 acceptance: README must state FullShield does not stop OS or SSH exploits');
+    }
+    if (!/What it does NOT do/i.test(readme)) {
+      fail('phase 35 acceptance: README must include What it does NOT do');
+    }
+    if (!readme.includes('FULLSHIELD_EXPERIMENTAL_HOST')) {
+      fail('phase 35 acceptance: README must document FULLSHIELD_EXPERIMENTAL_HOST');
+    }
+    for (const rel of [
+      'test/fixtures/host/dpkg-backport-patched.txt',
+      'test/fixtures/host/dpkg-vulnerable-upstream.txt',
+      'test/fixtures/host/dpkg-fixed.txt',
+      'test/fixtures/host/rpm-backport-patched.txt',
+      'test/fixtures/host/rpm-vulnerable-upstream.txt',
+      'test/fixtures/host/rpm-fixed.txt',
+      'test/fixtures/host/apk-backport-patched.txt',
+      'test/fixtures/host/apk-vulnerable-upstream.txt',
+      'test/fixtures/host/apk-fixed.txt',
+      'test/fixtures/host/sshd-T-mitigated.txt',
+      'test/fixtures/host/sshd-T-unmitigated.txt',
+      'test/fixtures/host/auth.log',
+    ]) {
+      if (!existsSync(join(root, rel))) fail(`phase 35 acceptance: missing fixture ${rel}`);
+    }
+    if (vuln.report.findings.some((f) => String(f.ruleId).startsWith('HOST-'))) {
+      fail('phase 35 acceptance: default scan emitted HOST-* without --experimental-host');
+    }
+    const hostSrc = readFileSync(join(root, 'src', 'host', 'index.ts'), 'utf8');
+    if (/\bssh\s+-V\b/.test(hostSrc)) {
+      fail('phase 35 acceptance: host check must not use ssh -V');
+    }
+    console.log('  ✔ experimental host SSH check; refuses without --experimental-host; default scan has no HOST-*');
   },
 };
 

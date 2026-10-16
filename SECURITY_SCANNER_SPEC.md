@@ -644,6 +644,7 @@ Goal: turn "possible vulnerability" into "**confirmed**, here's the proof" so de
 | 32 | Runtime response DLP (outgoing JSON/text) | Fixtures per leak type; zero masking on a benign corpus; p95 extra < 1ms for ≤64 KB; behind `FULLSHIELD_EXPERIMENTAL_DLP=1` |
 | 33 | MCP client/server config rules | Positive and negative fixtures for `MCP-001`–`MCP-005`; no network; home-dir scan impossible without `--include-home`; behind `FULLSHIELD_EXPERIMENTAL_MCPCFG` |
 | 34 | Policy-as-code + deterministic PR summary | Policy schema validated with zod; expired exception fails CI; PR summary golden-file tests; behind `FULLSHIELD_EXPERIMENTAL_POLICY=1` |
+| 35 | Host OpenSSH exposure check (Linux only) | Command refuses without `--experimental-host`; default scan emits no `HOST-*`; version from `dpkg-query` / `rpm` / `apk`, not `ssh -V`; behind `FULLSHIELD_EXPERIMENTAL_HOST` |
 
 ### Phase 26 — Public benchmark run (credibility first)
 
@@ -730,5 +731,21 @@ Policy and PR comments are **experimental** (`FULLSHIELD_EXPERIMENTAL_POLICY=1`)
 - Policy schema validated with zod (optional peer; lazy-imported). No new hard dependencies.
 
 Acceptance: expired exception test fails CI; PR summary golden-file tests.
+
+### Phase 35 — Host exposure check (experimental, Linux only)
+
+Goal: report whether the host running the Node app is exposed to known OS-level service vulnerabilities, starting with OpenSSH regreSSHion (CVE-2024-6387). **Detection/reporting only — FullShield does not block, patch, or harden OS services.**
+
+Command: `fullshield host` (flag `--experimental-host`, `FULLSHIELD_EXPERIMENTAL_HOST=1`). Skips with an info message on macOS, Windows, containers without sshd, and PaaS. Command refuses without `--experimental-host`. Default `scan` is unchanged (no `HOST-*`).
+
+Checks:
+1. OpenSSH version: distro package (`dpkg-query -W openssh-server` / `rpm -q openssh-server` / `apk info`), NOT `ssh -V`. Match OSV ecosystems (Ubuntu, Debian, Red Hat, Alpine) so backported fixes are not false positives. Upstream fallback: vulnerable if 8.5p1 ≤ v < 9.8p1, or v < 4.4p1.
+2. Mitigation: `sshd -T` if permitted; otherwise parse `/etc/ssh/sshd_config` + `Include` for `logingracetime 0`.
+3. Exposure: whether sshd listens on a non-loopback address (`ss -ltn`).
+4. Optional log signal (readable without elevation; never request sudo): `Timeout before authentication` per source IP in the last 24h.
+
+Rule IDs: `HOST-SSH-001` version, `HOST-SSH-002` no mitigation, `HOST-SSH-003` attempt pattern. Critical only for vulnerable + unmitigated + publicly listening.
+
+Acceptance: the command refuses without `--experimental-host`; default `scan` emits no `HOST-*` IDs; the version comes from the distro package query, not `ssh -V`.
 
 - Show a real before/after: run it on a public, intentionally vulnerable Node app (e.g. OWASP NodeGoat or Juice Shop), list what it found and what it missed. Publishing the misses builds more trust than hiding them.

@@ -35,6 +35,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 | Remediation agent (opt-in, **experimental**) | Localhost mock GitHub API + local git only. Never merges, never pushes to `main`/`master`. |
 | Response DLP (opt-in, **experimental**) | `shieldGuard({ dlp: { mode: 'monitor' \| 'mask' \| 'block' } })` with `FULLSHIELD_EXPERIMENTAL_DLP=1`. Inspects outgoing JSON/text (≤64 KB). Not a DLP product. |
 | Policy / PR summary (opt-in, **experimental**) | `fullshield.policy.json` + `scan --pr-summary` (`FULLSHIELD_EXPERIMENTAL_POLICY=1`). Not an OPA/Kyverno substitute. |
+| Host OpenSSH (opt-in, **experimental**) | `fullshield host --experimental-host` (`FULLSHIELD_EXPERIMENTAL_HOST=1`). Linux only. **What it does NOT do:** FullShield does not stop OS or SSH exploits. |
 
 ## What it detects (Core)
 
@@ -63,6 +64,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
   - `vex` / worm / overrides (`FULLSHIELD_EXPERIMENTAL_VEX=1`): static heuristics and reachability-backed VEX only. Default `scan` does not emit `SUPPLY-WORM-001` / `SUPPLY-WORKFLOW-001`. Overrides are **unsafe** (`fix --unsafe`). Apply writes `package.json` and prints `run npm install`; it does not edit the lockfile. Never claim `not_affected` unless reachability proves `not-imported`.
   - Response DLP (`FULLSHIELD_EXPERIMENTAL_DLP=1`): inspects outgoing JSON/text for secret patterns, stack traces, internal IPs/hostnames, Luhn card numbers, and bulk emails. Pattern matching only; size-capped; not a DLP or tokenization product.
   - Policy / `--pr-summary`: CI exceptions with expiry, not a general policy engine. PR comments are deterministic (no AI) and are not posted to GitHub or GitLab.
+  - `host` (`FULLSHIELD_EXPERIMENTAL_HOST=1`): Linux-only OpenSSH exposure report. **What it does NOT do:** FullShield does not stop OS or SSH exploits. Detection and reporting only. It does not block, patch, or harden OS services.
 
 ## Known limitations
 
@@ -160,6 +162,7 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | `vex` | **Experimental** OpenVEX / CycloneDX VEX from reachability (`FULLSHIELD_EXPERIMENTAL_VEX=1`). `not_affected` + `vulnerable_code_not_in_execute_path` only when reachability is `not-imported`; otherwise `under_investigation`. Never guessed. Also enables worm/workflow indicators, unsafe `dependency-override` proposals, and a provenance coverage score. Apply writes `package.json` and prints `run npm install`; it does not edit the lockfile. |
 | `scan --experimental-mcpcfg` | **Experimental** MCP client/server config rules `MCP-001`–`MCP-005` (`FULLSHIELD_EXPERIMENTAL_MCPCFG=1`). Default `scan` emits no `MCP-*` IDs. |
 | `scan --include-home` | **Experimental** also scan MCP configs under the user home (`.cursor/mcp.json`, `.vscode/mcp.json`, `.mcp.json`, Claude Desktop). Requires `FULLSHIELD_EXPERIMENTAL_MCPCFG=1`. Never implied. |
+| `host --experimental-host` | **Experimental** Linux-only OpenSSH exposure check (`FULLSHIELD_EXPERIMENTAL_HOST=1`). Reports `HOST-SSH-001`..`003` (version, no `LoginGraceTime 0`, auth timeout attempts). Refuses without `--experimental-host`. Default `scan` is unchanged. Skips with an info message on macOS, Windows, containers without sshd, and PaaS. **What it does NOT do:** FullShield does not stop OS or SSH exploits. |
 
 Inline ignore (reason required): `// fullshield-ignore SAST-SQLI-001: reviewed`
 

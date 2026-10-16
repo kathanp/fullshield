@@ -4,6 +4,10 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+### Phase 35 — experimental host SSH exposure check
+
+- `fullshield host --experimental-host` (`FULLSHIELD_EXPERIMENTAL_HOST=1`) reports OpenSSH CVE-2024-6387 (regreSSHion) exposure on Linux: distro package version via `dpkg-query` / `rpm` / `apk` (not `ssh -V`), OSV distro advisories with upstream fallback, `LoginGraceTime 0`, `ss -ltn` listen address, and optional auth.log timeout patterns. Detection/reporting only — no block, patch, or harden. Skips macOS, Windows, containers without sshd, and PaaS. Command refuses without `--experimental-host`. Default `scan` is unchanged.
+
 ### Phase 34 — policy-as-code + PR summary
 
 - Experimental `fullshield.policy.json` (`FULLSHIELD_EXPERIMENTAL_POLICY=1`): required modules, per-rule severity overrides, `failOn` per git/CI branch, and exceptions that require `owner`, `reason`, and ISO `expires`. Expired exceptions fail CI with a clear message. Exceptions without owner or expiry are rejected. Schema is validated with the optional `zod` peer (lazy-imported; not a hard dependency).

@@ -816,20 +816,23 @@ Verified alone: 566 tests, 92.59% lines / 83.06% branches.
 |---|---|---|---|---|---|---|---|---|
 | 34 | 703 | 92.67% | 82.1% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
 
-## Phase 35 — experimental host SSH exposure check (on `phase-35`, not merged)
+## Phase 35 — experimental host SSH exposure check (merged into `next`)
 
 `fullshield host --experimental-host` (`FULLSHIELD_EXPERIMENTAL_HOST=1`). Linux-only OpenSSH / regreSSHion (CVE-2024-6387) report. Package version via `dpkg-query` / `rpm` / `apk`, not `ssh -V`. Rules `HOST-SSH-001` through `HOST-SSH-003`. Critical only when vulnerable, unmitigated, and publicly listening. Detection and reporting only. The command refuses to run without `--experimental-host`. Default `scan` emits no `HOST-*` IDs.
 
-Verified alone on `phase-35` (`5fce3c8`), branched from `be68e49`. This count does not include Phases 29–34. CI uses fixtures, not a live sshd.
+Verified alone on `phase-35` (`5fce3c8`), branched from `be68e49`. This count does not include Phases 29–34. CI uses fixtures, not a live sshd. `HOST-SSH-003` is omitted when logs are unreadable without sudo. Only OpenSSH/regreSSHion is checked.
 
-**Verify (`npm run verify:phase 35`, PASSED):**
+Verified alone: 559 tests, 92.37% lines / 82.7% branches.
+
+**Verify on `next` after the merge (`npm run verify:phase 35`, PASSED):**
 
 | phase | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
 |---|---|---|---|---|---|---|---|---|
-| 35 | 559 | 92.37% | 82.7% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+| 35 | 740 | 92.58% | 81.91% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
 
 ## Current status
 
-- Local `next` includes Phases 1–34. Phase 35 is verified on a side branch and is not merged.
+- Local `next` includes Phases 1–35.
 - Package version in this tree is `0.1.1`. No tag from `next`. No pull request. No merge to `main`.
 - Ground truth in `bench/` stays `"reviewed": false`.
+- Host check gaps: live Linux sshd is not required in CI (fixtures only). OSV is mocked in tests. FullShield does not stop OS or SSH exploits.

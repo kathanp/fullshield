@@ -1,0 +1,7 @@
+port 22
+addressfamily any
+listenaddress 0.0.0.0:22
+listenaddress [::]:22
+logingracetime 0
+permitrootlogin prohibit-password
+passwordauthentication yes
