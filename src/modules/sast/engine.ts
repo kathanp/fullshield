@@ -30,6 +30,7 @@ import { TEMPLATE_EXT, xssRule } from './rules/xss.js';
 import { phase29Rules, sourceHasCsrfGuard } from './rules/phase29.js';
 import type { AstNode, RuleContext, SastRule } from './types.js';
 import { scanPromptInjection } from '../../ai/injection.js';
+import { parsePoolEnabled, parseWithPool } from '../../core/parse-pool.js';
 
 export const sastRules: readonly SastRule[] = [
   sqliRule,
@@ -182,7 +183,10 @@ export const sastModule: ScanModule = {
         continue;
       }
       try {
-        const ast = await parseSource(source);
+        const ast = parsePoolEnabled()
+          ? ((await parseWithPool([source]))[0] as AstNode)
+          : await parseSource(source);
+        if (ast === undefined) continue;
         parsed.push({ file: rel, source, ast });
       } catch {
         // Unparseable file: skip. A scanner must not execute or crash on user code.
