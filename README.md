@@ -89,8 +89,11 @@ In-scope public-bench patterns we still do not claim (one line each):
 - Juice Shop track-order XSS — server returns `res.json`; we do not treat JSON fields as HTML sinks.
 - Juice Shop `url.includes(allowedUrl)` — weak allowlist helper is not a redirect sink; we flag `res.redirect(tainted)`.
 - Juice Shop `{ _id: req.body.id }` — flagged as `SAST-NOSQLI-001` (medium) unless coerced (`String()`/`Number()`/`Boolean()`), schema-validated, or mongo-sanitize is applied. Same for goof `User.find({ password: req.body.password })`.
+- Juice Shop `data/static/codefixes/*` — six `SAST-NOSQLI-001` hits are copies of the challenge fixes. They stay. There is no special-case exclusion for that directory.
 - `DEPS-VULN-001` — when an OSV hit exists, the finding is attributed to the `package.json` name line; `--offline-safe` on a cache-less clone still emits no OSV hits (`package.json:N` will not match).
 - DVNA calculator “stack leak” — that line is `mathjs.eval` (`SAST-EVAL-001`), not `err.stack`.
+- Worker-pool timings and the 60s / 20s / 5s / 1.5 GB targets are not measured. `bench/perf-baseline.json` is written by `node bench/perf.mjs` only after the next, nest, and undici checkouts exist.
+- Real-world precision is not sampled. `bench/realworld.json` pins 10 repositories. No false-positive rate is claimed.
 
 Public-app in-scope detection on **unreviewed** ground truth (`"reviewed": false` in `bench/*/ground-truth.json`). These are not product recall claims. Matching is class + file + line ±3. Helmet comment-only line attribution is not counted.
 
@@ -189,6 +192,22 @@ Public-app detection results (OWASP NodeGoat, Juice Shop, DVNA, seen holdouts `s
 ```
 
 `propose_fix` returns a diff only. It never writes your tree.
+
+## Developer commands
+
+```bash
+npx fullshield doctor
+npx fullshield doctor --offline
+npx fullshield scan --debug
+```
+
+`doctor` prints the Node version, lockfile, cache directory, experimental flags that are set to `1`, whether `fullshield.config.json` parses, and whether OSV is allowed to use the network. `--offline` skips that network. CLI failures use `FS-E###` codes. The message stays the same. A stack is printed only with `--debug`.
+
+Console output shows the highest 10 findings, then `N more — use --json`. Each line has the file, the finding message, a fix line, and `rules/<rule-id>.md`.
+
+Experimental taint propagation (`FULLSHIELD_EXPERIMENTAL_TAINT_V2=1`) and the parse pool (`FULLSHIELD_PARSE_POOL=1`) are off by default. Symbol reachability runs only when an OSV advisory lists `affected_functions`. Advisories without that list keep the import-level class.
+
+`COMPARISON.md` is not linked here. The mapping has not been reviewed, and the tools were not run for a results table. Benchmark numbers stay in [`BENCHMARK.md`](BENCHMARK.md) with the unreviewed label.
 
 See [`SECURITY.md`](SECURITY.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), and [`RELEASING.md`](RELEASING.md).
 

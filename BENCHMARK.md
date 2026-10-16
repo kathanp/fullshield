@@ -156,3 +156,17 @@
 | vulnerable-node | nosqli | `routes/shop.js:41` | NoSQL injection: /api/tags-filter passes req.body.tags into col.find() as the origin value. |
 | vulnerable-node | nosqli | `routes/shop.js:58` | NoSQL injection: /api/meta assigns req.query.origin onto a Mongo filter. |
 | vulnerable-node | config | `views/error.ejs:4` | Debug misconfiguration: error.stack is rendered when DEBUG_ERRORS=1. |
+
+## Holdouts (Phase 37)
+
+Labels follow the benchmark protocol. `reviewed` is false on every ground-truth file. Untouched apps were not scanned, so this section has no recall figure.
+
+| app | status | scanned |
+|---|---|---|
+| nodegoat, juice-shop, dvna | tuning | yes, earlier, unreviewed |
+| goof, vulnerable-node | seen | yes, earlier, unreviewed |
+| verademo-javascript, serverless-goat, mongection | untouched | no |
+
+## Precision (Phase 41)
+
+No real-world sample has been labeled. Every stable rule's precision is **not sampled**. There is no rate and no over-budget decision.

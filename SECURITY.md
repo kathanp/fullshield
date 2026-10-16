@@ -14,6 +14,15 @@ In-scope: the `fullshield` CLI, library, and `fullshield/runtime` middleware as 
 
 Out of scope: findings in `test/fixtures/**` (intentionally vulnerable), third-party apps used only as benchmarks (`NodeGoat`, DVNA), and issues that require you to scan a host you do not own.
 
+## Supported versions
+
+| Version | Status |
+|---|---|
+| 0.1.x | Supported. 0.1.3 is the current npm release. |
+| 0.0.x | Deprecated placeholders. Use >= 0.1.0. |
+
+Security fixes ship as patch releases on 0.1.x until the next minor. A minor release is required for a new rule, command, flag, export, or stable-output change.
+
 ## Please do not
 
 - Open a public issue with a working exploit

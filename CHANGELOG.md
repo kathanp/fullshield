@@ -4,6 +4,25 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+### 0.2.0 draft (Phase 36, not released)
+
+- Publish refuses to stage without provenance. `0.1.3` has no attestation because the stage retried after a sigstore 409. The publish job now polls `dist.attestations` and fails if it stays empty.
+- `scripts/semver-check.mjs`, `scripts/pack-budget.mjs`, and `scripts/provenance-gate.mjs`.
+- TypeORM `class User extends BaseEntity` plus `User.find` is not `SAST-NOSQLI-001` when the file does not import `typeorm`. A bare `User.find(req.body)` is unchanged.
+- Stable-output diff versus published `0.1.1` and `0.1.3` is not filled in here. Those lines come from `scripts/default-scan-diff.mjs` before any tag. No version bump in this draft.
+
+### 0.3.0 / 0.4.0 draft (Phases 37–45, not released)
+
+- Holdout registry, three untouched apps, and review sheets. Those apps were not scanned.
+- Comparison harness. Semgrep, OSV-Scanner, and npm audit were not executed for a results table. No counts are claimed.
+- Symbol reachability when an advisory's `affected_functions` list is present. Advisories without that list stay on the import-level class. `DEPS-MALICIOUS-001` is not downgraded.
+- Taint propagation for callbacks, `call`/`apply`, `Object.assign`, spread, `this` fields, and closures behind `FULLSHIELD_EXPERIMENTAL_TAINT_V2=1`. Default scan does not enable it.
+- Ten real-world repos are pinned. They were not scanned, so there is no precision rate.
+- Parse pool behind `FULLSHIELD_PARSE_POOL=1`. Cold/warm timings on next, nest, and undici were not measured.
+- Promotion report lists every experimental flag as unmet. Nothing was promoted.
+- `fullshield doctor`, `FS-E###` error codes, and console output capped at 10 findings.
+- GitHub Actions in the project workflows are pinned by commit SHA. Scorecard and CodeQL workflows are added. A tag workflow attaches a CycloneDX SBOM to the GitHub Release.
+
 ## 0.1.3 — 2026-10-15
 
 ### Phase 35 — experimental host SSH exposure check

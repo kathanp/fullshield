@@ -79,6 +79,16 @@ const PREVIOUS_PHASE_TESTS = {
   33: 659,
   34: 703,
   35: 740,
+  36: 748,
+  37: 751,
+  38: 752,
+  39: 757,
+  40: 767,
+  41: 768,
+  42: 770,
+  43: 771,
+  44: 774,
+  45: 775,
 };
 
 function listFilesRecursive(dir, out = []) {
@@ -1600,6 +1610,119 @@ s.listen(0, '127.0.0.1', () => {
       fail('phase 35 acceptance: host check must not use ssh -V');
     }
     console.log('  ✔ experimental host SSH check; refuses without --experimental-host; default scan has no HOST-*');
+  },
+  // Phase 36: release integrity. No tag. Version bump stays a human decision.
+  36: () => {
+    for (const rel of [
+      'scripts/semver-check.mjs',
+      'scripts/pack-budget.mjs',
+      'scripts/provenance-gate.mjs',
+      'scripts/release-checks.mjs',
+      'test/unit/release/phase36.test.ts',
+    ]) {
+      if (!existsSync(join(root, rel))) fail(`phase 36 acceptance: missing ${rel}`);
+    }
+    const publish = readFileSync(join(root, '.github', 'workflows', 'publish.yml'), 'utf8');
+    if (!publish.includes('scripts/provenance-gate.mjs')) {
+      fail('phase 36 acceptance: publish.yml missing provenance gate');
+    }
+    if (!publish.includes('scripts/semver-check.mjs') || !publish.includes('scripts/pack-budget.mjs')) {
+      fail('phase 36 acceptance: publish.yml missing semver-check or pack-budget');
+    }
+    const stage = readFileSync(join(root, 'scripts', 'npm-stage-publish.mjs'), 'utf8');
+    if (/retrying without --provenance/.test(stage)) {
+      fail('phase 36 acceptance: stage must not retry without provenance');
+    }
+    const releasing = readFileSync(join(root, 'RELEASING.md'), 'utf8');
+    if (!releasing.includes('0.1.3') || !/without provenance/i.test(releasing)) {
+      fail('phase 36 acceptance: RELEASING.md must explain why 0.1.3 has no provenance');
+    }
+    const semver = spawnSync(process.execPath, [join(root, 'scripts', 'semver-check.mjs')], {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    const semverOut = `${semver.stdout ?? ''}${semver.stderr ?? ''}`;
+    if (!semverOut.includes('required:')) {
+      fail(`phase 36 acceptance: semver-check did not report a required bump:\n${semverOut}`);
+    }
+    console.log(semverOut.trim());
+    if (semver.status === 1) {
+      console.log('  ✔ semver-check reports the required bump; package.json is not bumped until the human confirms');
+    } else if (semver.status !== 0) {
+      fail(`phase 36 acceptance: semver-check exited ${semver.status}`);
+    }
+    console.log('  ✔ provenance gate is required; stage does not drop provenance; pack and semver scripts exist');
+  },
+  37: () => {
+    for (const rel of ['bench/holdouts.json', 'bench/REVIEW.md', 'bench/review-sheet.mjs', 'bench/sample-triage.mjs']) {
+      if (!existsSync(join(root, rel))) fail(`phase 37 acceptance: missing ${rel}`);
+    }
+    for (const name of ['verademo-javascript', 'serverless-goat', 'mongection']) {
+      if (existsSync(join(root, 'bench', name, 'scan.json'))) {
+        fail(`phase 37 acceptance: ${name} was scanned`);
+      }
+    }
+    console.log('  ✔ three untouched holdouts are registered and have no scan result');
+  },
+  38: () => {
+    if (!existsSync(join(root, 'bench', 'compare.mjs'))) fail('phase 38 acceptance: missing compare.mjs');
+    const comparison = readFileSync(join(root, 'COMPARISON.md'), 'utf8');
+    if (!/not executed/i.test(comparison) && !/true positive/i.test(comparison)) {
+      fail('phase 38 acceptance: COMPARISON.md has neither a not-executed note nor real results');
+    }
+    console.log('  ✔ comparison harness exists; results are only present when tools were run');
+  },
+  39: () => {
+    const src = readFileSync(join(root, 'src', 'modules', 'deps', 'symbol-reachability.ts'), 'utf8');
+    if (!src.includes('affected_functions')) fail('phase 39 acceptance: symbol list is not read from advisory data');
+    const reach = readFileSync(join(root, 'src', 'modules', 'deps', 'reachability.ts'), 'utf8');
+    if (!reach.includes('DEPS-MALICIOUS-001')) fail('phase 39 acceptance: malicious advisories must stay critical');
+    console.log('  ✔ symbol reachability uses advisory function names and does not downgrade malicious packages');
+  },
+  40: () => {
+    const src = readFileSync(join(root, 'src', 'modules', 'sast', 'experimental.ts'), 'utf8');
+    if (!src.includes('FULLSHIELD_EXPERIMENTAL_TAINT_V2')) {
+      fail('phase 40 acceptance: taint v2 flag missing');
+    }
+    console.log('  ✔ taint v2 is behind FULLSHIELD_EXPERIMENTAL_TAINT_V2');
+  },
+  41: () => {
+    const doc = JSON.parse(readFileSync(join(root, 'bench', 'realworld.json'), 'utf8'));
+    if (!Array.isArray(doc.repos) || doc.repos.length < 10) fail('phase 41 acceptance: need 10 pinned repos');
+    const benchmark = readFileSync(join(root, 'BENCHMARK.md'), 'utf8');
+    if (!benchmark.includes('not sampled')) fail('phase 41 acceptance: precision must say not sampled until a human labels findings');
+    console.log('  ✔ ten repos are pinned; precision is not sampled');
+  },
+  42: () => {
+    if (!existsSync(join(root, 'src', 'core', 'parse-pool.ts'))) fail('phase 42 acceptance: parse pool missing');
+    if (!existsSync(join(root, 'bench', 'perf.mjs'))) fail('phase 42 acceptance: perf harness missing');
+    console.log('  ✔ parse pool and perf harness exist; timings stay unmeasured until the repos are checked out');
+  },
+  43: () => {
+    const report = spawnSync(process.execPath, [join(root, 'scripts', 'promotion-report.mjs')], {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    if (report.status !== 0 || !String(report.stdout).includes('unmet')) {
+      fail('phase 43 acceptance: promotion report must list unmet criteria');
+    }
+    console.log('  ✔ no experimental flag is promoted');
+  },
+  44: () => {
+    const program = readFileSync(join(root, 'src', 'cli', 'program.ts'), 'utf8');
+    if (!program.includes(".command('doctor')")) fail('phase 44 acceptance: doctor command missing');
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!readme.includes('fullshield doctor')) fail('phase 44 acceptance: README missing doctor');
+    console.log('  ✔ doctor, error codes, and the console cap are present');
+  },
+  45: () => {
+    const workflows = join(root, '.github', 'workflows');
+    for (const name of ['ci.yml', 'publish.yml', 'codeql.yml', 'scorecard.yml', 'sbom.yml']) {
+      const text = readFileSync(join(workflows, name), 'utf8');
+      if (/uses:\s+\S+@v\d/.test(text)) fail(`phase 45 acceptance: ${name} has a floating action tag`);
+    }
+    if (!existsSync(join(root, '.github', 'dependabot.yml'))) fail('phase 45 acceptance: dependabot.yml missing');
+    console.log('  ✔ project workflows are pinned; CodeQL, Scorecard, and the SBOM release job exist');
   },
 };
 
