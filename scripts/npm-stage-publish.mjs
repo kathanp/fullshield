@@ -5,9 +5,10 @@
  */
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { readFileSync, unlinkSync } from 'node:fs';
+import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { githubOidcToken } from './github-oidc.mjs';
+import { enableFetchOnConflict, PROVENANCE_TIMEOUT_MS } from './sigstore-conflict.mjs';
 
 const PACKAGE = 'fullshield';
 const REGISTRY = 'https://registry.npmjs.org';
@@ -19,7 +20,13 @@ function npmRoot() {
   return r.stdout.trim();
 }
 
-const require = createRequire(join(npmRoot(), 'npm/package.json'));
+const globalRoot = npmRoot();
+const sigstoreConfig = join(globalRoot, 'npm/node_modules/sigstore/dist/config.js');
+const patched = enableFetchOnConflict(readFileSync(sigstoreConfig, 'utf8'));
+writeFileSync(sigstoreConfig, patched);
+console.log('sigstore fetchOnConflict enabled');
+
+const require = createRequire(join(globalRoot, 'npm/package.json'));
 const libpub = require('libnpmpublish');
 
 function mask(value) {
@@ -75,6 +82,7 @@ const baseOpts = {
   defaultTag: 'latest',
   stage: true,
   command: 'stage',
+  timeout: PROVENANCE_TIMEOUT_MS,
 };
 
 async function stage(provenance) {

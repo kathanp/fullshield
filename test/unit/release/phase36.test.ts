@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { runSastOnText } from '../../../src/modules/sast/engine.js';
 import { githubOidcToken } from '../../../scripts/github-oidc.mjs';
+import { enableFetchOnConflict, PROVENANCE_TIMEOUT_MS } from '../../../scripts/sigstore-conflict.mjs';
 import {
   approvedDiffMatches,
   attestationsPresent,
@@ -137,6 +138,22 @@ describe('Phase 36 release checks', () => {
     expect(diagnose).not.toContain('NPM_ID_TOKEN');
     expect(stage).not.toContain('NPM_ID_TOKEN');
     expect(publish).toContain('npm install -g npm@12.2.0');
+  });
+
+  it('turns on sigstore fetchOnConflict so a Rekor 409 keeps provenance', () => {
+    const source = 'witnesses.push(new RekorWitness({ fetchOnConflict: false, timeout: 5000 }));';
+    expect(enableFetchOnConflict(source)).toContain('fetchOnConflict: true');
+    expect(enableFetchOnConflict(source)).not.toContain('fetchOnConflict: false');
+    expect(enableFetchOnConflict('fetchOnConflict: true')).toBe('fetchOnConflict: true');
+    expect(() => enableFetchOnConflict('no flag here')).toThrow(/fetchOnConflict/);
+    expect(PROVENANCE_TIMEOUT_MS).toBeGreaterThan(5000);
+    const stage = readFileSync(join(process.cwd(), 'scripts/npm-stage-publish.mjs'), 'utf8');
+    const patchAt = stage.indexOf('enableFetchOnConflict');
+    const loadAt = stage.indexOf("require('libnpmpublish')");
+    expect(patchAt).toBeGreaterThan(-1);
+    expect(loadAt).toBeGreaterThan(patchAt);
+    expect(stage).toContain('timeout: PROVENANCE_TIMEOUT_MS');
+    expect(stage).not.toMatch(/retrying without --provenance/);
   });
 
   it('treats a missing or empty attestation block as unpublished provenance', () => {

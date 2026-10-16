@@ -115,7 +115,7 @@ Needs human decision: <list or "none">
 - `main` branch protection requires the 6 matrix jobs by exact name. When job names change, update required checks in the same PR, after the new jobs have reported once.
 
 ### 1.4 Publish (`.github/workflows/publish.yml`)
-- Trigger: tags `v*` only. Node 24. `npm install -g npm@12.2.0` (trusted publishing needs npm ≥ 11.5.1; the pin stops a later npm major from changing pack JSON or the OIDC client). The probe does not save the GitHub OIDC token. Staging requests a new one immediately before the exchange.
+- Trigger: tags `v*` only. Node 24. `npm install -g npm@12.2.0` (trusted publishing needs npm ≥ 11.5.1; the pin stops a later npm major from changing pack JSON or the OIDC client). The probe does not save the GitHub OIDC token. Staging requests a new one immediately before the exchange. Staging turns on sigstore `fetchOnConflict` and gives the Rekor request 120 seconds, so a 409 reuses the existing transparency-log entry. It still refuses to stage without provenance.
 - `permissions: id-token: write, contents: read`. No `NPM_TOKEN`. No GitHub Environment. Trusted publishing (OIDC) configured on npmjs.com for `kathanp/fullshield`, workflow `publish.yml`.
 - Steps: `npm ci` → `npm run verify` → `node scripts/semver-check.mjs` → `node scripts/pack-budget.mjs` → `npm publish --provenance --access public` → **post-publish gate**: poll `npm view fullshield@$VERSION dist.attestations` (up to 10 min; staged approval may delay) and fail loudly if empty.
 - Staged publish approval on npmjs.com stays ON (human 2FA approves every publish).
@@ -873,10 +873,10 @@ Acceptance: workflows green; reproducibility passes or differences documented; S
 
 | Item | State |
 |---|---|
-| npm latest | 0.1.3 until the v0.2.5 publish job shows dist.attestations |
-| main | phases 1–45 at 0.2.5 |
-| next | same tree as the 0.2.5 release |
-| Next release | 0.2.5 |
+| npm latest | 0.1.3 until the v0.2.6 publish job shows dist.attestations |
+| main | phases 1–45 at 0.2.6 |
+| next | same tree as the 0.2.6 release |
+| Next release | 0.2.6 |
 | Ground truth reviewed | none (all `reviewed: false`) |
 | Untouched holdouts in reserve | 3 (verademo-javascript, serverless-goat, mongection), not scanned |
 | Provenance gate | in publish.yml; snapshots in bench/snapshots; 0.1.3 matches HEAD; 0.1.1 diff is not approved |

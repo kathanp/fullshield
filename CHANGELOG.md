@@ -2,6 +2,10 @@
 
 All notable changes to FullShield are documented here.
 
+## 0.2.6 — 2026-10-16
+
+- v0.2.5 reached staging with a fresh token, then sigstore threw `TLOG_CREATE_ENTRY_ERROR` because Rekor already had that transparency-log entry (HTTP 409). npm 12.2.0 leaves `fetchOnConflict` off, so the publish stopped. Staging now turns that on before loading the publisher, and gives the Rekor request 120 seconds. It still refuses to publish without provenance.
+
 ## 0.2.5 — 2026-10-16
 
 - The publish probe saved the GitHub OIDC token, then verify ran for 24 minutes. npm rejected that expired token with HTTP 401 when staging started. Staging now requests a new token immediately before the exchange, and the probe does not save one. The job pins npm 12.2.0.
