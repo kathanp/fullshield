@@ -33,6 +33,8 @@ import { buildSbom } from '../sbom/index.js';
 import { validateCycloneDx15 } from '../sbom/cyclonedx.js';
 import { runEdge } from '../modules/edge/index.js';
 import { runHostCheck } from '../host/index.js';
+import { runDoctor } from './commands/doctor.js';
+import { formatCliError } from './errors.js';
 
 export interface ProgramIO {
   out(text: string): void;
@@ -110,7 +112,8 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
   program
     .name('fullshield')
     .description('Full-cycle security scanner for Node.js/TypeScript backends')
-    .version(packageVersion());
+    .version(packageVersion())
+    .option('--debug', 'print stack traces on CLI errors');
 
   program
     .command('scan')
@@ -264,7 +267,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           process.exitCode = 1;
         }
       } catch (error) {
-        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        io.err(formatCliError(error));
         process.exitCode = 2;
       }
     });
@@ -327,7 +330,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           io.out('Dry run. Re-run with --apply to write safe fixes.');
         }
       } catch (error) {
-        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        io.err(formatCliError(error));
         process.exitCode = 2;
       }
     });
@@ -346,7 +349,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           io.out(`Wrote ${result.written.join(', ')}`);
         }
       } catch (error) {
-        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        io.err(formatCliError(error));
         process.exitCode = 2;
       }
     });
@@ -383,7 +386,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
         io.out(formatSummary(summary));
       } catch (error) {
-        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        io.err(formatCliError(error));
         process.exitCode = 2;
       }
     });
@@ -410,7 +413,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           io.out(json);
         }
       } catch (error) {
-        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        io.err(formatCliError(error));
         process.exitCode = 2;
       }
     });
@@ -435,7 +438,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
         if (findings.some((f) => meetsThreshold(f.severity, 'high'))) process.exitCode = 1;
       } catch (error) {
-        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        io.err(formatCliError(error));
         process.exitCode = 2;
       }
     });
@@ -478,7 +481,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         const gate = failOn ?? result.config.failOn;
         if (fresh.some((f) => meetsThreshold(f.severity, gate))) process.exitCode = 1;
       } catch (error) {
-        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        io.err(formatCliError(error));
         process.exitCode = 2;
       }
     });
@@ -496,7 +499,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         const model = buildThreatModel(resolve(path), { experimental: true });
         io.out(JSON.stringify({ routes: model.routes.length, stride: model.stride, mermaid: model.mermaid }));
       } catch (error) {
-        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        io.err(formatCliError(error));
         process.exitCode = 2;
       }
     });
@@ -533,7 +536,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         const started = await startDashboard({ dir: resolve(path), experimental: true });
         io.out(`dashboard listening on http://127.0.0.1:${started.port} (Host must be localhost or 127.0.0.1)`);
       } catch (error) {
-        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        io.err(formatCliError(error));
         process.exitCode = 2;
       }
     });
@@ -551,7 +554,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         const findings = scanIac(resolve(path), { experimental: true });
         io.out(JSON.stringify({ findings }));
       } catch (error) {
-        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        io.err(formatCliError(error));
         process.exitCode = 2;
       }
     });
@@ -586,7 +589,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         const req = JSON.parse(text) as { jsonrpc?: string; id?: number; method?: string };
         io.out(JSON.stringify(await handleMcpRequest(session, req)));
       } catch (error) {
-        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        io.err(formatCliError(error));
         process.exitCode = 2;
       }
     });
@@ -605,7 +608,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         const result = await confirmTarget(url, { experimental: true, routes: [] });
         io.out(JSON.stringify({ ok: true, confirmations: result.confirmations }));
       } catch (error) {
-        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        io.err(formatCliError(error));
         process.exitCode = 2;
       }
     });
@@ -634,7 +637,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
         io.out(`static checks passed for ${pkg}; next step would be npm install --ignore-scripts`);
       } catch (error) {
-        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        io.err(formatCliError(error));
         process.exitCode = 2;
       }
     });
@@ -660,7 +663,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         });
         io.out(JSON.stringify({ prs: result.prs, stoppedOnTestFailure: result.stoppedOnTestFailure, merged: result.merged }));
       } catch (error) {
-        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        io.err(formatCliError(error));
         process.exitCode = 2;
       }
     });
@@ -724,7 +727,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
         if (result.findings.some((f) => meetsThreshold(f.severity, 'high'))) process.exitCode = 1;
       } catch (error) {
-        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        io.err(formatCliError(error));
         process.exitCode = 2;
       }
     });
@@ -744,7 +747,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         io.out(`wrote honeytokens (.env.backup). decoys: /admin.php /.git/config /wp-login.php`);
         io.out(`canary prefix ${canaries.awsKey.slice(0, 4)}****`);
       } catch (error) {
-        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        io.err(formatCliError(error));
         process.exitCode = 2;
       }
     });
@@ -791,7 +794,22 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           io.out(json);
         }
       } catch (error) {
-        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        io.err(formatCliError(error));
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('doctor')
+    .description('Report Node, lockfile, cache, flags, config, and whether OSV is offline')
+    .argument('[path]', 'project directory', '.')
+    .option('--offline', 'do not describe OSV as allowed to use the network')
+    .option('--config <file>', 'explicit config file')
+    .action(async (path: string, opts: { offline?: boolean; config?: string }) => {
+      try {
+        io.out(await runDoctor(resolve(path), opts));
+      } catch (error) {
+        io.err(formatCliError(error));
         process.exitCode = 2;
       }
     });

@@ -71,14 +71,22 @@ export function renderConsoleReport(result: ScanResult): string {
   }
 
   const bySeverityDesc = [...SEVERITIES].reverse();
+  const ordered = bySeverityDesc.flatMap((severity) => findings.filter((f) => f.severity === severity));
+  const shown = ordered.slice(0, 10);
+  const hidden = ordered.length - shown.length;
   for (const severity of bySeverityDesc) {
-    const group = findings.filter((f) => f.severity === severity);
+    const group = shown.filter((f) => f.severity === severity);
     if (group.length === 0) continue;
     lines.push('');
-    lines.push(SEVERITY_COLOR[severity](`${severity.toUpperCase()} (${group.length})`));
+    lines.push(SEVERITY_COLOR[severity](`${severity.toUpperCase()} (${findings.filter((f) => f.severity === severity).length})`));
     for (const finding of group) {
       lines.push(...renderFinding(finding));
+      lines.push(`    docs: rules/${finding.ruleId}.md`);
     }
+  }
+  if (hidden > 0) {
+    lines.push('');
+    lines.push(`${hidden} more — use --json`);
   }
 
   lines.push('');
