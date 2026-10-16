@@ -54,6 +54,12 @@ npx fullshield@0.1.0 scan ~/fullshield-bench/NodeGoat --offline
 
 If a published version is broken: bump (never reuse a number), tag, then deprecate the bad version. Do not unpublish.
 
+## Why 0.1.3 has no provenance
+
+`v0.1.2` ran `npm publish --provenance`. The registry answered 403 (this package only accepts a staged publish plus maintainer 2FA). That attempt still wrote a sigstore transparency-log entry. `v0.1.3` then staged with provenance, sigstore returned 409 "an equivalent entry already exists", and `scripts/npm-stage-publish.mjs` retried **without** provenance. The maintainer approved that stage. `npm view fullshield@0.1.3 dist.attestations` is empty.
+
+That retry is gone. A provenance failure now fails the publish job. After a successful stage, `scripts/provenance-gate.mjs` polls `dist.attestations` for 10 minutes and fails if it stays empty. Approve the staged version on npmjs.com within that window. Do not edit the staged manifest to inject a README ([npm/cli#9405](https://github.com/npm/cli/issues/9405)).
+
 **Staged approval and README:** Approving a staged package can leave the registry packument `readme` empty even when the tarball contains `package/README.md` (`npm view fullshield@<version> readme` is blank; npmjs.com may keep showing the previous version). This is an npm registry/website issue, not a missing file in the pack. See [npm/cli#9405](https://github.com/npm/cli/issues/9405). Keep 2FA approval on. Do not inject README text into the staged manifest (Cloudflare WAF blocked that). Do not change the publish command to work around it.
 
 ## Later releases

@@ -60,7 +60,10 @@ function isMongoReceiver(node: AstNode, source: string): boolean {
   const obj = node.callee.object;
   if (obj.type === 'Identifier') {
     if (isCollectionName(obj.name)) return true;
-    if (isPascalModel(obj.name)) return !fileHasSqlOrm;
+    if (isPascalModel(obj.name)) {
+      if (/extends\s+BaseEntity\b/.test(source)) return false;
+      return !fileHasSqlOrm;
+    }
     return fileHasMongo;
   }
   if (obj.type === 'MemberExpression') {

@@ -100,14 +100,10 @@ try {
     console.log(`staged ${PACKAGE}@${pkg.version} with provenance id=${res.stageId ?? 'unknown'}`);
   } catch (err) {
     printErr('stage with provenance failed', err);
-    console.error('retrying without --provenance');
-    try {
-      const res = await stage(false);
-      console.log(`staged ${PACKAGE}@${pkg.version} without provenance id=${res.stageId ?? 'unknown'}`);
-    } catch (err2) {
-      printErr('stage without provenance failed', err2);
-      process.exit(1);
-    }
+    console.error(
+      'refusing to stage without provenance. 0.1.3 was published that way after a sigstore 409 and must not repeat.',
+    );
+    process.exit(1);
   }
 } finally {
   try {

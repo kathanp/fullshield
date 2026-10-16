@@ -15,10 +15,11 @@
  *   node scripts/default-scan-diff.mjs --base be68e49 --head HEAD
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { approvedDiffMatches, diffFindingKeys, formatSnapshotDiff } from './release-checks.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const isWindows = process.platform === 'win32';
@@ -191,7 +192,100 @@ function diffKeys(baseKeys, headKeys) {
   return { added, removed };
 }
 
+function fixtureApps() {
+  return [
+    { id: 'vulnerable-app', dir: join(root, 'test', 'fixtures', 'vulnerable-app') },
+    { id: 'clean-app', dir: join(root, 'test', 'fixtures', 'clean-app') },
+  ];
+}
+
+function allApps() {
+  const benchHome = process.env.FULLSHIELD_BENCH_DIR || join(homedir(), 'fullshield-bench');
+  const only = argValue('--apps', 'all');
+  if (only === 'fixtures') return fixtureApps();
+  return [
+    ...fixtureApps(),
+    ...BENCH_APPS.map((app) => ({ id: app.id, dir: cloneBench(app, benchHome) })),
+  ];
+}
+
+function cliFromPack(spec) {
+  const dest = mkdtempSync(join(tmpdir(), 'fullshield-pack-'));
+  const pack = spawnSync(isWindows ? 'npm.cmd' : 'npm', ['pack', spec, '--pack-destination', dest], {
+    cwd: root,
+    encoding: 'utf8',
+    shell: isWindows,
+  });
+  if (pack.status !== 0) throw new Error(`npm pack ${spec} failed:\n${pack.stderr}`);
+  const tarball = (pack.stdout.match(/fullshield-.*\.tgz/) ?? [])[0];
+  if (tarball === undefined) throw new Error(`npm pack ${spec} did not print a tarball name`);
+  const extract = spawnSync('tar', ['-xzf', join(dest, tarball), '-C', dest], { encoding: 'utf8' });
+  if (extract.status !== 0) throw new Error(`tar extract failed: ${extract.stderr}`);
+  const cli = join(dest, 'package', 'dist', 'cli', 'index.js');
+  if (!existsSync(cli)) throw new Error(`packed CLI missing: ${cli}`);
+  return { dest, cli };
+}
+
+function currentCli() {
+  const cli = join(root, 'dist', 'cli', 'index.js');
+  if (!existsSync(cli)) npmRun('build', root);
+  if (!existsSync(cli)) throw new Error(`built CLI missing: ${cli}`);
+  return cli;
+}
+
+function readSnapshot(file) {
+  const parsed = JSON.parse(readFileSync(file, 'utf8'));
+  if (parsed === null || typeof parsed !== 'object' || parsed.apps === undefined) {
+    throw new Error(`snapshot ${file} is missing apps`);
+  }
+  return parsed;
+}
+
+function snapshotMode() {
+  const writeVersion = argValue('--write-snapshot', '');
+  const against = argValue('--against', '');
+  if (writeVersion === '' && against === '') return false;
+  const apps = allApps();
+  const packSpec = argValue('--pack', '');
+  let packed;
+  const cli = packSpec !== '' ? (packed = cliFromPack(packSpec)).cli : currentCli();
+  const scanned = {};
+  for (const app of apps) {
+    scanned[app.id] = scanApp(cli, app.dir).keys;
+    console.log(`  scanned ${app.id}: ${scanned[app.id].length}`);
+  }
+  if (packed !== undefined) rmSync(packed.dest, { recursive: true, force: true });
+  if (writeVersion !== '') {
+    const out = join(root, 'bench', 'snapshots', `${writeVersion}.json`);
+    mkdirSync(dirname(out), { recursive: true });
+    writeFileSync(out, `${JSON.stringify({ version: writeVersion, apps: scanned }, null, 2)}\n`);
+    console.log(`wrote ${out}`);
+  }
+  if (against !== '') {
+    const base = readSnapshot(against);
+    const rows = [];
+    for (const app of apps) {
+      const baseKeys = base.apps[app.id] ?? [];
+      rows.push({ app: app.id, ...diffFindingKeys(baseKeys, scanned[app.id]) });
+    }
+    const text = formatSnapshotDiff(rows);
+    process.stdout.write(text);
+    const approved = argValue('--approved', '');
+    const drift = rows.some((row) => row.added.length + row.removed.length + row.changed.length > 0);
+    if (drift) {
+      if (approved !== '' && approvedDiffMatches(text, readFileSync(approved, 'utf8'))) {
+        console.log('approved diff matches exactly');
+        return true;
+      }
+      console.error('DEFAULT SCAN DRIFT. Pass --approved <file> only when a human has approved this exact diff.');
+      process.exit(1);
+    }
+  }
+  return true;
+}
+
 function main() {
+  if (snapshotMode()) return;
   const headRaw = argValue('--head', 'HEAD');
   const head = resolveHead(headRaw);
   const baseRaw = argValue('--base', '');
