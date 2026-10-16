@@ -4,7 +4,7 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
-## 0.1.2 — 2026-10-15
+## 0.1.3 — 2026-10-15
 
 ### Phase 35 — experimental host SSH exposure check
 
