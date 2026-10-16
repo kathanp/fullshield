@@ -1,0 +1,41 @@
+{
+  "reviewed": false,
+  "app": "serverless-goat",
+  "repo": "https://github.com/OWASP/Serverless-Goat",
+  "commit": "39410bc3df8963d6544f98b50e8738ce3de1a188",
+  "entries": [
+    {
+      "class": "cmdi",
+      "file": "src/api/convert/index.js",
+      "line": 47,
+      "description": "document_url is interpolated into child_process.execSync (event-data injection to OS command injection).",
+      "source": "https://github.com/OWASP/Serverless-Goat/blob/39410bc3df8963d6544f98b50e8738ce3de1a188/README.md",
+      "inScope": true
+    },
+    {
+      "class": "deps",
+      "file": "src/api/convert/index.js",
+      "line": 21,
+      "description": "The README names node-uuid as the vulnerable dependency.",
+      "source": "https://github.com/OWASP/Serverless-Goat/blob/39410bc3df8963d6544f98b50e8738ce3de1a188/README.md",
+      "inScope": true
+    },
+    {
+      "class": "config",
+      "file": "src/api/convert/index.js",
+      "line": 71,
+      "description": "The catch path returns err.stack to the caller.",
+      "source": "https://github.com/OWASP/Serverless-Goat/blob/39410bc3df8963d6544f98b50e8738ce3de1a188/README.md",
+      "inScope": true
+    },
+    {
+      "class": "other",
+      "file": "src/api/convert/index.js",
+      "line": 52,
+      "description": "Public S3 ACL and over-privileged IAM are deployment configuration, not a JS class FullShield claims.",
+      "source": "https://github.com/OWASP/Serverless-Goat/blob/39410bc3df8963d6544f98b50e8738ce3de1a188/README.md",
+      "inScope": false,
+      "outOfScopeReason": "Cloud IAM and bucket policy, not a static JS class in the product scope."
+    }
+  ]
+}

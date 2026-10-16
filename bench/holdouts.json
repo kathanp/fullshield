@@ -1,0 +1,68 @@
+{
+  "apps": [
+    {
+      "name": "nodegoat",
+      "repo": "https://github.com/OWASP/NodeGoat.git",
+      "sha": "c5cb68a7084e4ae7dcc60e6a98768720a81841e8",
+      "status": "tuning",
+      "reviewed": false,
+      "firstRunDate": null
+    },
+    {
+      "name": "juice-shop",
+      "repo": "https://github.com/juice-shop/juice-shop.git",
+      "sha": "e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4",
+      "status": "tuning",
+      "reviewed": false,
+      "firstRunDate": null
+    },
+    {
+      "name": "dvna",
+      "repo": "https://github.com/appsecco/dvna.git",
+      "sha": "9ba473add536f66ac9007966acb2a775dd31277a",
+      "status": "tuning",
+      "reviewed": false,
+      "firstRunDate": null
+    },
+    {
+      "name": "goof",
+      "repo": "https://github.com/snyk-labs/nodejs-goof.git",
+      "sha": "add14ba59e98240d9e00a235dd7d42cd61ae9912",
+      "status": "seen",
+      "reviewed": false,
+      "firstRunDate": null
+    },
+    {
+      "name": "vulnerable-node",
+      "repo": "https://github.com/cr0hn/vulnerable-node.git",
+      "sha": "d68f2a3c9277ece2c2feb9976052033bdecd7fbe",
+      "status": "seen",
+      "reviewed": false,
+      "firstRunDate": null
+    },
+    {
+      "name": "verademo-javascript",
+      "repo": "https://github.com/veracode-demo-labs/verademo-javascript.git",
+      "sha": "dec7401858829bec0975fd9c982814aff8d28661",
+      "status": "untouched",
+      "reviewed": false,
+      "firstRunDate": null
+    },
+    {
+      "name": "serverless-goat",
+      "repo": "https://github.com/OWASP/Serverless-Goat.git",
+      "sha": "39410bc3df8963d6544f98b50e8738ce3de1a188",
+      "status": "untouched",
+      "reviewed": false,
+      "firstRunDate": null
+    },
+    {
+      "name": "mongection",
+      "repo": "https://github.com/globocom/secDevLabs.git",
+      "sha": "10be438496e928c66567749f0aaf0bb976052bc9",
+      "status": "untouched",
+      "reviewed": false,
+      "firstRunDate": null
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "reviewed": false,
+  "app": "verademo-javascript",
+  "repo": "https://github.com/veracode-demo-labs/verademo-javascript",
+  "commit": "dec7401858829bec0975fd9c982814aff8d28661",
+  "entries": [
+    {
+      "class": "sqli",
+      "file": "src-app/controllers/userController.js",
+      "line": 89,
+      "description": "Login query concatenates username and an md5 password into SQL.",
+      "source": "https://github.com/veracode-demo-labs/verademo-javascript/blob/dec7401858829bec0975fd9c982814aff8d28661/docs/flaws/CWE-89.md",
+      "inScope": true
+    },
+    {
+      "class": "cmdi",
+      "file": "src-app/controllers/toolsController.js",
+      "line": 82,
+      "description": "Tools page runs a host/fortune command via child_process.exec.",
+      "source": "https://github.com/veracode-demo-labs/verademo-javascript/blob/dec7401858829bec0975fd9c982814aff8d28661/docs/flaws/CWE-78.md",
+      "inScope": true
+    },
+    {
+      "class": "ssrf",
+      "file": "src-app/controllers/homeController.js",
+      "line": 12,
+      "description": "axios.request is built with untrusted input.",
+      "source": "https://github.com/veracode-demo-labs/verademo-javascript/blob/dec7401858829bec0975fd9c982814aff8d28661/docs/flaws/CWE-918.md",
+      "inScope": true
+    },
+    {
+      "class": "xss",
+      "file": "src-app/controllers/userController.js",
+      "line": 469,
+      "description": "CWE-80 describes jQueryResult.append XSS. This response embeds a script string; a human must confirm it is the documented sink.",
+      "source": "https://github.com/veracode-demo-labs/verademo-javascript/blob/dec7401858829bec0975fd9c982814aff8d28661/docs/flaws/CWE-80.md",
+      "inScope": false,
+      "outOfScopeReason": "The flaw note does not name this file. Left out of recall until a human confirms the line."
+    },
+    {
+      "class": "other",
+      "file": "src-app/controllers/userController.js",
+      "line": 23,
+      "description": "Open redirect via the login target query is covered by CWE-601. Kept out of the in-scope class list until the human confirms the class mapping.",
+      "source": "https://github.com/veracode-demo-labs/verademo-javascript/blob/dec7401858829bec0975fd9c982814aff8d28661/docs/flaws/CWE-601.md",
+      "inScope": false,
+      "outOfScopeReason": "Class mapping not confirmed by a human review."
+    }
+  ]
+}
