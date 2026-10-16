@@ -32,6 +32,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 | Threat model / dashboard (opt-in, **experimental**) | STRIDE+Mermaid sketch; dashboard binds 127.0.0.1 and locks `Host`. |
 | Compliance / IaC (opt-in, **experimental**) | Mapping is **not a certification or audit**. IaC is ~10 high-value rules, not a full IaC scanner. |
 | Remediation agent (opt-in, **experimental**) | Localhost mock GitHub API + local git only. Never merges, never pushes to `main`/`master`. |
+| Response DLP (opt-in, **experimental**) | `shieldGuard({ dlp: { mode: 'monitor' \| 'mask' \| 'block' } })` with `FULLSHIELD_EXPERIMENTAL_DLP=1`. Inspects outgoing JSON/text (≤64 KB). Not a DLP product. |
 
 ## What it detects (Core)
 
@@ -57,7 +58,8 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
   - Threat-model / incremental / dashboard: a route sketch and a local history UI. Not a STRIDE workshop or a hosted SOC.
   - `report --compliance` / `iac`: evidence-style mapping and a short IaC ruleset. **Not a certification or audit.**
   - `agent`: opens PRs against a **mock/localhost API and a local git remote**. It never talks to real GitHub, never merges, never pushes to protected branches.
-  - `vex` / worm / overrides (`FULLSHIELD_EXPERIMENTAL_VEX=1`): static heuristics and reachability-backed VEX only. Default `scan` does not emit `SUPPLY-WORM-001` / `SUPPLY-WORKFLOW-001`. Overrides are **unsafe** (`fix --unsafe`). Never claim `not_affected` unless reachability proves `not-imported`.
+  - `vex` / worm / overrides (`FULLSHIELD_EXPERIMENTAL_VEX=1`): static heuristics and reachability-backed VEX only. Default `scan` does not emit `SUPPLY-WORM-001` / `SUPPLY-WORKFLOW-001`. Overrides are **unsafe** (`fix --unsafe`). Apply writes `package.json` and prints `run npm install`; it does not edit the lockfile. Never claim `not_affected` unless reachability proves `not-imported`.
+  - Response DLP (`FULLSHIELD_EXPERIMENTAL_DLP=1`): inspects outgoing JSON/text for secret patterns, stack traces, internal IPs/hostnames, Luhn card numbers, and bulk emails. Pattern matching only; size-capped; not a DLP or tokenization product.
 
 ## Known limitations
 
@@ -123,6 +125,8 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 **Experimental RASP** (Frontier, off by default): structure-change sink hooks via `node --import fullshield/runtime/register app.js` or `import 'fullshield/runtime/auto'` as the first import. Enable only with `FULLSHIELD_EXPERIMENTAL_RASP=1`. Default mode is `monitor` (events only). `FULLSHIELD_RASP_MODE=block` throws on structure-changing SQL/shell/path/NoSQL/SSRF/prototype input. Hooks **fail open**: a hook error logs `RASP-FAIL-OPEN-001` and the original call proceeds. Do not use block mode in production until you have measured the benign corpus on your app.
 
 `npm run bench` reports `inspect()` p50/p95 (must stay under 1ms) and full Express request overhead p50/p95 with the middleware on the stack.
+
+**Experimental response DLP** (off by default): `FULLSHIELD_EXPERIMENTAL_DLP=1` plus `shieldGuard({ dlp: { mode: 'monitor' | 'mask' | 'block' } })`. Without the flag, `shieldGuard` is inspect-only on the incoming request (unchanged). `mask` replaces matches; `block` returns HTTP 500 with `{ error: 'internal error' }`. Events go to `onEvent`. Bodies over 64 KB are skipped and counted. Prefer `monitor` until you have measured the benign corpus on your app.
 
 ## Commands
 

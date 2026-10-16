@@ -20,6 +20,11 @@ export interface GuardOptions {
   maxBodyKeys?: number;
   onEvent?: (event: GuardEvent) => void;
   onBlock?: (event: GuardEvent) => void;
+  /** Experimental response DLP (spec §24 Phase 32). Requires FULLSHIELD_EXPERIMENTAL_DLP=1. */
+  dlp?: {
+    mode: 'monitor' | 'mask' | 'block';
+    maxBytes?: number;
+  };
   /** Statistical anomaly baseline (spec §16.4). No LLM. */
   anomaly?: {
     learnMinutes: number;

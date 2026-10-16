@@ -768,21 +768,21 @@ Verified alone on `phase-31` (`9b87ded`), branched from `be68e49`: 547 tests, 92
 
 Provenance attestations are not fetched from the registry. Override apply writes `package.json` and prints `run npm install`; it does not edit the lockfile. Packages are never executed. VEX validators are structural, not a bundled copy of the published JSON Schemas.
 
-## Phase 32 — experimental response DLP (on `phase-32`, not merged)
+## Phase 32 — experimental response DLP (merged into `next`)
 
 `shieldGuard({ dlp: { mode: 'monitor' | 'mask' | 'block' } })` inspects outgoing JSON/text (capped at 64 KB) for secret patterns, stack traces, internal IPs/hostnames, Luhn card numbers, and bulk emails on a one-email route.
 
 Behind `FULLSHIELD_EXPERIMENTAL_DLP=1`. Without the flag, `shieldGuard` stays request-inspect-only and default `scan` emits no `DLP-*` IDs.
 
-Verified alone on `phase-32` (`2b5ee52`), branched from `be68e49`. This count does not include Phases 29–31.
+Verified alone on `phase-32` (`2b5ee52`), branched from `be68e49`: 540 tests, 92.62% lines / 83% branches. That count does not include Phases 29–31.
 
-**Verify (`npm run verify:phase 32`, PASSED):**
+**Verify on `next` after the merge (`npm run verify:phase 32`, PASSED):**
 
 | phase | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
 |---|---|---|---|---|---|---|---|---|
-| 32 | 540 | 92.62% | 83% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+| 32 | 638 | 92.49% | 82.03% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
 
-Chunked or streaming bodies are not inspected. JWT, session, and entropy assignment rules are not applied to responses.
+Chunked or streaming bodies are not inspected. JWT, session, and entropy assignment rules are not applied to responses. IPv6 unique-local is not flagged. The latency budget is enforced on the built bundle via `scripts/dlp-bench.mjs`. The 540-test row above is the solo branch run.
 
 ## Phase 33 — MCP configuration security (on `phase-33`, not merged)
 
@@ -828,6 +828,6 @@ Verified alone on `phase-35` (`5fce3c8`), branched from `be68e49`. This count do
 
 ## Current status
 
-- Local `next` includes Phases 1–31. Phases 32–35 are verified on side branches and are not merged.
+- Local `next` includes Phases 1–32. Phases 33–35 are verified on side branches and are not merged.
 - Package version in this tree is `0.1.1`. No tag from `next`. No pull request. No merge to `main`.
 - Ground truth in `bench/` stays `"reviewed": false`.

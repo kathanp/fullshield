@@ -640,6 +640,8 @@ Goal: turn "possible vulnerability" into "**confirmed**, here's the proof" so de
 | 28 | Framework coverage: Next.js, NestJS, Hono, Koa taint sources + AUTH + runtime adapters | One vulnerable + one clean fixture per framework; route inventory lists every route; no new runtime deps; behind `FULLSHIELD_EXPERIMENTAL_FRAMEWORKS` / `--experimental-frameworks` |
 | 29 | New vulnerability classes: ReDoS, deser, XXE, upload, cookies, CSRF, mass assignment, timing, hash cost, GraphQL, trust-proxy | Each rule has positive + negative fixtures, mutation-smoke, docs, OWASP/CWE mapping; default scan emits no new IDs; behind `FULLSHIELD_EXPERIMENTAL_CLASSES` / `--experimental-classes` |
 | 30 | Secrets, advanced: git history, client bundles, opt-in live identity checks | History finds a secret added then removed; bundle finds a key in a built fixture; verify calls mocked; live verification impossible without both `--verify-secrets` and `--i-own-these-credentials`. Behind `FULLSHIELD_EXPERIMENTAL_SECRETS_ADV` |
+| 31 | Supply chain advanced + VEX: worm/workflow indicators, dependency overrides, provenance score | Seeded worm fixture behind the flag; override apply writes `package.json`, leaves `package-lock.json` byte-identical, and prints `run npm install`; VEX validates. Behind `FULLSHIELD_EXPERIMENTAL_VEX` |
+| 32 | Runtime response DLP (outgoing JSON/text) | Fixtures per leak type; zero masking on a benign corpus; p95 extra < 1ms for ≤64 KB; behind `FULLSHIELD_EXPERIMENTAL_DLP=1` |
 
 ### Phase 26 — Public benchmark run (credibility first)
 
@@ -696,5 +698,15 @@ Experimental (`FULLSHIELD_EXPERIMENTAL_VEX=1` or `scan --experimental-vex`). Def
 - **VEX output:** `fullshield vex --format openvex|cyclonedx` emits VEX statements from reachability results (`not_affected` with justification `vulnerable_code_not_in_execute_path` only when reachability proves not-imported; otherwise `under_investigation`). Never claim `not_affected` on a guess.
 
 Acceptance: seeded worm-like fixture package detected; after apply, `package.json` contains the override, `package-lock.json` is byte-identical, and the CLI prints `run npm install`; VEX validates against OpenVEX and CycloneDX schemas.
+
+### Phase 32 — Runtime response protection (DLP)
+
+Optional `shieldGuard({ dlp: { mode: 'monitor' | 'mask' | 'block' } })` inspects outgoing response bodies (JSON and text, size-capped) for: secret patterns (reuse `secrets` rules), stack traces, internal IPs/hostnames, card numbers (Luhn-validated), and bulk PII signals (many emails in one response from a route that normally returns one).
+
+- `mask` replaces matches; `block` returns 500 with a generic message. Events go to `onEvent`.
+- Performance budget: < 1ms p95 extra for responses ≤ 64 KB; responses above the cap are skipped and counted.
+- Behind `FULLSHIELD_EXPERIMENTAL_DLP=1`. Without the flag, `shieldGuard` behavior and default `scan` output are unchanged.
+
+Acceptance: fixtures for each leak type; zero masking on a benign response corpus; benchmark test enforces the budget.
 
 - Show a real before/after: run it on a public, intentionally vulnerable Node app (e.g. OWASP NodeGoat or Juice Shop), list what it found and what it missed. Publishing the misses builds more trust than hiding them.

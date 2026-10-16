@@ -74,6 +74,8 @@ const PREVIOUS_PHASE_TESTS = {
   28: 522,
   29: 568,
   30: 593,
+  31: 620,
+  32: 638,
 };
 
 function listFilesRecursive(dir, out = []) {
@@ -1374,6 +1376,71 @@ s.listen(0, '127.0.0.1', () => {
       rmSync(tmp, { recursive: true, force: true });
     }
     console.log('  ✔ override writes package.json, leaves package-lock.json byte-identical, prints run npm install');
+  },
+  // Phase 32: experimental response DLP behind FULLSHIELD_EXPERIMENTAL_DLP.
+  32: async () => {
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!readme.includes('FULLSHIELD_EXPERIMENTAL_DLP')) {
+      fail('phase 32 acceptance: README must document FULLSHIELD_EXPERIMENTAL_DLP');
+    }
+    const changelog = readFileSync(join(root, 'CHANGELOG.md'), 'utf8');
+    if (!changelog.includes('Phase 32') || !changelog.includes('FULLSHIELD_EXPERIMENTAL_DLP')) {
+      fail('phase 32 acceptance: CHANGELOG must document Phase 32 DLP');
+    }
+    for (const rel of [
+      'test/fixtures/dlp/secret.json',
+      'test/fixtures/dlp/stack.json',
+      'test/fixtures/dlp/internal.json',
+      'test/fixtures/dlp/card.json',
+      'test/fixtures/dlp/pii.json',
+      'test/fixtures/dlp/benign-corpus.json',
+      'test/unit/runtime/phase32-dlp.test.ts',
+      'src/runtime/dlp/index.ts',
+    ]) {
+      if (!existsSync(join(root, rel))) fail(`phase 32 acceptance: missing ${rel}`);
+    }
+    const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+    const hard = Object.keys(pkg.dependencies ?? {});
+    const allowed = ['@typescript-eslint/typescript-estree', 'commander', 'ignore', 'picocolors'];
+    for (const name of hard) {
+      if (!allowed.includes(name)) fail(`phase 32 acceptance: new hard dependency ${name}`);
+    }
+    const dlpSrc = listFilesRecursive(join(root, 'src', 'runtime')).filter((f) => f.endsWith('.ts'));
+    for (const file of dlpSrc) {
+      const text = readFileSync(file, 'utf8');
+      const rel = relative(root, file);
+      if (/from\s+['"]node:sqlite['"]/.test(text) || /require\(\s*['"]node:sqlite['"]\s*\)/.test(text)) {
+        fail(`phase 32 acceptance: ${rel} statically loads node:sqlite`);
+      }
+      if (/from\s+['"][^'"]*modules\/secrets/.test(text)) {
+        fail(`phase 32 acceptance: ${rel} imports the secrets scanner`);
+      }
+    }
+    const off = runCliJson(vulnerableApp);
+    const offClean = runCliJson(cleanApp);
+    const dlpIds = [...off.report.findings, ...offClean.report.findings]
+      .map((f) => f.ruleId)
+      .filter((id) => String(id).startsWith('DLP-'));
+    if (dlpIds.length > 0) {
+      fail(`phase 32 acceptance: default scan emitted DLP rule ids: ${dlpIds.join(',')}`);
+    }
+    const dlpMod = await import(pathToFileURL(join(root, 'dist', 'runtime', 'dlp.js')).href);
+    const prev = process.env.FULLSHIELD_EXPERIMENTAL_DLP;
+    process.env.FULLSHIELD_EXPERIMENTAL_DLP = '1';
+    const inspector = dlpMod.createDlpInspector({ dlp: { mode: 'mask' } });
+    if (inspector === undefined) fail('phase 32 acceptance: createDlpInspector returned undefined with flag set');
+    const hit = inspector.inspect({ host: '10.1.2.3' }, { path: '/i' });
+    if (!hit.hits.some((h) => h.ruleId === 'DLP-INTERNAL-001')) {
+      fail('phase 32 acceptance: internal IP fixture not detected');
+    }
+    const benignBody = { ok: true, email: 'support@example.com', resolver: '8.8.8.8' };
+    const cleanHit = inspector.inspect(benignBody, { path: '/benign' });
+    if (cleanHit.hits.length > 0 || cleanHit.action !== 'allow') {
+      fail('phase 32 acceptance: benign body was masked or flagged');
+    }
+    if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_DLP;
+    else process.env.FULLSHIELD_EXPERIMENTAL_DLP = prev;
+    console.log('  ✔ experimental DLP flag, fixtures, no default-scan DLP ids, runtime has no sqlite/scanner import');
   },
 };
 

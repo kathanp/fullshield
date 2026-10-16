@@ -4,6 +4,11 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+### Phase 32 — experimental response DLP
+
+- Optional `shieldGuard({ dlp: { mode: 'monitor' | 'mask' | 'block' } })` inspects outgoing JSON/text (size-capped at 64 KB) for secret patterns (same regexes as the secrets module), stack traces, internal IPs/hostnames, Luhn card numbers, and bulk emails on a one-email route.
+- Behind `FULLSHIELD_EXPERIMENTAL_DLP=1`. Without the flag, `shieldGuard` and default `scan` are unchanged. `mask` replaces matches; `block` returns 500 `{ error: 'internal error' }`. Events go to `onEvent`. Over-cap bodies are skipped and counted.
+
 ### Phase 31 — supply chain, advanced + VEX
 
 - Experimental (`FULLSHIELD_EXPERIMENTAL_VEX=1` / `scan --experimental-vex`): self-replicating worm indicators (`SUPPLY-WORM-001`) and workflow/git-hook/CI writes (`SUPPLY-WORKFLOW-001`). Default `scan` is unchanged.
