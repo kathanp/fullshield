@@ -34,6 +34,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 | Compliance / IaC (opt-in, **experimental**) | Mapping is **not a certification or audit**. IaC is ~10 high-value rules, not a full IaC scanner. |
 | Remediation agent (opt-in, **experimental**) | Localhost mock GitHub API + local git only. Never merges, never pushes to `main`/`master`. |
 | Response DLP (opt-in, **experimental**) | `shieldGuard({ dlp: { mode: 'monitor' \| 'mask' \| 'block' } })` with `FULLSHIELD_EXPERIMENTAL_DLP=1`. Inspects outgoing JSON/text (≤64 KB). Not a DLP product. |
+| Policy / PR summary (opt-in, **experimental**) | `fullshield.policy.json` + `scan --pr-summary` (`FULLSHIELD_EXPERIMENTAL_POLICY=1`). Not an OPA/Kyverno substitute. |
 
 ## What it detects (Core)
 
@@ -61,6 +62,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
   - `agent`: opens PRs against a **mock/localhost API and a local git remote**. It never talks to real GitHub, never merges, never pushes to protected branches.
   - `vex` / worm / overrides (`FULLSHIELD_EXPERIMENTAL_VEX=1`): static heuristics and reachability-backed VEX only. Default `scan` does not emit `SUPPLY-WORM-001` / `SUPPLY-WORKFLOW-001`. Overrides are **unsafe** (`fix --unsafe`). Apply writes `package.json` and prints `run npm install`; it does not edit the lockfile. Never claim `not_affected` unless reachability proves `not-imported`.
   - Response DLP (`FULLSHIELD_EXPERIMENTAL_DLP=1`): inspects outgoing JSON/text for secret patterns, stack traces, internal IPs/hostnames, Luhn card numbers, and bulk emails. Pattern matching only; size-capped; not a DLP or tokenization product.
+  - Policy / `--pr-summary`: CI exceptions with expiry, not a general policy engine. PR comments are deterministic (no AI) and are not posted to GitHub or GitLab.
 
 ## Known limitations
 
@@ -133,7 +135,8 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 
 | Command | Purpose |
 |---|---|
-| `scan` | Run deps, secrets, sast, config. `--json`, `--sarif`, `--markdown`, `--html`, `--fail-on`, `--offline`, `--staged`, `--update-baseline`. `--ai explain` is **experimental** (off by default; explanation text only, never a verdict) |
+| `scan` | Run deps, secrets, sast, config. `--json`, `--sarif`, `--markdown`, `--html`, `--fail-on`, `--offline`, `--staged`, `--update-baseline`. `--ai explain` is **experimental** (off by default; explanation text only, never a verdict). `--pr-summary` is **experimental** (`FULLSHIELD_EXPERIMENTAL_POLICY=1`): deterministic Markdown of new findings versus baseline for GitHub/GitLab PR comments (no AI; links to rule docs). |
+| `fullshield.policy.json` | **Experimental** policy-as-code (`FULLSHIELD_EXPERIMENTAL_POLICY=1`): `requiredModules`, per-rule `severityOverrides`, `failOn` per branch, and `exceptions` that require `owner`, `reason`, and ISO `expires`. Expired exceptions fail CI. Exceptions without owner or expiry are rejected. |
 | `fix` | Dry-run patches (unsafe suggestions included). `--apply` writes only `safe: true` patches on a clean git tree. `--unsafe` is required for `helmet()` insertion and secret → `process.env` replacement. `--force` skips files with uncommitted changes. `--ai` is **experimental**: drafts a verified, reviewable diff for findings without a rule-based fix (never auto-merged). |
 | `init` | Config + GitHub/GitLab CI + pre-commit hook |
 | `notify` | Slack / generic webhook / SMTP summary of the last scan |

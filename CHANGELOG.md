@@ -4,6 +4,12 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+### Phase 34 — policy-as-code + PR summary
+
+- Experimental `fullshield.policy.json` (`FULLSHIELD_EXPERIMENTAL_POLICY=1`): required modules, per-rule severity overrides, `failOn` per git/CI branch, and exceptions that require `owner`, `reason`, and ISO `expires`. Expired exceptions fail CI with a clear message. Exceptions without owner or expiry are rejected. Schema is validated with the optional `zod` peer (lazy-imported; not a hard dependency).
+- `scan --pr-summary`: deterministic Markdown for GitHub/GitLab PR comments listing new findings versus baseline (no AI), with links to rule docs. Uses existing baseline/diff.
+- Default `scan` without the flag or a policy file is unchanged.
+
 ### Phase 33 — MCP configuration security (experimental)
 
 - `FULLSHIELD_EXPERIMENTAL_MCPCFG=1` / `scan --experimental-mcpcfg` scans MCP client configs (`.cursor/mcp.json`, `.vscode/mcp.json`, `.mcp.json`, Claude Desktop) and MCP server code. Default `scan` emits no `MCP-*` IDs.

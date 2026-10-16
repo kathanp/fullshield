@@ -799,20 +799,22 @@ Verified alone on `phase-33` (`daba56f`), branched from `be68e49`: 543 tests, 92
 |---|---|---|---|---|---|---|---|---|
 | 33 | 659 | 92.59% | 82.02% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
 
-## Phase 34 — policy-as-code + PR summary (on `phase-34`, not merged)
+## Phase 34 — policy-as-code + PR summary (merged into `next`)
 
-Experimental (`FULLSHIELD_EXPERIMENTAL_POLICY=1`). Default `scan` without the flag or a policy file is unchanged.
+Experimental (`FULLSHIELD_EXPERIMENTAL_POLICY=1`). Default `scan` without the flag or a policy file is unchanged (no new `POLICY-*` IDs on vulnerable-app / clean-app).
 
-- `fullshield.policy.json`: required modules, per-rule severity overrides, `failOn` per branch, exceptions that require `owner`, `reason`, and ISO `expires`. Missing owner or expiry is rejected. Expired exceptions fail CI and do not hide the finding.
-- `scan --pr-summary`: deterministic Markdown versus baseline. No AI. Comment text only; it does not post to GitHub or GitLab.
+- `fullshield.policy.json`: `requiredModules`, per-rule `severityOverrides`, `failOn` per git/CI branch, exceptions that require `owner`, `reason`, and ISO `expires`. Schema validated with optional peer `zod` (lazy-imported). Missing owner or expiry is rejected at load (exit 2). Expired exceptions fail CI with a clear message and do not hide the finding.
+- `scan --pr-summary`: deterministic Markdown for GitHub/GitLab PR comments listing new findings versus baseline (no AI), with links to `rules/<id>.md`. Golden files in `test/fixtures/policy/`. Comment text only; it does not post to GitHub or GitLab.
 
-Verified alone on `phase-34` (`5825217`), branched from `be68e49`. This count does not include Phases 29–33.
+Verified alone on `phase-34` (`5825217`), branched from `be68e49`. This count does not include Phases 29–33. Policy is not a general OPA/Kyverno engine.
 
-**Verify (`npm run verify:phase 34`, PASSED):**
+Verified alone: 566 tests, 92.59% lines / 83.06% branches.
+
+**Verify on `next` after the merge (`npm run verify:phase 34`, PASSED):**
 
 | phase | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
 |---|---|---|---|---|---|---|---|---|
-| 34 | 566 | 92.59% | 83.06% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+| 34 | 703 | 92.67% | 82.1% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
 
 ## Phase 35 — experimental host SSH exposure check (on `phase-35`, not merged)
 
@@ -828,6 +830,6 @@ Verified alone on `phase-35` (`5fce3c8`), branched from `be68e49`. This count do
 
 ## Current status
 
-- Local `next` includes Phases 1–33. Phases 34–35 are verified on side branches and are not merged.
+- Local `next` includes Phases 1–34. Phase 35 is verified on a side branch and is not merged.
 - Package version in this tree is `0.1.1`. No tag from `next`. No pull request. No merge to `main`.
 - Ground truth in `bench/` stays `"reviewed": false`.

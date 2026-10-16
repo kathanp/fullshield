@@ -6,6 +6,7 @@ export {
 } from './core/engine.js';
 export type {
   ModuleContext,
+  PolicyScanResult,
   ScanMetadata,
   ScanModule,
   ScanOptions,
@@ -49,6 +50,19 @@ export type { GuardTool, GuardToolCall, McpScanOptions } from './modules/mcp/ind
 export { runAiFix } from './ai/fixLoop.js';
 export { applyBaseline, readBaseline, writeBaseline } from './core/baseline.js';
 export type { BaselineFile } from './core/baseline.js';
+export {
+  POLICY_FILE_NAME,
+  POLICY_FLAG,
+  POLICY_PEER_ERROR,
+  PolicyError,
+  applyPolicy,
+  isPolicyEnabled,
+  loadPolicy,
+  parsePolicy,
+  renderPrSummary,
+  ruleDocsUrl,
+} from './policy/index.js';
+export type { AppliedPolicy, FullShieldPolicy, PolicyException } from './policy/index.js';
 export { applyInlineSuppressions, parseIgnore } from './core/suppression.js';
 export { renderConsoleReport } from './reporters/console.js';
 export { renderHtmlReport } from './reporters/html.js';
