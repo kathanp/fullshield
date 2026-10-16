@@ -69,10 +69,22 @@ function revParse(rev) {
   return git(['rev-parse', `${rev}^{}`]).trim();
 }
 
+function listTags() {
+  return git(['tag', '--list', 'v*', '--sort=-v:refname']).trim().split('\n').filter(Boolean);
+}
+
 function main() {
-  const tags = git(['tag', '--list', 'v*', '--sort=-v:refname']).trim().split('\n').filter(Boolean);
-  if (tags.length === 0) throw new Error('no v* tag to compare');
-  const tag = baselineTag(tags, revParse('HEAD'), revParse);
+  let tags = listTags();
+  const head = revParse('HEAD');
+  let tag;
+  try {
+    tag = baselineTag(tags, head, revParse);
+  } catch (error) {
+    const fetched = spawnSync('git', ['fetch', '--tags', '--force', 'origin'], { cwd: root, encoding: 'utf8' });
+    if (fetched.status !== 0) throw error;
+    tags = listTags();
+    tag = baselineTag(tags, head, revParse);
+  }
   const fromPkg = JSON.parse(show(tag, 'package.json'));
   const toPkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
   const fromIds = new Set(ruleIdsFromTree(tag));

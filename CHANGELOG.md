@@ -2,6 +2,10 @@
 
 All notable changes to FullShield are documented here.
 
+## 0.2.3 — 2026-10-16
+
+- The publish checkout was shallow, so `semver-check` could see only the tag being released. That job now fetches full history and tags before comparing versions.
+
 ## 0.2.2 — 2026-10-16
 
 - `v0.2.1` failed typecheck before staging. The baseline-tag test now types its tag argument.
