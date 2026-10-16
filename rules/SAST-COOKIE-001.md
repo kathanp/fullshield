@@ -1,6 +1,6 @@
 # SAST-COOKIE-001
 
-**Session/auth cookies without `httpOnly`, `secure`, or `sameSite`; `express-session` with a hardcoded or default secret.** CWE-614 / CWE-1004.
+**Session/auth cookies without `httpOnly`, `secure`, or `sameSite`.** A hardcoded `express-session` secret is `SECRET-SESSION-001` only, so this rule does not add a second finding. CWE-614 / CWE-1004.
 
 Experimental (`FULLSHIELD_EXPERIMENTAL_CLASSES=1`).
 

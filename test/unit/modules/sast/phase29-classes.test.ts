@@ -1,3 +1,5 @@
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -25,6 +27,12 @@ const PHASE29_RULE_IDS = [
 
 async function has(code: string, ruleId: string, filename = 'fixture.js'): Promise<boolean> {
   return (await runSastOnText(filename, code)).some((f) => f.ruleId === ruleId);
+}
+
+function writeSnippetProject(filename: string, code: string): string {
+  const dir = mkdtempSync(join(tmpdir(), 'fullshield-cookie-'));
+  writeFileSync(join(dir, filename), code);
+  return dir;
 }
 
 describe('Phase 29 — experimental vuln classes', () => {
@@ -253,9 +261,25 @@ describe('Phase 29 — experimental vuln classes', () => {
       ).resolves.toBe(true);
     });
 
-    it('flags express-session with a hardcoded secret', async () => {
+    it('does not flag a hardcoded express-session secret (SECRET-SESSION-001 owns that)', async () => {
+      const code = `const session = require('express-session');\napp.use(session({ secret: 'keyboard cat' }));`;
+      await expect(has(code, 'SAST-COOKIE-001')).resolves.toBe(false);
+      const report = await scan({
+        cwd: writeSnippetProject('session-secret.js', code),
+        modules: ['secrets', 'sast'],
+      });
+      const hits = report.findings.filter(
+        (f) => f.ruleId === 'SAST-COOKIE-001' || f.ruleId === 'SECRET-SESSION-001',
+      );
+      expect(hits.map((f) => f.ruleId)).toEqual(['SECRET-SESSION-001']);
+    });
+
+    it('flags express-session cookie flags when the secret is not hardcoded', async () => {
       await expect(
-        has(`const session = require('express-session');\napp.use(session({ secret: 'keyboard cat' }));`, 'SAST-COOKIE-001'),
+        has(
+          `const session = require('express-session');\napp.use(session({ secret: process.env.SESSION_SECRET }));`,
+          'SAST-COOKIE-001',
+        ),
       ).resolves.toBe(true);
     });
 
@@ -286,6 +310,32 @@ describe('Phase 29 — experimental vuln classes', () => {
           'SAST-CSRF-001',
         ),
       ).resolves.toBe(false);
+    });
+
+    it.each(['csrf-csrf', 'csrf-sync', 'lusca', '@fastify/csrf-protection'])(
+      'does not flag POST when %s is loaded in the same file',
+      async (pkg) => {
+        await expect(
+          has(
+            `const session = require('express-session');\nconst guard = require('${pkg}');\napp.use(session({ secret: process.env.SESSION_SECRET }));\napp.use(guard());\napp.post('/xfer', (req, res) => { res.send('ok'); });`,
+            'SAST-CSRF-001',
+          ),
+        ).resolves.toBe(false);
+      },
+    );
+
+    it('does not flag router POSTs when app.js applies CSRF middleware', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'fullshield-csrf-'));
+      writeFileSync(
+        join(dir, 'app.js'),
+        `const express = require('express');\nconst csrf = require('lusca');\nconst app = express();\napp.use(csrf());\napp.use(require('./routes'));\n`,
+      );
+      writeFileSync(
+        join(dir, 'routes.js'),
+        `const express = require('express');\nconst session = require('express-session');\nconst router = express.Router();\nrouter.use(session({ secret: process.env.SESSION_SECRET }));\nrouter.post('/xfer', (req, res) => { res.send('ok'); });\nmodule.exports = router;\n`,
+      );
+      const report = await scan({ cwd: dir, modules: ['sast'] });
+      expect(report.findings.filter((f) => f.ruleId === 'SAST-CSRF-001')).toEqual([]);
     });
   });
 

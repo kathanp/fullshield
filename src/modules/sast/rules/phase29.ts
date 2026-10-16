@@ -257,11 +257,6 @@ function cookieFlagsComplete(opts: AstNode | undefined): boolean {
   return httpOnly && secure && hasSameSite;
 }
 
-function secretIsHardcoded(secret: AstNode | undefined): boolean {
-  if (secret === undefined) return true;
-  return literalString(secret) !== undefined;
-}
-
 const PATH_CALLS = new Set([
   'writeFile',
   'writeFileSync',
@@ -459,10 +454,18 @@ const uploadRule: SastRule = {
   },
 };
 
+const CSRF_GUARD =
+  /csrf-csrf|csrf-sync|csrfProtection|doubleCsrf|@fastify\/csrf-protection|\blusca\b|\bcsurf\b/;
+
+/** True when this file loads a recognized CSRF library or middleware. */
+export function sourceHasCsrfGuard(source: string): boolean {
+  return CSRF_GUARD.test(source);
+}
+
 const cookieRule: SastRule = {
   meta: {
     id: 'SAST-COOKIE-001',
-    title: 'Cookie missing httpOnly/secure/sameSite or hardcoded session secret',
+    title: 'Cookie missing httpOnly, secure, or sameSite',
     severity: 'medium',
     cwe: 'CWE-614',
     docs: 'https://cwe.mitre.org/data/definitions/614.html',
@@ -485,10 +488,12 @@ const cookieRule: SastRule = {
           const optNode = opts !== undefined && opts.type !== 'SpreadElement' ? opts : undefined;
           const secret = objectProp(optNode, 'secret');
           const cookie = objectProp(optNode, 'cookie');
-          if (secretIsHardcoded(secret) || !cookieFlagsComplete(cookie)) {
+          // A hardcoded session secret is SECRET-SESSION-001 only, so this rule does not add a second finding.
+          if (literalString(secret) !== undefined) return;
+          if (!cookieFlagsComplete(cookie)) {
             ctx.report({
               node,
-              message: 'express-session uses a hardcoded/default secret or cookies missing httpOnly/secure/sameSite.',
+              message: 'express-session cookie is missing httpOnly, secure, and sameSite.',
             });
           }
         }
@@ -507,7 +512,7 @@ const csrfRule: SastRule = {
   },
   create(ctx) {
     const cookieAuth = /express-session|cookie-session|cookieParser|req\.cookies|\.cookie\s*\(/.test(ctx.source);
-    const csrfProtect = /csurf|csrf-csrf|csrfProtection|doubleCsrf|\bcsurf\b/.test(ctx.source);
+    const csrfProtect = ctx.projectCsrfProtected === true || sourceHasCsrfGuard(ctx.source);
     const sameSiteOk = /sameSite\s*:\s*['"](strict|lax)['"]/.test(ctx.source);
     return {
       CallExpression(node) {
