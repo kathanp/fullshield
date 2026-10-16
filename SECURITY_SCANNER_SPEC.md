@@ -1,8 +1,8 @@
 # FullShield — Build Spec for Cursor
 
-> Package name: `fullshield` (published **0.1.1** on npm 2026-10-15; maintainer `kathan2404`; placeholders `0.0.0-stage` / `0.0.1` are **deprecated** — do not republish them).
+> Package name: `fullshield` (published **0.1.2** on npm 2026-10-15; maintainer `kathan2404`; placeholders `0.0.0-stage` / `0.0.1` are **deprecated** — do not republish them).
 > Repo: https://github.com/kathanp/fullshield. Language: TypeScript (strict). Runtime: Node.js ≥ 22.13. Distribution: npm (CLI + library + Express/Fastify middleware).
-> Spec revision: 2026-10-15 — Section 1.1 is **Comparison and limits** (no stakeholder “Yes”). `latest` on npm is **0.1.1** with provenance; placeholders `0.0.0-stage` / `0.0.1` are deprecated.
+> Spec revision: 2026-10-15 — Section 1.1 is **Comparison and limits** (no stakeholder “Yes”). `latest` on npm is **0.1.2** with provenance; placeholders `0.0.0-stage` / `0.0.1` are deprecated.
 
 ---
 
@@ -112,7 +112,7 @@ The category is crowded. Snyk, Socket, Semgrep, Gitleaks, Dependabot, Helmet, an
 
 **Packaging rule this section exists to protect:** never split these layers into separately published packages. One install (`npm i -D fullshield`). Runtime subpath must load zero scanner code (Section 13). If a layer cannot meet its acceptance test, ship it behind an `experimental` flag.
 
-**Name status:** `fullshield` on npm is **ours**. `latest` is `0.1.1` (published with provenance). Placeholders `0.0.0-stage` and `0.0.1` are **deprecated**. Category remains crowded; this exact all-in-one open-source CLI is this repo.
+**Name status:** `fullshield` on npm is **ours**. `latest` is `0.1.2` (published with provenance). Placeholders `0.0.0-stage` and `0.0.1` are **deprecated**. Category remains crowded; this exact all-in-one open-source CLI is this repo.
 
 ---
 

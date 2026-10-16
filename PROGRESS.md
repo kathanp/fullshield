@@ -832,7 +832,7 @@ Verified alone: 559 tests, 92.37% lines / 82.7% branches.
 
 ## Current status
 
-- Local `next` includes Phases 1–35.
-- Package version in this tree is `0.1.1`. No tag from `next`. No pull request. No merge to `main`.
+- `main` and `next` include Phases 1–35 (pull request #9, `95e1df6`).
+- Package version in this tree is `0.1.2`.
 - Ground truth in `bench/` stays `"reviewed": false`.
 - Host check gaps: live Linux sshd is not required in CI (fixtures only). OSV is mocked in tests. FullShield does not stop OS or SSH exploits.

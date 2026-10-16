@@ -4,6 +4,8 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+## 0.1.2 — 2026-10-15
+
 ### Phase 35 — experimental host SSH exposure check
 
 - `fullshield host --experimental-host` (`FULLSHIELD_EXPERIMENTAL_HOST=1`) reports OpenSSH CVE-2024-6387 (regreSSHion) exposure on Linux: distro package version via `dpkg-query` / `rpm` / `apk` (not `ssh -V`), OSV distro advisories with upstream fallback, `LoginGraceTime 0`, `ss -ltn` listen address, and optional auth.log timeout patterns. Detection/reporting only — no block, patch, or harden. Skips macOS, Windows, containers without sshd, and PaaS. Command refuses without `--experimental-host`. Default `scan` is unchanged.
