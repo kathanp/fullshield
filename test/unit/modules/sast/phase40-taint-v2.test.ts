@@ -121,6 +121,31 @@ describe('Phase 40 taint v2', () => {
     expect(await cmdi(code)).toBe(true);
   });
 
+  it('follows promise then, apply, and a tainted spread', async () => {
+    process.env[FLAG] = '1';
+    const thenCode = `
+      const { exec } = require('child_process');
+      function handler(req, res) {
+        Promise.resolve(req.query.cmd).then((cmd) => exec(cmd));
+      }
+    `;
+    const applyCode = `
+      const { exec } = require('child_process');
+      function run(cmd) { exec(cmd); }
+      function handler(req, res) { run.apply(null, req.query.cmds); }
+    `;
+    const spreadCode = `
+      const { exec } = require('child_process');
+      function handler(req, res) {
+        const parts = [...req.query.cmds];
+        exec(parts[0]);
+      }
+    `;
+    expect(await cmdi(thenCode)).toBe(true);
+    expect(await cmdi(applyCode)).toBe(true);
+    expect(await cmdi(spreadCode)).toBe(true);
+  });
+
   it('finishes a small file inside the time budget', async () => {
     process.env[FLAG] = '1';
     const started = Date.now();

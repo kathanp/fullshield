@@ -1,0 +1,432 @@
+{
+  "findings": [
+    {
+      "id": "ad725a18b6dc3fa1",
+      "ruleId": "SAST-PATH-001",
+      "module": "sast",
+      "title": "Path traversal via unsanitized file path",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-22",
+      "file": ".claude/skills/triage/scripts/reindex.mjs",
+      "line": 98,
+      "column": 0,
+      "snippet": "writeFileSync(join(dir, \"index.md\"), lines.join(\"\\n\"))",
+      "message": "Tainted input is used as a file path without path.resolve + prefix check.",
+      "remediation": "Path traversal via unsanitized file path. See https://cwe.mitre.org/data/definitions/22.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/22.html",
+        "CWE-22"
+      ]
+    },
+    {
+      "id": "fe5d460e59c0cc88",
+      "ruleId": "SAST-PATH-001",
+      "module": "sast",
+      "title": "Path traversal via unsanitized file path",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-22",
+      "file": "scripts/triage-signal.ts",
+      "line": 621,
+      "column": 17,
+      "snippet": "fs.readFileSync(file, \"utf8\")",
+      "message": "Tainted input is used as a file path without path.resolve + prefix check.",
+      "remediation": "Path traversal via unsanitized file path. See https://cwe.mitre.org/data/definitions/22.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/22.html",
+        "CWE-22"
+      ]
+    },
+    {
+      "id": "d8ff298a36f4609a",
+      "ruleId": "SAST-CMDI-001",
+      "module": "sast",
+      "title": "Command injection via shell execution",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-78",
+      "file": "scripts/triage-signal.ts",
+      "line": 623,
+      "column": 17,
+      "snippet": "/^verdict:\\s*(.+)$/m.exec(fm)",
+      "message": "Tainted input reaches a shell command (exec/execSync/spawn with shell: true).",
+      "remediation": "Command injection via shell execution. See https://cwe.mitre.org/data/definitions/78.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/78.html",
+        "CWE-78"
+      ]
+    },
+    {
+      "id": "100699796a48d6d3",
+      "ruleId": "SAST-CMDI-001",
+      "module": "sast",
+      "title": "Command injection via shell execution",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-78",
+      "file": "scripts/triage-signal.ts",
+      "line": 624,
+      "column": 16,
+      "snippet": "/^status:\\s*(.+)$/m.exec(fm)",
+      "message": "Tainted input reaches a shell command (exec/execSync/spawn with shell: true).",
+      "remediation": "Command injection via shell execution. See https://cwe.mitre.org/data/definitions/78.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/78.html",
+        "CWE-78"
+      ]
+    },
+    {
+      "id": "8066390ab9e09683",
+      "ruleId": "SAST-PATH-001",
+      "module": "sast",
+      "title": "Path traversal via unsanitized file path",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-22",
+      "file": "scripts/triage-signal.ts",
+      "line": 685,
+      "column": 2,
+      "snippet": "fs.writeFileSync(mdPath, buildReport(all, args, now, advisories))",
+      "message": "Tainted input is used as a file path without path.resolve + prefix check.",
+      "remediation": "Path traversal via unsanitized file path. See https://cwe.mitre.org/data/definitions/22.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/22.html",
+        "CWE-22"
+      ]
+    },
+    {
+      "id": "4c92001375f80f31",
+      "ruleId": "SAST-PATH-001",
+      "module": "sast",
+      "title": "Path traversal via unsanitized file path",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-22",
+      "file": "scripts/triage-signal.ts",
+      "line": 686,
+      "column": 2,
+      "snippet": "fs.writeFileSync( jsonPath, `${JSON.stringify( all.map(({ body, ...rest }) => rest), null, 2 )}\\n` )",
+      "message": "Tainted input is used as a file path without path.resolve + prefix check.",
+      "remediation": "Path traversal via unsanitized file path. See https://cwe.mitre.org/data/definitions/22.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/22.html",
+        "CWE-22"
+      ]
+    },
+    {
+      "id": "671b188855a40496",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "scripts/triage-signal.ts",
+      "line": 698,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "c26139af1581ae2a",
+      "ruleId": "DEPS-VULN-001",
+      "module": "deps",
+      "title": "Vulnerable dependency brace-expansion@1.1.11",
+      "severity": "low",
+      "confidence": "high",
+      "file": "pnpm-lock.yaml",
+      "snippet": "brace-expansion@1.1.11",
+      "message": "brace-expansion@1.1.11 is affected by GHSA-3jxr-9vmj-r5cp (brace-expansion: DoS via exponential-time expansion of consecutive non-expanding {} groups).",
+      "remediation": "Upgrade brace-expansion to 5.0.7 or later (data from OSV).",
+      "references": [
+        "GHSA-3jxr-9vmj-r5cp",
+        "CVE-2026-13149"
+      ],
+      "fix": {
+        "kind": "dependency-bump",
+        "safe": false,
+        "diff": "--- a/package.json\n+++ b/package.json\n# bump brace-expansion from 1.1.11 to 5.0.7\n"
+      },
+      "reachability": "not-imported"
+    },
+    {
+      "id": "f2e701432b5f7b1e",
+      "ruleId": "DEPS-VULN-001",
+      "module": "deps",
+      "title": "Vulnerable dependency brace-expansion@1.1.11",
+      "severity": "low",
+      "confidence": "high",
+      "file": "pnpm-lock.yaml",
+      "snippet": "brace-expansion@1.1.11",
+      "message": "brace-expansion@1.1.11 is affected by GHSA-6j4f-fj2g-mc7p (brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion).",
+      "remediation": "Upgrade brace-expansion to 5.0.10 or later (data from OSV).",
+      "references": [
+        "GHSA-6j4f-fj2g-mc7p",
+        "CVE-2026-102276"
+      ],
+      "fix": {
+        "kind": "dependency-bump",
+        "safe": false,
+        "diff": "--- a/package.json\n+++ b/package.json\n# bump brace-expansion from 1.1.11 to 5.0.10\n"
+      },
+      "reachability": "not-imported"
+    },
+    {
+      "id": "16c3253f729273a5",
+      "ruleId": "DEPS-VULN-001",
+      "module": "deps",
+      "title": "Vulnerable dependency brace-expansion@1.1.11",
+      "severity": "low",
+      "confidence": "high",
+      "file": "pnpm-lock.yaml",
+      "snippet": "brace-expansion@1.1.11",
+      "message": "brace-expansion@1.1.11 is affected by GHSA-mh99-v99m-4gvg (brace-expansion: DoS via unbounded expansion length causing an out-of-memory process crash).",
+      "remediation": "Upgrade brace-expansion to 5.0.8 or later (data from OSV).",
+      "references": [
+        "GHSA-mh99-v99m-4gvg",
+        "CVE-2026-14257"
+      ],
+      "fix": {
+        "kind": "dependency-bump",
+        "safe": false,
+        "diff": "--- a/package.json\n+++ b/package.json\n# bump brace-expansion from 1.1.11 to 5.0.8\n"
+      },
+      "reachability": "not-imported"
+    },
+    {
+      "id": "9391496b6b160a65",
+      "ruleId": "DEPS-VULN-001",
+      "module": "deps",
+      "title": "Vulnerable dependency brace-expansion@1.1.11",
+      "severity": "low",
+      "confidence": "high",
+      "file": "pnpm-lock.yaml",
+      "snippet": "brace-expansion@1.1.11",
+      "message": "brace-expansion@1.1.11 is affected by GHSA-qhr7-859c-m2p7 (brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion).",
+      "remediation": "Upgrade brace-expansion to 5.0.11 or later (data from OSV).",
+      "references": [
+        "GHSA-qhr7-859c-m2p7",
+        "CVE-2026-102278"
+      ],
+      "fix": {
+        "kind": "dependency-bump",
+        "safe": false,
+        "diff": "--- a/package.json\n+++ b/package.json\n# bump brace-expansion from 1.1.11 to 5.0.11\n"
+      },
+      "reachability": "not-imported"
+    },
+    {
+      "id": "2d523d9675ac9f00",
+      "ruleId": "DEPS-VULN-001",
+      "module": "deps",
+      "title": "Vulnerable dependency brace-expansion@1.1.11",
+      "severity": "low",
+      "confidence": "high",
+      "file": "pnpm-lock.yaml",
+      "snippet": "brace-expansion@1.1.11",
+      "message": "brace-expansion@1.1.11 is affected by GHSA-rgw5-rvv9-x895 (brace-expansion: DoS via unbounded intermediate arrays, bypassing the CVE-2026-14257 mitigation).",
+      "remediation": "Upgrade brace-expansion to 5.0.9 or later (data from OSV).",
+      "references": [
+        "GHSA-rgw5-rvv9-x895",
+        "CVE-2026-69152"
+      ],
+      "fix": {
+        "kind": "dependency-bump",
+        "safe": false,
+        "diff": "--- a/package.json\n+++ b/package.json\n# bump brace-expansion from 1.1.11 to 5.0.9\n"
+      },
+      "reachability": "not-imported"
+    },
+    {
+      "id": "23114bc3a13bfa55",
+      "ruleId": "DEPS-VULN-001",
+      "module": "deps",
+      "title": "Vulnerable dependency lodash@4.17.21",
+      "severity": "low",
+      "confidence": "high",
+      "file": "pnpm-lock.yaml",
+      "snippet": "lodash@4.17.21",
+      "message": "lodash@4.17.21 is affected by GHSA-r5fr-rjxr-66jc (lodash vulnerable to Code Injection via `_.template` imports key names).",
+      "remediation": "Upgrade lodash to 4.18.0 or later (data from OSV).",
+      "references": [
+        "GHSA-r5fr-rjxr-66jc",
+        "CVE-2021-23337",
+        "CVE-2026-4800"
+      ],
+      "fix": {
+        "kind": "dependency-bump",
+        "safe": true,
+        "diff": "--- a/package.json\n+++ b/package.json\n# bump lodash from 4.17.21 to 4.18.0\n"
+      },
+      "reachability": "not-imported"
+    },
+    {
+      "id": "b7ed4c671e2bcf95",
+      "ruleId": "CONFIG-INSTALLSCRIPT-001",
+      "module": "config",
+      "title": "postinstall script in package.json",
+      "severity": "info",
+      "confidence": "medium",
+      "file": "packages/docs/package.json",
+      "message": "This package.json declares a postinstall script.",
+      "remediation": "Avoid install scripts; they are a common supply-chain vector."
+    },
+    {
+      "id": "1d166f4a4cbb5de4",
+      "ruleId": "DEPS-VULN-001",
+      "module": "deps",
+      "title": "Vulnerable dependency brace-expansion@1.1.11",
+      "severity": "info",
+      "confidence": "high",
+      "file": "pnpm-lock.yaml",
+      "snippet": "brace-expansion@1.1.11",
+      "message": "brace-expansion@1.1.11 is affected by GHSA-f886-m6hf-6m8v (brace-expansion: Zero-step sequence causes process hang and memory exhaustion).",
+      "remediation": "Upgrade brace-expansion to 5.0.5 or later (data from OSV).",
+      "references": [
+        "GHSA-f886-m6hf-6m8v",
+        "CVE-2026-33750"
+      ],
+      "fix": {
+        "kind": "dependency-bump",
+        "safe": false,
+        "diff": "--- a/package.json\n+++ b/package.json\n# bump brace-expansion from 1.1.11 to 5.0.5\n"
+      },
+      "reachability": "not-imported"
+    },
+    {
+      "id": "334e9027d8f6f566",
+      "ruleId": "DEPS-VULN-001",
+      "module": "deps",
+      "title": "Vulnerable dependency brace-expansion@1.1.11",
+      "severity": "info",
+      "confidence": "high",
+      "file": "pnpm-lock.yaml",
+      "snippet": "brace-expansion@1.1.11",
+      "message": "brace-expansion@1.1.11 is affected by GHSA-q2hr-2g5m-vwhr (brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service).",
+      "remediation": "Upgrade brace-expansion to 5.0.12 or later (data from OSV).",
+      "references": [
+        "GHSA-q2hr-2g5m-vwhr",
+        "CVE-2026-102277"
+      ],
+      "fix": {
+        "kind": "dependency-bump",
+        "safe": false,
+        "diff": "--- a/package.json\n+++ b/package.json\n# bump brace-expansion from 1.1.11 to 5.0.12\n"
+      },
+      "reachability": "not-imported"
+    },
+    {
+      "id": "10155f41a66e9dda",
+      "ruleId": "DEPS-VULN-001",
+      "module": "deps",
+      "title": "Vulnerable dependency brace-expansion@1.1.11",
+      "severity": "info",
+      "confidence": "high",
+      "file": "pnpm-lock.yaml",
+      "snippet": "brace-expansion@1.1.11",
+      "message": "brace-expansion@1.1.11 is affected by GHSA-v6h2-p8h4-qcjw (brace-expansion Regular Expression Denial of Service vulnerability).",
+      "remediation": "Upgrade brace-expansion to 4.0.1 or later (data from OSV).",
+      "references": [
+        "GHSA-v6h2-p8h4-qcjw",
+        "CVE-2025-5889"
+      ],
+      "fix": {
+        "kind": "dependency-bump",
+        "safe": false,
+        "diff": "--- a/package.json\n+++ b/package.json\n# bump brace-expansion from 1.1.11 to 4.0.1\n"
+      },
+      "reachability": "not-imported"
+    },
+    {
+      "id": "d398fdffecef827a",
+      "ruleId": "DEPS-VULN-001",
+      "module": "deps",
+      "title": "Vulnerable dependency lodash@4.17.21",
+      "severity": "info",
+      "confidence": "high",
+      "file": "pnpm-lock.yaml",
+      "snippet": "lodash@4.17.21",
+      "message": "lodash@4.17.21 is affected by GHSA-f23m-r3pf-42rh (lodash vulnerable to Prototype Pollution via array path bypass in `_.unset` and `_.omit`).",
+      "remediation": "Upgrade lodash to 4.18.0 or later (data from OSV).",
+      "references": [
+        "GHSA-f23m-r3pf-42rh",
+        "CVE-2025-13465",
+        "CVE-2026-2950"
+      ],
+      "fix": {
+        "kind": "dependency-bump",
+        "safe": true,
+        "diff": "--- a/package.json\n+++ b/package.json\n# bump lodash from 4.17.21 to 4.18.0\n"
+      },
+      "reachability": "not-imported"
+    },
+    {
+      "id": "fdd31829c4b6f5b6",
+      "ruleId": "DEPS-VULN-001",
+      "module": "deps",
+      "title": "Vulnerable dependency lodash@4.17.21",
+      "severity": "info",
+      "confidence": "high",
+      "file": "pnpm-lock.yaml",
+      "snippet": "lodash@4.17.21",
+      "message": "lodash@4.17.21 is affected by GHSA-xxjr-mmjv-4gpg (Lodash has Prototype Pollution Vulnerability in `_.unset` and `_.omit` functions).",
+      "remediation": "Upgrade lodash to 4.17.23 or later (data from OSV).",
+      "references": [
+        "GHSA-xxjr-mmjv-4gpg",
+        "CVE-2025-13465",
+        "CVE-2026-2950"
+      ],
+      "fix": {
+        "kind": "dependency-bump",
+        "safe": true,
+        "diff": "--- a/package.json\n+++ b/package.json\n# bump lodash from 4.17.21 to 4.17.23\n"
+      },
+      "reachability": "not-imported"
+    },
+    {
+      "id": "e42cfa720fc95464",
+      "ruleId": "DEPS-VULN-001",
+      "module": "deps",
+      "title": "Vulnerable dependency sprintf-js@1.0.3",
+      "severity": "info",
+      "confidence": "high",
+      "file": "pnpm-lock.yaml",
+      "snippet": "sprintf-js@1.0.3",
+      "message": "sprintf-js@1.0.3 is affected by GHSA-hp3w-g68c-fv3c (sprintf-js vulnerable to denial of service through unbounded precision specifiers).",
+      "remediation": "Upgrade sprintf-js to a version that OSV does not mark as affected.",
+      "references": [
+        "GHSA-hp3w-g68c-fv3c",
+        "CVE-2026-97058"
+      ],
+      "reachability": "not-imported"
+    }
+  ],
+  "summary": {
+    "total": 20,
+    "bySeverity": {
+      "info": 7,
+      "low": 6,
+      "medium": 1,
+      "high": 6,
+      "critical": 0
+    }
+  },
+  "metadata": {
+    "version": "0.2.0",
+    "startedAt": "2026-10-16T17:08:30.872Z",
+    "durationMs": 4043.89,
+    "cwd": "/Users/k244p/fullshield-bench/zod",
+    "filesScanned": 536,
+    "modulesRequested": [
+      "deps",
+      "secrets",
+      "sast",
+      "config"
+    ],
+    "modulesRun": [
+      "deps",
+      "secrets",
+      "sast",
+      "config"
+    ]
+  }
+}

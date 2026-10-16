@@ -162,8 +162,16 @@ function parseScanJson(stdout) {
   return JSON.parse(stdout.slice(start, end + 1));
 }
 
-function scanApp(cli, appDir) {
-  const result = spawnSync(process.execPath, [cli, 'scan', appDir, '--json', '--offline-safe'], {
+function cliSupports(cli, flag) {
+  const help = spawnSync(process.execPath, [cli, 'scan', '--help'], {
+    encoding: 'utf8',
+    maxBuffer: 4 * 1024 * 1024,
+  });
+  return `${help.stdout ?? ''}\n${help.stderr ?? ''}`.includes(flag);
+}
+
+function scanApp(cli, appDir, flags = ['--json', '--offline-safe']) {
+  const result = spawnSync(process.execPath, [cli, 'scan', appDir, ...flags], {
     cwd: root,
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
@@ -179,7 +187,13 @@ function scanApp(cli, appDir) {
       `scan ${appDir} with ${cli} exited ${result.status}:\n${result.stderr}\n${result.stdout.slice(0, 800)}`,
     );
   }
-  const report = parseScanJson(result.stdout);
+  let report;
+  try {
+    report = parseScanJson(result.stdout);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`${message}\nstderr:\n${(result.stderr ?? '').slice(0, 800)}`);
+  }
   const keys = (report.findings ?? []).map(findingKey).sort();
   return { keys, total: keys.length };
 }
@@ -221,8 +235,24 @@ function cliFromPack(spec) {
   if (tarball === undefined) throw new Error(`npm pack ${spec} did not print a tarball name`);
   const extract = spawnSync('tar', ['-xzf', join(dest, tarball), '-C', dest], { encoding: 'utf8' });
   if (extract.status !== 0) throw new Error(`tar extract failed: ${extract.stderr}`);
-  const cli = join(dest, 'package', 'dist', 'cli', 'index.js');
+  const packedRoot = join(dest, 'package');
+  const cli = join(packedRoot, 'dist', 'cli', 'index.js');
   if (!existsSync(cli)) throw new Error(`packed CLI missing: ${cli}`);
+  const modules = join(root, 'node_modules');
+  const destModules = join(packedRoot, 'node_modules');
+  if (existsSync(modules)) {
+    const link = spawnSync('ln', ['-s', modules, destModules], { encoding: 'utf8' });
+    if (link.status !== 0) throw new Error(`link node_modules for ${spec} failed: ${link.stderr}`);
+  } else {
+    const install = spawnSync(isWindows ? 'npm.cmd' : 'npm', ['install', '--omit=dev', '--ignore-scripts'], {
+      cwd: packedRoot,
+      encoding: 'utf8',
+      shell: isWindows,
+    });
+    if (install.status !== 0) {
+      throw new Error(`npm install in packed ${spec} failed:\n${install.stderr}\n${install.stdout}`);
+    }
+  }
   return { dest, cli };
 }
 
@@ -249,16 +279,19 @@ function snapshotMode() {
   const packSpec = argValue('--pack', '');
   let packed;
   const cli = packSpec !== '' ? (packed = cliFromPack(packSpec)).cli : currentCli();
+  const flags = ['--json'];
+  if (cliSupports(cli, '--offline-safe')) flags.push('--offline-safe');
+  else console.log('  CLI has no --offline-safe; scanning with --json only');
   const scanned = {};
   for (const app of apps) {
-    scanned[app.id] = scanApp(cli, app.dir).keys;
+    scanned[app.id] = scanApp(cli, app.dir, flags).keys;
     console.log(`  scanned ${app.id}: ${scanned[app.id].length}`);
   }
   if (packed !== undefined) rmSync(packed.dest, { recursive: true, force: true });
   if (writeVersion !== '') {
     const out = join(root, 'bench', 'snapshots', `${writeVersion}.json`);
     mkdirSync(dirname(out), { recursive: true });
-    writeFileSync(out, `${JSON.stringify({ version: writeVersion, apps: scanned }, null, 2)}\n`);
+    writeFileSync(out, `${JSON.stringify({ version: writeVersion, flags, apps: scanned }, null, 2)}\n`);
     console.log(`wrote ${out}`);
   }
   if (against !== '') {

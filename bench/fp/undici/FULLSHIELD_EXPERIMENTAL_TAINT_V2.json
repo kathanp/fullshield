@@ -1,0 +1,430 @@
+{
+  "findings": [
+    {
+      "id": "026135e35c6941c9",
+      "ruleId": "SECRET-PRIVKEY-001",
+      "module": "secrets",
+      "title": "Private key material committed to the repository",
+      "severity": "critical",
+      "confidence": "high",
+      "cwe": "CWE-321",
+      "file": "test/fixtures/key.pem",
+      "line": 1,
+      "message": "A PEM private key block is committed to the repository.",
+      "remediation": "Rotate this credential immediately, then load it from an environment variable or a secret manager. Removing it from the code is NOT enough: it remains visible in git history."
+    },
+    {
+      "id": "996c5b138271cbb9",
+      "ruleId": "SECRET-PRIVKEY-001",
+      "module": "secrets",
+      "title": "Private key material committed to the repository",
+      "severity": "critical",
+      "confidence": "high",
+      "cwe": "CWE-321",
+      "file": "test/fixtures/tls-renegotiation/matching-key.pem",
+      "line": 1,
+      "message": "A PEM private key block is committed to the repository.",
+      "remediation": "Rotate this credential immediately, then load it from an environment variable or a secret manager. Removing it from the code is NOT enough: it remains visible in git history."
+    },
+    {
+      "id": "e0958877a534311e",
+      "ruleId": "SECRET-PRIVKEY-001",
+      "module": "secrets",
+      "title": "Private key material committed to the repository",
+      "severity": "critical",
+      "confidence": "high",
+      "cwe": "CWE-321",
+      "file": "test/fixtures/tls-renegotiation/wrong-key.pem",
+      "line": 1,
+      "message": "A PEM private key block is committed to the repository.",
+      "remediation": "Rotate this credential immediately, then load it from an environment variable or a secret manager. Removing it from the code is NOT enough: it remains visible in git history."
+    },
+    {
+      "id": "62f369b9c1541b31",
+      "ruleId": "SAST-CMDI-001",
+      "module": "sast",
+      "title": "Command injection via shell execution",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-78",
+      "file": "test/client-retry-resume-backpressure.js",
+      "line": 39,
+      "column": 27,
+      "snippet": "/bytes=(\\d+)-/.exec(req.headers.range)",
+      "message": "Tainted input reaches a shell command (exec/execSync/spawn with shell: true).",
+      "remediation": "Command injection via shell execution. See https://cwe.mitre.org/data/definitions/78.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/78.html",
+        "CWE-78"
+      ]
+    },
+    {
+      "id": "de80dc72bd0bf2ad",
+      "ruleId": "SAST-CMDI-001",
+      "module": "sast",
+      "title": "Command injection via shell execution",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-78",
+      "file": "test/client-retry-resume-backpressure.js",
+      "line": 91,
+      "column": 27,
+      "snippet": "/bytes=(\\d+)-/.exec(req.headers.range)",
+      "message": "Tainted input reaches a shell command (exec/execSync/spawn with shell: true).",
+      "remediation": "Command injection via shell execution. See https://cwe.mitre.org/data/definitions/78.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/78.html",
+        "CWE-78"
+      ]
+    },
+    {
+      "id": "14172fee584e63d6",
+      "ruleId": "SAST-CMDI-001",
+      "module": "sast",
+      "title": "Command injection",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-78",
+      "file": "test/web-platform-tests/runner/test-runner.mjs",
+      "line": 144,
+      "snippet": "scriptSrcRegex.exec(body)",
+      "message": "Tainted input crosses 1 files and reaches exec.",
+      "remediation": "Pass the value through a parameterized API or a recognized sanitizer before the sink.",
+      "references": [
+        "SAST-CMDI-001"
+      ],
+      "trace": [
+        {
+          "file": "test/web-platform-tests/runner/test-runner.mjs",
+          "line": 183,
+          "note": "tainted argument 0 passed to generateAndRunBundle()"
+        },
+        {
+          "file": "test/web-platform-tests/runner/test-runner.mjs",
+          "line": 144,
+          "note": "tainted value reaches exec"
+        }
+      ]
+    },
+    {
+      "id": "2c6beaf3542d8d33",
+      "ruleId": "SAST-CMDI-001",
+      "module": "sast",
+      "title": "Command injection",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-78",
+      "file": "test/web-platform-tests/runner/test-runner.mjs",
+      "line": 161,
+      "snippet": "inlineScriptRegex.exec(body)",
+      "message": "Tainted input crosses 1 files and reaches exec.",
+      "remediation": "Pass the value through a parameterized API or a recognized sanitizer before the sink.",
+      "references": [
+        "SAST-CMDI-001"
+      ],
+      "trace": [
+        {
+          "file": "test/web-platform-tests/runner/test-runner.mjs",
+          "line": 183,
+          "note": "tainted argument 0 passed to generateAndRunBundle()"
+        },
+        {
+          "file": "test/web-platform-tests/runner/test-runner.mjs",
+          "line": 161,
+          "note": "tainted value reaches exec"
+        }
+      ]
+    },
+    {
+      "id": "fa546de470cb673d",
+      "ruleId": "SAST-EVAL-001",
+      "module": "sast",
+      "title": "Dynamic code execution with a non-literal",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-95",
+      "file": "test/web-platform-tests/runner/test-runner.mjs",
+      "line": 171,
+      "column": 4,
+      "snippet": "runInThisContext(scripts[i].content)",
+      "message": "eval / vm.runInNewContext is called with a non-literal argument.",
+      "remediation": "Dynamic code execution with a non-literal. See https://cwe.mitre.org/data/definitions/95.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/95.html",
+        "CWE-95"
+      ]
+    },
+    {
+      "id": "4ec717fb995cd587",
+      "ruleId": "CONFIG-DOCKER-ROOT-001",
+      "module": "config",
+      "title": "Dockerfile runs as root",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "deps/milo/Dockerfile",
+      "line": 3,
+      "message": "USER root runs the container as root.",
+      "remediation": "Add a non-root USER instruction."
+    },
+    {
+      "id": "94edf5425eea9b2d",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "index-fetch.js",
+      "line": 16,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "436265499c174bef",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "index-fetch.js",
+      "line": 32,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "aef5692ab770f73b",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "index.js",
+      "line": 137,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "bff244ab00953d33",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "index.js",
+      "line": 153,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "2c8130f28476e1f7",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/cache-interceptor/cache-tests.mjs",
+      "line": 203,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "a8303e1cd5728aad",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/client-request.js",
+      "line": 150,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "3894362116aaf249",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/client-request.js",
+      "line": 189,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "ce2a0bef368512dd",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/client-request.js",
+      "line": 229,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "1bf5ca358f4e8cd0",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/errors.js",
+      "line": 63,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "ae604b0abd917149",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/fetch/client-error-stack-trace.js",
+      "line": 24,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "c6e6dca903b45561",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/fetch/client-error-stack-trace.js",
+      "line": 36,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "041883cc12e84059",
+      "ruleId": "CONFIG-DOCKER-ROOT-001",
+      "module": "config",
+      "title": "Dockerfile runs as root",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/fixtures/docker/dante/Dockerfile",
+      "message": "No USER instruction; the container defaults to root.",
+      "remediation": "Add a non-root USER instruction."
+    },
+    {
+      "id": "a7ea72807617ffea",
+      "ruleId": "CONFIG-DOCKER-LATEST-001",
+      "module": "config",
+      "title": "Dockerfile uses a :latest tag",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/fixtures/docker/dante/Dockerfile",
+      "line": 1,
+      "message": "FROM alpine:latest pins no version; rebuilds are not reproducible.",
+      "remediation": "Pin the image to a digest or a specific version tag."
+    },
+    {
+      "id": "1b359d271198cb78",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/fixtures/global-fetch-h2-headers.js",
+      "line": 76,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "7d9cf758aa77b477",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/fixtures/global-fetch-redirect.js",
+      "line": 52,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "567dde192b31fa04",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/node-fetch/utils/server.js",
+      "line": 15,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "48321bede97c8088",
+      "ruleId": "CONFIG-INSTALLSCRIPT-001",
+      "module": "config",
+      "title": "Dependency declares an install script",
+      "severity": "info",
+      "confidence": "medium",
+      "file": "package-lock.json",
+      "message": "node_modules/@metcoder95/https-pem has hasInstallScript in the lockfile.",
+      "remediation": "Review install scripts before installing; prefer packages without them."
+    },
+    {
+      "id": "0bff2cd3031c9a9a",
+      "ruleId": "DEPS-DEPRECATED-001",
+      "module": "deps",
+      "title": "Deprecated dependency glob@10.5.0",
+      "severity": "info",
+      "confidence": "high",
+      "file": "package-lock.json",
+      "snippet": "glob@10.5.0",
+      "message": "glob@10.5.0 is marked deprecated in the lockfile: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me",
+      "remediation": "Replace glob with a maintained alternative."
+    },
+    {
+      "id": "89f57889c23f323c",
+      "ruleId": "DEPS-VULN-001",
+      "module": "deps",
+      "title": "Vulnerable dependency sprintf-js@1.0.3",
+      "severity": "info",
+      "confidence": "high",
+      "file": "package-lock.json",
+      "snippet": "sprintf-js@1.0.3",
+      "message": "sprintf-js@1.0.3 is affected by GHSA-hp3w-g68c-fv3c (sprintf-js vulnerable to denial of service through unbounded precision specifiers). (dev-only)",
+      "remediation": "Upgrade sprintf-js to a version that OSV does not mark as affected.",
+      "references": [
+        "GHSA-hp3w-g68c-fv3c",
+        "CVE-2026-97058"
+      ],
+      "reachability": "not-imported"
+    }
+  ],
+  "summary": {
+    "total": 28,
+    "bySeverity": {
+      "info": 3,
+      "low": 0,
+      "medium": 17,
+      "high": 5,
+      "critical": 3
+    }
+  },
+  "metadata": {
+    "version": "0.2.0",
+    "startedAt": "2026-10-16T17:09:03.115Z",
+    "durationMs": 9947.43,
+    "cwd": "/Users/k244p/fullshield-bench/undici",
+    "filesScanned": 889,
+    "modulesRequested": [
+      "deps",
+      "secrets",
+      "sast",
+      "config"
+    ],
+    "modulesRun": [
+      "deps",
+      "secrets",
+      "sast",
+      "config"
+    ]
+  }
+}

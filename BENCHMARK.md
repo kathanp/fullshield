@@ -170,3 +170,19 @@ Labels follow the benchmark protocol. `reviewed` is false on every ground-truth 
 ## Precision (Phase 41)
 
 No real-world sample has been labeled. Every stable rule's precision is **not sampled**. There is no rate and no over-budget decision.
+
+Finding counts from `node bench/fp-scan.mjs` on 2026-10-16, default `scan --json --offline-safe`, at the SHAs in `bench/realworld.json`. `FULLSHIELD_EXPERIMENTAL_TAINT_V2=1` produced the same counts on every repo that finished. These counts are not a precision rate.
+
+| repo | findings | critical | high | medium | low | info |
+|---|---|---|---|---|---|---|
+| express | 110 | 0 | 2 | 102 | 5 | 1 |
+| fastify | 5 | 0 | 0 | 4 | 0 | 1 |
+| koa | 8 | 0 | 0 | 2 | 0 | 6 |
+| nest | 72 | 1 | 10 | 30 | 2 | 29 |
+| zod | 20 | 0 | 6 | 1 | 6 | 7 |
+| undici | 28 | 3 | 5 | 17 | 0 | 3 |
+| socket.io | 78 | 3 | 0 | 52 | 0 | 23 |
+| pino | 24 | 0 | 3 | 20 | 0 | 1 |
+| qs | 1 | 0 | 0 | 0 | 0 | 1 |
+
+next.js @ `a6d4c15991fd2f69c14eea4e8b655b596bc162bf` produced no JSON. The default scan aborted after 65.47s: `FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory` (exit 134, heap about 2041 MB). No finding count is recorded for it.

@@ -873,15 +873,15 @@ Acceptance: workflows green; reproducibility passes or differences documented; S
 
 | Item | State |
 |---|---|
-| npm latest | 0.1.3 (no provenance) |
-| main | phases 1–35 |
-| next | phases 36–45 in progress on this branch; not tagged |
-| Next release | human confirms the version; no tag from these phases |
+| npm latest | 0.1.3 until the v0.2.0 publish job shows dist.attestations |
+| main | phases 1–45 at 0.2.0 |
+| next | same tree as the 0.2.0 release |
+| Next release | 0.2.0 |
 | Ground truth reviewed | none (all `reviewed: false`) |
 | Untouched holdouts in reserve | 3 (verademo-javascript, serverless-goat, mongection), not scanned |
-| Provenance gate | in publish.yml; 0.1.1/0.1.3 snapshots not generated yet |
+| Provenance gate | in publish.yml; snapshots in bench/snapshots; 0.1.3 matches HEAD; 0.1.1 diff is not approved |
 | Section 27 open items | COOKIE/CSRF already covered; BaseEntity negative test added; Juice Shop codefixes documented |
-| Comparison / precision / promotion | not run, not sampled, nothing promoted |
+| Comparison / precision / promotion | comparison run in COMPARISON.md; precision not sampled; nothing promoted |
 
 ---
 

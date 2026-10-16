@@ -1,0 +1,92 @@
+{
+  "findings": [
+    {
+      "id": "4be65308d2d89661",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/internals/initial-config.test.js",
+      "line": 161,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "95fa222e068bf839",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/internals/initial-config.test.js",
+      "line": 170,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "d9b5b5729c849266",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/internals/initial-config.test.js",
+      "line": 192,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "9bd189cbb855fca3",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/internals/initial-config.test.js",
+      "line": 218,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "b349071ca4b3a2e5",
+      "ruleId": "DEPS-NOLOCK-001",
+      "module": "deps",
+      "title": "No lockfile found",
+      "severity": "info",
+      "confidence": "high",
+      "file": "package.json",
+      "message": "No lockfile found; dependency vulnerabilities were not checked.",
+      "remediation": "Commit package-lock.json, pnpm-lock.yaml, or yarn.lock so FullShield can audit the installed tree. Exact versions pinned in package.json are still queried."
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "bySeverity": {
+      "info": 1,
+      "low": 0,
+      "medium": 4,
+      "high": 0,
+      "critical": 0
+    }
+  },
+  "metadata": {
+    "version": "0.2.0",
+    "startedAt": "2026-10-16T17:08:24.200Z",
+    "durationMs": 4959.2,
+    "cwd": "/Users/k244p/fullshield-bench/fastify",
+    "filesScanned": 396,
+    "modulesRequested": [
+      "deps",
+      "secrets",
+      "sast",
+      "config"
+    ],
+    "modulesRun": [
+      "deps",
+      "secrets",
+      "sast",
+      "config"
+    ]
+  }
+}

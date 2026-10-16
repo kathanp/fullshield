@@ -1,6 +1,6 @@
 # FullShield
 
-**v0.1.3 / alpha.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
+**v0.2.0 / alpha.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
 
 **Headline: dependency reachability.** A lockfile CVE is not the same as an unused package. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (lockfile path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), `not-imported` (−2, only when no such path exists), or `reachability-unknown` (severity kept) when the lockfile format has no parsed dependency edges. DevDependency-only vulns are `info` with a `dev-only` note unless production sources import the package. Pair it with `fullshield sbom --format cyclonedx`.
 
@@ -92,8 +92,8 @@ In-scope public-bench patterns we still do not claim (one line each):
 - Juice Shop `data/static/codefixes/*` — six `SAST-NOSQLI-001` hits are copies of the challenge fixes. They stay. There is no special-case exclusion for that directory.
 - `DEPS-VULN-001` — when an OSV hit exists, the finding is attributed to the `package.json` name line; `--offline-safe` on a cache-less clone still emits no OSV hits (`package.json:N` will not match).
 - DVNA calculator “stack leak” — that line is `mathjs.eval` (`SAST-EVAL-001`), not `err.stack`.
-- Worker-pool timings and the 60s / 20s / 5s / 1.5 GB targets are not measured. `bench/perf-baseline.json` is written by `node bench/perf.mjs` only after the next, nest, and undici checkouts exist.
-- Real-world precision is not sampled. `bench/realworld.json` pins 10 repositories. No false-positive rate is claimed.
+- Worker-pool timings from `node bench/perf.mjs --measure` on 2026-10-16 (`bench/perf-baseline.json`): nest cold p50 9.2s, warm 9.4s, peak 938 MB; undici cold p50 7.9s, warm 8.1s, peak 609 MB. Both missed the 5s incremental target (nest 8.8s, undici 8.0s). next.js aborted with SIGABRT on all five samples (JavaScript heap out of memory); the recorded times are time-to-abort (cold p50 55.4s, warm 56.7s, incremental 51.9s, peak 1705 MB), not finished scans.
+- Real-world precision is not sampled. Nine of the ten pins in `bench/realworld.json` have finding counts in `BENCHMARK.md`. next.js produced no JSON. No false-positive rate is claimed.
 
 Public-app in-scope detection on **unreviewed** ground truth (`"reviewed": false` in `bench/*/ground-truth.json`). These are not product recall claims. Matching is class + file + line ±3. Helmet comment-only line attribution is not counted.
 
@@ -207,7 +207,7 @@ Console output shows the highest 10 findings, then `N more — use --json`. Each
 
 Experimental taint propagation (`FULLSHIELD_EXPERIMENTAL_TAINT_V2=1`) and the parse pool (`FULLSHIELD_PARSE_POOL=1`) are off by default. Symbol reachability runs only when an OSV advisory lists `affected_functions`. Advisories without that list keep the import-level class.
 
-`COMPARISON.md` is not linked here. The mapping has not been reviewed, and the tools were not run for a results table. Benchmark numbers stay in [`BENCHMARK.md`](BENCHMARK.md) with the unreviewed label.
+`COMPARISON.md` is not linked here. The mapping has not been reviewed. A local semgrep / osv-scanner / npm audit run is in that file, and it is not a recall claim. Benchmark numbers stay in [`BENCHMARK.md`](BENCHMARK.md) with the unreviewed label.
 
 See [`SECURITY.md`](SECURITY.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), and [`RELEASING.md`](RELEASING.md).
 

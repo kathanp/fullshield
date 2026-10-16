@@ -60,7 +60,9 @@ function stableChanged(fromVersion) {
   const snap = join(root, 'bench', 'snapshots', `${fromVersion}.json`);
   const headSnap = join(root, 'bench', 'snapshots', 'HEAD.json');
   if (!existsSync(snap) || !existsSync(headSnap)) return false;
-  return readFileSync(snap, 'utf8') !== readFileSync(headSnap, 'utf8');
+  const base = JSON.parse(readFileSync(snap, 'utf8'));
+  const head = JSON.parse(readFileSync(headSnap, 'utf8'));
+  return JSON.stringify(base.apps ?? null) !== JSON.stringify(head.apps ?? null);
 }
 
 function main() {

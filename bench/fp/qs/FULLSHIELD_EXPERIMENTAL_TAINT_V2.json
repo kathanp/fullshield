@@ -1,0 +1,44 @@
+{
+  "findings": [
+    {
+      "id": "b349071ca4b3a2e5",
+      "ruleId": "DEPS-NOLOCK-001",
+      "module": "deps",
+      "title": "No lockfile found",
+      "severity": "info",
+      "confidence": "high",
+      "file": "package.json",
+      "message": "No lockfile found; dependency vulnerabilities were not checked.",
+      "remediation": "Commit package-lock.json, pnpm-lock.yaml, or yarn.lock so FullShield can audit the installed tree. Exact versions pinned in package.json are still queried."
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "bySeverity": {
+      "info": 1,
+      "low": 0,
+      "medium": 0,
+      "high": 0,
+      "critical": 0
+    }
+  },
+  "metadata": {
+    "version": "0.2.0",
+    "startedAt": "2026-10-16T17:08:45.204Z",
+    "durationMs": 844.44,
+    "cwd": "/Users/k244p/fullshield-bench/qs",
+    "filesScanned": 50,
+    "modulesRequested": [
+      "deps",
+      "secrets",
+      "sast",
+      "config"
+    ],
+    "modulesRun": [
+      "deps",
+      "secrets",
+      "sast",
+      "config"
+    ]
+  }
+}

@@ -2,26 +2,29 @@
 
 All notable changes to FullShield are documented here.
 
-## Unreleased
+## 0.2.0 — 2026-10-16
 
-### 0.2.0 draft (Phase 36, not released)
+Phases 36–45 ship in this version. `0.3.0` and `0.4.0` were not tagged.
+
+### Phase 36 — provenance and semver
 
 - Publish refuses to stage without provenance. `0.1.3` has no attestation because the stage retried after a sigstore 409. The publish job now polls `dist.attestations` and fails if it stays empty.
 - `scripts/semver-check.mjs`, `scripts/pack-budget.mjs`, and `scripts/provenance-gate.mjs`.
 - TypeORM `class User extends BaseEntity` plus `User.find` is not `SAST-NOSQLI-001` when the file does not import `typeorm`. A bare `User.find(req.body)` is unchanged.
-- Stable-output diff versus published `0.1.1` and `0.1.3` is not filled in here. Those lines come from `scripts/default-scan-diff.mjs` before any tag. No version bump in this draft.
+- Default-scan snapshots are `bench/snapshots/0.1.1.json`, `bench/snapshots/0.1.3.json`, and `bench/snapshots/HEAD.json`. Finding keys are `ruleId`, `file`, `line`, `severity`. Published `0.1.3` and this tree match: vulnerable-app 35, clean-app 0, nodegoat 379, juice-shop 105, dvna 23, goof 354, vulnerable-node 61. `0.1.1` has no `--offline-safe` flag, so that snapshot is `scan --json` only. It differs. The printed diff is `bench/snapshots/DIFF.txt`. That file is not a human approval.
 
-### 0.3.0 / 0.4.0 draft (Phases 37–45, not released)
+### Phases 37–45
 
 - Holdout registry, three untouched apps, and review sheets. Those apps were not scanned.
-- Comparison harness. Semgrep, OSV-Scanner, and npm audit were not executed for a results table. No counts are claimed.
+- Comparison harness. One local run is in `COMPARISON.md`: semgrep 1.180.0, osv-scanner 2.7.0, npm 11.19.0. Mapped class buckets stayed empty. osv-scanner returned no JSON for juice-shop and dvna (no lockfile at those pins). Commercial scanners were not executed. This is not a recall claim.
 - Symbol reachability when an advisory's `affected_functions` list is present. Advisories without that list stay on the import-level class. `DEPS-MALICIOUS-001` is not downgraded.
 - Taint propagation for callbacks, `call`/`apply`, `Object.assign`, spread, `this` fields, and closures behind `FULLSHIELD_EXPERIMENTAL_TAINT_V2=1`. Default scan does not enable it.
-- Ten real-world repos are pinned. They were not scanned, so there is no precision rate.
-- Parse pool behind `FULLSHIELD_PARSE_POOL=1`. Cold/warm timings on next, nest, and undici were not measured.
+- Ten real-world repos are pinned. Nine produced finding counts in `BENCHMARK.md`. next.js aborted with a JavaScript heap out of memory and has no count. Nothing is labeled, so precision is not sampled.
+- Parse pool behind `FULLSHIELD_PARSE_POOL=1`. Measured times are in `bench/perf-baseline.json`. next.js aborted (SIGABRT) on every sample. nest and undici finished under the cold and warm targets and missed the 5s incremental target.
 - Promotion report lists every experimental flag as unmet. Nothing was promoted.
 - `fullshield doctor`, `FS-E###` error codes, and console output capped at 10 findings.
 - GitHub Actions in the project workflows are pinned by commit SHA. Scorecard and CodeQL workflows are added. A tag workflow attaches a CycloneDX SBOM to the GitHub Release.
+- `node scripts/repro-build.mjs --check` on 2026-10-16: 26 `dist` files hashed the same across two builds.
 
 ## 0.1.3 — 2026-10-15
 

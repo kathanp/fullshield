@@ -100,8 +100,18 @@ describe('Phase 39 symbol reachability', () => {
   it('resolves package subpaths, tsconfig paths, and package exports', () => {
     expect(packageSpec('lodash/merge')).toEqual({ packageName: 'lodash', subpath: 'merge' });
     expect(packageSpec('@scope/pkg/sub')).toEqual({ packageName: '@scope/pkg', subpath: 'sub' });
+    expect(packageSpec('@scope/pkg')).toEqual({ packageName: '@scope/pkg' });
+    expect(packageSpec('.')).toBeUndefined();
+    expect(packageSpec('node:fs')).toBeUndefined();
+    expect(packageSpec('@only')).toBeUndefined();
     expect(applyTsPaths('@app/db', { '@app/*': ['src/*'] })).toBe('src/db');
+    expect(applyTsPaths('src/db', { 'src/db': ['lib/db.ts'], '': [] })).toBe('lib/db.ts');
+    expect(applyTsPaths('nope', { '@app/*': ['src/*'] })).toBe('nope');
     expect(applyPackageExports('merge', { './merge': './merge.js' })).toBe('./merge.js');
+    expect(applyPackageExports('./merge', { './merge': './merge.js' })).toBe('./merge.js');
     expect(applyPackageExports('missing', { './merge': './merge.js' })).toBeUndefined();
+    expect(sourceCallsAffectedSymbol("import { merge as m } from 'lodash';\nm(a);\n", 'merge')).toBe(true);
+    expect(sourceCallsAffectedSymbol("const m = require('lodash').merge;\nm(a);\n", 'merge')).toBe(true);
+    expect(sourceCallsAffectedSymbol("const m = require('lodash/merge');\nm(a);\n", 'merge')).toBe(true);
   });
 });

@@ -1,0 +1,333 @@
+{
+  "findings": [
+    {
+      "id": "6d45b38e0ecdedb2",
+      "ruleId": "SAST-EVAL-001",
+      "module": "sast",
+      "title": "Dynamic code execution with a non-literal",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-95",
+      "file": "benchmarks/utils/wrap-log-level.js",
+      "line": 19,
+      "column": 2,
+      "snippet": "script.runInContext(context)",
+      "message": "eval / vm.runInNewContext is called with a non-literal argument.",
+      "remediation": "Dynamic code execution with a non-literal. See https://cwe.mitre.org/data/definitions/95.html",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/95.html",
+        "CWE-95"
+      ]
+    },
+    {
+      "id": "70cd2c97fa2b2fe3",
+      "ruleId": "SECRET-DBURL-001",
+      "module": "secrets",
+      "title": "Database connection string with inline password",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-798",
+      "file": "docs/transports.md",
+      "line": 1052,
+      "snippet": "gues****",
+      "message": "Database connection string with inline password (gues****).",
+      "remediation": "Rotate this credential immediately, then load it from an environment variable or a secret manager. Removing it from the code is NOT enough: it remains visible in git history."
+    },
+    {
+      "id": "9b492ad0ec9d2bca",
+      "ruleId": "SECRET-DBURL-001",
+      "module": "secrets",
+      "title": "Database connection string with inline password",
+      "severity": "high",
+      "confidence": "high",
+      "cwe": "CWE-798",
+      "file": "docs/transports.md",
+      "line": 1136,
+      "snippet": "pass****",
+      "message": "Database connection string with inline password (pass****).",
+      "remediation": "Rotate this credential immediately, then load it from an environment variable or a secret manager. Removing it from the code is NOT enough: it remains visible in git history."
+    },
+    {
+      "id": "98a40d2437a1f3ff",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "browser.js",
+      "line": 531,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "076af396178d2871",
+      "ruleId": "SECRET-ENTROPY-001",
+      "module": "secrets",
+      "title": "High-entropy string assigned to a secret-like variable",
+      "severity": "medium",
+      "confidence": "low",
+      "cwe": "CWE-798",
+      "file": "docs/transports.md",
+      "line": 1370,
+      "snippet": "1234****",
+      "message": "High-entropy string assigned to a secret-like variable (1234****).",
+      "remediation": "Rotate this credential immediately, then load it from an environment variable or a secret manager. Removing it from the code is NOT enough: it remains visible in git history."
+    },
+    {
+      "id": "3ffa40e698bd3780",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/basic.test.js",
+      "line": 190,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "72f07ddaba996a77",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/error.test.js",
+      "line": 34,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "4deb3c213d78dd06",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/error.test.js",
+      "line": 58,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "aaa3cefb8713bdc2",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/error.test.js",
+      "line": 81,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "d9390ab349277786",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/error.test.js",
+      "line": 109,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "7d37ea4f20e1cc4f",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/error.test.js",
+      "line": 134,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "f267dfa0313183f1",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/error.test.js",
+      "line": 144,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "9f9ff8e002e2c4e6",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/error.test.js",
+      "line": 175,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "8bc2d0537eacd5f7",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/error.test.js",
+      "line": 200,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "53e34c166fc7b3b3",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/error.test.js",
+      "line": 222,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "35993c294d2d91ff",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/error.test.js",
+      "line": 266,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "3661f625564e470a",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/error.test.js",
+      "line": 288,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "272ae34f362901f0",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/error.test.js",
+      "line": 331,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "c7a9509f41106110",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/error.test.js",
+      "line": 357,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "5475b2db09f93dc8",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/error.test.js",
+      "line": 378,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "d3eb5ee23b0a7434",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/error.test.js",
+      "line": 398,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "44b8861e7325ed42",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/fixtures/transport-invalid-node-options.js",
+      "line": 24,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "d75c68b1d798e0c4",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "test/transport/uses-pino-config.test.js",
+      "line": 20,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "b349071ca4b3a2e5",
+      "ruleId": "DEPS-NOLOCK-001",
+      "module": "deps",
+      "title": "No lockfile found",
+      "severity": "info",
+      "confidence": "high",
+      "file": "package.json",
+      "message": "No lockfile found; dependency vulnerabilities were not checked.",
+      "remediation": "Commit package-lock.json, pnpm-lock.yaml, or yarn.lock so FullShield can audit the installed tree. Exact versions pinned in package.json are still queried."
+    }
+  ],
+  "summary": {
+    "total": 24,
+    "bySeverity": {
+      "info": 1,
+      "low": 0,
+      "medium": 20,
+      "high": 3,
+      "critical": 0
+    }
+  },
+  "metadata": {
+    "version": "0.2.0",
+    "startedAt": "2026-10-16T17:08:42.319Z",
+    "durationMs": 1810.96,
+    "cwd": "/Users/k244p/fullshield-bench/pino",
+    "filesScanned": 217,
+    "modulesRequested": [
+      "deps",
+      "secrets",
+      "sast",
+      "config"
+    ],
+    "modulesRun": [
+      "deps",
+      "secrets",
+      "sast",
+      "config"
+    ]
+  }
+}

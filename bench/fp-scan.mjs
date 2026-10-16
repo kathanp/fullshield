@@ -48,12 +48,19 @@ for (const flag of flags) {
     cwd: root,
     encoding: 'utf8',
     env,
-    maxBuffer: 64 * 1024 * 1024,
+    maxBuffer: 256 * 1024 * 1024,
   });
   const label = flag === '' ? 'default' : flag;
   const out = join(root, 'bench', 'fp', name, `${label}.json`);
   mkdirSync(dirname(out), { recursive: true });
-  writeFileSync(out, result.stdout);
+  writeFileSync(out, result.stdout ?? '');
+  const err = `${result.stderr ?? ''}`.trim();
+  if ((result.stdout ?? '') === '') {
+    console.error(
+      `${name} ${label} produced no stdout (status ${result.status}, signal ${result.signal ?? 'none'}, ${result.error?.message ?? 'no error'})`,
+    );
+    if (err !== '') console.error(err.slice(0, 500));
+  }
   console.log(`wrote ${out} (exit ${result.status})`);
 }
 console.log('Precision is unsampled until a human labels these findings. No rate is computed here.');

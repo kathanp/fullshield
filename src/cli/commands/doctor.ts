@@ -20,7 +20,7 @@ const FLAGS = [
   'FULLSHIELD_PARSE_POOL',
 ] as const;
 
-function nodeOk(version: string): boolean {
+export function nodeOk(version: string): boolean {
   const parts = version.split('.').map((part) => Number(part));
   for (let i = 0; i < MIN_NODE.length; i += 1) {
     const got = parts[i] ?? 0;

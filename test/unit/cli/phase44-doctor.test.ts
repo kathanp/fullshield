@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { nodeOk, runDoctor } from '../../../src/cli/commands/doctor.js';
 import { createProgram } from '../../../src/cli/program.js';
 import { renderConsoleReport } from '../../../src/reporters/console.js';
 import { formatCliError } from '../../../src/cli/errors.js';
@@ -26,6 +27,26 @@ describe('Phase 44 developer experience', () => {
     expect(out).toContain('lockfile: package-lock.json');
     expect(out).toContain('config: valid');
     expect(out).toContain('osv: network skipped (--offline)');
+  });
+
+  it('reports a missing lockfile, an invalid config, and a set flag', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'fullshield-doctor-empty-'));
+    writeFileSync(join(dir, 'fullshield.config.json'), '{"failOn":1}\n');
+    process.env.FULLSHIELD_EXPERIMENTAL_TAINT_V2 = '1';
+    try {
+      const text = await runDoctor(dir);
+      expect(text).toContain('lockfile: none');
+      expect(text).toContain('config: invalid');
+      expect(text).toContain('FULLSHIELD_EXPERIMENTAL_TAINT_V2');
+      expect(text).toContain('osv: network allowed');
+    } finally {
+      delete process.env.FULLSHIELD_EXPERIMENTAL_TAINT_V2;
+    }
+    expect(nodeOk('22.13.0')).toBe(true);
+    expect(nodeOk('22.12.9')).toBe(false);
+    expect(nodeOk('21.0.0')).toBe(false);
+    expect(nodeOk('24')).toBe(true);
+    expect(formatCliError('plain failure', false)).toContain('FS-E000');
   });
 
   it('prefixes a known error and hides the stack unless --debug is set', () => {

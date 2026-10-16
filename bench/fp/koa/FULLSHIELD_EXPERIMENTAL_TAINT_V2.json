@@ -1,0 +1,129 @@
+{
+  "findings": [
+    {
+      "id": "872d3aec3d54b701",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "__tests__/application/onerror.test.js",
+      "line": 56,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "6d2fff2695af0ed7",
+      "ruleId": "CONFIG-ERRSTACK-001",
+      "module": "config",
+      "title": "Error stack leaked to the client",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "lib/application.js",
+      "line": 265,
+      "message": "err.stack is sent in a response and can leak internals.",
+      "remediation": "Log the stack server-side and send a generic error body to the client."
+    },
+    {
+      "id": "d81463a173ca63bd",
+      "ruleId": "DEPS-DEPRECATED-001",
+      "module": "deps",
+      "title": "Deprecated dependency @humanwhocodes/config-array@0.13.0",
+      "severity": "info",
+      "confidence": "high",
+      "file": "package-lock.json",
+      "snippet": "@humanwhocodes/config-array@0.13.0",
+      "message": "@humanwhocodes/config-array@0.13.0 is marked deprecated in the lockfile: Use @eslint/config-array instead",
+      "remediation": "Replace @humanwhocodes/config-array with a maintained alternative."
+    },
+    {
+      "id": "81be883028afdba5",
+      "ruleId": "DEPS-DEPRECATED-001",
+      "module": "deps",
+      "title": "Deprecated dependency @humanwhocodes/object-schema@2.0.3",
+      "severity": "info",
+      "confidence": "high",
+      "file": "package-lock.json",
+      "snippet": "@humanwhocodes/object-schema@2.0.3",
+      "message": "@humanwhocodes/object-schema@2.0.3 is marked deprecated in the lockfile: Use @eslint/object-schema instead",
+      "remediation": "Replace @humanwhocodes/object-schema with a maintained alternative."
+    },
+    {
+      "id": "383a50df2e8e0bdf",
+      "ruleId": "DEPS-DEPRECATED-001",
+      "module": "deps",
+      "title": "Deprecated dependency eslint@8.57.1",
+      "severity": "info",
+      "confidence": "high",
+      "file": "package-lock.json",
+      "snippet": "eslint@8.57.1",
+      "message": "eslint@8.57.1 is marked deprecated in the lockfile: This version is no longer supported. Please see https://eslint.org/version-support for other options.",
+      "remediation": "Replace eslint with a maintained alternative."
+    },
+    {
+      "id": "cb3ca5188cfb2e8b",
+      "ruleId": "DEPS-DEPRECATED-001",
+      "module": "deps",
+      "title": "Deprecated dependency glob@7.2.3",
+      "severity": "info",
+      "confidence": "high",
+      "file": "package-lock.json",
+      "snippet": "glob@7.2.3",
+      "message": "glob@7.2.3 is marked deprecated in the lockfile: Glob versions prior to v9 are no longer supported",
+      "remediation": "Replace glob with a maintained alternative."
+    },
+    {
+      "id": "b018af70e0b1f158",
+      "ruleId": "DEPS-DEPRECATED-001",
+      "module": "deps",
+      "title": "Deprecated dependency inflight@1.0.6",
+      "severity": "info",
+      "confidence": "high",
+      "file": "package-lock.json",
+      "snippet": "inflight@1.0.6",
+      "message": "inflight@1.0.6 is marked deprecated in the lockfile: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.",
+      "remediation": "Replace inflight with a maintained alternative."
+    },
+    {
+      "id": "df2e49e91c7a90cf",
+      "ruleId": "DEPS-DEPRECATED-001",
+      "module": "deps",
+      "title": "Deprecated dependency rimraf@3.0.2",
+      "severity": "info",
+      "confidence": "high",
+      "file": "package-lock.json",
+      "snippet": "rimraf@3.0.2",
+      "message": "rimraf@3.0.2 is marked deprecated in the lockfile: Rimraf versions prior to v4 are no longer supported",
+      "remediation": "Replace rimraf with a maintained alternative."
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "bySeverity": {
+      "info": 6,
+      "low": 0,
+      "medium": 2,
+      "high": 0,
+      "critical": 0
+    }
+  },
+  "metadata": {
+    "version": "0.2.0",
+    "startedAt": "2026-10-16T17:08:30.052Z",
+    "durationMs": 710.49,
+    "cwd": "/Users/k244p/fullshield-bench/koa",
+    "filesScanned": 111,
+    "modulesRequested": [
+      "deps",
+      "secrets",
+      "sast",
+      "config"
+    ],
+    "modulesRun": [
+      "deps",
+      "secrets",
+      "sast",
+      "config"
+    ]
+  }
+}

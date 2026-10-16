@@ -1,0 +1,99 @@
+{
+  "measured": true,
+  "measuredAt": "2026-10-16T17:21:20.207Z",
+  "targets": {
+    "coldSeconds": 60,
+    "warmSeconds": 20,
+    "incrementalSeconds": 5,
+    "peakMemoryMb": 1536
+  },
+  "apps": {
+    "next": {
+      "coldMs": [
+        55413.398291,
+        59725.214416,
+        48877.309291
+      ],
+      "coldP50Ms": 55413.398291,
+      "warmMs": 56682.830083,
+      "incrementalMs": 51862.936875,
+      "peakRssBytes": 1787969536,
+      "statuses": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "signals": [
+        "SIGABRT",
+        "SIGABRT",
+        "SIGABRT",
+        "SIGABRT",
+        "SIGABRT"
+      ],
+      "finished": false
+    },
+    "nest": {
+      "coldMs": [
+        11332.186958,
+        9040.744,
+        9150.018166
+      ],
+      "coldP50Ms": 9150.018166,
+      "warmMs": 9418.972459,
+      "incrementalMs": 8812.313333,
+      "peakRssBytes": 983449600,
+      "statuses": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "signals": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "finished": true
+    },
+    "undici": {
+      "coldMs": [
+        7930.161167,
+        7829.932834,
+        8424.983542
+      ],
+      "coldP50Ms": 7930.161167,
+      "warmMs": 8066.221,
+      "incrementalMs": 8031.509125,
+      "peakRssBytes": 638861312,
+      "statuses": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "signals": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "finished": true
+    }
+  },
+  "withinTargets": false,
+  "misses": [
+    "next scan did not finish",
+    "next warm 56682.830083ms",
+    "next incremental 51862.936875ms",
+    "next peak rss 1787969536",
+    "nest incremental 8812.313333ms",
+    "undici incremental 8031.509125ms"
+  ]
+}
