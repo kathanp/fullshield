@@ -2,7 +2,9 @@
 /**
  * Print the npm trusted-publisher handshake that `npm publish` hides.
  * Does not publish. Tokens are masked and never logged.
+ * Does not write the GitHub JWT anywhere: it expires during verify.
  */
+import { githubOidcToken } from './github-oidc.mjs';
 const PACKAGE = 'fullshield';
 const REGISTRY = 'https://registry.npmjs.org';
 const CLAIMS = [
@@ -60,23 +62,11 @@ function withoutToken(json) {
   return rest;
 }
 
-const requestUrl = process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
-const requestToken = process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
-if (!requestUrl || !requestToken) {
-  console.error('ACTIONS_ID_TOKEN_REQUEST_URL / TOKEN missing (need id-token: write)');
-  process.exit(1);
-}
-
-const oidcUrl = new URL(requestUrl);
-oidcUrl.searchParams.set('audience', 'npm:registry.npmjs.org');
-
-const oidcRes = await fetch(oidcUrl, {
-  headers: { Authorization: `Bearer ${requestToken}`, Accept: 'application/json' },
-});
-const oidcBody = await readJson(oidcRes);
-const idToken = oidcBody.json?.value;
-if (!oidcRes.ok || !idToken) {
-  console.error('GitHub OIDC token request failed', oidcRes.status, oidcBody.text.slice(0, 500));
+let idToken;
+try {
+  idToken = await githubOidcToken(process.env);
+} catch (err) {
+  console.error(err instanceof Error ? err.message : String(err));
   process.exit(1);
 }
 mask(idToken);
@@ -98,11 +88,6 @@ console.log(JSON.stringify(withoutToken(exchangeBody.json) ?? exchangeBody.text.
 if (!exchangeRes.ok || !exchangeBody.json?.token) {
   console.error('OIDC token exchange failed — trusted publisher does not match this workflow identity.');
   process.exit(1);
-}
-
-if (process.env.GITHUB_ENV) {
-  const { appendFileSync } = await import('node:fs');
-  appendFileSync(process.env.GITHUB_ENV, `NPM_ID_TOKEN=${idToken}\n`);
 }
 
 const npmToken = exchangeBody.json.token;

@@ -7,6 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
+import { githubOidcToken } from './github-oidc.mjs';
 
 const PACKAGE = 'fullshield';
 const REGISTRY = 'https://registry.npmjs.org';
@@ -28,22 +29,8 @@ function mask(value) {
 }
 
 async function npmToken() {
-  let idToken = process.env.NPM_ID_TOKEN;
-  if (!idToken) {
-    const requestUrl = process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
-    const requestToken = process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
-    if (!requestUrl || !requestToken) {
-      throw new Error('no NPM_ID_TOKEN or GitHub OIDC request env');
-    }
-    const oidcUrl = new URL(requestUrl);
-    oidcUrl.searchParams.set('audience', 'npm:registry.npmjs.org');
-    const oidcRes = await fetch(oidcUrl, {
-      headers: { Authorization: `Bearer ${requestToken}`, Accept: 'application/json' },
-    });
-    const oidcJson = await oidcRes.json();
-    idToken = oidcJson.value;
-  }
-  if (!idToken) throw new Error('failed to get GitHub OIDC token');
+  console.log('requesting a fresh GitHub OIDC token');
+  const idToken = await githubOidcToken(process.env);
   mask(idToken);
 
   const ex = await fetch(`${REGISTRY}/-/npm/v1/oidc/token/exchange/package/${PACKAGE}`, {

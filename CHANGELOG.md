@@ -2,6 +2,10 @@
 
 All notable changes to FullShield are documented here.
 
+## 0.2.5 — 2026-10-16
+
+- The publish probe saved the GitHub OIDC token, then verify ran for 24 minutes. npm rejected that expired token with HTTP 401 when staging started. Staging now requests a new token immediately before the exchange, and the probe does not save one. The job pins npm 12.2.0.
+
 ## 0.2.4 — 2026-10-16
 
 - Publish installs npm 12. `npm pack --json` is now an object, and the pack budget was parsing the inner `files` array. It reads the pack entry from either shape.

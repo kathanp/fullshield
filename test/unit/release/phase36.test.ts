@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { runSastOnText } from '../../../src/modules/sast/engine.js';
+import { githubOidcToken } from '../../../scripts/github-oidc.mjs';
 import {
   approvedDiffMatches,
   attestationsPresent,
@@ -108,6 +109,34 @@ describe('Phase 36 release checks', () => {
     const text = formatSnapshotDiff([{ app: 'clean-app', ...diff }]);
     expect(text.startsWith('DRIFT clean-app\n')).toBe(true);
     expect(approvedDiffMatches(text, text)).toBe(true);
+  });
+
+  it('requests a new GitHub OIDC token and ignores a saved one', async () => {
+    const calls: { url: string; auth: string }[] = [];
+    const token = await githubOidcToken(
+      {
+        NPM_ID_TOKEN: 'stale.jwt.value',
+        ACTIONS_ID_TOKEN_REQUEST_URL: 'https://example.test/token',
+        ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'request-token',
+      },
+      (url: URL | string, init?: { headers?: { Authorization?: string } }) => {
+        calls.push({ url: String(url), auth: init?.headers?.Authorization ?? '' });
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ value: 'fresh.jwt.value' }),
+        });
+      },
+    );
+    expect(token).toBe('fresh.jwt.value');
+    expect(calls[0]?.url).toContain('audience=npm%3Aregistry.npmjs.org');
+    expect(calls[0]?.auth).toBe('Bearer request-token');
+    const diagnose = readFileSync(join(process.cwd(), 'scripts/npm-oidc-diagnose.mjs'), 'utf8');
+    const stage = readFileSync(join(process.cwd(), 'scripts/npm-stage-publish.mjs'), 'utf8');
+    const publish = readFileSync(join(process.cwd(), '.github/workflows/publish.yml'), 'utf8');
+    expect(diagnose).not.toContain('NPM_ID_TOKEN');
+    expect(stage).not.toContain('NPM_ID_TOKEN');
+    expect(publish).toContain('npm install -g npm@12.2.0');
   });
 
   it('treats a missing or empty attestation block as unpublished provenance', () => {

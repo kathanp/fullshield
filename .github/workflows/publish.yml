@@ -25,7 +25,7 @@ jobs:
           cache: npm
 
       - name: Ensure npm CLI 11.15.0+ for staging and trusted publishing
-        run: npm install -g npm@latest
+        run: npm install -g npm@12.2.0
 
       - run: npm ci
 
