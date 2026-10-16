@@ -23,7 +23,7 @@ Phases 36–45 ship in this version. `0.3.0` and `0.4.0` were not tagged.
 - Parse pool behind `FULLSHIELD_PARSE_POOL=1`. Measured times are in `bench/perf-baseline.json`. next.js aborted (SIGABRT) on every sample. nest and undici finished under the cold and warm targets and missed the 5s incremental target.
 - Promotion report lists every experimental flag as unmet. Nothing was promoted.
 - `fullshield doctor`, `FS-E###` error codes, and console output capped at 10 findings.
-- GitHub Actions in the project workflows are pinned by commit SHA. Scorecard and CodeQL workflows are added. A tag workflow attaches a CycloneDX SBOM to the GitHub Release.
+- GitHub Actions in the project workflows are pinned by commit SHA. Scorecard and CodeQL workflows are added. Scorecard is v2.5.0 from `ghcr.io` because `gcr.io` refused the pull. A tag workflow attaches a CycloneDX SBOM to the GitHub Release.
 - `node scripts/repro-build.mjs --check` on 2026-10-16: 26 `dist` files hashed the same across two builds.
 
 ## 0.1.3 — 2026-10-15
