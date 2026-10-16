@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 
 import { makeFindingId, type Finding, type Severity } from '../core/finding.js';
 import {
@@ -149,8 +149,9 @@ export function createProcessHostIo(): HostIo {
     },
     glob(pattern) {
       if (!pattern.includes('*')) return existsSync(pattern) ? [pattern] : [];
-      const dir = dirname(pattern);
-      const filePat = pattern.slice(pattern.lastIndexOf('/') + 1);
+      const slash = Math.max(pattern.lastIndexOf('/'), pattern.lastIndexOf('\\'));
+      const dir = slash === -1 ? '.' : pattern.slice(0, slash);
+      const filePat = slash === -1 ? pattern : pattern.slice(slash + 1);
       const re = new RegExp(`^${filePat.replaceAll('.', '\\.').replaceAll('*', '.*')}$`);
       try {
         return readdirSync(dir)

@@ -10,6 +10,10 @@ import { renderPrSummary, ruleDocsUrl } from '../../../src/policy/prSummary.js';
 
 const goldens = join(process.cwd(), 'test', 'fixtures', 'policy');
 
+function readGolden(name: string): string {
+  return readFileSync(join(goldens, name), 'utf8').replaceAll('\r\n', '\n');
+}
+
 function finding(ruleId: string, overrides: Partial<Finding> = {}): Finding {
   const file = overrides.file ?? 'src/a.js';
   return {
@@ -45,12 +49,12 @@ const helmet = finding('CONFIG-HELMET-001', {
 
 describe('renderPrSummary', () => {
   it('matches the two-finding golden file', () => {
-    const expected = readFileSync(join(goldens, 'pr-summary.md'), 'utf8');
+    const expected = readGolden('pr-summary.md');
     expect(renderPrSummary([helmet, sqli])).toBe(expected);
   });
 
   it('matches the empty golden file', () => {
-    const expected = readFileSync(join(goldens, 'pr-summary-empty.md'), 'utf8');
+    const expected = readGolden('pr-summary-empty.md');
     expect(renderPrSummary([])).toBe(expected);
   });
 
@@ -64,7 +68,7 @@ describe('renderPrSummary', () => {
     const first = renderPrSummary([helmet, sqli, withAi]);
     const second = renderPrSummary([withAi, sqli, helmet]);
     expect(first).toBe(second);
-    expect(first).toBe(readFileSync(join(goldens, 'pr-summary.md'), 'utf8'));
+    expect(first).toBe(readGolden('pr-summary.md'));
     expect(first).not.toMatch(/likely-false-positive|an LLM wrote this|openai|anthropic/i);
   });
 
