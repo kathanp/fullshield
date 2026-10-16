@@ -47,7 +47,9 @@ export interface Finding {
     | 'imported-not-called'
     | 'reachable-via-dependency'
     | 'not-imported'
-    | 'reachability-unknown';
+    | 'reachability-unknown'
+    | 'symbol-reachable'
+    | 'symbol-not-called';
   /** Lockfile path from an imported direct dependency, e.g. express > body-parser > qs. */
   dependencyPath?: string[];
   /** Deterministic (default) vs AI-added. AI findings never fail CI. */

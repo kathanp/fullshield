@@ -1,5 +1,6 @@
 import { severityRank, SEVERITIES, type Finding, type Severity } from '../../core/finding.js';
 import type { LockfileGraph } from './lockfile.js';
+import { classifySymbolUse } from './symbol-reachability.js';
 
 export type Reachability = NonNullable<Finding['reachability']>;
 
@@ -12,6 +13,8 @@ export interface ReachabilityContext {
   /** Imports from production sources only (not test/spec files). */
   productionUsage: Map<string, PackageUsage>;
   graph: LockfileGraph;
+  /** Production sources, used only when an advisory names affected functions. */
+  sources?: ReadonlyMap<string, string>;
 }
 
 /** `name@version` or `@scope/name@version` from a DEPS-VULN-001 snippet. */
@@ -163,11 +166,12 @@ export function reachabilitySteps(reachability: Reachability): number {
   if (
     reachability === 'reachable' ||
     reachability === 'reachable-via-dependency' ||
-    reachability === 'reachability-unknown'
+    reachability === 'reachability-unknown' ||
+    reachability === 'symbol-reachable'
   ) {
     return 0;
   }
-  if (reachability === 'imported-not-called') return 1;
+  if (reachability === 'imported-not-called' || reachability === 'symbol-not-called') return 1;
   return 2;
 }
 
@@ -187,9 +191,14 @@ function isDevOnly(pkgName: string, ctx: ReachabilityContext): boolean {
   return directDev.has(pkgName) || reachableFrom(pkgName, directDev, edges);
 }
 
-export function applyReachability(findings: Finding[], ctx: ReachabilityContext): Finding[] {
+export function applyReachability(
+  findings: Finding[],
+  ctx: ReachabilityContext,
+  symbols: ReadonlyMap<string, readonly string[]> = new Map(),
+): Finding[] {
   return findings.map((finding) => {
     if (finding.ruleId === 'DEPS-MALICIOUS-001') {
+      // Symbol data never downgrades a malicious advisory. Severity stays critical.
       if (finding.snippet === undefined) return finding;
       const pkg = packageNameFromSnippet(finding.snippet);
       if (pkg === undefined || pkg.length === 0) return finding;
@@ -204,7 +213,12 @@ export function applyReachability(findings: Finding[], ctx: ReachabilityContext)
     if (finding.ruleId !== 'DEPS-VULN-001' || finding.snippet === undefined) return finding;
     const pkg = packageNameFromSnippet(finding.snippet);
     if (pkg === undefined || pkg.length === 0) return finding;
-    const classified = classifyReachability(pkg, ctx.productionUsage, ctx.graph);
+    let classified = classifyReachability(pkg, ctx.productionUsage, ctx.graph);
+    const named = symbols.get(finding.id) ?? [];
+    if (named.length > 0 && ctx.sources !== undefined) {
+      const symbolClass = classifySymbolUse(named, ctx.sources);
+      classified = { reachability: symbolClass, path: classified.path };
+    }
     const steps = reachabilitySteps(classified.reachability);
     let severity = steps === 0 ? finding.severity : downgradeSeverity(finding.severity, steps);
     let message = finding.message;

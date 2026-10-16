@@ -20,6 +20,8 @@ export interface OsvVuln {
       type?: string;
       events?: Array<{ introduced?: string; fixed?: string; last_affected?: string }>;
     }>;
+    /** Only an explicit string list is read. Other shapes are ignored. */
+    ecosystem_specific?: { affected_functions?: unknown };
   }>;
   references?: Array<{ type?: string; url?: string }>;
 }

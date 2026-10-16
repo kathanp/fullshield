@@ -8,6 +8,7 @@ import { parseLockfileGraph, type LockedPackage, type LockfileGraph } from './lo
 import { isMaliciousAdvisory, queryOsv, type OsvVuln } from './osv.js';
 import { exactPinsFromManifest, lineOfManifestDep } from './pins.js';
 import { applyReachability, indexPackageUsage, isProductionSource } from './reachability.js';
+import { affectedFunctionNames } from './symbol-reachability.js';
 import { minFixedVersion, osvSeverity, sameMajor } from './semver.js';
 import { findTyposquats, type TyposquatHit } from './typosquat.js';
 import { experimentalVex } from '../../supply/experimental.js';
@@ -182,16 +183,19 @@ export const depsModule: ScanModule = {
         findings.push(typosquatFinding('package.json', hit));
       }
       const osvHits = await queryOsv(pins, osvOpts);
+      const symbols = new Map<string, readonly string[]>();
       for (const hit of osvHits) {
         for (const vuln of hit.vulns) {
-          findings.push(
-            isMaliciousAdvisory(vuln)
-              ? maliciousFinding('package.json', hit.pkg, vuln)
-              : vulnFinding('package.json', hit.pkg, vuln, depLoc(hit.pkg.name)),
-          );
+          const finding = isMaliciousAdvisory(vuln)
+            ? maliciousFinding('package.json', hit.pkg, vuln)
+            : vulnFinding('package.json', hit.pkg, vuln, depLoc(hit.pkg.name));
+          const names = affectedFunctionNames(vuln);
+          if (names.length > 0 && finding.ruleId === 'DEPS-VULN-001') symbols.set(finding.id, names);
+          findings.push(finding);
         }
       }
-      return applyReachability(findings, await reachabilityCtx(ctx.cwd, ctx.files, graphFromManifest(manifest)));
+      const noLockCtx = await reachabilityCtx(ctx.cwd, ctx.files, graphFromManifest(manifest));
+      return applyReachability(findings, noLockCtx, symbols);
     }
 
     let contents: string;
@@ -216,16 +220,18 @@ export const depsModule: ScanModule = {
     }
 
     const osvHits = await queryOsv(packages, osvOpts);
+    const symbols = new Map<string, readonly string[]>();
     for (const hit of osvHits) {
       for (const vuln of hit.vulns) {
-        findings.push(
-          isMaliciousAdvisory(vuln)
-            ? maliciousFinding(lockFile, hit.pkg, vuln)
-            : vulnFinding(lockFile, hit.pkg, vuln, depLoc(hit.pkg.name)),
-        );
+        const finding = isMaliciousAdvisory(vuln)
+          ? maliciousFinding(lockFile, hit.pkg, vuln)
+          : vulnFinding(lockFile, hit.pkg, vuln, depLoc(hit.pkg.name));
+        const names = affectedFunctionNames(vuln);
+        if (names.length > 0 && finding.ruleId === 'DEPS-VULN-001') symbols.set(finding.id, names);
+        findings.push(finding);
       }
     }
-    let reached = applyReachability(findings, await reachabilityCtx(ctx.cwd, ctx.files, graph));
+    let reached = applyReachability(findings, await reachabilityCtx(ctx.cwd, ctx.files, graph), symbols);
     if (experimentalVex()) {
       reached = attachOverrideProposals(reached, graph, lockFile, manifestRaw);
       reached.push(...scanInstalledPackages(ctx.cwd, packages));
@@ -255,7 +261,11 @@ async function reachabilityCtx(
   cwd: string,
   files: readonly string[],
   graph: LockfileGraph,
-): Promise<{ productionUsage: Map<string, { imported: boolean; called: boolean }>; graph: LockfileGraph }> {
+): Promise<{
+  productionUsage: Map<string, { imported: boolean; called: boolean }>;
+  graph: LockfileGraph;
+  sources: Map<string, string>;
+}> {
   const prodSources = new Map<string, string>();
   for (const rel of files) {
     if (!/\.[cm]?[jt]sx?$/.test(rel)) continue;
@@ -266,5 +276,5 @@ async function reachabilityCtx(
       // skip
     }
   }
-  return { productionUsage: indexPackageUsage(prodSources), graph };
+  return { productionUsage: indexPackageUsage(prodSources), graph, sources: prodSources };
 }
