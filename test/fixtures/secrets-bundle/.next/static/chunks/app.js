@@ -1,0 +1,1 @@
+self.__NEXT_DATA__ = { env: { NEXT_PUBLIC_AWS_KEY: 'AKIA' + 'IOSFODNN7EXAMPLE' } };

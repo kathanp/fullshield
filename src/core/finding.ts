@@ -56,6 +56,12 @@ export interface Finding {
   aiReasoning?: string;
   exploitScenario?: string;
   explanation?: string;
+  /** Git commit that first introduced this secret (`scan --history`). */
+  introducedIn?: string;
+  /** Whether the secret still exists at HEAD (`scan --history`). */
+  stillAtHead?: boolean;
+  /** Read-only identity check (`scan --verify-secrets`). Never includes the secret. */
+  verification?: 'live' | 'revoked' | 'unknown';
 }
 
 export interface FindingSummary {

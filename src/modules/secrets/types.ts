@@ -1,4 +1,4 @@
-import type { Confidence, Severity } from '../../core/finding.js';
+import type { Confidence, Finding, Severity } from '../../core/finding.js';
 
 export interface SecretsRuleMeta {
   id: string;
@@ -30,4 +30,10 @@ export interface SecretsRuleContext {
 export interface SecretsRule {
   meta: SecretsRuleMeta;
   check(ctx: SecretsRuleContext): void;
+}
+
+/** In-memory secret hit. The raw `secret` never appears on a Finding. */
+export interface SecretHit {
+  finding: Finding;
+  secret?: string;
 }

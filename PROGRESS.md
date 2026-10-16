@@ -730,4 +730,20 @@ Experimental (`FULLSHIELD_EXPERIMENTAL_CLASSES=1` / `scan --experimental-classes
 
 Mutation-smoke: 25 rule files + 11 extra targets, including `phase29.ts` and `CONFIG-TRUSTPROXY-001`.
 
-**Deferred:** Phases 30–35 stay on their own branches. Not merged. Not pushed. No tag.
+## Phase 30 — secrets, advanced (experimental)
+
+Behind `FULLSHIELD_EXPERIMENTAL_SECRETS_ADV=1` / `scan --experimental-secrets-adv`. Default `scan` does not emit Phase-30-only IDs (`SECRET-BUNDLE-001`).
+
+- `--history`: streamed `git log -p`, blob-hash dedupe, `introducedIn` + `stillAtHead`. Baseline and inline suppressions apply.
+- `--bundle <dir>`: `dist/` `.next/static` `build/` plus `NEXT_PUBLIC_*`/`VITE_*` secret-shaped values.
+- `--verify-secrets` + `--i-own-these-credentials`: AWS STS GetCallerIdentity, GitHub GET /user, Stripe GET /v1/balance, Slack auth.test. Never default, never in CI templates, never logs the key. Mocked in tests.
+
+**Verify summary (`npm run verify:phase 30`, full run PASSED):**
+
+| phase | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|---|
+| 30 | 593 | 92.7% | 82.69% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+
+Live AWS STS without a signing secret key reports `unknown`. `--verify-secrets` is never in generated CI templates.
+
+**Deferred:** Phases 31–35 stay on their own branches. Not pushed. No tag.

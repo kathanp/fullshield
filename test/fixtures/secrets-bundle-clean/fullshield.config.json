@@ -1,0 +1,4 @@
+{
+  "modules": ["secrets"],
+  "ignore": ["dist/**", ".next/**", "build/**", "**/*.test.ts"]
+}

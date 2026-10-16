@@ -117,6 +117,7 @@ export const RULE_MAP: readonly RuleMapping[] = [
   ROW('SAST-HASH-001', 'A02:2021 Cryptographic Failures', 'CWE-916', 'V6.2.2', 'PCI DSS 8.3.1'),
   ROW('SAST-GQL-001', 'A04:2021 Insecure Design', 'CWE-770/200', 'V13.1.1', 'PCI DSS 6.2.4'),
   ROW('CONFIG-TRUSTPROXY-001', 'A07:2021 Identification Failures', 'CWE-290', 'V2.2.1', 'PCI DSS 8.3.4'),
+  ROW('SECRET-BUNDLE-001', 'A02:2021 Cryptographic Failures', 'CWE-798', 'V6.4.1', 'PCI DSS 3.2 / 8.3'),
 ];
 
 const byId = new Map(RULE_MAP.map((r) => [r.ruleId, r]));

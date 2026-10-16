@@ -11,6 +11,13 @@ All notable changes to FullShield are documented here.
 - Publish CI uses `npm publish --provenance --access public` (no staged-manifest edits). The unpublished `v0.1.2` tag was deleted.
 - CI: push to `next` runs `verify` on ubuntu-24.04 × Node 24 only. The full 6-job matrix (and the non-blocking `bench` job) runs on pull requests to `main` and on push to `main`. Required checks on `main` stay the six matrix jobs.
 
+### Phase 30 — secrets, advanced (experimental)
+
+- `scan --history` streams `git log -p`, dedupes by blob hash, and reports first-introduced commit + still-at-HEAD. Respects baseline and suppressions.
+- `scan --bundle <dir>` scans `dist/`, `.next/static`, and `build/` for browser-exposed keys, including `NEXT_PUBLIC_*` / `VITE_*` secret-shaped values (`SECRET-BUNDLE-001`).
+- `--verify-secrets` is opt-in, never default, never in generated CI templates. Requires `--i-own-these-credentials`. Read-only identity endpoints only (AWS STS GetCallerIdentity, GitHub `GET /user`, Stripe `GET /v1/balance`, Slack `auth.test`). Results: `live` \| `revoked` \| `unknown`. Never logs the key.
+- Behind `FULLSHIELD_EXPERIMENTAL_SECRETS_ADV=1` / `scan --experimental-secrets-adv`. CLI flags do nothing useful without that flag. Default `scan` does not emit Phase-30-only rule IDs.
+
 ### Phase 28 — framework coverage
 
 - Experimental Next.js / NestJS / Hono / Koa taint sources and AUTH (`FULLSHIELD_EXPERIMENTAL_FRAMEWORKS=1` / `scan --experimental-frameworks`). Default `scan` is unchanged.
