@@ -63,6 +63,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 - Platforms: Linux, macOS, and Windows on Node 22.13+. Quoted filenames in dirty-tree tests are POSIX-only (Windows forbids `"` in names).
 - `node:sqlite` is loaded only by history/confirm, not by `--import fullshield/runtime/register`. Dashboard closes every handle in `try/finally` (Windows cannot delete an open `history.db`).
 - FullShield does not stop OS or SSH exploits (including regreSSHion). It scans Node/TS apps you own.
+- Extra classes (ReDoS, deserialization, XXE, upload, cookie flags, CSRF, mass assignment, timing compare, hash cost, GraphQL limits, `trust proxy` + IP rate limit) run only with `FULLSHIELD_EXPERIMENTAL_CLASSES=1` or `scan --experimental-classes`. ReDoS is a same-file static quantifier check. CSRF looks for `csurf` or `sameSite: 'strict'|'lax'` in that file.
 
 Experimental RASP structure-change scoring on the vendored PayloadsAllTheThings corpus (not a claim that live attacks are blocked):
 

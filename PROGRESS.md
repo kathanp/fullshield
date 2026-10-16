@@ -713,3 +713,21 @@ goof is a **seen holdout**. `cr0hn/vulnerable-node` @ `d68f2a3c9277ece2c2feb9976
 **Verify (`npm run verify:phase 26`, PASSED):** 498 tests. 92.24% lines / 83.03% branches. expected 30/30. vulnerable-app 35. clean-app 0 high/critical.
 
 Do not start Phase 28.
+
+## Phase 29 — new vulnerability classes (on `next`, local)
+
+Experimental (`FULLSHIELD_EXPERIMENTAL_CLASSES=1` / `scan --experimental-classes`). Default `scan` emits none of these IDs.
+
+- `SAST-REDOS-001`, `SAST-DESER-001`, `SAST-XXE-001`, `SAST-UPLOAD-001`, `SAST-COOKIE-001`, `SAST-CSRF-001`, `SAST-MASSASSIGN-001`, `SAST-TIMING-001`, `SAST-HASH-001`, `SAST-GQL-001` in `src/modules/sast/rules/phase29.ts`.
+- `CONFIG-TRUSTPROXY-001` in config AST checks. Mutation-smoke disables that site on its own.
+- Positive and negative fixtures per rule. Docs under `rules/`. OWASP/CWE rows appended. clean-app stays 0 high/critical with the flag on for the safe patterns.
+
+**Verify summary (`npm run verify:phase 29`, full run PASSED):**
+
+| phase | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|---|
+| 29 | 568 | 92.67% | 82.75% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+
+Mutation-smoke: 25 rule files + 11 extra targets, including `phase29.ts` and `CONFIG-TRUSTPROXY-001`.
+
+**Deferred:** Phases 30–35 stay on their own branches. Not merged. Not pushed. No tag.

@@ -204,6 +204,17 @@ const EXTRA_TARGETS = [
       return src.replaceAll("'LLM-001'", "'LLM-DISABLED'");
     },
   },
+  {
+    name: 'CONFIG-TRUSTPROXY-001',
+    file: join(root, 'src', 'modules', 'config', 'astChecks.ts'),
+    apply: (src) => {
+      const site = 'if (trustProxyTrue && ipRateLimit) {';
+      if (!src.includes(site)) {
+        throw new Error('CONFIG-TRUSTPROXY-001 site missing');
+      }
+      return src.replace(site, 'if (false && trustProxyTrue && ipRateLimit) {');
+    },
+  },
 ];
 
 for (const extra of EXTRA_TARGETS) {
