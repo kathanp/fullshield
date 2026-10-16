@@ -7,6 +7,7 @@ import { runSastOnText } from '../../../src/modules/sast/engine.js';
 import {
   approvedDiffMatches,
   attestationsPresent,
+  baselineTag,
   bumpKind,
   bumpSatisfies,
   diffFindingKeys,
@@ -29,6 +30,13 @@ describe('Phase 36 release checks', () => {
     expect(requiredBump({ newCommands: ['doctor'] })).toBe('minor');
     expect(requiredBump({ newExports: ['./runtime/koa'] })).toBe('minor');
     expect(requiredBump({ stableChanged: true })).toBe('minor');
+  });
+
+  it('skips a tag that points at HEAD and uses the previous release', () => {
+    const sha = (tag) => (tag === 'v0.2.0' ? 'head' : tag);
+    expect(baselineTag(['v0.2.0', 'v0.1.3', 'v0.1.1'], 'head', sha)).toBe('v0.1.3');
+    expect(baselineTag(['v0.1.3', 'v0.1.1'], 'other', sha)).toBe('v0.1.3');
+    expect(() => baselineTag(['v0.2.0'], 'head', sha)).toThrow(/previous/);
   });
 
   it('rejects a patch when a minor bump is required and rejects a decrease', () => {

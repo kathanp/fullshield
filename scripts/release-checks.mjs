@@ -37,6 +37,20 @@ export function bumpSatisfies(actual, required) {
   return (RANK[actual] ?? -1) >= (RANK[required] ?? 99);
 }
 
+/**
+ * Newest tag that is not the commit being published.
+ * A tag push checks out that tag, so the newest tag is HEAD and is not a baseline.
+ * @param {string[]} tags newest first
+ * @param {string} headSha
+ * @param {(tag: string) => string} tagSha
+ */
+export function baselineTag(tags, headSha, tagSha) {
+  for (const tag of tags) {
+    if (tagSha(tag) !== headSha) return tag;
+  }
+  throw new Error('no previous v* tag. The newest tag points at HEAD.');
+}
+
 export const PACK_UNPACKED_MAX = 2 * 1024 * 1024;
 export const PACK_FILES_MAX = 120;
 

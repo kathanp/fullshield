@@ -2,6 +2,10 @@
 
 All notable changes to FullShield are documented here.
 
+## 0.2.1 — 2026-10-16
+
+- `v0.2.0` was tagged and the publish job failed before staging. `semver-check` treated that tag as the previous release and compared `0.2.0` to itself. The check now skips a tag that points at HEAD.
+
 ## 0.2.0 — 2026-10-16
 
 Phases 36–45 ship in this version. `0.3.0` and `0.4.0` were not tagged.

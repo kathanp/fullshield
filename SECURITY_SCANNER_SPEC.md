@@ -873,10 +873,10 @@ Acceptance: workflows green; reproducibility passes or differences documented; S
 
 | Item | State |
 |---|---|
-| npm latest | 0.1.3 until the v0.2.0 publish job shows dist.attestations |
-| main | phases 1–45 at 0.2.0 |
-| next | same tree as the 0.2.0 release |
-| Next release | 0.2.0 |
+| npm latest | 0.1.3 until the v0.2.1 publish job shows dist.attestations |
+| main | phases 1–45 at 0.2.1 |
+| next | same tree as the 0.2.1 release |
+| Next release | 0.2.1 |
 | Ground truth reviewed | none (all `reviewed: false`) |
 | Untouched holdouts in reserve | 3 (verademo-javascript, serverless-goat, mongection), not scanned |
 | Provenance gate | in publish.yml; snapshots in bench/snapshots; 0.1.3 matches HEAD; 0.1.1 diff is not approved |

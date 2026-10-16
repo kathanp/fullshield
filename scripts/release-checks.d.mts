@@ -11,6 +11,7 @@ export function requiredBump(signals: {
   stableChanged?: boolean;
 }): 'minor' | 'patch';
 export function bumpSatisfies(actual: string, required: string): boolean;
+export function baselineTag(tags: string[], headSha: string, tagSha: (tag: string) => string): string;
 export function packBudgetErrors(pack: {
   unpackedBytes: number;
   fileCount: number;

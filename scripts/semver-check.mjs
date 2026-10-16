@@ -9,7 +9,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { bumpKind, bumpSatisfies, requiredBump } from './release-checks.mjs';
+import { baselineTag, bumpKind, bumpSatisfies, requiredBump } from './release-checks.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -65,10 +65,14 @@ function stableChanged(fromVersion) {
   return JSON.stringify(base.apps ?? null) !== JSON.stringify(head.apps ?? null);
 }
 
+function revParse(rev) {
+  return git(['rev-parse', `${rev}^{}`]).trim();
+}
+
 function main() {
   const tags = git(['tag', '--list', 'v*', '--sort=-v:refname']).trim().split('\n').filter(Boolean);
   if (tags.length === 0) throw new Error('no v* tag to compare');
-  const tag = tags[0];
+  const tag = baselineTag(tags, revParse('HEAD'), revParse);
   const fromPkg = JSON.parse(show(tag, 'package.json'));
   const toPkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
   const fromIds = new Set(ruleIdsFromTree(tag));
