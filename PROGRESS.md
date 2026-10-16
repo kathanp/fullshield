@@ -508,7 +508,7 @@ All `--ai` / `fix --ai` flags marked **experimental**. `AI-INJECT-001` listed
 as a basic phrase heuristic (three comment phrases). Reachability list includes
 `reachability-unknown`. Live smoke linked from Benchmarks.
 
-**harden-4 complete. Stopped. Do not start Frontier (17+).** Nothing pushed.
+**harden-4 complete.** Frontier (17+) was not started in this commit. It landed later. Nothing had been pushed at this commit.
 
 ## release-prep — v0.1.0
 
@@ -520,7 +520,7 @@ as a basic phrase heuristic (three comment phrases). Reachability list includes
 `CONTRIBUTING.md`, issue templates, `RELEASING.md`. History secrets scan:
 zero real keys. Dogfood: `benchmarks/SELF-SCAN.md`.
 
-**Stopped. Do not start Frontier.** Nothing pushed.
+**Stop recorded at release-prep.** Frontier was not started in this commit. It landed later. Nothing had been pushed at this commit.
 
 ## Phase 17 — experimental RASP sink hooks
 
@@ -582,7 +582,7 @@ LLM-app rules (`FULLSHIELD_EXPERIMENTAL_LLM=1`): `LLM-001` system-prompt concat,
 
 **Re-scan:** NodeGoat 373 / high+critical **59** unchanged. DVNA 19 unchanged. JSON: `benchmarks/results/*-phase21.json`.
 
-**Stopped after Phase 21 (mandatory).** Do not start Phase 22. Nothing pushed. Nothing published.
+**Stop recorded after Phase 21.** Phase 22 was not started in this commit. It landed later. Nothing had been pushed or published at this commit.
 
 ## harden-6 — malicious OSV, honeytoken policy, official MCP
 
@@ -624,7 +624,7 @@ Shared `/g` secret regexes now reset `lastIndex` per line (`everyMatch`) so extr
 
 **Re-scan:** NodeGoat 373 / high+critical **60** (`DEPS-MALICIOUS-001` `fsevents@1.2.9`). DVNA 19 / high+crit 14. JSON: `benchmarks/results/*-phase24.json`. Live Ollama 768s, exit 0 — see `benchmarks/AI-REPORT.md` (still not good enough to advertise).
 
-**MANDATORY STOP after Phase 24.** Do not start a next phase. Nothing pushed. Nothing published.
+**Stop recorded at Phase 24.** Later phases continued on `next`. At this commit nothing had been pushed or published.
 
 ## Phase 25 — 0.1.1 hardening: Windows + lazy SQLite
 
@@ -645,9 +645,9 @@ CI already included `windows-latest` × Node 22/24. This phase made the product 
 
 Acceptance: CI Windows×Node 22/24; `--import` file:// silent; register budget; no static sqlite.
 
-**Deferred:** Phases 26–35 (public bench, SAST/ORM/frameworks, new rules, VEX, DLP, MCP-config, policy, host/SSH). Spec order is 25 → 26 first.
+**Deferred at this commit:** Phases 26–35. Phases 26–30 later landed on `next`. Phases 31–35 later landed on side branches.
 
-**Launch status (corrected):** `fullshield@0.1.0` **is live** on npm (`latest=0.1.0`, provenance). Placeholders `0.0.0-stage` and `0.0.1` are deprecated. Phase 25 is committed and pushed as `3c507d6`.
+**Launch status at this commit:** `fullshield@0.1.0` was live on npm. Placeholders `0.0.0-stage` and `0.0.1` are deprecated. Phase 25 was pushed as `3c507d6`. `0.1.1` was published later (see Current status).
 
 ## Phase 28 — framework coverage (on `next`)
 
@@ -679,7 +679,7 @@ Experimental (`FULLSHIELD_EXPERIMENTAL_FRAMEWORKS=1` / `scan --experimental-fram
 
 **Stable behavior:** unchanged unless the experimental flag is set. RASP ORM hooks extend existing experimental RASP (`FULLSHIELD_EXPERIMENTAL_RASP=1`).
 
-**Deferred:** Phase 28–29 were next; 28 is now in progress on `next`.
+**Deferred at this commit:** Phase 28 was next. It later landed on `next`.
 
 ## Phase 26b — stable public-bench misses (on `next`)
 
@@ -708,11 +708,11 @@ Root-cause (posted before the engine edits):
 
 Generic fixtures (not copied goof) in `test/unit/modules/sast/engine-gaps.test.ts` and `test/unit/modules/deps/manifest-line.test.ts`.
 
-goof is a **seen holdout**. `cr0hn/vulnerable-node` @ `d68f2a3c9277ece2c2feb9976052033bdecd7fbe` is an **untouched holdout** (GT from `docs/labs/`, `"reviewed": false`). In-scope counts after the one post-fix `bench:public` run are in README Known limitations only.
+goof is a **seen holdout**. At this commit `cr0hn/vulnerable-node` @ `d68f2a3c9277ece2c2feb9976052033bdecd7fbe` was an untouched holdout. The later Mongo-only NoSQL change re-scored it as a seen holdout. Ground truth stays `"reviewed": false`. In-scope counts live in README Known limitations only.
 
 **Verify (`npm run verify:phase 26`, PASSED):** 498 tests. 92.24% lines / 83.03% branches. expected 30/30. vulnerable-app 35. clean-app 0 high/critical.
 
-Do not start Phase 28.
+Phase 28 was not started in this commit. It landed later on `next`.
 
 ## Phase 29 — new vulnerability classes (on `next`, local)
 
@@ -746,4 +746,89 @@ Behind `FULLSHIELD_EXPERIMENTAL_SECRETS_ADV=1` / `scan --experimental-secrets-ad
 
 Live AWS STS without a signing secret key reports `unknown`. `--verify-secrets` is never in generated CI templates.
 
-**Deferred:** Phases 31–35 stay on their own branches. Not pushed. No tag.
+Phases 31–35 were already written on side branches. Their verify runs are below. They are not merged into `next`.
+
+## Phase 31 — supply chain, advanced + VEX (on `phase-31`, not merged)
+
+Experimental (`FULLSHIELD_EXPERIMENTAL_VEX=1` / `scan --experimental-vex`). Default `scan` does not emit the new IDs.
+
+- `SUPPLY-WORM-001` (critical): static token read (`~/.npmrc`, `NPM_TOKEN`, `GITHUB_TOKEN`) plus `npm publish`, registry PUT, GitHub API repo/workflow creation, or writing `.github/workflows/*`.
+- `SUPPLY-WORKFLOW-001`: install scripts or code writing `.github/`, `.git/hooks/`, or CI config.
+- Transitive `FixProposal.kind = 'dependency-override'` (unsafe) when the parent has no OSV-listed fixed release.
+- Provenance coverage score (unknown is not counted as present).
+- `fullshield vex --format openvex|cyclonedx`. `not_affected` only when reachability is `not-imported`; otherwise `under_investigation`.
+
+Verified alone on `phase-31` (`b95648a`), branched from `be68e49`. This count does not include Phases 29–30.
+
+**Verify (`npm run verify:phase 31`, PASSED):**
+
+| phase | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|---|
+| 31 | 547 | 92.07% | 82.15% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+
+Provenance attestations are not fetched from the registry. Override apply rewrites the lockfile version in-tree and does not run `npm install`. Packages are never executed.
+
+## Phase 32 — experimental response DLP (on `phase-32`, not merged)
+
+`shieldGuard({ dlp: { mode: 'monitor' | 'mask' | 'block' } })` inspects outgoing JSON/text (capped at 64 KB) for secret patterns, stack traces, internal IPs/hostnames, Luhn card numbers, and bulk emails on a one-email route.
+
+Behind `FULLSHIELD_EXPERIMENTAL_DLP=1`. Without the flag, `shieldGuard` stays request-inspect-only and default `scan` emits no `DLP-*` IDs.
+
+Verified alone on `phase-32` (`2b5ee52`), branched from `be68e49`. This count does not include Phases 29–31.
+
+**Verify (`npm run verify:phase 32`, PASSED):**
+
+| phase | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|---|
+| 32 | 540 | 92.62% | 83% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+
+Chunked or streaming bodies are not inspected. JWT, session, and entropy assignment rules are not applied to responses.
+
+## Phase 33 — MCP configuration security (on `phase-33`, not merged)
+
+Experimental (`FULLSHIELD_EXPERIMENTAL_MCPCFG=1` / `scan --experimental-mcpcfg`). Default `scan` emits no `MCP-*` IDs. Home-dir scan only with `scan --include-home`. No network.
+
+- `MCP-001` inline secrets (high, masked). `MCP-002` unpinned `npx` / `@latest` (medium). `MCP-003` shell/exec or unrestricted fs-write without an allowlist (medium). `MCP-004` tool-description injection (high). `MCP-005` remote MCP over `http://` (medium).
+- Model-provided MCP tool arguments are taint sources. Optional `guardTools` is library code, not auto-wrapped onto scanned servers.
+
+Verified alone on `phase-33` (`daba56f`), branched from `be68e49`. This count does not include Phases 29–32.
+
+**Verify (`npm run verify:phase 33`, PASSED):**
+
+| phase | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|---|
+| 33 | 543 | 92.59% | 82.9% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+
+## Phase 34 — policy-as-code + PR summary (on `phase-34`, not merged)
+
+Experimental (`FULLSHIELD_EXPERIMENTAL_POLICY=1`). Default `scan` without the flag or a policy file is unchanged.
+
+- `fullshield.policy.json`: required modules, per-rule severity overrides, `failOn` per branch, exceptions that require `owner`, `reason`, and ISO `expires`. Missing owner or expiry is rejected. Expired exceptions fail CI and do not hide the finding.
+- `scan --pr-summary`: deterministic Markdown versus baseline. No AI. Comment text only; it does not post to GitHub or GitLab.
+
+Verified alone on `phase-34` (`5825217`), branched from `be68e49`. This count does not include Phases 29–33.
+
+**Verify (`npm run verify:phase 34`, PASSED):**
+
+| phase | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|---|
+| 34 | 566 | 92.59% | 83.06% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+
+## Phase 35 — experimental host SSH exposure check (on `phase-35`, not merged)
+
+`fullshield host --experimental-host` (`FULLSHIELD_EXPERIMENTAL_HOST=1`). Linux-only OpenSSH / regreSSHion (CVE-2024-6387) report. Package version via `dpkg-query` / `rpm` / `apk`, not `ssh -V`. Rules `HOST-SSH-001` through `HOST-SSH-003`. Critical only when vulnerable, unmitigated, and publicly listening. Detection and reporting only. The command refuses to run without `--experimental-host`. Default `scan` emits no `HOST-*` IDs.
+
+Verified alone on `phase-35` (`5fce3c8`), branched from `be68e49`. This count does not include Phases 29–34. CI uses fixtures, not a live sshd.
+
+**Verify (`npm run verify:phase 35`, PASSED):**
+
+| phase | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|---|
+| 35 | 559 | 92.37% | 82.7% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+
+## Current status
+
+- Local `next` is `f330c33` (Phase 30). It contains Phases 1–30. It is 5 commits ahead of `origin/next` and has not been pushed.
+- Package version in this tree is `0.1.1`. No tag from `next`.
+- Phases 31–35 are verified on `phase-31` through `phase-35` and are not merged into `next`.
+- Ground truth in `bench/` stays `"reviewed": false`.
