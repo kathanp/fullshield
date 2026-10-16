@@ -33,7 +33,7 @@ describe('Phase 36 release checks', () => {
   });
 
   it('skips a tag that points at HEAD and uses the previous release', () => {
-    const sha = (tag) => (tag === 'v0.2.0' ? 'head' : tag);
+    const sha = (tag: string) => (tag === 'v0.2.0' ? 'head' : tag);
     expect(baselineTag(['v0.2.0', 'v0.1.3', 'v0.1.1'], 'head', sha)).toBe('v0.1.3');
     expect(baselineTag(['v0.1.3', 'v0.1.1'], 'other', sha)).toBe('v0.1.3');
     expect(() => baselineTag(['v0.2.0'], 'head', sha)).toThrow(/previous/);
