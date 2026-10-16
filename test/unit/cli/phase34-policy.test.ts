@@ -123,7 +123,9 @@ describe('Phase 34 CLI policy + --pr-summary', () => {
     expect(out.startsWith('# FullShield PR summary\n')).toBe(true);
     expect(out).toContain('versus baseline.');
     expect(out).not.toMatch(/AI |openai|triage/i);
-    const empty = readFileSync(join(goldens, 'pr-summary-empty.md'), 'utf8').trimEnd();
+    const empty = readFileSync(join(goldens, 'pr-summary-empty.md'), 'utf8')
+      .replaceAll('\r\n', '\n')
+      .trimEnd();
     expect(out.trimEnd()).toBe(empty);
   });
 });
