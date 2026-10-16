@@ -11,9 +11,18 @@ export interface HistoryRow {
   highCrit: number;
 }
 
+export interface ProvenanceRow {
+  scannedAt: string;
+  percent: number;
+  withProvenance: number;
+  total: number;
+}
+
 export interface HistoryDb {
   list(): HistoryRow[];
   insert(row: HistoryRow): void;
+  listProvenance(): ProvenanceRow[];
+  insertProvenance(row: ProvenanceRow): void;
   close(): void;
 }
 
@@ -24,6 +33,9 @@ function sqliteDb(file: string): HistoryDb {
     db = new DatabaseSync(file);
     db.exec(
       'CREATE TABLE IF NOT EXISTS scans (scannedAt TEXT NOT NULL, total INTEGER NOT NULL, highCrit INTEGER NOT NULL)',
+    );
+    db.exec(
+      'CREATE TABLE IF NOT EXISTS provenance (scannedAt TEXT NOT NULL, percent REAL NOT NULL, withProvenance INTEGER NOT NULL, total INTEGER NOT NULL)',
     );
   } catch (error) {
     try {
@@ -46,6 +58,16 @@ function sqliteDb(file: string): HistoryDb {
         row.highCrit,
       );
     },
+    listProvenance() {
+      return handle.prepare(
+        'SELECT scannedAt, percent, withProvenance, total FROM provenance ORDER BY scannedAt',
+      ).all() as unknown as ProvenanceRow[];
+    },
+    insertProvenance(row) {
+      handle.prepare(
+        'INSERT INTO provenance (scannedAt, percent, withProvenance, total) VALUES (?, ?, ?, ?)',
+      ).run(row.scannedAt, row.percent, row.withProvenance, row.total);
+    },
     close() {
       if (closed) return;
       closed = true;
@@ -66,6 +88,14 @@ export function openHistory(dir: string): HistoryDb {
 
 export function recordHistory(db: HistoryDb, row: HistoryRow): void {
   db.insert(row);
+}
+
+export function recordProvenance(db: HistoryDb, row: ProvenanceRow): void {
+  db.insertProvenance(row);
+}
+
+export function listProvenance(db: HistoryDb): ProvenanceRow[] {
+  return db.listProvenance();
 }
 
 export function assertDashboardHost(host: string | undefined): boolean {

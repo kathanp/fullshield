@@ -10,6 +10,8 @@ import { exactPinsFromManifest, lineOfManifestDep } from './pins.js';
 import { applyReachability, indexPackageUsage, isProductionSource } from './reachability.js';
 import { minFixedVersion, osvSeverity, sameMajor } from './semver.js';
 import { findTyposquats, type TyposquatHit } from './typosquat.js';
+import { experimentalVex } from '../../supply/experimental.js';
+import { attachOverrideProposals, scanInstalledPackages } from './phase31.js';
 
 const LOCKFILE_NAMES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'] as const;
 
@@ -223,7 +225,12 @@ export const depsModule: ScanModule = {
         );
       }
     }
-    return applyReachability(findings, await reachabilityCtx(ctx.cwd, ctx.files, graph));
+    let reached = applyReachability(findings, await reachabilityCtx(ctx.cwd, ctx.files, graph));
+    if (experimentalVex()) {
+      reached = attachOverrideProposals(reached, graph, lockFile, manifestRaw);
+      reached.push(...scanInstalledPackages(ctx.cwd, packages));
+    }
+    return reached;
   },
 };
 

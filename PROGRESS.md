@@ -746,19 +746,19 @@ Behind `FULLSHIELD_EXPERIMENTAL_SECRETS_ADV=1` / `scan --experimental-secrets-ad
 
 Live AWS STS without a signing secret key reports `unknown`. `--verify-secrets` is never in generated CI templates.
 
-Phases 31–35 were already written on side branches. Their verify runs are below. They are not merged into `next`.
+Phases 32–35 were already written on side branches. Their verify runs are below. They are not merged into `next`.
 
-## Phase 31 — supply chain, advanced + VEX (on `phase-31`, not merged)
+## Phase 31 — supply chain, advanced + VEX (merged into `next`)
 
 Experimental (`FULLSHIELD_EXPERIMENTAL_VEX=1` / `scan --experimental-vex`). Default `scan` does not emit the new IDs.
 
 - `SUPPLY-WORM-001` (critical): static token read (`~/.npmrc`, `NPM_TOKEN`, `GITHUB_TOKEN`) plus `npm publish`, registry PUT, GitHub API repo/workflow creation, or writing `.github/workflows/*`.
 - `SUPPLY-WORKFLOW-001`: install scripts or code writing `.github/`, `.git/hooks/`, or CI config.
-- Transitive `FixProposal.kind = 'dependency-override'` (unsafe) when the parent has no OSV-listed fixed release.
+- Transitive `FixProposal.kind = 'dependency-override'` (unsafe) when the parent has no OSV-listed fixed release. Apply writes npm `overrides`, pnpm `pnpm.overrides`, or yarn `resolutions` into `package.json` and prints `run npm install`. `package-lock.json` is not edited.
 - Provenance coverage score (unknown is not counted as present).
 - `fullshield vex --format openvex|cyclonedx`. `not_affected` only when reachability is `not-imported`; otherwise `under_investigation`.
 
-Verified alone on `phase-31` (`b95648a`), branched from `be68e49`. This count does not include Phases 29–30.
+Verified alone on `phase-31` (`9b87ded`), branched from `be68e49`. The table below is that solo run and does not include Phases 29–30.
 
 **Verify (`npm run verify:phase 31`, PASSED):**
 
@@ -766,7 +766,7 @@ Verified alone on `phase-31` (`b95648a`), branched from `be68e49`. This count do
 |---|---|---|---|---|---|---|---|---|
 | 31 | 547 | 92.07% | 82.15% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
 
-Provenance attestations are not fetched from the registry. Override apply rewrites the lockfile version in-tree and does not run `npm install`. Packages are never executed.
+Provenance attestations are not fetched from the registry. Override apply writes `package.json` and prints `run npm install`; it does not edit the lockfile. Packages are never executed. VEX validators are structural, not a bundled copy of the published JSON Schemas.
 
 ## Phase 32 — experimental response DLP (on `phase-32`, not merged)
 
@@ -828,7 +828,6 @@ Verified alone on `phase-35` (`5fce3c8`), branched from `be68e49`. This count do
 
 ## Current status
 
-- Local `next` is `f330c33` (Phase 30). It contains Phases 1–30. It is 5 commits ahead of `origin/next` and has not been pushed.
-- Package version in this tree is `0.1.1`. No tag from `next`.
-- Phases 31–35 are verified on `phase-31` through `phase-35` and are not merged into `next`.
+- Local `next` includes Phases 1–31. Phases 32–35 are verified on side branches and are not merged.
+- Package version in this tree is `0.1.1`. No tag from `next`. No pull request. No merge to `main`.
 - Ground truth in `bench/` stays `"reviewed": false`.

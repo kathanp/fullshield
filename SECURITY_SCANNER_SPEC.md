@@ -202,7 +202,7 @@ interface Finding {
 }
 
 interface FixProposal {
-  kind: 'dependency-bump' | 'code-patch' | 'config-add';
+  kind: 'dependency-bump' | 'code-patch' | 'config-add' | 'dependency-override';
   safe: boolean;           // only safe fixes apply without --unsafe
   diff: string;            // unified diff
 }
@@ -684,5 +684,17 @@ Experimental (`FULLSHIELD_EXPERIMENTAL_SECRETS_ADV=1` or `scan --experimental-se
 - `--verify-secrets` (opt-in, never default, never in generated CI templates): check whether a detected key is live using **read-only identity endpoints only** (AWS STS `GetCallerIdentity`, GitHub `GET /user`, Stripe `GET /v1/balance` with restricted check, Slack `auth.test`). Requires an explicit `--i-own-these-credentials` flag. Results: `live | revoked | unknown`. Never logs the key.
 
 Acceptance: history scan finds a secret added and removed in a fixture repo; bundle scan finds a key in a built fixture; verify calls mocked in tests; live verification is impossible without both flags (test asserts).
+
+### Phase 31 — Supply chain, advanced + VEX
+
+Experimental (`FULLSHIELD_EXPERIMENTAL_VEX=1` or `scan --experimental-vex`). Default `scan` must not emit new rule IDs without the flag.
+
+- **Self-replicating worm indicators** in dependency code (static): reads npm/GitHub tokens (`~/.npmrc`, `NPM_TOKEN`, `GITHUB_TOKEN`) combined with `npm publish`, registry PUT requests, GitHub API repo/workflow creation, or writing `.github/workflows/*` files → critical (`SUPPLY-WORM-001`).
+- **Workflow tampering:** flag dependencies whose install scripts or code write into `.github/`, `.git/hooks/`, or CI config files (`SUPPLY-WORKFLOW-001`).
+- **Transitive fix via overrides:** when a vulnerable package is transitive and the direct parent has no fixed release, propose an `overrides` (npm) / `pnpm.overrides` / `resolutions` (yarn) entry as `FixProposal.kind = 'dependency-override'` (unsafe by default). Apply writes that entry into `package.json` and prints `run npm install`. It does not edit `package-lock.json`.
+- **Provenance coverage score:** % of direct and transitive deps published with provenance; trend over time in history DB. Unknown is not counted as present.
+- **VEX output:** `fullshield vex --format openvex|cyclonedx` emits VEX statements from reachability results (`not_affected` with justification `vulnerable_code_not_in_execute_path` only when reachability proves not-imported; otherwise `under_investigation`). Never claim `not_affected` on a guess.
+
+Acceptance: seeded worm-like fixture package detected; after apply, `package.json` contains the override, `package-lock.json` is byte-identical, and the CLI prints `run npm install`; VEX validates against OpenVEX and CycloneDX schemas.
 
 - Show a real before/after: run it on a public, intentionally vulnerable Node app (e.g. OWASP NodeGoat or Juice Shop), list what it found and what it missed. Publishing the misses builds more trust than hiding them.

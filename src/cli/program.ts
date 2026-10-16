@@ -1,5 +1,5 @@
 import { writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 
 import { Command } from 'commander';
 
@@ -66,6 +66,7 @@ interface ScanCliOptions {
   bundle?: string;
   verifySecrets?: boolean;
   iOwnTheseCredentials?: boolean;
+  experimentalVex?: boolean;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -154,6 +155,10 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       '--i-own-these-credentials',
       'required with --verify-secrets: you own these credentials; read-only identity checks only',
     )
+    .option(
+      '--experimental-vex',
+      'experimental: worm/workflow indicators, overrides, provenance, VEX (FULLSHIELD_EXPERIMENTAL_VEX=1)',
+    )
     .action(async (path: string, opts: ScanCliOptions) => {
       try {
         const failOnOverride = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;
@@ -170,6 +175,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
         if (opts.experimentalSecretsAdv === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_SECRETS_ADV = '1';
+        }
+        if (opts.experimentalVex === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_VEX = '1';
         }
 
         const result = await scan({
@@ -279,6 +287,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           process.exitCode = 1;
         } else if (opts.apply === true && result.applied) {
           io.out(`Applied ${result.patches.length} fix(es)${result.branch !== undefined ? ` on ${result.branch}` : ''}.`);
+          if (result.notice !== undefined) io.out(result.notice);
         } else if (opts.apply !== true) {
           io.out('Dry run. Re-run with --apply to write safe fixes.');
         }
@@ -635,6 +644,53 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         const canaries = honeyInit(resolve(path));
         io.out(`wrote honeytokens (.env.backup). decoys: /admin.php /.git/config /wp-login.php`);
         io.out(`canary prefix ${canaries.awsKey.slice(0, 4)}****`);
+      } catch (error) {
+        io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('vex')
+    .description('Experimental VEX from reachability (FULLSHIELD_EXPERIMENTAL_VEX=1)')
+    .argument('[path]', 'project directory', '.')
+    .option('--format <format>', 'openvex | cyclonedx', 'openvex')
+    .option('--out <file>', 'write to this file instead of stdout')
+    .action(async (path: string, opts: { format?: string; out?: string }) => {
+      try {
+        if (process.env.FULLSHIELD_EXPERIMENTAL_VEX !== '1') {
+          throw new Error('vex requires FULLSHIELD_EXPERIMENTAL_VEX=1');
+        }
+        const format = opts.format ?? 'openvex';
+        if (format !== 'openvex' && format !== 'cyclonedx') {
+          throw new Error(`unsupported VEX format "${format}" (valid: openvex, cyclonedx)`);
+        }
+        const cwd = resolve(path);
+        const result = await scan({ cwd, modules: ['deps'] });
+        let name = 'app';
+        let version = '0.0.0';
+        try {
+          const { readFile } = await import('node:fs/promises');
+          const pkg = JSON.parse(await readFile(join(cwd, 'package.json'), 'utf8')) as {
+            name?: unknown;
+            version?: unknown;
+          };
+          if (typeof pkg.name === 'string') name = pkg.name;
+          if (typeof pkg.version === 'string') version = pkg.version;
+        } catch {
+          // package.json optional
+        }
+        const { buildVex, validateCycloneDxVex, validateOpenVex } = await import('../vex/index.js');
+        const doc = buildVex(result.findings, format, { name, version });
+        const errors = format === 'cyclonedx' ? validateCycloneDxVex(doc) : validateOpenVex(doc);
+        if (errors.length > 0) throw new Error(`invalid VEX: ${errors.join('; ')}`);
+        const json = JSON.stringify(doc, null, 2);
+        if (opts.out !== undefined) {
+          await writeFile(resolve(opts.out), json, 'utf8');
+          io.out(`Wrote ${format} VEX to ${opts.out}`);
+        } else {
+          io.out(json);
+        }
       } catch (error) {
         io.err(`fullshield: ${error instanceof Error ? error.message : String(error)}`);
         process.exitCode = 2;

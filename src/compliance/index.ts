@@ -86,6 +86,8 @@ export const RULE_MAP: readonly RuleMapping[] = [
   ROW('SUPPLY-LOCKURL-001', 'A08:2021 Integrity Failures', 'CWE-494', 'V14.2.3', 'PCI DSS 6.3.3'),
   ROW('SUPPLY-CONFUSION-001', 'A08:2021 Integrity Failures', 'CWE-494', 'V14.2.3', 'PCI DSS 6.3.3'),
   ROW('SUPPLY-PROVENANCE-001', 'A08:2021 Integrity Failures', 'CWE-494', 'V14.2.3', 'PCI DSS 6.3.3'),
+  ROW('SUPPLY-WORM-001', 'A06:2021 Vulnerable Components', 'CWE-506', 'V14.2.1', 'PCI DSS 6.3.3 / 12.10'),
+  ROW('SUPPLY-WORKFLOW-001', 'A08:2021 Integrity Failures', 'CWE-829', 'V14.2.3', 'PCI DSS 6.3.3'),
   ROW('IAC-GHA-UNPINNED-001', 'A08:2021 Integrity Failures', 'CWE-494', 'V14.2.3', 'PCI DSS 6.3.3'),
   ROW('IAC-GHA-PRTARGET-001', 'A01:2021 Broken Access Control', 'CWE-269', 'V4.1.1', 'PCI DSS 7.2'),
   ROW('IAC-GHA-PERMS-001', 'A01:2021 Broken Access Control', 'CWE-250', 'V4.1.1', 'PCI DSS 7.2'),

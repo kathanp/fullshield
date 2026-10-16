@@ -1,0 +1,7 @@
+{
+  "ignore": ["osv-cache/**"],
+  "deps": {
+    "offline": true,
+    "cacheDir": "osv-cache"
+  }
+}
