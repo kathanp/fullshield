@@ -86,3 +86,13 @@ Requires `FULLSHIELD_EXPERIMENTAL_DLP=1` and `shieldGuard({ dlp: { mode } })`. N
 | [DLP-INTERNAL-001](DLP-INTERNAL-001.md) | Internal IP or hostname in a response |
 | [DLP-CARD-001](DLP-CARD-001.md) | Luhn-valid card number in a response |
 | [DLP-PII-001](DLP-PII-001.md) | Many emails on a one-email route |
+
+## MCP config (experimental, `FULLSHIELD_EXPERIMENTAL_MCPCFG=1`)
+
+| ID | What |
+|---|---|
+| [MCP-001](MCP-001.md) | Inline secret in MCP client config |
+| [MCP-002](MCP-002.md) | Unpinned `npx` / `@latest` MCP server |
+| [MCP-003](MCP-003.md) | Shell/exec or unrestricted fs-write tool, no allowlist |
+| [MCP-004](MCP-004.md) | Tool-description instruction injection / hidden / ZWC |
+| [MCP-005](MCP-005.md) | Remote MCP over plaintext `http://` |

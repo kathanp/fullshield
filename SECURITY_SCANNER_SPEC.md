@@ -642,6 +642,7 @@ Goal: turn "possible vulnerability" into "**confirmed**, here's the proof" so de
 | 30 | Secrets, advanced: git history, client bundles, opt-in live identity checks | History finds a secret added then removed; bundle finds a key in a built fixture; verify calls mocked; live verification impossible without both `--verify-secrets` and `--i-own-these-credentials`. Behind `FULLSHIELD_EXPERIMENTAL_SECRETS_ADV` |
 | 31 | Supply chain advanced + VEX: worm/workflow indicators, dependency overrides, provenance score | Seeded worm fixture behind the flag; override apply writes `package.json`, leaves `package-lock.json` byte-identical, and prints `run npm install`; VEX validates. Behind `FULLSHIELD_EXPERIMENTAL_VEX` |
 | 32 | Runtime response DLP (outgoing JSON/text) | Fixtures per leak type; zero masking on a benign corpus; p95 extra < 1ms for ≤64 KB; behind `FULLSHIELD_EXPERIMENTAL_DLP=1` |
+| 33 | MCP client/server config rules | Positive and negative fixtures for `MCP-001`–`MCP-005`; no network; home-dir scan impossible without `--include-home`; behind `FULLSHIELD_EXPERIMENTAL_MCPCFG` |
 
 ### Phase 26 — Public benchmark run (credibility first)
 
@@ -708,5 +709,15 @@ Optional `shieldGuard({ dlp: { mode: 'monitor' | 'mask' | 'block' } })` inspects
 - Behind `FULLSHIELD_EXPERIMENTAL_DLP=1`. Without the flag, `shieldGuard` behavior and default `scan` output are unchanged.
 
 Acceptance: fixtures for each leak type; zero masking on a benign response corpus; benchmark test enforces the budget.
+
+### Phase 33 — AI agent and MCP configuration security
+
+Experimental (`FULLSHIELD_EXPERIMENTAL_MCPCFG=1` or `scan --experimental-mcpcfg`). Default `scan` emits no `MCP-*` IDs. No network.
+
+- Scan MCP client configs in the repo and, only with `scan --include-home`, the user's home: `.cursor/mcp.json`, `.vscode/mcp.json`, `.mcp.json`, Claude Desktop config.
+- `MCP-001` secrets inline in config → high. `MCP-002` unpinned `npx` / `@latest` → medium. `MCP-003` shell/exec or unrestricted filesystem-write tools without an allowlist → medium. `MCP-004` tool-description instruction injection, hidden text, or zero-width characters → high. `MCP-005` remote MCP over plain `http://` → medium.
+- Model-provided MCP tool arguments are taint sources. Optional `guardTools(tools, { allow, confirm })` deny-lists dangerous tools, requires confirm for writes/payments, and logs every call. It is not auto-wrapped onto scanned servers.
+
+Acceptance: positive and negative fixtures for each rule; no network calls; home-dir scan impossible without `--include-home`.
 
 - Show a real before/after: run it on a public, intentionally vulnerable Node app (e.g. OWASP NodeGoat or Juice Shop), list what it found and what it missed. Publishing the misses builds more trust than hiding them.

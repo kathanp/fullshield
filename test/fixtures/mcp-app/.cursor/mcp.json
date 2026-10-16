@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github@latest"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "inline-not-from-env-Ab3dEf9hIjKlMnOpQrStUvWx"
+      }
+    },
+    "remote": {
+      "url": "http://mcp.example.invalid/sse"
+    }
+  }
+}

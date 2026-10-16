@@ -4,6 +4,13 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+### Phase 33 — MCP configuration security (experimental)
+
+- `FULLSHIELD_EXPERIMENTAL_MCPCFG=1` / `scan --experimental-mcpcfg` scans MCP client configs (`.cursor/mcp.json`, `.vscode/mcp.json`, `.mcp.json`, Claude Desktop) and MCP server code. Default `scan` emits no `MCP-*` IDs.
+- `MCP-001` inline secrets (high), `MCP-002` unpinned `npx` / `@latest` (medium), `MCP-003` shell/exec or unrestricted fs-write tools without an allowlist (medium), `MCP-004` tool-description instruction injection / hidden / zero-width characters (high), `MCP-005` remote MCP over `http://` (medium).
+- Home-dir configs are scanned only with `scan --include-home` (never implied). No network.
+- Model-provided MCP tool arguments are taint sources when the flag is on. Optional `guardTools(tools, { allow, confirm })` deny-lists dangerous tools, requires confirm for writes/payments, and logs every call.
+
 ### Phase 32 — experimental response DLP
 
 - Optional `shieldGuard({ dlp: { mode: 'monitor' | 'mask' | 'block' } })` inspects outgoing JSON/text (size-capped at 64 KB) for secret patterns (same regexes as the secrets module), stack traces, internal IPs/hostnames, Luhn card numbers, and bulk emails on a one-email route.

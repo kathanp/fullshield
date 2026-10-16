@@ -784,20 +784,20 @@ Verified alone on `phase-32` (`2b5ee52`), branched from `be68e49`: 540 tests, 92
 
 Chunked or streaming bodies are not inspected. JWT, session, and entropy assignment rules are not applied to responses. IPv6 unique-local is not flagged. The latency budget is enforced on the built bundle via `scripts/dlp-bench.mjs`. The 540-test row above is the solo branch run.
 
-## Phase 33 — MCP configuration security (on `phase-33`, not merged)
+## Phase 33 — MCP configuration security (merged into `next`)
 
 Experimental (`FULLSHIELD_EXPERIMENTAL_MCPCFG=1` / `scan --experimental-mcpcfg`). Default `scan` emits no `MCP-*` IDs. Home-dir scan only with `scan --include-home`. No network.
 
 - `MCP-001` inline secrets (high, masked). `MCP-002` unpinned `npx` / `@latest` (medium). `MCP-003` shell/exec or unrestricted fs-write without an allowlist (medium). `MCP-004` tool-description injection (high). `MCP-005` remote MCP over `http://` (medium).
 - Model-provided MCP tool arguments are taint sources. Optional `guardTools` is library code, not auto-wrapped onto scanned servers.
 
-Verified alone on `phase-33` (`daba56f`), branched from `be68e49`. This count does not include Phases 29–32.
+Verified alone on `phase-33` (`daba56f`), branched from `be68e49`: 543 tests, 92.59% lines / 82.9% branches. That count does not include Phases 29–32. Heuristic JSON and phrase checks only. `guardTools` is opt-in library code and is not auto-wrapped onto scanned servers.
 
-**Verify (`npm run verify:phase 33`, PASSED):**
+**Verify on `next` after the merge (`npm run verify:phase 33`, PASSED):**
 
 | phase | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
 |---|---|---|---|---|---|---|---|---|
-| 33 | 543 | 92.59% | 82.9% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+| 33 | 659 | 92.59% | 82.02% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
 
 ## Phase 34 — policy-as-code + PR summary (on `phase-34`, not merged)
 
@@ -828,6 +828,6 @@ Verified alone on `phase-35` (`5fce3c8`), branched from `be68e49`. This count do
 
 ## Current status
 
-- Local `next` includes Phases 1–32. Phases 33–35 are verified on side branches and are not merged.
+- Local `next` includes Phases 1–33. Phases 34–35 are verified on side branches and are not merged.
 - Package version in this tree is `0.1.1`. No tag from `next`. No pull request. No merge to `main`.
 - Ground truth in `bench/` stays `"reviewed": false`.

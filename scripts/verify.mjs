@@ -76,6 +76,7 @@ const PREVIOUS_PHASE_TESTS = {
   30: 593,
   31: 620,
   32: 638,
+  33: 659,
 };
 
 function listFilesRecursive(dir, out = []) {
@@ -1441,6 +1442,52 @@ s.listen(0, '127.0.0.1', () => {
     if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_DLP;
     else process.env.FULLSHIELD_EXPERIMENTAL_DLP = prev;
     console.log('  ✔ experimental DLP flag, fixtures, no default-scan DLP ids, runtime has no sqlite/scanner import');
+  },
+  // Phase 33: MCP client/server config rules behind FULLSHIELD_EXPERIMENTAL_MCPCFG.
+  33: async () => {
+    const mcp = await import(pathToFileURL(join(root, 'dist', 'index.js')).href);
+    const compliance = await import(pathToFileURL(join(root, 'dist', 'compliance.js')).href);
+    const app = join(root, 'test', 'fixtures', 'mcp-app');
+    const clean = join(root, 'test', 'fixtures', 'mcp-clean');
+    const bad = mcp.scanMcpConfig(app, { experimental: true });
+    for (const id of ['MCP-001', 'MCP-002', 'MCP-003', 'MCP-004', 'MCP-005']) {
+      if (!bad.some((f) => f.ruleId === id)) fail(`phase 33 acceptance: missing ${id} on mcp-app`);
+    }
+    const good = mcp.scanMcpConfig(clean, { experimental: true });
+    if (good.some((f) => String(f.ruleId).startsWith('MCP-'))) {
+      fail(`phase 33 acceptance: mcp-clean produced ${good.map((f) => f.ruleId).join(',')}`);
+    }
+    if (mcp.scanMcpConfig(app).some((f) => String(f.ruleId).startsWith('MCP-'))) {
+      fail('phase 33 acceptance: MCP rules ran without experimental flag');
+    }
+    const homeHits = mcp.scanMcpConfig(clean, { experimental: true, includeHome: false });
+    if (homeHits.some((f) => String(f.ruleId).startsWith('MCP-'))) {
+      fail('phase 33 acceptance: home scan ran without --include-home');
+    }
+    const mapped = new Set(compliance.RULE_MAP.map((r) => r.ruleId));
+    for (const id of ['MCP-001', 'MCP-002', 'MCP-003', 'MCP-004', 'MCP-005']) {
+      if (!mapped.has(id)) fail(`phase 33 acceptance: missing compliance row ${id}`);
+    }
+    const cliHelp = spawnSync(
+      process.execPath,
+      [join(root, 'dist', 'cli', 'index.js'), 'scan', '--help'],
+      { cwd: root, encoding: 'utf8' },
+    );
+
+    if (!cliHelp.stdout.includes('--include-home')) {
+      fail('phase 33 acceptance: scan --help missing --include-home');
+    }
+    if (!cliHelp.stdout.includes('--experimental-mcpcfg')) {
+      fail('phase 33 acceptance: scan --help missing --experimental-mcpcfg');
+    }
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    if (!readme.includes('FULLSHIELD_EXPERIMENTAL_MCPCFG')) {
+      fail('phase 33 acceptance: README must document FULLSHIELD_EXPERIMENTAL_MCPCFG');
+    }
+    const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+    const depCount = Object.keys(pkg.dependencies ?? {}).length;
+    if (depCount > 10) fail(`phase 33 acceptance: new hard dependency added (${depCount} > 10)`);
+    console.log('  ✔ MCP-001..005 positive/negative; off without flag; home requires --include-home; no new deps');
   },
 };
 

@@ -12,3 +12,8 @@ export function frameworksEnabled(): boolean {
 export function classesEnabled(): boolean {
   return process.env.FULLSHIELD_EXPERIMENTAL_CLASSES === '1';
 }
+
+/** Phase 33 MCP config/taint. Off unless FULLSHIELD_EXPERIMENTAL_MCPCFG=1. */
+export function mcpCfgEnabled(): boolean {
+  return process.env.FULLSHIELD_EXPERIMENTAL_MCPCFG === '1';
+}

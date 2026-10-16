@@ -125,6 +125,11 @@ export const RULE_MAP: readonly RuleMapping[] = [
   ROW('DLP-INTERNAL-001', 'A01:2021 Broken Access Control', 'CWE-200', 'V8.3.4', 'PCI DSS 1.3 / 2.2'),
   ROW('DLP-CARD-001', 'A02:2021 Cryptographic Failures', 'CWE-359', 'V8.3.4', 'PCI DSS 3.3 / 3.4'),
   ROW('DLP-PII-001', 'A01:2021 Broken Access Control', 'CWE-359', 'V8.3.4', 'PCI DSS 3.2 / 6.4.2'),
+  ROW('MCP-001', 'A02:2021 Cryptographic Failures', 'CWE-798', 'V6.4.1', 'PCI DSS 3.2 / 8.3'),
+  ROW('MCP-002', 'A08:2021 Integrity Failures', 'CWE-494', 'V14.2.3', 'PCI DSS 6.3.3'),
+  ROW('MCP-003', 'A01:2021 Broken Access Control', 'CWE-250', 'V4.1.1', 'PCI DSS 7.2'),
+  ROW('MCP-004', 'A03:2021 Injection', 'CWE-74', 'V5.3.3', 'PCI DSS 6.2.4'),
+  ROW('MCP-005', 'A02:2021 Cryptographic Failures', 'CWE-319', 'V9.1.1', 'PCI DSS 4.2'),
 ];
 
 const byId = new Map(RULE_MAP.map((r) => [r.ruleId, r]));
@@ -154,7 +159,7 @@ export function renderCompliance(
 
 export function collectRuleIdsFromSources(texts: readonly string[]): string[] {
   const ids = new Set<string>();
-  const re = /\b((?:SAST|SECRET|DEPS|CONFIG|EDGE|AI|LLM|SUPPLY|IAC|RASP|RUNTIME|DLP)-[A-Z0-9]+-\d{3})\b/g;
+  const re = /\b((?:SAST|SECRET|DEPS|CONFIG|EDGE|AI|LLM|SUPPLY|IAC|RASP|RUNTIME|DLP|MCP)(?:-[A-Z0-9]+)*-\d{3})\b/g;
   for (const text of texts) {
     let m: RegExpExecArray | null;
     while ((m = re.exec(text)) !== null) ids.add(m[1] ?? '');

@@ -67,6 +67,8 @@ interface ScanCliOptions {
   verifySecrets?: boolean;
   iOwnTheseCredentials?: boolean;
   experimentalVex?: boolean;
+  experimentalMcpcfg?: boolean;
+  includeHome?: boolean;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -159,6 +161,14 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       '--experimental-vex',
       'experimental: worm/workflow indicators, overrides, provenance, VEX (FULLSHIELD_EXPERIMENTAL_VEX=1)',
     )
+    .option(
+      '--experimental-mcpcfg',
+      'experimental: MCP client/server config rules (FULLSHIELD_EXPERIMENTAL_MCPCFG=1)',
+    )
+    .option(
+      '--include-home',
+      'experimental: also scan MCP configs in the home directory (requires FULLSHIELD_EXPERIMENTAL_MCPCFG=1)',
+    )
     .action(async (path: string, opts: ScanCliOptions) => {
       try {
         const failOnOverride = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;
@@ -179,10 +189,14 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         if (opts.experimentalVex === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_VEX = '1';
         }
+        if (opts.experimentalMcpcfg === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_MCPCFG = '1';
+        }
 
         const result = await scan({
           cwd: resolve(path),
           modules,
+          includeHome: opts.includeHome === true,
           configPath: opts.config,
           staged: opts.staged === true,
           offline: opts.offline === true || opts.offlineSafe === true,

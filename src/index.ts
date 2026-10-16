@@ -44,6 +44,8 @@ export { runFix } from './fixer/index.js';
 export type { FixOptions, FixPatch, FixResult } from './fixer/index.js';
 export { createAiClient, isInternalAi, isLiveAi } from './ai/provider.js';
 export { scanTextForSecrets } from './modules/secrets/index.js';
+export { guardTools, mcpCfgEnabled, mcpHomeConfigPaths, scanMcpConfig } from './modules/mcp/index.js';
+export type { GuardTool, GuardToolCall, McpScanOptions } from './modules/mcp/index.js';
 export { runAiFix } from './ai/fixLoop.js';
 export { applyBaseline, readBaseline, writeBaseline } from './core/baseline.js';
 export type { BaselineFile } from './core/baseline.js';

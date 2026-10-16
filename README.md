@@ -29,6 +29,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 | Supply-chain install (opt-in, **experimental**) | `fullshield install` — static only; never executes packages. |
 | Exploit confirm (opt-in, **experimental**) | `fullshield confirm` — localhost / 127.0.0.1 / FullShield-started container only. |
 | Editor MCP (opt-in, **experimental**) | `fullshield mcp --stdio` — read-only; `propose_fix` returns diffs, never writes. |
+| MCP client/server config (opt-in, **experimental**) | `MCP-001`–`MCP-005` (`FULLSHIELD_EXPERIMENTAL_MCPCFG=1`). Home-dir configs only with `scan --include-home`. |
 | Threat model / dashboard (opt-in, **experimental**) | STRIDE+Mermaid sketch; dashboard binds 127.0.0.1 and locks `Host`. |
 | Compliance / IaC (opt-in, **experimental**) | Mapping is **not a certification or audit**. IaC is ~10 high-value rules, not a full IaC scanner. |
 | Remediation agent (opt-in, **experimental**) | Localhost mock GitHub API + local git only. Never merges, never pushes to `main`/`master`. |
@@ -54,7 +55,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
   - RASP / virtual patches / honeytokens / threat auto-block: fail-open hooks; decoy-route hits are low and never auto-block; auto-block is opt-in (shared-IP / NAT risk).
   - `install` / supply-chain: static heuristics only; never a substitute for `npm audit` policy or a malware sandbox.
   - `confirm`: harmless canaries on localhost only; fail-open (`unconfirmed` is not a pass).
-  - MCP / LLM-app rules: editor glue and shallow AST/phrase checks. Not a prompt-injection or tool-abuse guarantee.
+  - MCP / LLM-app rules: editor glue and shallow AST/phrase checks. Not a prompt-injection or tool-abuse guarantee. `MCP-001`–`MCP-005` (`FULLSHIELD_EXPERIMENTAL_MCPCFG=1`) scan client configs and MCP server code; they do not inspect running MCP traffic and never scan `$HOME` unless `scan --include-home`.
   - Threat-model / incremental / dashboard: a route sketch and a local history UI. Not a STRIDE workshop or a hosted SOC.
   - `report --compliance` / `iac`: evidence-style mapping and a short IaC ruleset. **Not a certification or audit.**
   - `agent`: opens PRs against a **mock/localhost API and a local git remote**. It never talks to real GitHub, never merges, never pushes to protected branches.
@@ -154,6 +155,8 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | `scan --experimental-classes` | **Experimental** extra vuln classes: ReDoS, deser, XXE, upload, cookies, CSRF, mass assignment, timing compare, hash cost, GraphQL, trust-proxy (`FULLSHIELD_EXPERIMENTAL_CLASSES=1`). Default `scan` is unchanged. |
 | `scan --history` / `--bundle <dir>` / `--verify-secrets` | **Experimental** secrets advanced (`FULLSHIELD_EXPERIMENTAL_SECRETS_ADV=1` or `scan --experimental-secrets-adv`). History streams `git log -p` (first-introduced commit, still-at-HEAD). Bundle scans `dist/` `.next/static` `build/` for browser-exposed keys including `NEXT_PUBLIC_*`/`VITE_*`. `--verify-secrets` is never default and is **not** in generated CI templates; it needs `--i-own-these-credentials` and only hits read-only identity endpoints (AWS STS GetCallerIdentity, GitHub `GET /user`, Stripe `GET /v1/balance`, Slack `auth.test`). Results: `live` / `revoked` / `unknown`. The key is never logged. |
 | `vex` | **Experimental** OpenVEX / CycloneDX VEX from reachability (`FULLSHIELD_EXPERIMENTAL_VEX=1`). `not_affected` + `vulnerable_code_not_in_execute_path` only when reachability is `not-imported`; otherwise `under_investigation`. Never guessed. Also enables worm/workflow indicators, unsafe `dependency-override` proposals, and a provenance coverage score. Apply writes `package.json` and prints `run npm install`; it does not edit the lockfile. |
+| `scan --experimental-mcpcfg` | **Experimental** MCP client/server config rules `MCP-001`–`MCP-005` (`FULLSHIELD_EXPERIMENTAL_MCPCFG=1`). Default `scan` emits no `MCP-*` IDs. |
+| `scan --include-home` | **Experimental** also scan MCP configs under the user home (`.cursor/mcp.json`, `.vscode/mcp.json`, `.mcp.json`, Claude Desktop). Requires `FULLSHIELD_EXPERIMENTAL_MCPCFG=1`. Never implied. |
 
 Inline ignore (reason required): `// fullshield-ignore SAST-SQLI-001: reviewed`
 

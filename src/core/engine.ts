@@ -4,6 +4,7 @@ import { performance } from 'node:perf_hooks';
 
 import { configModule } from '../modules/config/index.js';
 import { depsModule } from '../modules/deps/index.js';
+import { scanMcpConfig } from '../modules/mcp/index.js';
 import { sastModule } from '../modules/sast/index.js';
 import { secretsModule } from '../modules/secrets/index.js';
 import { secretsAdvEnabled } from '../modules/secrets/experimental.js';
@@ -66,6 +67,8 @@ export interface ScanOptions {
   iOwnTheseCredentials?: boolean;
   /** Injected fetch for --verify-secrets tests. */
   verifyFetch?: typeof fetch;
+  /** Phase 33: scan MCP configs under the user home (requires FULLSHIELD_EXPERIMENTAL_MCPCFG=1). */
+  includeHome?: boolean;
 }
 
 export interface ScanMetadata {
@@ -168,6 +171,11 @@ export async function runScan(
     if (module !== undefined) {
       collected.push(...(await module.run(ctx)));
     }
+  }
+  if (process.env.FULLSHIELD_EXPERIMENTAL_MCPCFG === '1') {
+    collected.push(
+      ...scanMcpConfig(cwd, { experimental: true, includeHome: options.includeHome === true }),
+    );
   }
 
   const extraHits: SecretHit[] = [];
