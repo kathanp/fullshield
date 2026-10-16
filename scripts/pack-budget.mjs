@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { packBudgetErrors } from './release-checks.mjs';
+import { baselineTag, packBudgetErrors, packReportEntry, parseLeadingJson } from './release-checks.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const isWindows = process.platform === 'win32';
@@ -33,14 +33,21 @@ function main() {
     console.error(packed.stderr || packed.stdout);
     process.exit(2);
   }
-  const jsonStart = packed.stdout.indexOf('[');
-  const report = JSON.parse(packed.stdout.slice(jsonStart));
-  const entry = report[0];
+  const entry = packReportEntry(parseLeadingJson(packed.stdout));
   const tags = spawnSync('git', ['tag', '--list', 'v*', '--sort=-v:refname'], {
     cwd: root,
     encoding: 'utf8',
   }).stdout.trim().split('\n').filter(Boolean);
-  const previous = tags.length > 0 ? gitShow(tags[0], 'package.json') : null;
+  const head = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).stdout.trim();
+  let previousTag = '';
+  try {
+    previousTag = baselineTag(tags, head, (tag) =>
+      spawnSync('git', ['rev-parse', `${tag}^{}`], { cwd: root, encoding: 'utf8' }).stdout.trim(),
+    );
+  } catch {
+    previousTag = '';
+  }
+  const previous = previousTag !== '' ? gitShow(previousTag, 'package.json') : null;
   const previousDeps = previous ? hardDeps(JSON.parse(previous)) : hardDeps(JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')));
   const current = hardDeps(JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')));
   const unpackedBytes = entry.unpackedSize ?? 0;

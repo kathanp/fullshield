@@ -13,6 +13,8 @@ import {
   diffFindingKeys,
   formatSnapshotDiff,
   packBudgetErrors,
+  packReportEntry,
+  parseLeadingJson,
   requiredBump,
 } from '../../../scripts/release-checks.mjs';
 
@@ -48,6 +50,13 @@ describe('Phase 36 release checks', () => {
     expect(bumpSatisfies('patch', 'minor')).toBe(false);
     expect(bumpSatisfies('none', 'patch')).toBe(false);
     expect(bumpSatisfies('decrease', 'patch')).toBe(false);
+  });
+
+  it('reads an npm 11 array and an npm 12 object from pack output', () => {
+    const npm11 = 'npm notice\n[{"unpackedSize": 10, "files": [{"path": "a"}]}]\n';
+    const npm12 = '{"fullshield": {"unpackedSize": 20, "files": [{"path": "b"}]}}\n';
+    expect(packReportEntry(parseLeadingJson(npm11)).unpackedSize).toBe(10);
+    expect(packReportEntry(parseLeadingJson(npm12)).files).toHaveLength(1);
   });
 
   it('fails the pack budget on size, file count, or a new hard dependency', () => {

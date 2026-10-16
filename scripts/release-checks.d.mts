@@ -12,6 +12,11 @@ export function requiredBump(signals: {
 }): 'minor' | 'patch';
 export function bumpSatisfies(actual: string, required: string): boolean;
 export function baselineTag(tags: string[], headSha: string, tagSha: (tag: string) => string): string;
+export function parseLeadingJson(text: string): unknown;
+export function packReportEntry(report: unknown): {
+  unpackedSize?: number;
+  files?: unknown[];
+};
 export function packBudgetErrors(pack: {
   unpackedBytes: number;
   fileCount: number;

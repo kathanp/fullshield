@@ -44,6 +44,54 @@ export function bumpSatisfies(actual, required) {
  * @param {string} headSha
  * @param {(tag: string) => string} tagSha
  */
+function jsonValueEnd(body) {
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = 0; i < body.length; i += 1) {
+    const ch = body[i];
+    if (inString) {
+      if (escape) escape = false;
+      else if (ch === '\\') escape = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === '{' || ch === '[') depth += 1;
+    else if (ch === '}' || ch === ']') {
+      depth -= 1;
+      if (depth === 0) return i + 1;
+    }
+  }
+  throw new Error('unterminated JSON in npm pack output');
+}
+
+/** One JSON value from npm pack output. npm 11 prints an array; npm 12 prints an object, then the files array. */
+export function parseLeadingJson(text) {
+  const objectAt = text.indexOf('{');
+  const arrayAt = text.indexOf('[');
+  const starts = [objectAt, arrayAt].filter((index) => index >= 0);
+  if (starts.length === 0) throw new Error('no JSON in npm pack output');
+  const start = Math.min(...starts);
+  const body = text.slice(start);
+  return JSON.parse(body.slice(0, jsonValueEnd(body)));
+}
+
+/** @param {unknown} report */
+export function packReportEntry(report) {
+  if (Array.isArray(report)) {
+    if (report[0] == null || typeof report[0] !== 'object') throw new Error('npm pack JSON array was empty');
+    return report[0];
+  }
+  if (report !== null && typeof report === 'object') {
+    const entry = Object.values(report).find(
+      (value) => value !== null && typeof value === 'object' && ('files' in value || 'unpackedSize' in value),
+    );
+    if (entry !== undefined) return entry;
+  }
+  throw new Error('npm pack JSON has no pack entry');
+}
+
 export function baselineTag(tags, headSha, tagSha) {
   for (const tag of tags) {
     if (tagSha(tag) !== headSha) return tag;

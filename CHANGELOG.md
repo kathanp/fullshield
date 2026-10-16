@@ -2,6 +2,10 @@
 
 All notable changes to FullShield are documented here.
 
+## 0.2.4 — 2026-10-16
+
+- Publish installs npm 12. `npm pack --json` is now an object, and the pack budget was parsing the inner `files` array. It reads the pack entry from either shape.
+
 ## 0.2.3 — 2026-10-16
 
 - The publish checkout was shallow, so `semver-check` could see only the tag being released. That job now fetches full history and tags before comparing versions.
