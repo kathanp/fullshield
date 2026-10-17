@@ -18,7 +18,7 @@ export interface BaselineFile {
 }
 
 function isIsoDate(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}(T[\d:.+-Z]+)?$/.test(value)) return false;
+  if (!/^\d{4}-\d{2}-\d{2}(T[\d:.+\-Z]+)?$/.test(value)) return false;
   return Number.isFinite(Date.parse(value));
 }
 
