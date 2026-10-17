@@ -1,4 +1,5 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -65,6 +66,8 @@ describe('Phase 23 IaC rules (experimental)', () => {
       'IAC-TF-UNENCRYPTED-001',
       'IAC-K8S-PRIV-001',
       'IAC-GHA-SECRETLOG-001',
+      'IAC-GHA-INJECT-001',
+      'IAC-GHA-PRCHECKOUT-001',
       'IAC-COMPOSE-PRIV-001',
     ]));
   });
@@ -75,5 +78,69 @@ describe('Phase 23 IaC rules (experimental)', () => {
 
   it('is a no-op without experimental', () => {
     expect(scanIac(iacApp)).toEqual([]);
+  });
+
+  it('flags each GitHub Actions check on its own workflow', () => {
+    const sha = '0123456789abcdef0123456789abcdef01234567';
+    const cases: Array<{ yaml: string; hit: string; miss: string }> = [
+      {
+        yaml: 'jobs:\n  build:\n    steps:\n      - uses: actions/checkout@v4\n',
+        hit: 'IAC-GHA-UNPINNED-001',
+        miss: 'IAC-GHA-PERMS-001',
+      },
+      {
+        yaml: `jobs:\n  build:\n    steps:\n      - uses: actions/checkout@${sha}\n`,
+        hit: '',
+        miss: 'IAC-GHA-UNPINNED-001',
+      },
+      {
+        yaml: 'on: pull_request_target\njobs: {}\n',
+        hit: 'IAC-GHA-PRTARGET-001',
+        miss: 'IAC-GHA-PRCHECKOUT-001',
+      },
+      {
+        yaml: 'permissions: write-all\n',
+        hit: 'IAC-GHA-PERMS-001',
+        miss: 'IAC-GHA-UNPINNED-001',
+      },
+      {
+        yaml: 'permissions:\n  contents: write\n',
+        hit: 'IAC-GHA-PERMS-001',
+        miss: 'IAC-GHA-SECRETLOG-001',
+      },
+      {
+        yaml: 'permissions:\n  contents: read\n',
+        hit: '',
+        miss: 'IAC-GHA-PERMS-001',
+      },
+      {
+        yaml: 'jobs:\n  build:\n    steps:\n      - run: echo "${{ github.event.pull_request.title }}"\n',
+        hit: 'IAC-GHA-INJECT-001',
+        miss: 'IAC-GHA-PRTARGET-001',
+      },
+      {
+        yaml: 'on: pull_request_target\njobs:\n  build:\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          ref: ${{ github.event.pull_request.head.sha }}\n',
+        hit: 'IAC-GHA-PRCHECKOUT-001',
+        miss: 'IAC-GHA-SECRETLOG-001',
+      },
+      {
+        yaml: 'jobs:\n  build:\n    steps:\n      - run: echo ${{ secrets.TOKEN }}\n',
+        hit: 'IAC-GHA-SECRETLOG-001',
+        miss: 'IAC-GHA-INJECT-001',
+      },
+    ];
+    for (const item of cases) {
+      const dir = mkdtempSync(join(tmpdir(), 'fullshield-iac-'));
+      try {
+        const workflowDir = join(dir, '.github', 'workflows');
+        mkdirSync(workflowDir, { recursive: true });
+        writeFileSync(join(workflowDir, 'ci.yml'), item.yaml);
+        const ids = scanIac(dir, { experimental: true }).map((f) => f.ruleId);
+        if (item.hit.length > 0) expect(ids, item.hit).toContain(item.hit);
+        expect(ids, item.miss).not.toContain(item.miss);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    }
   });
 });

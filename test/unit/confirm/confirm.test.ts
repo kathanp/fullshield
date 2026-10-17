@@ -9,6 +9,8 @@ const require = createRequire(import.meta.url);
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { hasNodeSqlite } from '../../helpers/sqlite.js';
+
 import {
   assertLocalTarget,
   buildCanary,
@@ -74,7 +76,7 @@ describe('Phase 20 exploit confirm (localhost only, experimental)', () => {
   });
 });
 
-describe('Phase 20 confirmation against a local seeded app', () => {
+describe.skipIf(!hasNodeSqlite())('Phase 20 confirmation against a local seeded app', () => {
   let base = '';
   let server: ReturnType<typeof createServer>;
   let dir = '';

@@ -43,8 +43,8 @@ describe('Phase 44 developer experience', () => {
       delete process.env.FULLSHIELD_EXPERIMENTAL_TAINT_V2;
     }
     expect(nodeOk('22.13.0')).toBe(true);
-    expect(nodeOk('22.12.9')).toBe(false);
-    expect(nodeOk('21.0.0')).toBe(false);
+    expect(nodeOk('20.11.0')).toBe(true);
+    expect(nodeOk('20.10.9')).toBe(false);
     expect(nodeOk('24')).toBe(true);
     expect(formatCliError('plain failure', false)).toContain('FS-E000');
   });

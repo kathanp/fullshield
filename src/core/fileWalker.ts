@@ -12,10 +12,35 @@ export interface WalkOptions {
   cwd: string;
   /** Extra gitignore-style patterns (from config) on top of .gitignore. */
   ignore?: string[];
+  /**
+   * When false, `excludes` / `DEFAULT_EXCLUDES` are not applied.
+   * `.git/` and `.fullshield/` are still ignored.
+   */
+  defaultExcludes?: boolean;
+  /** Replaces `DEFAULT_EXCLUDES` when set. Ignored when `defaultExcludes` is false. */
+  excludes?: string[];
 }
 
-/** Always ignored regardless of .gitignore/config. */
-const ALWAYS_IGNORED = ['.git/', 'node_modules/', '.fullshield/'];
+/** Scanner internals. Not turned off by config. */
+const HARD_IGNORED = ['.git/', '.fullshield/'];
+
+/**
+ * Generated, vendored, and minified trees. On by default.
+ * Turn off with `defaultExcludes: false`, or replace via `excludes`.
+ */
+export const DEFAULT_EXCLUDES = [
+  'node_modules/',
+  'dist/',
+  'build/',
+  '.next/',
+  'coverage/',
+  'vendor/',
+  'vendored/',
+  'third_party/',
+  'third-party/',
+  'compiled/',
+  '*.min.js',
+];
 
 /**
  * Recursively list files under `cwd`, respecting the project's .gitignore and
@@ -24,7 +49,10 @@ const ALWAYS_IGNORED = ['.git/', 'node_modules/', '.fullshield/'];
  */
 export async function walkFiles(options: WalkOptions): Promise<string[]> {
   const ig = ignoreFactory();
-  ig.add(ALWAYS_IGNORED);
+  ig.add(HARD_IGNORED);
+  if (options.defaultExcludes !== false) {
+    ig.add(options.excludes ?? DEFAULT_EXCLUDES);
+  }
   try {
     ig.add(await readFile(join(options.cwd, '.gitignore'), 'utf8'));
   } catch {

@@ -1,0 +1,66 @@
+id,ruleId,severity,file,line,code snippet (5 lines),message,label,reviewer,note
+5475b2db09f93dc8,CONFIG-ERRSTACK-001,medium,test/error.test.js,378,"    err: {
+      type: 'Error',
+      stack: err.stack,
+      message: err.message
+    },",err.stack is sent in a response and can leak internals.,,,
+272ae34f362901f0,CONFIG-ERRSTACK-001,medium,test/error.test.js,331,"      err: {
+        type: 'Error',
+        stack: err.stack,
+        message: err.message
+      }",err.stack is sent in a response and can leak internals.,,,
+9f9ff8e002e2c4e6,CONFIG-ERRSTACK-001,medium,test/error.test.js,175,"      type: 'Error',
+      message: err.message,
+      stack: err.stack
+    },
+    msg: err.message",err.stack is sent in a response and can leak internals.,,,
+3ffa40e698bd3780,CONFIG-ERRSTACK-001,medium,test/basic.test.js,190,"        type: 'Error',
+        message: err.message,
+        stack: err.stack
+      },
+      msg: err.message",err.stack is sent in a response and can leak internals.,,,
+35993c294d2d91ff,CONFIG-ERRSTACK-001,medium,test/error.test.js,266,"      type: 'Error',
+      message: err.message,
+      stack: err.stack
+    },
+    msg: err.message",err.stack is sent in a response and can leak internals.,,,
+72f07ddaba996a77,CONFIG-ERRSTACK-001,medium,test/error.test.js,34,"      type: 'Error',
+      message: err.message,
+      stack: err.stack,
+      foo: err.foo
+    },",err.stack is sent in a response and can leak internals.,,,
+53e34c166fc7b3b3,CONFIG-ERRSTACK-001,medium,test/error.test.js,222,"      type: 'Error',
+      message: err.message,
+      stack: err.stack
+    },
+    msg: err.message",err.stack is sent in a response and can leak internals.,,,
+d3eb5ee23b0a7434,CONFIG-ERRSTACK-001,medium,test/error.test.js,398,"    err: {
+      type: 'Error',
+      stack: err.stack,
+      message: err.message
+    },",err.stack is sent in a response and can leak internals.,,,
+b349071ca4b3a2e5,DEPS-NOLOCK-001,info,package.json,,"{
+  ""name"": ""pino"",
+  ""version"": ""10.4.0"",
+  ""description"": ""super fast, all natural json logger"",
+  ""main"": ""pino.js"",",No lockfile found; dependency vulnerabilities were not checked.,,,
+6d45b38e0ecdedb2,SAST-EVAL-001,high,benchmarks/utils/wrap-log-level.js,19,"
+  const script = new vm.Script(code)
+  script.runInContext(context)
+
+  const loglevel = sandbox.log",eval / vm.runInNewContext is called with a non-literal argument.,,,
+70cd2c97fa2b2fe3,SECRET-DBURL-001,high,docs/transports.md,1052,"
+```
+node app.js | pino-mq -u ""amqp://guest:guest@localhost/"" -q ""pino-logs""
+```
+",Database connection string with inline password (gues****).,,,
+9b492ad0ec9d2bca,SECRET-DBURL-001,high,docs/transports.md,1136,"
+```sh
+$ node app.js | pino-redis -U redis://username:password@localhost:6379
+```
+",Database connection string with inline password (pass****).,,,
+076af396178d2871,SECRET-ENTROPY-001,medium,docs/transports.md,1370,"    options: {
+      chatId: -1234567890,
+      botToken: ""123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"",
+      extra: {
+              parse_mode: ""HTML"",",High-entropy string assigned to a secret-like variable (1234****).,,,

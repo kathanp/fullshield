@@ -1,5 +1,6 @@
 import type { ScanResult } from '../core/engine.js';
 import { SEVERITIES, type Finding } from '../core/finding.js';
+import { redactScan } from './redact.js';
 
 function esc(value: string): string {
   return value
@@ -15,7 +16,8 @@ function location(finding: Finding): string {
 }
 
 /** Standalone HTML report. Finding text is escaped; secrets are already masked. */
-export function renderHtmlReport(result: ScanResult): string {
+export function renderHtmlReport(input: ScanResult): string {
+  const result = redactScan(input);
   const sections: string[] = [];
   const bySeverityDesc = [...SEVERITIES].reverse();
   for (const severity of bySeverityDesc) {

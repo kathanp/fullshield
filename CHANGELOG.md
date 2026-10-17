@@ -2,6 +2,71 @@
 
 All notable changes to FullShield are documented here.
 
+## 0.3.0 — 2026-10-16
+
+### Default scan changes
+
+Stable finding keys changed. CI baselines may need `--update-baseline`. This is not a recall claim. Ground truth was not edited and nothing was marked reviewed.
+
+Before (`bench/snapshots/0.1.3.json` / previous `HEAD.json`, `scan --json --offline-safe`):
+
+| app | findings |
+|---|---|
+| vulnerable-app | 35 |
+| clean-app | 0 |
+| nodegoat | 379 |
+| juice-shop | 105 |
+| dvna | 23 |
+| goof | 354 |
+| vulnerable-node | 61 |
+
+After (`bench/snapshots/HEAD.json`, same flags):
+
+| app | findings |
+|---|---|
+| vulnerable-app | 35 |
+| clean-app | 0 |
+| nodegoat | 256 |
+| juice-shop | 105 |
+| dvna | 23 |
+| goof | 271 |
+| vulnerable-node | 61 |
+
+Unique `(ruleId, file, line, severity)` keys did not change. The count drop is duplicate keys: several versions of one package and advisory shared one package.json line and one severity. In-scope matches on the unreviewed ground truth stayed at NodeGoat 5/7 (plus 1 line-only), Juice Shop 10/12, DVNA 9/10, goof 11/11, vulnerable-node 9/12. See `bench/snapshots/DIFF.txt`.
+
+- Dependency advisories are one finding per package name + advisory. Every retained dependency path is listed on that finding. Severity is the highest of the grouped versions. Rules were not removed and severities were not lowered to cut the count.
+- SAST findings with the same rule id and sink line collapse to one.
+- Default walk skips `node_modules`, `dist`, `build`, `.next`, `coverage`, `vendor`, `vendored`, `third_party`, `third-party`, `compiled`, and `*.min.js`. Set `"defaultExcludes": false` or replace the list with `"excludes"`.
+- Files over `sast.maxFileBytes` (default 1 MB), and files that contain NUL bytes, are reported as `SAST-SKIP-001` (info) instead of being skipped silently.
+- Repos with more than 4000 source files are parsed one file at a time so the AST is released before the next file. Cross-file taint on those repos runs in batches of 150. Smaller repos, including the in-scope bench apps, keep the previous all-files parse.
+- The parse pool keeps an LRU of 64 ASTs, caps workers (default 2, explicit max 4), and caps each worker heap (`FULLSHIELD_PARSE_WORKER_MB`, default 512).
+
+### Experimental CI reports
+
+Off unless `FULLSHIELD_EXPERIMENTAL_CI_REPORTS=1` or `scan --experimental-ci-reports`. Default `scan` and `--json` are unchanged.
+
+- `--github-annotations` writes GitHub Actions workflow commands. Critical and high are `error`, medium is `warning`, low and info are `notice`.
+- `--junit` writes JUnit XML. Medium and above are failures. Low and info are skipped. An empty scan is one passing testcase.
+- `--gitlab` writes a GitLab Code Quality report. Severities map to info, minor, major, critical, and blocker.
+
+### Experimental scan diff
+
+Off unless `FULLSHIELD_EXPERIMENTAL_DIFF=1` or `fullshield diff --experimental-diff`. It compares two `scan --json` files. It does not scan and does not use the network.
+
+- Match key is rule id, file, severity, and the snippet or message. The line number is not part of the key. Two findings with that same text stay two results. A line shift is a move. One shared finding id with a different message is a move. Duplicate ids are not paired.
+- Added findings at or above `--fail-on` (default `high`) exit 1. AI findings, moves, and removals do not. The human report lists at most 20 added findings.
+- Diff matching and the GitLab fingerprint ignore the line number. A changed message with the same id is a move.
+- Console, JSON, SARIF, Markdown, HTML, GitHub, JUnit, and GitLab reports mask AWS, GitHub, Stripe, and Slack token shapes before writing them.
+- `.fullshield-baseline.json` may list `suppressions` with `ruleId`, `owner`, `reason`, and ISO `expires`. Expired or incomplete rows do not hide findings and fail the scan.
+- `FULLSHIELD_EXPERIMENTAL_IAC=1` also flags `github.event` inside `run:` steps and a `pull_request_target` job that checks out pull-request code.
+- Lockfile helpers flag `http://` or a non-registry `resolved` URL, and a resolved entry with no integrity hash.
+- `scan --history` stops after 500 commits (`FULLSHIELD_HISTORY_MAX`, max 5000). When older commits are left out, the console and the JSON metadata say `scanned N of M commits`. History snippets are masked.
+- `FULLSHIELD_EXPERIMENTAL_LICENSE=1` flags an installed direct dependency whose package.json says GPL or AGPL.
+
+### Node 20
+
+- `engines` is `>=20.11`. `node:sqlite` is the only runtime API that needs Node 22.13. History storage prints that requirement. Confirm does not import `node:sqlite`. RASP sqlite hooks no-op when the module is missing. CI runs Node 20, 22, and 24.
+
 ## 0.2.6 — 2026-10-16
 
 - v0.2.5 reached staging with a fresh token, then sigstore threw `TLOG_CREATE_ENTRY_ERROR` because Rekor already had that transparency-log entry (HTTP 409). npm 12.2.0 leaves `fetchOnConflict` off, so the publish stopped. Staging now turns that on before loading the publisher, and gives the Rekor request 120 seconds. It still refuses to publish without provenance.

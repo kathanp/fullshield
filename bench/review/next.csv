@@ -1,0 +1,135 @@
+id,ruleId,severity,file,line,code snippet (5 lines),message,label,reviewer,note
+808c2f5817eddbe8,CONFIG-HELMET-001,medium,turbopack/crates/turbopack-tracing/tests/node-file-trace/integration/apollo.js,20,"async function startApolloServer(typeDefs, resolvers) {
+  const server = new ApolloServer({ typeDefs, resolvers })
+  const app = express()
+  await server.start()
+  server.applyMiddleware({ app, path: '/graphql' })",An Express app is created but helmet() is never applied.,,,
+d1ef3449a953c596,CONFIG-HELMET-001,medium,turbopack/crates/turbopack-create-test-app/src/templates/vite-server.mjs,18,"
+async function createServer() {
+  const app = express()
+  const vite = await createViteServer({
+    server: { middlewareMode: true },",An Express app is created but helmet() is never applied.,,,
+c4f2af98c20f3400,CONFIG-HELMET-001,medium,turbopack/crates/turbopack-tracing/tests/node-file-trace/integration/express-template.js,4,"const path = require('path')
+
+const app = express()
+
+app.set('view engine', 'pug')",An Express app is created but helmet() is never applied.,,,
+866465fcadf18a00,CONFIG-INSTALLSCRIPT-001,info,examples/prisma-postgres/package.json,,"{
+  ""private"": true,
+  ""scripts"": {
+    ""dev"": ""next dev --turbopack"",
+    ""build"": ""next build"",",This package.json declares a postinstall script.,,,
+bf9b011d98bccbe7,CONFIG-ERRSTACK-001,medium,.github/actions/pr-auto-label/src/index.ts,132,"main().catch((error) => {
+  setFailed(
+    error instanceof Error ? (error.stack ?? error.message) : String(error)
+  )
+})",err.stack is sent in a response and can leak internals.,,,
+caa61cfdee4b0cff,CONFIG-ERRSTACK-001,medium,packages/next/src/next-devtools/dev-overlay/shared.ts,488,"  ): readonly SupportedErrorEvent[] {
+    const ownerStack = getOwnerStack(error)
+    const frames = parseStack((error.stack || '') + (ownerStack || ''))
+    const pendingEvent: SupportedErrorEvent = {
+      id,",err.stack is sent in a response and can leak internals.,,,
+613524a70618c833,CONFIG-ERRSTACK-001,medium,turbopack/crates/turbopack-node/js/src/transforms/webpack-loaders.ts,609,"          // Only append ""(from ...)"" when no loader path is already
+          // visible in the stack trace, to avoid redundant noise.
+          const stack = typeof err.stack === 'string' ? err.stack : ''
+          if (!loaderPathList.some((p) => stack.includes(p))) {
+            err.message += `\n  (from ${loaderPaths})`",err.stack is sent in a response and can leak internals.,,,
+8976fde56c583b32,CONFIG-ERRSTACK-001,medium,packages/next/src/server/render.tsx,424,"    source,
+    message: stripAnsi(err.message),
+    stack: err.stack,
+    digest: (err as any).digest,
+  }",err.stack is sent in a response and can leak internals.,,,
+6fd9b59678aabac6,DEPS-VULN-001,medium,pnpm-lock.yaml,,"---
+lockfileVersion: '9.0'
+
+importers:
+",path-to-regexp@0.1.7 is affected by GHSA-37ch-88jc-xwx2 (path-to-regexp vulnerable to Regular Expression Denial of Service via multiple route parameters).,,,
+06830ae35b5e8adc,DEPS-VULN-001,info,pnpm-lock.yaml,,"---
+lockfileVersion: '9.0'
+
+importers:
+",hosted-git-info@2.8.5 is affected by GHSA-43f8-2h32-f4cj (Regular Expression Denial of Service in hosted-git-info).,,,
+e4a19f4361b858cb,DEPS-VULN-001,low,pnpm-lock.yaml,,"---
+lockfileVersion: '9.0'
+
+importers:
+",websocket-extensions@0.1.3 is affected by GHSA-g78m-2chm-r7qv (Regular Expression Denial of Service in websocket-extensions (NPM package)).,,,
+425a1dbd2b76be97,DEPS-VULN-001,low,pnpm-lock.yaml,,"---
+lockfileVersion: '9.0'
+
+importers:
+",tmp@0.0.33 is affected by GHSA-ph9p-34f9-6g65 (tmp has Path Traversal via unsanitized prefix/postfix that enables directory escape).,,,
+25d9d1439db1ab2d,DEPS-VULN-001,info,pnpm-lock.yaml,,"---
+lockfileVersion: '9.0'
+
+importers:
+",on-headers@1.0.2 is affected by GHSA-76c9-3jph-rj3q (on-headers is vulnerable to http response header manipulation).,,,
+0d67b2d23a4bd4b5,DEPS-VULN-001,medium,pnpm-lock.yaml,,"---
+lockfileVersion: '9.0'
+
+importers:
+",proxy-addr@2.0.7 is affected by GHSA-jqcg-44mw-7w3h (proxy-addr vulnerable to IP spoofing via IPv4-mapped IPv6 trust subnet).,,,
+e114f90d56c137e2,DEPS-VULN-001,low,pnpm-lock.yaml,,"---
+lockfileVersion: '9.0'
+
+importers:
+",form-data@2.3.3 is affected by GHSA-hmw2-7cc7-3qxx (form-data: CRLF injection in form-data via unescaped multipart field names and filenames).,,,
+4c74e2320dd8d5a8,DEPS-VULN-001,info,package.json,235,"    ""lodash"": ""4.18.1"",
+    ""lost"": ""8.3.1"",
+    ""minimatch"": ""3.0.4"",
+    ""moment"": ""^2.24.0"",
+    ""nanoid"": ""3.1.30"",",minimatch@3.0.4 is affected by GHSA-23c5-xmqv-rm74 (minimatch ReDoS: nested *() extglobs generate catastrophically backtracking regular expressions). (dev-only),,,
+bf7274a53c78af96,SAST-EVAL-001,high,test/e2e/i18n-support/shared.ts,276,"    await browser.back().waitForElementByCss('#index')
+
+    expect(await browser.eval(() => document.location.pathname)).toBe(
+      `${basePath}/fr`
+    )",eval / vm.runInNewContext is called with a non-literal argument.,,,
+833f04be4bcd8c8f,SAST-EVAL-001,high,test/lib/next-test-utils.ts,1332,"  browser: Playwright
+): Promise<string | null> {
+  return browser.eval(() => {
+    const portal = [].slice
+      .call(document.querySelectorAll('nextjs-portal'))",eval / vm.runInNewContext is called with a non-literal argument.,,,
+697ffd97f78a5e01,SAST-EVAL-001,high,test/e2e/i18n-support/shared.ts,298,"      .waitForElementByCss('#another')
+
+    expect(await browser.eval(() => document.location.pathname)).toBe(
+      `${ctx.basePath || ''}/fr/another`
+    )",eval / vm.runInNewContext is called with a non-literal argument.,,,
+6a43231ce170cce6,SAST-EVAL-001,high,test/e2e/i18n-support/shared.ts,308,"    await browser.back().waitForElementByCss('#links')
+
+    expect(await browser.eval(() => document.location.pathname)).toBe(
+      `${ctx.basePath || ''}/FR/links`
+    )",eval / vm.runInNewContext is called with a non-literal argument.,,,
+a697b3e537c991c4,SAST-CMDI-001,high,.github/actions/pr-auto-label/dist/index.js,1,"(()=>{var e={4568:function(e,A,t){""use strict"";var r=this&&this.__createBinding||(Object.create?function(e,A,t,r){if(r===undefined)r=t;var s=Object.getOwnPropertyDescriptor(A,t);if(!s||(""get""in s?!A.__esModule:s.writable||s.configurable)){s…
+/*! formdata-polyfill. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */;const escape=e=>e.replace(/\n/g,""%0A"").replace(/\r/g,""%0D"").replace(/""/g,""%22"");const normalizeLinefeeds=e=>e.replace(/\r?\n|\r/g,""\r\n"");const r=[];…
+/*! ws. MIT License. Einar Otto Stangvik <einaros@gmail.com> */o[s-4]=this.maskKey[0];o[s-3]=this.maskKey[1];o[s-2]=this.maskKey[2];o[s-1]=this.maskKey[3];o[1]=t;if(t===126){o.writeUInt16BE(A,2)}else if(t===127){o[2]=o[3]=0;o.writeUIntBE(A,…",Tainted input reaches a shell command (exec/execSync/spawn with shell: true).,,,
+1d80a06f5d2a2f6f,SAST-PATH-001,high,scripts/upload-preview-tarballs.js,80," */
+async function* findTarballs(tarballDirectory) {
+  const entries = await fs.readdir(tarballDirectory, { withFileTypes: true })
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue",Tainted input is used as a file path without path.resolve + prefix check.,,,
+9ef117112e200532,SAST-CRYPTO-001,medium,packages/next/src/server/dev/hot-reloader-turbopack.ts,173,")
+
+const sessionId = Math.floor(Number.MAX_SAFE_INTEGER * Math.random())
+
+/** Output directory (relative to `distDir`) of server-HMR-managed chunks. */",Math.random is used to generate a token or identifier.,,,
+7438b9961c9671aa,SECRET-ENVFILE-001,high,examples/cms-cosmic/.env.local.example,1,"COSMIC_BUCKET_SLUG=
+COSMIC_READ_KEY=
+COSMIC_PREVIEW_SECRET=",examples/cms-cosmic/.env.local.example is tracked in the repository. .env files hold live credentials and must never be committed.,,,
+447105dc873304ae,SECRET-ENVFILE-001,high,examples/cms-buttercms/.env.local.example,1,NEXT_PUBLIC_BUTTER_CMS_API_KEY=your_auth_token,examples/cms-buttercms/.env.local.example is tracked in the repository. .env files hold live credentials and must never be committed.,,,
+c12dd843e3c2f8b7,SECRET-ENVFILE-001,high,examples/with-azure-cosmos/.env.local.example,1,"COSMOSDB_CONNECTION_STRING=
+COSMOSDB_DATABASE_NAME=
+COSMOSDB_CONTAINER_NAME=",examples/with-azure-cosmos/.env.local.example is tracked in the repository. .env files hold live credentials and must never be committed.,,,
+2443ff8d18ee5cf7,SECRET-ENVFILE-001,high,examples/with-knex/.env.local.example,1,PG_URI=postgres://admin:pass@localhost:5432/mydb,examples/with-knex/.env.local.example is tracked in the repository. .env files hold live credentials and must never be committed.,,,
+510cc504d68f92e1,SECRET-ENVFILE-001,high,examples/cms-wordpress/.env.local.example,1,"NEXT_PUBLIC_BASE_URL=
+NEXT_PUBLIC_WORDPRESS_API_URL=
+NEXT_PUBLIC_WORDPRESS_API_HOSTNAME=
+HEADLESS_SECRET=
+WP_USER=",examples/cms-wordpress/.env.local.example is tracked in the repository. .env files hold live credentials and must never be committed.,,,
+c4ddf10aa252aedf,SECRET-ENVFILE-001,high,test/e2e/env-config/.env.development,1,"DEVELOPMENT_ENV_FILE_KEY=development
+ENV_FILE_DEVELOPMENT_OVERRIDE_TEST=development
+ENV_FILE_DEVELOPMENT_LOCAL_OVERRIDEOVERRIDE_TEST=development",test/e2e/env-config/.env.development is tracked in the repository. .env files hold live credentials and must never be committed.,,,
+6f1854519b810910,SECRET-ENVFILE-001,high,examples/with-neo4j/.env.local.example,1,"# Environment variables required to connect the app with your Neo4j database
+NEO4J_URI=
+NEO4J_USER=
+NEO4J_PASSWORD=
+",examples/with-neo4j/.env.local.example is tracked in the repository. .env files hold live credentials and must never be committed.,,,

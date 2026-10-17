@@ -2,6 +2,7 @@ import pc from 'picocolors';
 
 import type { ScanResult } from '../core/engine.js';
 import { SEVERITIES, type Finding, type Severity } from '../core/finding.js';
+import { redactScan } from './redact.js';
 
 const SEVERITY_COLOR: Record<Severity, (text: string) => string> = {
   critical: (t) => pc.bold(pc.red(t)),
@@ -51,7 +52,8 @@ function renderFinding(finding: Finding): string[] {
 }
 
 /** Human-readable report: findings grouped by severity, highest first. */
-export function renderConsoleReport(result: ScanResult): string {
+export function renderConsoleReport(input: ScanResult): string {
+  const result = redactScan(input);
   const { findings, summary, metadata } = result;
   const lines: string[] = [];
 
@@ -62,6 +64,7 @@ export function renderConsoleReport(result: ScanResult): string {
           ` (modules: ${metadata.modulesRun.length > 0 ? metadata.modulesRun.join(', ') : 'none'})`,
       ),
   );
+  if (metadata.history !== undefined) lines.push(metadata.history);
 
   if (metadata.modulesRun.length < metadata.modulesRequested.length) {
     const pending = metadata.modulesRequested.filter((m) => !metadata.modulesRun.includes(m));
