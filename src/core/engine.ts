@@ -12,7 +12,7 @@ import type { SecretHit } from '../modules/secrets/types.js';
 import { applyExplain, applyTriage } from '../ai/triage.js';
 import { runLogicHunt } from '../ai/logic.js';
 import { createAiClient, isInternalAi, isLiveAi } from '../ai/provider.js';
-import { applyBaseline, readBaseline, writeBaseline } from './baseline.js';
+import { applyBaseline, applySuppressions, readBaseline, writeBaseline } from './baseline.js';
 import { loadConfig, type ResolvedConfig } from './config.js';
 import { walkFiles } from './fileWalker.js';
 import { listStagedFiles } from './git.js';
@@ -93,6 +93,8 @@ export interface ScanMetadata {
   modulesRequested: ModuleName[];
   /** Requested modules that are actually implemented and ran. */
   modulesRun: ModuleName[];
+  /** Set when `scan --history` stops at the commit cap. Exact text: `scanned N of M commits`. */
+  history?: string;
 }
 
 export interface PolicyScanResult {
@@ -110,6 +112,8 @@ export interface ScanResult {
   config: ResolvedConfig;
   /** Present only when experimental policy was loaded from `fullshield.policy.json`. */
   policy?: PolicyScanResult;
+  /** Set when a baseline suppression is missing fields or has expired. */
+  suppressionErrors?: string[];
 }
 
 /**
@@ -166,7 +170,12 @@ export async function runScan(
     options.modules ?? config.modules,
     loadedPolicy?.requiredModules,
   );
-  let files = await walkFiles({ cwd, ignore: config.ignore });
+  let files = await walkFiles({
+    cwd,
+    ignore: config.ignore,
+    defaultExcludes: config.defaultExcludes,
+    excludes: config.excludes,
+  });
   if (options.staged === true) {
     const staged = new Set(await listStagedFiles(cwd));
     files = files.filter((file) => staged.has(file));
@@ -206,6 +215,7 @@ export async function runScan(
   }
 
   const extraHits: SecretHit[] = [];
+  let historyNotice: string | undefined;
   const secretsWanted = modulesRequested.includes('secrets');
   if (secretsAdvEnabled() && secretsWanted) {
     if (options.history === true) {
@@ -213,6 +223,7 @@ export async function runScan(
       const hist = await scanGitHistory(cwd);
       extraHits.push(...hist.hits);
       collected.push(...hist.findings);
+      historyNotice = hist.history;
     }
     if (options.bundle !== undefined && options.bundle.length > 0) {
       const { scanBundle } = await import('../modules/secrets/bundle.js');
@@ -235,7 +246,11 @@ export async function runScan(
   if (options.updateBaseline === true) {
     await writeBaseline(baselinePath, unsuppressed);
   }
-  let findings = sortFindings(applyBaseline(unsuppressed, await readBaseline(baselinePath)));
+  const baselineDoc = await readBaseline(baselinePath);
+  let findings = sortFindings(applyBaseline(unsuppressed, baselineDoc));
+  const suppressed = applySuppressions(findings, baselineDoc?.suppressions);
+  findings = sortFindings(suppressed.findings);
+  const suppressionErrors = suppressed.errors;
 
   if (
     secretsAdvEnabled() &&
@@ -321,9 +336,11 @@ export async function runScan(
       filesScanned: files.length,
       modulesRequested: [...modulesRequested],
       modulesRun,
+      ...(historyNotice !== undefined ? { history: historyNotice } : {}),
     },
     config,
     policy: policyResult,
+    ...(suppressionErrors.length > 0 ? { suppressionErrors } : {}),
   };
 }
 

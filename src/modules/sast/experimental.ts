@@ -22,3 +22,24 @@ export function mcpCfgEnabled(): boolean {
 export function taintV2Enabled(): boolean {
   return process.env.FULLSHIELD_EXPERIMENTAL_TAINT_V2 === '1';
 }
+
+/** GitHub annotations, JUnit, and GitLab Code Quality. Off unless this is `1`. */
+export const CI_REPORTS_FLAG = 'FULLSHIELD_EXPERIMENTAL_CI_REPORTS';
+
+export function ciReportsEnabled(): boolean {
+  return process.env[CI_REPORTS_FLAG] === '1';
+}
+
+/** Compare two scan JSON files. Off unless this is `1`. */
+export const DIFF_FLAG = 'FULLSHIELD_EXPERIMENTAL_DIFF';
+
+/** GPL/AGPL notices from installed package.json files. Off unless this is `1`. */
+export const LICENSE_FLAG = 'FULLSHIELD_EXPERIMENTAL_LICENSE';
+
+export function licenseEnabled(): boolean {
+  return process.env[LICENSE_FLAG] === '1';
+}
+
+export function diffEnabled(): boolean {
+  return process.env[DIFF_FLAG] === '1';
+}

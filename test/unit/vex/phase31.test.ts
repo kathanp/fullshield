@@ -4,6 +4,8 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { hasNodeSqlite } from '../../helpers/sqlite.js';
+
 import { scan } from '../../../src/core/engine.js';
 import { makeFindingId, type Finding } from '../../../src/core/finding.js';
 import { openHistory, recordProvenance, listProvenance } from '../../../src/dashboard/index.js';
@@ -129,7 +131,7 @@ describe('Phase 31 VEX (experimental)', () => {
     expect(validateCycloneDxVex(cdx)).toEqual([]);
   });
 
-  it('records provenance coverage over time in the history DB', () => {
+  it.skipIf(!hasNodeSqlite())('records provenance coverage over time in the history DB', () => {
     const dir = mkdtempSync(join(tmpdir(), 'fullshield-prov-hist-'));
     dirs.push(dir);
     const db = openHistory(dir);

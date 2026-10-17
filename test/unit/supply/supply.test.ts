@@ -117,7 +117,24 @@ describe('Phase 19 supply-chain (static, experimental)', () => {
     expect(findings.some((f) => f.ruleId === 'SUPPLY-LOCKURL-001' && f.message.includes('evil'))).toBe(
       true,
     );
-    expect(findings.some((f) => f.message.includes('ok'))).toBe(false);
+    expect(findings.some((f) => f.ruleId === 'SUPPLY-LOCKURL-001' && f.message.includes('ok'))).toBe(false);
+  });
+
+  it('flags a registry entry that has no integrity hash and an http URL', () => {
+    const findings = checkLockfileIntegrity({
+      packages: {
+        'node_modules/plain': { resolved: 'http://registry.npmjs.org/plain/-/plain-1.tgz' },
+        'node_modules/hashed': {
+          resolved: 'https://registry.npmjs.org/hashed/-/hashed-1.tgz',
+          integrity: 'sha512-abc',
+        },
+      },
+    });
+    expect(findings.some((f) => f.ruleId === 'SUPPLY-LOCKINTEGRITY-001' && f.message.includes('plain'))).toBe(
+      true,
+    );
+    expect(findings.some((f) => f.ruleId === 'SUPPLY-LOCKURL-001' && f.message.includes('plain'))).toBe(true);
+    expect(findings.some((f) => f.message.includes('hashed'))).toBe(false);
   });
 
   it('flags private-scope names that also exist on the public registry', () => {
@@ -125,6 +142,41 @@ describe('Phase 19 supply-chain (static, experimental)', () => {
     expect(hit.some((f) => f.ruleId === 'SUPPLY-CONFUSION-001')).toBe(true);
     const miss = checkDependencyConfusion('@acme/internal', '@acme:registry=https://npm.acme.example/', false);
     expect(miss).toEqual([]);
+  });
+
+  it('flags each lockfile problem on its own', () => {
+    const missingHash = checkLockfileIntegrity({
+      packages: {
+        '': { resolved: 'http://evil.example/skip.tgz' },
+        'node_modules/plain': { resolved: 'https://registry.npmjs.org/plain/-/plain-1.tgz' },
+      },
+    });
+    expect(missingHash.map((f) => f.ruleId)).toEqual(['SUPPLY-LOCKINTEGRITY-001']);
+
+    const http = checkLockfileIntegrity({
+      packages: {
+        'node_modules/plain': {
+          resolved: 'http://registry.npmjs.org/plain/-/plain-1.tgz',
+          integrity: 'sha512-abc',
+        },
+      },
+    });
+    expect(http.map((f) => f.ruleId)).toEqual(['SUPPLY-LOCKURL-001']);
+
+    const otherHost = checkLockfileIntegrity({
+      packages: {
+        'node_modules/evil': {
+          resolved: 'https://evil.example/evil-1.tgz',
+          integrity: 'sha512-abc',
+        },
+      },
+    });
+    expect(otherHost.map((f) => f.ruleId)).toEqual(['SUPPLY-LOCKURL-001']);
+
+    const notUrl = checkLockfileIntegrity({
+      packages: { 'node_modules/bad': { resolved: 'not a url', integrity: 'sha512-abc' } },
+    });
+    expect(notUrl.map((f) => f.ruleId)).toEqual(['SUPPLY-LOCKURL-001']);
   });
 
   it('flags a package that dropped npm provenance', () => {

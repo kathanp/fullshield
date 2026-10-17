@@ -1,0 +1,26 @@
+id,ruleId,severity,file,line,code snippet (5 lines),message,label,reviewer,note
+d9b5b5729c849266,CONFIG-ERRSTACK-001,medium,test/internals/initial-config.test.js,192,"    t.assert.ok(error instanceof TypeError)
+    t.assert.strictEqual(error.message, ""Cannot assign to read only property 'allowHTTP1' of object '#<Object>'"")
+    t.assert.ok(error.stack)
+    t.assert.deepStrictEqual(fastify.initialConfig.https, {
+      allowHTTP1: true",err.stack is sent in a response and can leak internals.,,,
+9bd189cbb855fca3,CONFIG-ERRSTACK-001,medium,test/internals/initial-config.test.js,218,"    t.assert.strictEqual(error.message, 'Invalid initialization options: \'[""must be boolean""]\'')
+    t.assert.strictEqual(error.code, 'FST_ERR_INIT_OPTS_INVALID')
+    t.assert.ok(error.stack)
+    t.assert.ok(true)
+  }",err.stack is sent in a response and can leak internals.,,,
+95fa222e068bf839,CONFIG-ERRSTACK-001,medium,test/internals/initial-config.test.js,170,"    t.assert.ok(error instanceof TypeError)
+    t.assert.strictEqual(error.message, ""Cannot assign to read only property 'ignoreTrailingSlash' of object '#<Object>'"")
+    t.assert.ok(error.stack)
+    t.assert.ok(true)
+  }",err.stack is sent in a response and can leak internals.,,,
+4be65308d2d89661,CONFIG-ERRSTACK-001,medium,test/internals/initial-config.test.js,161,"    t.assert.ok(error instanceof TypeError)
+    t.assert.strictEqual(error.message, ""Cannot assign to read only property 'keepAliveTimeout' of object '#<Object>'"")
+    t.assert.ok(error.stack)
+    t.assert.ok(true)
+  }",err.stack is sent in a response and can leak internals.,,,
+b349071ca4b3a2e5,DEPS-NOLOCK-001,info,package.json,,"{
+  ""name"": ""fastify"",
+  ""version"": ""6.0.0-alpha.5"",
+  ""description"": ""Fast and low overhead web framework, for Node.js"",
+  ""main"": ""fastify.js"",",No lockfile found; dependency vulnerabilities were not checked.,,,

@@ -68,4 +68,36 @@ describe('walkFiles', () => {
     const files = await walkFiles({ cwd: dir });
     expect(files).toEqual(['.env']);
   });
+
+  it('skips generated, vendored, and minified files by default', async () => {
+    await seed('src/app.js', 'ok');
+    await seed('dist/out.js');
+    await seed('build/out.js');
+    await seed('.next/server.js');
+    await seed('coverage/lcov.js');
+    await seed('vendor/lib.js');
+    await seed('vendored/lib.js');
+    await seed('third_party/lib.js');
+    await seed('third-party/lib.js');
+    await seed('packages/app/compiled/bundle.js');
+    await seed('public/app.min.js');
+    const files = await walkFiles({ cwd: dir });
+    expect(files).toEqual(['src/app.js']);
+  });
+
+  it('scans those trees when default excludes are turned off', async () => {
+    await seed('node_modules/pkg/index.js');
+    await seed('dist/out.js');
+    await seed('src/app.js');
+    const files = await walkFiles({ cwd: dir, defaultExcludes: false });
+    expect(files).toEqual(['dist/out.js', 'node_modules/pkg/index.js', 'src/app.js']);
+  });
+
+  it('replaces the default exclude list when excludes is set', async () => {
+    await seed('dist/out.js');
+    await seed('keep-me/secret.js');
+    await seed('src/app.js');
+    const files = await walkFiles({ cwd: dir, excludes: ['keep-me/'] });
+    expect(files).toEqual(['dist/out.js', 'src/app.js']);
+  });
 });

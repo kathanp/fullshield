@@ -3,6 +3,8 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { hasNodeSqlite } from '../helpers/sqlite.js';
+
 import { importHref } from '../../src/runtime/importHref.js';
 
 const root = process.cwd();
@@ -38,7 +40,7 @@ describe('RASP --import register (built)', () => {
     expect(`${result.stderr}`).not.toMatch(/ExperimentalWarning:[^\n]*SQLite/i);
   });
 
-  it('does not hook sinks without FULLSHIELD_EXPERIMENTAL_RASP', () => {
+  it.skipIf(!hasNodeSqlite())('does not hook sinks without FULLSHIELD_EXPERIMENTAL_RASP', () => {
     const result = spawnSync(process.execPath, ['--import', registerHref, '--input-type=module', '-e', SCRIPT], {
       cwd: root,
       encoding: 'utf8',
@@ -48,7 +50,7 @@ describe('RASP --import register (built)', () => {
     expect(result.stdout).toContain('QUERY_RAN');
   });
 
-  it('blocks concatenated SQLi when experimental rasp is enabled in block mode', () => {
+  it.skipIf(!hasNodeSqlite())('blocks concatenated SQLi when experimental rasp is enabled in block mode', () => {
     const result = spawnSync(process.execPath, ['--import', registerHref, '--input-type=module', '-e', SCRIPT], {
       cwd: root,
       encoding: 'utf8',

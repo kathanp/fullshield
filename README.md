@@ -12,7 +12,7 @@ npx fullshield scan --sarif fullshield.sarif
 
 This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 
-**Requires Node.js >= 22.13.** `node:sqlite` runs without `--experimental-sqlite` from 22.13.0 (the module is still experimental and is loaded only by history/confirm, not by `--import` register).
+**Requires Node.js >= 20.11.** Scan, fix, and init run on Node 20.11+. History storage (`report --serve`) needs `node:sqlite` and prints `requires Node 22.13+` on older Node instead of failing at import. `node:sqlite` is still experimental and is not loaded by `--import` register.
 
 ## Coverage map
 
@@ -68,7 +68,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 
 ## Known limitations
 
-- Platforms: Linux, macOS, and Windows on Node 22.13+. Quoted filenames in dirty-tree tests are POSIX-only (Windows forbids `"` in names).
+- Platforms: Linux, macOS, and Windows on Node 20.11, 22, and 24. Quoted filenames in dirty-tree tests are POSIX-only (Windows forbids `"` in names). History storage needs Node 22.13+.
 - `node:sqlite` is loaded only by history/confirm, not by `--import fullshield/runtime/register`. Dashboard closes every handle in `try/finally` (Windows cannot delete an open `history.db`).
 - FullShield does not stop OS or SSH exploits (including regreSSHion). It scans Node/TS apps you own.
 - Extra classes (ReDoS, deserialization, XXE, upload, cookie flags, CSRF, mass assignment, timing compare, hash cost, GraphQL limits, `trust proxy` + IP rate limit) run only with `FULLSHIELD_EXPERIMENTAL_CLASSES=1` or `scan --experimental-classes`. ReDoS is a same-file static quantifier check. CSRF looks for `csurf` or `sameSite: 'strict'|'lax'` in that file.
@@ -92,7 +92,7 @@ In-scope public-bench patterns we still do not claim (one line each):
 - Juice Shop `data/static/codefixes/*` — six `SAST-NOSQLI-001` hits are copies of the challenge fixes. They stay. There is no special-case exclusion for that directory.
 - `DEPS-VULN-001` — when an OSV hit exists, the finding is attributed to the `package.json` name line; `--offline-safe` on a cache-less clone still emits no OSV hits (`package.json:N` will not match).
 - DVNA calculator “stack leak” — that line is `mathjs.eval` (`SAST-EVAL-001`), not `err.stack`.
-- Worker-pool timings from `node bench/perf.mjs --measure` on 2026-10-16 (`bench/perf-baseline.json`): nest cold p50 9.2s, warm 9.4s, peak 938 MB; undici cold p50 7.9s, warm 8.1s, peak 609 MB. Both missed the 5s incremental target (nest 8.8s, undici 8.0s). next.js aborted with SIGABRT on all five samples (JavaScript heap out of memory); the recorded times are time-to-abort (cold p50 55.4s, warm 56.7s, incremental 51.9s, peak 1705 MB), not finished scans.
+- Worker-pool timings from `node bench/perf.mjs --measure` on 2026-10-16 (`bench/perf-baseline.json`): next.js finished all 5 samples (cold p50 71.7s, warm 71.5s, incremental 70.6s, peak RSS 788 MB, every sample under 1 GB). nest cold p50 9.1s, warm 9.3s, peak 815 MB; undici cold p50 8.4s, warm 8.4s, peak 563 MB. nest and undici still miss the 5s incremental target (nest 9.4s, undici 8.2s). These are local timings, not a recall claim.
 - Real-world precision is not sampled. Nine of the ten pins in `bench/realworld.json` have finding counts in `BENCHMARK.md`. next.js produced no JSON. No false-positive rate is claimed.
 
 Public-app in-scope detection on **unreviewed** ground truth (`"reviewed": false` in `bench/*/ground-truth.json`). These are not product recall claims. Matching is class + file + line ±3. Helmet comment-only line attribution is not counted.
@@ -130,6 +130,10 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 
 **Experimental Frontier (off by default):** `FULLSHIELD_EXPERIMENTAL_VPATCH=1` + `scan --emit-virtual-patches`; `FULLSHIELD_EXPERIMENTAL_HONEY=1` + `fullshield honey init`.
 
+**Experimental CI reports (off by default):** `FULLSHIELD_EXPERIMENTAL_CI_REPORTS=1` or `scan --experimental-ci-reports`, then `--github-annotations`, `--junit`, and `--gitlab`. Default console and `--json` output stay the same. Critical and high become GitHub `error` commands and JUnit failures. Medium is a GitHub warning and a JUnit failure. Low and info are GitHub notices and JUnit skips. GitLab severities are info, minor, major, critical, and blocker.
+
+**Experimental scan diff (off by default):** `FULLSHIELD_EXPERIMENTAL_DIFF=1` or `fullshield diff --experimental-diff <before.json> <after.json>`. Compares two `scan --json` files. The match ignores the line number. It does not scan and does not decide which findings are real. Added findings at or above `--fail-on` (default high) exit 1. Baseline `suppressions` need an owner, a reason, and an expiry. The spec is [`docs/ADVANCED-SPEC.md`](docs/ADVANCED-SPEC.md).
+
 **Experimental RASP** (Frontier, off by default): structure-change sink hooks via `node --import fullshield/runtime/register app.js` or `import 'fullshield/runtime/auto'` as the first import. Enable only with `FULLSHIELD_EXPERIMENTAL_RASP=1`. Default mode is `monitor` (events only). `FULLSHIELD_RASP_MODE=block` throws on structure-changing SQL/shell/path/NoSQL/SSRF/prototype input. Hooks **fail open**: a hook error logs `RASP-FAIL-OPEN-001` and the original call proceeds. Do not use block mode in production until you have measured the benign corpus on your app.
 
 `npm run bench` reports `inspect()` p50/p95 (must stay under 1ms) and full Express request overhead p50/p95 with the middleware on the stack.
@@ -141,6 +145,7 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | Command | Purpose |
 |---|---|
 | `scan` | Run deps, secrets, sast, config. `--json`, `--sarif`, `--markdown`, `--html`, `--fail-on`, `--offline`, `--staged`, `--update-baseline`. `--ai explain` is **experimental** (off by default; explanation text only, never a verdict). `--pr-summary` is **experimental** (`FULLSHIELD_EXPERIMENTAL_POLICY=1`): deterministic Markdown of new findings versus baseline for GitHub/GitLab PR comments (no AI; links to rule docs). |
+| `diff` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_DIFF=1`). Compare two `scan --json` files. `--fail-on` applies to added findings only. |
 | `fullshield.policy.json` | **Experimental** policy-as-code (`FULLSHIELD_EXPERIMENTAL_POLICY=1`): `requiredModules`, per-rule `severityOverrides`, `failOn` per branch, and `exceptions` that require `owner`, `reason`, and ISO `expires`. Expired exceptions fail CI. Exceptions without owner or expiry are rejected. |
 | `fix` | Dry-run patches (unsafe suggestions included). `--apply` writes only `safe: true` patches on a clean git tree. `--unsafe` is required for `helmet()` insertion and secret → `process.env` replacement. `--force` skips files with uncommitted changes. `--ai` is **experimental**: drafts a verified, reviewable diff for findings without a rule-based fix (never auto-merged). |
 | `init` | Config + GitHub/GitLab CI + pre-commit hook |

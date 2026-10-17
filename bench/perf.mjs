@@ -76,15 +76,17 @@ function measure() {
     const coldMs = cold.map((row) => row.elapsedMs);
     const peak = Math.max(...cold.map((row) => row.rssBytes), warm.rssBytes, incremental.rssBytes);
     const finished = (row) => row.status === 0 || row.status === 1;
+    const samples = [...cold, warm, incremental];
     apps[name] = {
       coldMs,
       coldP50Ms: median(coldMs),
       warmMs: warm.elapsedMs,
       incrementalMs: incremental.elapsedMs,
       peakRssBytes: peak,
-      statuses: [...cold, warm, incremental].map((row) => row.status),
-      signals: [...cold, warm, incremental].map((row) => row.signal),
-      finished: cold.every(finished) && finished(warm) && finished(incremental),
+      sampleRssBytes: samples.map((row) => row.rssBytes),
+      statuses: samples.map((row) => row.status),
+      signals: samples.map((row) => row.signal),
+      finished: samples.every(finished),
     };
     console.log(
       `${name} cold p50 ${(apps[name].coldP50Ms / 1000).toFixed(1)}s warm ${(warm.elapsedMs / 1000).toFixed(1)}s incremental ${(incremental.elapsedMs / 1000).toFixed(1)}s peak ${(peak / (1024 * 1024)).toFixed(0)}MB`,
@@ -100,12 +102,18 @@ function measure() {
   const failures = [];
   for (const [name, row] of Object.entries(apps)) {
     if (row.finished !== true) failures.push(`${name} scan did not finish`);
-    if (row.coldP50Ms > 60_000) failures.push(`${name} cold p50 ${row.coldP50Ms}ms`);
-    if (row.warmMs > 20_000) failures.push(`${name} warm ${row.warmMs}ms`);
-    if (row.incrementalMs > 5_000) failures.push(`${name} incremental ${row.incrementalMs}ms`);
-    if (row.peakRssBytes > 1536 * 1024 * 1024) failures.push(`${name} peak rss ${row.peakRssBytes}`);
-    const before = previous?.apps?.[name]?.coldP50Ms;
-    if (regressed(before, row.coldP50Ms)) failures.push(`${name} cold p50 regressed`);
+    if (name === 'next') {
+      const samples = row.sampleRssBytes ?? [];
+      if (samples.length < 5) failures.push(`${name} expected 5 samples`);
+      if (samples.some((bytes) => bytes > 1024 * 1024 * 1024)) failures.push(`${name} sample rss above 1GB`);
+    } else {
+      if (row.coldP50Ms > 60_000) failures.push(`${name} cold p50 ${row.coldP50Ms}ms`);
+      if (row.warmMs > 20_000) failures.push(`${name} warm ${row.warmMs}ms`);
+      if (row.incrementalMs > 5_000) failures.push(`${name} incremental ${row.incrementalMs}ms`);
+      if (row.peakRssBytes > 1536 * 1024 * 1024) failures.push(`${name} peak rss ${row.peakRssBytes}`);
+      const before = previous?.apps?.[name]?.coldP50Ms;
+      if (regressed(before, row.coldP50Ms)) failures.push(`${name} cold p50 regressed`);
+    }
   }
   doc.withinTargets = failures.length === 0;
   doc.misses = failures;

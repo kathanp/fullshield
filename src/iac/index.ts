@@ -17,6 +17,33 @@ function finding(ruleId: string, title: string, message: string, file: string, s
   };
 }
 
+function runBodies(text: string): string[] {
+  const bodies: string[] = [];
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i += 1) {
+    const match = /^(\s*)(?:-\s+)?run:\s*(.*)$/.exec(lines[i] ?? '');
+    if (match === null) continue;
+    const indent = match[1]?.length ?? 0;
+    let body = match[2] ?? '';
+    if (body === '|' || body === '>') {
+      const block: string[] = [];
+      for (let j = i + 1; j < lines.length; j += 1) {
+        const line = lines[j] ?? '';
+        if (line.trim() === '') {
+          block.push(line);
+          continue;
+        }
+        const lead = line.match(/^\s*/)?.[0].length ?? 0;
+        if (lead <= indent) break;
+        block.push(line);
+      }
+      body = block.join('\n');
+    }
+    bodies.push(body);
+  }
+  return bodies;
+}
+
 function walk(dir: string, out: string[] = []): string[] {
   if (!existsSync(dir)) return out;
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -44,6 +71,28 @@ export function scanIac(dir: string, opts: { experimental?: boolean } = {}): Fin
       }
       if (/pull_request_target/.test(text)) {
         findings.push(finding('IAC-GHA-PRTARGET-001', 'pull_request_target workflow', 'untrusted PR can run with base secrets', rel, 'critical'));
+      }
+      if (/pull_request_target/.test(text) && /actions\/checkout/.test(text) && /github\.event\.pull_request/.test(text)) {
+        findings.push(
+          finding(
+            'IAC-GHA-PRCHECKOUT-001',
+            'pull_request_target checks out pull-request code',
+            'untrusted head can run with the base repository token',
+            rel,
+            'critical',
+          ),
+        );
+      }
+      if (runBodies(text).some((body) => /\$\{\{\s*github\.event\./.test(body))) {
+        findings.push(
+          finding(
+            'IAC-GHA-INJECT-001',
+            'Workflow run step interpolates github.event',
+            'untrusted event text is passed to the shell',
+            rel,
+            'critical',
+          ),
+        );
       }
       if (/permissions:\s*\n\s+contents:\s*write/.test(text) || /permissions:\s+write-all/.test(text)) {
         findings.push(finding('IAC-GHA-PERMS-001', 'Overly broad GitHub Actions permissions', 'write-all or contents: write', rel));

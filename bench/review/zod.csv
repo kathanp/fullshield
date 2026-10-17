@@ -1,0 +1,91 @@
+id,ruleId,severity,file,line,code snippet (5 lines),message,label,reviewer,note
+b7ed4c671e2bcf95,CONFIG-INSTALLSCRIPT-001,info,packages/docs/package.json,,"{
+  ""name"": ""@zod/docs"",
+  ""version"": ""0.0.0"",
+  ""private"": true,
+  ""scripts"": {",This package.json declares a postinstall script.,,,
+671b188855a40496,CONFIG-ERRSTACK-001,medium,scripts/triage-signal.ts,698,"
+main().catch((err) => {
+  process.stderr.write(`${err instanceof Error ? err.stack : String(err)}\n`);
+  process.exit(1);
+});",err.stack is sent in a response and can leak internals.,,,
+23114bc3a13bfa55,DEPS-VULN-001,low,pnpm-lock.yaml,,"lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false",lodash@4.17.21 is affected by GHSA-r5fr-rjxr-66jc (lodash vulnerable to Code Injection via `_.template` imports key names).,,,
+fdd31829c4b6f5b6,DEPS-VULN-001,info,pnpm-lock.yaml,,"lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false",lodash@4.17.21 is affected by GHSA-xxjr-mmjv-4gpg (Lodash has Prototype Pollution Vulnerability in `_.unset` and `_.omit` functions).,,,
+e42cfa720fc95464,DEPS-VULN-001,info,pnpm-lock.yaml,,"lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false",sprintf-js@1.0.3 is affected by GHSA-hp3w-g68c-fv3c (sprintf-js vulnerable to denial of service through unbounded precision specifiers).,,,
+10155f41a66e9dda,DEPS-VULN-001,info,pnpm-lock.yaml,,"lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false",brace-expansion@1.1.11 is affected by GHSA-v6h2-p8h4-qcjw (brace-expansion Regular Expression Denial of Service vulnerability).,,,
+d398fdffecef827a,DEPS-VULN-001,info,pnpm-lock.yaml,,"lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false",lodash@4.17.21 is affected by GHSA-f23m-r3pf-42rh (lodash vulnerable to Prototype Pollution via array path bypass in `_.unset` and `_.omit`).,,,
+2d523d9675ac9f00,DEPS-VULN-001,low,pnpm-lock.yaml,,"lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false","brace-expansion@1.1.11 is affected by GHSA-rgw5-rvv9-x895 (brace-expansion: DoS via unbounded intermediate arrays, bypassing the CVE-2026-14257 mitigation).",,,
+334e9027d8f6f566,DEPS-VULN-001,info,pnpm-lock.yaml,,"lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false","brace-expansion@1.1.11 is affected by GHSA-q2hr-2g5m-vwhr (brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service).",,,
+9391496b6b160a65,DEPS-VULN-001,low,pnpm-lock.yaml,,"lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false",brace-expansion@1.1.11 is affected by GHSA-qhr7-859c-m2p7 (brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion).,,,
+16c3253f729273a5,DEPS-VULN-001,low,pnpm-lock.yaml,,"lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false",brace-expansion@1.1.11 is affected by GHSA-mh99-v99m-4gvg (brace-expansion: DoS via unbounded expansion length causing an out-of-memory process crash).,,,
+f2e701432b5f7b1e,DEPS-VULN-001,low,pnpm-lock.yaml,,"lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false",brace-expansion@1.1.11 is affected by GHSA-6j4f-fj2g-mc7p (brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion).,,,
+8066390ab9e09683,SAST-PATH-001,high,scripts/triage-signal.ts,685,"  const mdPath = path.join(args.outDir, ""signal-report.md"");
+  const jsonPath = path.join(args.outDir, ""signal-report.json"");
+  fs.writeFileSync(mdPath, buildReport(all, args, now, advisories));
+  fs.writeFileSync(
+    jsonPath,",Tainted input is used as a file path without path.resolve + prefix check.,,,
+ad725a18b6dc3fa1,SAST-PATH-001,high,.claude/skills/triage/scripts/reindex.mjs,98,"];
+
+writeFileSync(join(dir, ""index.md""), lines.join(""\n""));
+console.log(`wrote ${join(dir, ""index.md"")} (${rows.length} entries)`);
+",Tainted input is used as a file path without path.resolve + prefix check.,,,
+fe5d460e59c0cc88,SAST-PATH-001,high,scripts/triage-signal.ts,621,"      const file = path.join(dir, entry, ""results.md"");
+      if (!fs.existsSync(file)) continue;
+      const fm = fs.readFileSync(file, ""utf8"").split(/^---\s*$/m)[1] ?? """";
+      map.set(`${kind === ""issues"" ? ""issue"" : ""pr""}:${entry}`, {
+        verdict: /^verdict:\s*(.+)$/m.exec(fm)?.[1].trim() ?? ""—"",",Tainted input is used as a file path without path.resolve + prefix check.,,,
+4c92001375f80f31,SAST-PATH-001,high,scripts/triage-signal.ts,686,"  const jsonPath = path.join(args.outDir, ""signal-report.json"");
+  fs.writeFileSync(mdPath, buildReport(all, args, now, advisories));
+  fs.writeFileSync(
+    jsonPath,
+    `${JSON.stringify(",Tainted input is used as a file path without path.resolve + prefix check.,,,
+d8ff298a36f4609a,SAST-CMDI-001,high,scripts/triage-signal.ts,623,"      const fm = fs.readFileSync(file, ""utf8"").split(/^---\s*$/m)[1] ?? """";
+      map.set(`${kind === ""issues"" ? ""issue"" : ""pr""}:${entry}`, {
+        verdict: /^verdict:\s*(.+)$/m.exec(fm)?.[1].trim() ?? ""—"",
+        status: /^status:\s*(.+)$/m.exec(fm)?.[1].trim() ?? ""—"",
+      });",Tainted input reaches a shell command (exec/execSync/spawn with shell: true).,,,
+100699796a48d6d3,SAST-CMDI-001,high,scripts/triage-signal.ts,624,"      map.set(`${kind === ""issues"" ? ""issue"" : ""pr""}:${entry}`, {
+        verdict: /^verdict:\s*(.+)$/m.exec(fm)?.[1].trim() ?? ""—"",
+        status: /^status:\s*(.+)$/m.exec(fm)?.[1].trim() ?? ""—"",
+      });
+    }",Tainted input reaches a shell command (exec/execSync/spawn with shell: true).,,,

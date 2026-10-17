@@ -1,0 +1,148 @@
+id,ruleId,severity,file,line,code snippet (5 lines),message,label,reviewer,note
+d6e73b10c11e11ab,CONFIG-DOCKER-ROOT-001,medium,examples/connection-state-recovery-example/esm/.codesandbox/Dockerfile,,"FROM node:20-bullseye
+",No USER instruction; the container defaults to root.,,,
+3d27c2cc1fdef4f5,CONFIG-HELMET-001,medium,examples/passport-jwt-example/esm/index.js,14,"const jwtSecret = ""Mys3cr3t"";
+
+const app = express();
+const httpServer = createServer(app);
+",An Express app is created but helmet() is never applied.,,,
+01bf9b8cbe1b8486,CONFIG-INSTALLSCRIPT-001,info,examples/nuxt-example/package.json,,"{
+  ""name"": ""nuxt-app"",
+  ""private"": true,
+  ""type"": ""module"",
+  ""scripts"": {",This package.json declares a postinstall script.,,,
+ecbc7915b0c2960a,CONFIG-HELMET-001,medium,examples/cluster-traefik/server/index.js,3,"// Setup basic express server
+var express = require('express');
+var app = express();
+var server = require('http').createServer(app);
+var io = require('socket.io')(server);",An Express app is created but helmet() is never applied.,,,
+90f056f223c0552f,CONFIG-HELMET-001,medium,packages/engine.io-client/test/support/server.js,4,"
+const express = require(""express"");
+const app = express();
+const join = require(""path"").join;
+const http = require(""http"").Server(app);",An Express app is created but helmet() is never applied.,,,
+0c7fbd86b0ea64ef,CONFIG-RATELIMIT-001,medium,examples/passport-example/cjs/index.js,32,"});
+
+app.get(""/login"", (req, res) => {
+  if (req.user) {
+    return res.redirect(""/"");",Route /login looks like an auth endpoint and has no rate limiter.,,,
+3f63624026cd9a81,CONFIG-DOCKER-ROOT-001,medium,examples/cluster-httpd/server/Dockerfile,,"FROM node:14-alpine
+
+# Create app directory
+RUN mkdir -p /usr/src/app
+WORKDIR /usr/src/app",No USER instruction; the container defaults to root.,,,
+5c64e1c412e19b42,CONFIG-HELMET-001,medium,examples/passport-jwt-example/ts/index.ts,24,"const jwtSecret = ""Mys3cr3t"";
+
+const app = express();
+const httpServer = createServer(app);
+",An Express app is created but helmet() is never applied.,,,
+bb4c2ce679466b63,CONFIG-INSTALLSCRIPT-001,info,docs/socket.io-protocol/v5-test-suite/package-lock.json,,"{
+  ""name"": ""socket.io-protocol-test-suite"",
+  ""version"": ""0.0.1"",
+  ""lockfileVersion"": 2,
+  ""requires"": true,",node_modules/fsevents has hasInstallScript in the lockfile.,,,
+2ffae9cb77b530f9,CONFIG-DOCKER-ROOT-001,medium,examples/cluster-nginx/server/Dockerfile,,"FROM node:14-alpine
+
+# Create app directory
+RUN mkdir -p /usr/src/app
+WORKDIR /usr/src/app",No USER instruction; the container defaults to root.,,,
+0ac6d8678492b3a8,DEPS-VULN-001,info,package-lock.json,,"{
+  ""name"": ""socket.io"",
+  ""lockfileVersion"": 3,
+  ""requires"": true,
+  ""packages"": {",lodash@4.17.21 is affected by GHSA-f23m-r3pf-42rh (lodash vulnerable to Prototype Pollution via array path bypass in `_.unset` and `_.omit`). Reachable via benchmark > lodash. (dev-only),,,
+4ab620ebd61cb4f7,DEPS-VULN-001,info,package-lock.json,,"{
+  ""name"": ""socket.io"",
+  ""lockfileVersion"": 3,
+  ""requires"": true,
+  ""packages"": {",proxy-addr@2.0.7 is affected by GHSA-jqcg-44mw-7w3h (proxy-addr vulnerable to IP spoofing via IPv4-mapped IPv6 trust subnet). Reachable via express > proxy-addr. (dev-only),,,
+d09e1dd443d8c3c6,DEPS-TYPOSQUAT-001,medium,package-lock.json,,"{
+  ""name"": ""socket.io"",
+  ""lockfileVersion"": 3,
+  ""requires"": true,
+  ""packages"": {","Package ""blob"" is 1 character from popular package ""glob"" (possible typosquat).",,,
+89f57889c23f323c,DEPS-VULN-001,info,package-lock.json,,"{
+  ""name"": ""socket.io"",
+  ""lockfileVersion"": 3,
+  ""requires"": true,
+  ""packages"": {",sprintf-js@1.0.3 is affected by GHSA-hp3w-g68c-fv3c (sprintf-js vulnerable to denial of service through unbounded precision specifiers). (dev-only),,,
+2a9ca0e59a962941,DEPS-DEPRECATED-001,info,package-lock.json,,"{
+  ""name"": ""socket.io"",
+  ""lockfileVersion"": 3,
+  ""requires"": true,
+  ""packages"": {",glob@8.1.0 is marked deprecated in the lockfile: Glob versions prior to v9 are no longer supported,,,
+66dc3eaa62411195,DEPS-DEPRECATED-001,info,package-lock.json,,"{
+  ""name"": ""socket.io"",
+  ""lockfileVersion"": 3,
+  ""requires"": true,
+  ""packages"": {",rimraf@2.7.1 is marked deprecated in the lockfile: Rimraf versions prior to v4 are no longer supported,,,
+b044c16a1aa7f336,DEPS-VULN-001,info,package-lock.json,,"{
+  ""name"": ""socket.io"",
+  ""lockfileVersion"": 3,
+  ""requires"": true,
+  ""packages"": {",lodash@4.17.21 is affected by GHSA-r5fr-rjxr-66jc (lodash vulnerable to Code Injection via `_.template` imports key names). Reachable via benchmark > lodash. (dev-only),,,
+b018af70e0b1f158,DEPS-DEPRECATED-001,info,package-lock.json,,"{
+  ""name"": ""socket.io"",
+  ""lockfileVersion"": 3,
+  ""requires"": true,
+  ""packages"": {","inflight@1.0.6 is marked deprecated in the lockfile: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.",,,
+df2e49e91c7a90cf,DEPS-DEPRECATED-001,info,package-lock.json,,"{
+  ""name"": ""socket.io"",
+  ""lockfileVersion"": 3,
+  ""requires"": true,
+  ""packages"": {",rimraf@3.0.2 is marked deprecated in the lockfile: Rimraf versions prior to v4 are no longer supported,,,
+2558052eb1832518,DEPS-DEPRECATED-001,info,package-lock.json,,"{
+  ""name"": ""socket.io"",
+  ""lockfileVersion"": 3,
+  ""requires"": true,
+  ""packages"": {",whatwg-encoding@3.1.1 is marked deprecated in the lockfile: Use @exodus/bytes instead for a more spec-conformant and faster implementation,,,
+c326a29c1b701297,SECRET-SESSION-001,medium,examples/passport-example/esm/index.js,17,"
+const sessionMiddleware = session({
+  secret: ""changeit"",
+  resave: true,
+  saveUninitialized: true,",Hardcoded express-session secret (chan****).,,,
+9a4a287c29ee11ae,SECRET-SESSION-001,medium,examples/express-session-example/cjs/index.js,13,"
+const sessionMiddleware = session({
+  secret: ""changeit"",
+  resave: true,
+  saveUninitialized: true,",Hardcoded express-session secret (chan****).,,,
+bef257a5c6115b45,SECRET-SESSION-001,medium,examples/passport-example/ts/index.ts,27,"
+const sessionMiddleware = session({
+  secret: ""changeit"",
+  resave: true,
+  saveUninitialized: true,",Hardcoded express-session secret (chan****).,,,
+963fc193977c7dca,SECRET-SESSION-001,medium,packages/engine.io/test/middlewares.js,195,"      engine.use(
+        session({
+          secret: ""keyboard cat"",
+          resave: false,
+          saveUninitialized: true,",Hardcoded express-session secret (keyb****).,,,
+d7376a41eac042cd,SECRET-SESSION-001,medium,packages/engine.io/test/middlewares.js,224,"      engine.use(
+        session({
+          secret: ""keyboard cat"",
+          resave: false,
+          saveUninitialized: true,",Hardcoded express-session secret (keyb****).,,,
+d1d096b46614324b,SECRET-SESSION-001,medium,examples/passport-example/cjs/index.js,16,"
+const sessionMiddleware = session({
+  secret: ""changeit"",
+  resave: true,
+  saveUninitialized: true,",Hardcoded express-session secret (chan****).,,,
+528c2d7742464aae,SECRET-PRIVKEY-001,critical,packages/engine.io/test/fixtures/client.key,1,"-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC3qP7P4axurpA2
+aseTbGNFPav21BJAqMPazSbkrpWHtRDlKeY62VJ1ER6lk2Fw1sMQRnyEQfTWNW2x
+i/Buv9nbJCKLuoPDQLFpHKkwBc/gu4N6O8zUcdhmCBQxRbcNB8BwWIzLvMghIqld
+8GZT0SiWdfd/OP+1rZVCW5WWqtV1R1O202JKH6yE/CRQt73P3dbfuXBDDs4kj5CM",A PEM private key block is committed to the repository.,,,
+f8d3c4cdfdf6a7ec,SECRET-SESSION-001,medium,examples/express-session-example/esm/index.js,12,"
+const sessionMiddleware = session({
+  secret: ""changeit"",
+  resave: true,
+  saveUninitialized: true,",Hardcoded express-session secret (chan****).,,,
+66331f71e6a54755,SECRET-JWT-001,medium,examples/passport-jwt-example/cjs/index.js,13,"
+const port = process.env.PORT || 3000;
+const jwtSecret = ""Mys3cr3t"";
+
+const app = express();",JWT secret assigned from a string literal (Mys3****).,,,
+cb1139c519fd1292,SECRET-PRIVKEY-001,critical,packages/engine.io/test/fixtures/ca.key,1,"-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQChKwRqFDrGgqMH
+jDUx5he6MDQ+BxlMqqpm0qu5pOCCPzSvYDFoiU4n3lK6uCbemv9Gdk/U99ev8LAG
+g2SkZAZXBpDrdZepkA84ehUHu5u7PHlXNodEKL7DLKsvoaYYiQ5rLyBYieDOYqtY
+JxtfLOeh+tmnNa+G4chpYzkll7OCeEQhbocQQLdP8novscoSibp6bPmoVsat8RRr",A PEM private key block is committed to the repository.,,,

@@ -31,29 +31,52 @@ export interface AiConfig {
   maxFindings: number;
 }
 
+export interface SastConfig {
+  /** Files larger than this are not parsed. Reported as SAST-SKIP-001. */
+  maxFileBytes: number;
+}
+
 export interface ResolvedConfig {
   modules: ModuleName[];
   failOn: Severity;
   ignore: string[];
+  /** When false, generated/vendored/minified excludes are not applied. */
+  defaultExcludes: boolean;
+  /** Replaces the built-in exclude list when set. */
+  excludes?: string[];
   baseline: string;
   notify: NotifyConfig;
   deps: DepsConfig;
   ai: AiConfig;
+  sast: SastConfig;
 }
 
 export const DEFAULT_CONFIG: ResolvedConfig = {
   modules: [...MODULE_NAMES],
   failOn: 'high',
   ignore: ['dist/**', '**/*.test.ts'],
+  defaultExcludes: true,
   baseline: '.fullshield-baseline.json',
   notify: { slackWebhookEnv: 'FULLSHIELD_SLACK_WEBHOOK' },
   deps: { offline: false },
   ai: { enabled: false, maxCostUsd: 1, maxFindings: 50 },
+  sast: { maxFileBytes: 1024 * 1024 },
 };
 
 export class ConfigError extends Error {}
 
-const KNOWN_KEYS = new Set(['modules', 'failOn', 'ignore', 'baseline', 'notify', 'deps', 'ai']);
+const KNOWN_KEYS = new Set([
+  'modules',
+  'failOn',
+  'ignore',
+  'defaultExcludes',
+  'excludes',
+  'baseline',
+  'notify',
+  'deps',
+  'ai',
+  'sast',
+]);
 
 function validate(raw: unknown, source: string): Partial<ResolvedConfig> {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
@@ -162,6 +185,35 @@ function validate(raw: unknown, source: string): Partial<ResolvedConfig> {
       ai.maxFindings = rawAi.maxFindings;
     }
     out.ai = ai;
+  }
+  if (record.defaultExcludes !== undefined) {
+    if (typeof record.defaultExcludes !== 'boolean') {
+      throw new ConfigError(`${source}: "defaultExcludes" must be a boolean`);
+    }
+    out.defaultExcludes = record.defaultExcludes;
+  }
+  if (record.excludes !== undefined) {
+    if (
+      !Array.isArray(record.excludes) ||
+      record.excludes.some((p) => typeof p !== 'string')
+    ) {
+      throw new ConfigError(`${source}: "excludes" must be an array of glob strings`);
+    }
+    out.excludes = record.excludes as string[];
+  }
+  if (record.sast !== undefined) {
+    if (typeof record.sast !== 'object' || record.sast === null || Array.isArray(record.sast)) {
+      throw new ConfigError(`${source}: "sast" must be an object`);
+    }
+    const rawSast = record.sast as Record<string, unknown>;
+    const sast: SastConfig = { maxFileBytes: 1024 * 1024 };
+    if (rawSast.maxFileBytes !== undefined) {
+      if (typeof rawSast.maxFileBytes !== 'number' || rawSast.maxFileBytes < 1) {
+        throw new ConfigError(`${source}: "sast.maxFileBytes" must be a positive number`);
+      }
+      sast.maxFileBytes = rawSast.maxFileBytes;
+    }
+    out.sast = sast;
   }
   return out;
 }

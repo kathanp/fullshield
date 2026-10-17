@@ -1,5 +1,6 @@
 import type { ScanResult } from '../core/engine.js';
 import type { Finding, Severity } from '../core/finding.js';
+import { redactScan } from './redact.js';
 
 const SCHEMA_URI = 'https://json.schemastore.org/sarif-2.1.0.json';
 
@@ -14,7 +15,8 @@ function uri(file: string | undefined): string {
 }
 
 /** SARIF 2.1.0 report for GitHub Code Scanning and other consumers. */
-export function renderSarifReport(result: ScanResult): string {
+export function renderSarifReport(input: ScanResult): string {
+  const result = redactScan(input);
   const rules = new Map<string, { id: string; name: string; shortDescription: { text: string } }>();
   for (const finding of result.findings) {
     if (!rules.has(finding.ruleId)) {

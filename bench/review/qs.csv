@@ -1,0 +1,6 @@
+id,ruleId,severity,file,line,code snippet (5 lines),message,label,reviewer,note
+b349071ca4b3a2e5,DEPS-NOLOCK-001,info,package.json,,"{
+    ""name"": ""qs"",
+    ""description"": ""A querystring parser that supports nesting and arrays, with a depth limit"",
+    ""homepage"": ""https://github.com/ljharb/qs"",
+    ""version"": ""6.16.1"",",No lockfile found; dependency vulnerabilities were not checked.,,,

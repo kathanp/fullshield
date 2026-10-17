@@ -1,0 +1,76 @@
+id,ruleId,severity,file,line,code snippet (5 lines),message,label,reviewer,note
+5d04696a0621c182,CONFIG-HELMET-001,medium,test/config.js,203,"
+    it('should default to true for prototype values', function () {
+      var app = express()
+      assert.strictEqual(app.disabled('hasOwnProperty'), true)
+    })",An Express app is created but helmet() is never applied.,,,
+7055d3a96e087820,CONFIG-HELMET-001,medium,test/res.format.js,159,"
+    describe('in router', function(){
+      var app = express();
+      var router = express.Router();
+",An Express app is created but helmet() is never applied.,,,
+04345820030df75e,CONFIG-HELMET-001,medium,examples/vhost/index.js,44,"// Vhost app
+
+var app = module.exports = express();
+
+app.use(vhost('*.example.com', redirect)); // Serves all subdomains via Redirect app",An Express app is created but helmet() is never applied.,,,
+32a99c8586e168cd,CONFIG-HELMET-001,medium,examples/route-separation/index.js,9,"var express = require('../..');
+var path = require('node:path');
+var app = express();
+var logger = require('morgan');
+var cookieParser = require('cookie-parser');",An Express app is created but helmet() is never applied.,,,
+50bb8063baa70187,CONFIG-HELMET-001,medium,examples/view-constructor/index.js,11,"var md = require('marked').parse;
+
+var app = module.exports = express();
+
+// register .md as an engine in express view system",An Express app is created but helmet() is never applied.,,,
+8b3386ff8e6e6057,CONFIG-HELMET-001,medium,test/req.range.js,89,"    describe('with ""combine: true"" option', function(){
+      it('should return combined ranges', function (done) {
+        var app = express()
+
+        app.use(function (req, res) {",An Express app is created but helmet() is never applied.,,,
+2e164dcd4c6afe31,CONFIG-HELMET-001,medium,test/req.ip.js,90,"    describe('when X-Forwarded-For is not present', function(){
+      it('should return the remote address', function(done){
+        var app = express();
+
+        app.enable('trust proxy');",An Express app is created but helmet() is never applied.,,,
+2390068319accbfb,CONFIG-HELMET-001,medium,examples/downloads/index.js,10,"var path = require('node:path');
+
+var app = module.exports = express();
+
+// path to where the files are stored on disk",An Express app is created but helmet() is never applied.,,,
+b349071ca4b3a2e5,DEPS-NOLOCK-001,info,package.json,,"{
+  ""name"": ""express"",
+  ""description"": ""Fast, unopinionated, minimalist web framework"",
+  ""version"": ""5.3.0"",
+  ""author"": ""TJ Holowaychuk <tj@vision-media.ca>"",",No lockfile found; dependency vulnerabilities were not checked.,,,
+100c29f786cc4ec2,SAST-XSS-001,high,examples/auth/views/login.ejs,5,"
+<h1>Login</h1>
+<%- message %>
+Try accessing <a href=""/restricted"">/restricted</a>, then authenticate with ""tj"" and ""foobar"".
+<form method=""post"" action=""/login"">",Unescaped template interpolation (<%- or {{{) can produce XSS.,,,
+40fa268913f6f9e7,SAST-REDIRECT-001,high,examples/mvc/controllers/user-pet/index.js,21,"  user.pets.push(pet);
+  res.message('Added pet ' + body.pet.name);
+  res.redirect('/user/' + id);
+};
+",Tainted input is passed to res.redirect.,,,
+db8219fbee2fa7a8,SECRET-SESSION-001,medium,examples/session/redis.js,23,"  resave: false, // don't save session if unmodified
+  saveUninitialized: false, // don't create session until something stored
+  secret: 'keyboard cat',
+  store: new RedisStore
+}));",Hardcoded express-session secret (keyb****).,,,
+9401e214a9858e51,SECRET-SESSION-001,medium,examples/auth/index.js,25,"  resave: false, // don't save session if unmodified
+  saveUninitialized: false, // don't create session until something stored
+  secret: 'shhhh, very secret'
+}));
+",Hardcoded express-session secret (shhh****).,,,
+4010a748a0361288,SECRET-SESSION-001,medium,examples/session/index.js,19,"  resave: false, // don't save session if unmodified
+  saveUninitialized: false, // don't create session until something stored
+  secret: 'keyboard cat'
+}));
+",Hardcoded express-session secret (keyb****).,,,
+c194f2317926a473,SECRET-SESSION-001,medium,examples/mvc/index.js,43,"  resave: false, // don't save session if unmodified
+  saveUninitialized: false, // don't create session until something stored
+  secret: 'some secret here'
+}));
+",Hardcoded express-session secret (some****).,,,

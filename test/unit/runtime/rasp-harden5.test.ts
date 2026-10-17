@@ -8,6 +8,8 @@ import { readFileSync } from 'node:fs';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { hasNodeSqlite } from '../../helpers/sqlite.js';
+
 import {
   clearRaspEvents,
   contextFromRequest,
@@ -169,7 +171,7 @@ describe('harden-5 async request context', () => {
     }
   });
 
-  it('survives child_process.exec callback and spawn close', async () => {
+  it.skipIf(!hasNodeSqlite())('survives child_process.exec callback and spawn close', async () => {
     enableRasp({ experimental: true, mode: 'block' });
     const cp = require('child_process') as typeof import('node:child_process');
     const { DatabaseSync } = require('node:sqlite') as typeof import('node:sqlite');
@@ -210,7 +212,7 @@ describe('harden-5 async request context', () => {
     db.close();
   });
 
-  it('survives async node:sqlite after await and fetch/http.request callbacks', async () => {
+  it.skipIf(!hasNodeSqlite())('survives async node:sqlite after await and fetch/http.request callbacks', async () => {
     enableRasp({ experimental: true, mode: 'monitor' });
     const { DatabaseSync } = require('node:sqlite') as typeof import('node:sqlite');
     const http = require('node:http') as typeof import('node:http');

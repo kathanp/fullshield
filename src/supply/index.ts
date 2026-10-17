@@ -187,14 +187,24 @@ export function checkLockfileIntegrity(lock: {
     if (name === '') continue;
     const resolved = entry.resolved;
     if (!resolved) continue;
+    if (entry.integrity === undefined || entry.integrity.length === 0) {
+      findings.push(
+        finding(
+          'SUPPLY-LOCKINTEGRITY-001',
+          'Lockfile entry has no integrity hash',
+          `${name} resolved without an integrity hash`,
+          'package-lock.json',
+        ),
+      );
+    }
     try {
-      const host = new URL(resolved).hostname;
-      if (host !== REGISTRY_HOST) {
+      const url = new URL(resolved);
+      if (url.protocol !== 'https:' || url.hostname !== REGISTRY_HOST) {
         findings.push(
           finding(
             'SUPPLY-LOCKURL-001',
             'Lockfile entry resolves from a non-npm registry host',
-            `${name} resolved host ${host}`,
+            `${name} resolved host ${url.hostname || resolved}`,
             'package-lock.json',
           ),
         );

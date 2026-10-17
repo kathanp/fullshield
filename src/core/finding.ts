@@ -52,6 +52,8 @@ export interface Finding {
     | 'symbol-not-called';
   /** Lockfile path from an imported direct dependency, e.g. express > body-parser > qs. */
   dependencyPath?: string[];
+  /** Every retained dependency path for this package+advisory (shortest first). */
+  dependencyPaths?: string[][];
   /** Deterministic (default) vs AI-added. AI findings never fail CI. */
   source?: 'deterministic' | 'ai';
   aiVerdict?: 'true-positive' | 'likely-false-positive' | 'needs-review';

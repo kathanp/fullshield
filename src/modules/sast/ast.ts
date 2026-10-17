@@ -109,7 +109,10 @@ export function walk(node: AstNode, visit: (n: AstNode) => void): void {
 }
 
 export function attachParents(node: AstNode, parent?: AstNode): void {
-  (node as unknown as NodeWithParent).parent = parent;
+  const current = node as unknown as NodeWithParent;
+  // Re-walking a function must not drop the link back to the program.
+  // That link is what a later scan uses when the same tree is reused.
+  if (parent !== undefined || current.parent === undefined) current.parent = parent;
   for (const key of Object.keys(node) as Array<keyof AstNode>) {
     if (SKIP_KEYS.has(String(key))) continue;
     const value = node[key];

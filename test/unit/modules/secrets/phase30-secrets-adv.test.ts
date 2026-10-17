@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { writeBaseline } from '../../../../src/core/baseline.js';
 import { scan } from '../../../../src/core/engine.js';
+import { renderConsoleReport } from '../../../../src/reporters/console.js';
+import { renderJsonReport } from '../../../../src/reporters/json.js';
 import { secretsAdvEnabled } from '../../../../src/modules/secrets/experimental.js';
 import { scanBundle } from '../../../../src/modules/secrets/bundle.js';
 import { scanGitHistory } from '../../../../src/modules/secrets/history.js';
@@ -170,6 +172,31 @@ describe('scan --history', () => {
 
     const second = await scan({ cwd: dir, modules: ['secrets'], history: true });
     expect(second.findings.filter((f) => f.ruleId === 'SECRET-AWS-001')).toEqual([]);
+  });
+
+  it('prints scanned N of M commits when the cap is hit, and masks the secret', async () => {
+    dir = await initRepo();
+    await writeFile(join(dir, 'readme.txt'), 'first\n');
+    git(dir, 'add', 'readme.txt');
+    git(dir, 'commit', '-m', 'first');
+    await writeFile(join(dir, 'other.txt'), 'second\n');
+    git(dir, 'add', 'other.txt');
+    git(dir, 'commit', '-m', 'second');
+    await writeFile(join(dir, 'app.js'), `const k = "${AWS_KEY}";\n`);
+    git(dir, 'add', 'app.js');
+    git(dir, 'commit', '-m', 'add key');
+
+    process.env.FULLSHIELD_HISTORY_MAX = '2';
+    const result = await scan({ cwd: dir, modules: ['secrets'], history: true });
+    expect(result.metadata.history).toBe('scanned 2 of 3 commits');
+    const json = renderJsonReport(result);
+    const text = renderConsoleReport(result);
+    expect(json).toContain('scanned 2 of 3 commits');
+    expect(text).toContain('scanned 2 of 3 commits');
+    expect(json).toContain('AKIA****');
+    expect(text).toContain('AKIA****');
+    expect(json).not.toContain(AWS_KEY);
+    expect(text).not.toContain(AWS_KEY);
   });
 
   it('fails clearly outside a git repository', async () => {
