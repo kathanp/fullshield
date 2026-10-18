@@ -81,3 +81,19 @@ Benchmark impact: none expected (finding keys unchanged)
 Next CI: not pushed
 Needs human decision: none
 ```
+
+## Docs reconcile
+
+```
+Phase docs-reconcile — stash notes that are still true
+Branch/commit: docs-reconcile | pushed: no | merged into next: yes
+Flag: none
+Built: brought still-true sentences from the stash into errors, noise, Node 20, stabilization, demo, REVIEW, rules README, and CONTRIBUTING. Left out the 0.4.0 version line, the claim that Phase 47 is unbuilt, and the claim that confirm still runs on Node 20.
+Not done / limitations: stash package.json, lockfile, CHANGELOG, README, and the spec were not touched.
+Tests added: 0
+default-scan-diff: pending
+verify: docs only; scan keys are the gate
+Benchmark impact: none
+Next CI: not pushed
+Needs human decision: none
+```

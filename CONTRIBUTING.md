@@ -1,5 +1,7 @@
 # Contributing
 
+The source of truth is `SECURITY_SCANNER_SPEC.md`. Phases 1–48 are built. The package enforces Node >= 22.13. The next build is Phase 49. Do not mark ground truth `"reviewed": true`.
+
 ## Rules
 
 Every detection rule needs:
@@ -21,7 +23,7 @@ npm run verify
 
 ## AI
 
-`--ai explain` and `fix --ai` are **experimental**. `--ai triage` and `--ai logic` are not a 0.1.0 CLI surface. Internal library tests set `FULLSHIELD_AI_INTERNAL=1`.
+`--ai explain` and `fix --ai` are **experimental**. `--ai triage` and `--ai logic` are not a public CLI surface. Internal library tests set `FULLSHIELD_AI_INTERNAL=1`.
 
 ## Secrets in fixtures
 

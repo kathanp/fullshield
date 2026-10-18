@@ -1,5 +1,7 @@
 # CLI errors
 
+Current codes only. A command that is not built yet has no row here.
+
 FullShield prints `fullshield: FS-E### <message>`. The message is the same text the command already used. A stack trace is included only when you pass `--debug`.
 
 | Code | When | What to do |

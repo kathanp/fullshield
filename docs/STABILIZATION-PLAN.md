@@ -1,5 +1,7 @@
 # FullShield stabilization plan
 
+This note's phases 1–6 are already in 0.3.0 and later. It is not the build queue. The queue is `SECURITY_SCANNER_SPEC.md` Section 36. Phase 5 below added Node 20. That support was removed in spec Phase 46 because Node 20 reached end of life in April 2026. The package enforces Node >= 22.13.
+
 Cursor can’t measure precision. It can build the review tooling, but a human has to decide which findings are real. If Cursor labels its own findings, the numbers mean nothing.
 
 Paste this first as the project rules, in `.cursor/rules` or at the top of each chat:

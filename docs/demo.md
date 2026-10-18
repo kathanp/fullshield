@@ -1,6 +1,6 @@
 # Demo
 
-Captured from this checkout on 2026-10-16. Commands:
+Captured from this checkout on 2026-10-16, when the tree reported **v0.1.3**. The transcript below is that run. It is not rewritten to look like a later version. Commands:
 
 ```bash
 npm run build

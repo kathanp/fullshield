@@ -2,7 +2,7 @@
 
 Node 20 reached end of life in April 2026. The package enforces Node >= 22.13 in `package.json` `engines`, in `doctor`, and in CI (Node 22 and 24). The published 0.3.0 tarball still says `engines` `>=20.11`. This tree keeps the Phase 46 floor. History storage may still say it needs `node:sqlite`. That API is inside the floor.
 
-Checked against the source tree on 2026-10-16. This is a compatibility note.
+Checked against the source tree on 2026-10-16. This is a compatibility note, not a claim that the CI matrix has already gone green.
 
 ## APIs that need Node 22.13
 
@@ -26,4 +26,4 @@ No `fs.glob`, `util.styleText`, `URL.parse`, or `Promise.withResolvers` in `src/
 
 ## What still needs a human
 
-CI lists Node 22 and 24. Branch protection that still requires old Node 20 job names has to be updated by a human after the Node 22 and 24 jobs have reported once. That is a GitHub setting. This change does not edit it.
+CI lists Node 22 and 24. Branch protection that still requires old Node 20 job names has to be updated by a human after the Node 22 and 24 jobs have reported once. That is a GitHub setting. This change does not edit it. RASP tests that need `node:sqlite` skip when that module cannot be loaded.

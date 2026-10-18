@@ -1,6 +1,8 @@
 # Noise report
 
-Counts are from `bench/snapshots/HEAD.json` before the grouping change. That file is the default `scan --json --offline-safe` snapshot. NodeGoat has 379 findings. goof has 354. In-scope ground truth on those apps is 7 and 11 entries, and `"reviewed"` is still false. This is not a precision or recall claim.
+This report explains the pre-grouping snapshot (NodeGoat 379, goof 354). After grouping, `CHANGELOG.md` records NodeGoat 256 and goof 271. Those later counts are still mostly `DEPS-VULN-001`. JSON keeps them. The console fold is Phase 47 and is on `next`. `"reviewed"` is still false. This is not a precision or recall claim.
+
+Counts below are from `bench/snapshots/HEAD.json` before the grouping change. That file was the default `scan --json --offline-safe` snapshot at the time of the report. In-scope ground truth on those apps is 7 and 11 entries.
 
 `scripts/noise-report.mjs` re-runs that scan on the five pinned tuning/seen apps and prints `app | module | ruleId | severity | count`. Untouched holdouts are not scanned.
 

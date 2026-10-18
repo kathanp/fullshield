@@ -1,5 +1,7 @@
 # FullShield rules
 
+New work is `SECURITY_SCANNER_SPEC.md` Section 32. These pages describe rules that already exist. They are not the Phase 46–59 designs.
+
 Each Core rule has a positive fixture in `test/fixtures/vulnerable-app` and a
 negative counterpart in `test/fixtures/clean-app`.
 

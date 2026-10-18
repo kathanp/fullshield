@@ -1,6 +1,6 @@
 # Ground-truth review
 
-Every `bench/*/ground-truth.json` stays `"reviewed": false` until a human flips it. Do not cite recall from these files.
+Every `bench/*/ground-truth.json` stays `"reviewed": false` until a human flips it. Do not cite recall from these files. `BENCHMARK.md` is an older unreviewed run. Current default-scan counts are in `CHANGELOG.md`. Product work after that is `SECURITY_SCANNER_SPEC.md` Section 32.
 
 For each entry:
 
