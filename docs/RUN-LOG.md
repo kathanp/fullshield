@@ -75,7 +75,7 @@ Flag: none
 Built: unused direct dependency count and fix --unsafe removal from package.json only.
 Not done / limitations: devDependencies are not offered for removal. A lockfile with unknown edges produces no list.
 Tests added: 2 (phase48-unused) | total: 830
-default-scan-diff: pending at commit time; merge only if empty
+default-scan-diff: EMPTY (base 146e09d head b835dc9; vulnerable-app 35, clean-app 0, nodegoat 256, juice-shop 105, dvna 23, goof 271, vulnerable-node 63)
 verify: Node 22.23.3 tests 830, lines 92.61%, branches 82.13%. Node 24.22.0 tests 830, lines 92.6%, branches 82.11%. vulnerable-app 35, clean-app high/critical 0.
 Benchmark impact: none expected (finding keys unchanged)
 Next CI: not pushed
