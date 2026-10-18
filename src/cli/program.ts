@@ -48,6 +48,7 @@ const defaultIO: ProgramIO = {
 
 interface ScanCliOptions {
   json?: boolean;
+  all?: boolean;
   failOn?: string;
   modules?: string;
   staged?: boolean;
@@ -120,6 +121,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .description('Scan a project directory for security findings')
     .argument('[path]', 'directory to scan', '.')
     .option('--json', 'machine-readable JSON output')
+    .option('--all', 'print every finding in the console, with no 20-row cap')
     .option('--fail-on <severity>', 'exit 1 if any finding is at or above this severity')
     .option('--modules <modules>', 'comma-separated subset of modules to run')
     .option('--staged', 'scan only files staged in git (pre-commit mode)')
@@ -253,7 +255,11 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         if (opts.prSummary === true) {
           io.out(renderPrSummary(result.findings));
         } else {
-          io.out(opts.json === true ? renderJsonReport(result) : renderConsoleReport(result));
+          io.out(
+            opts.json === true
+              ? renderJsonReport(result)
+              : renderConsoleReport(result, { all: opts.all === true }),
+          );
         }
 
         if (result.policy !== undefined && result.policy.errors.length > 0) {

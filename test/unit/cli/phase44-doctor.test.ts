@@ -59,22 +59,22 @@ describe('Phase 44 developer experience', () => {
     expect(formatCliError(error, true)).toContain('at hidden');
   });
 
-  it('shows at most 10 findings and points at --json', () => {
-    const findings = Array.from({ length: 12 }, (_, i) => ({
+  it('shows at most 20 actionable findings and points at --json', () => {
+    const findings = Array.from({ length: 21 }, (_, i) => ({
       id: `id-${i}`,
       ruleId: 'SAST-SQLI-001',
       module: 'sast' as const,
       title: 'SQL injection',
       severity: 'high' as const,
       confidence: 'high' as const,
-      file: `a${i}.js`,
-      line: i + 1,
+      file: `a${String(i).padStart(2, '0')}.js`,
+      line: 1,
       message: 'query is built from request data',
       remediation: 'use a placeholder',
     }));
     const result = {
       findings,
-      summary: { total: 12, bySeverity: { info: 0, low: 0, medium: 0, high: 12, critical: 0 } },
+      summary: { total: 21, bySeverity: { info: 0, low: 0, medium: 0, high: 21, critical: 0 } },
       metadata: {
         version: '0.1.3',
         filesScanned: 1,
@@ -84,9 +84,9 @@ describe('Phase 44 developer experience', () => {
       },
     } as ScanResult;
     const text = renderConsoleReport(result);
-    expect(text).toContain('2 more — use --json');
+    expect(text).toContain('1 more actionable — use --json');
     expect(text).toContain('docs: rules/SAST-SQLI-001.md');
-    expect(text).toContain('a0.js:1');
-    expect(text).not.toContain('a11.js');
+    expect(text).toContain('a00.js:1');
+    expect(text).not.toContain('a20.js');
   });
 });

@@ -8,6 +8,20 @@ All notable changes to FullShield are documented here.
 
 A test locks the floor the package already enforces: `package.json` `engines` `>=22.13`, `doctor` rejects Node 20.11, and CI lists Node 22 and 24. No new rule, flag, or finding. The version is unchanged.
 
+### Console
+
+Default console prints the human-decision shown rows (2026-10-18), grouped one row per package name. JSON, SARIF, Markdown, HTML, the baseline, and `--fail-on` stay the full list. `--all` prints every finding, ungrouped. This is not a stable-output change.
+
+Re-measure of the local `scan --json --offline-safe` files from 2026-10-18, unreviewed. Human decision 2026-10-18 (D4) accepts these grouped-row counts. There is no row-count threshold. The shown rule, the 20-row cap, and severities were not changed.
+
+| app | shown rows | shown findings | folded findings | shown findings by reachability |
+|---|---|---|---|---|
+| nodegoat | 36 | 62 | 194 | reachable-via-dependency 41, reachable 12, none 8, not-imported 1 |
+| juice-shop | 49 | 59 | 46 | none 46, reachable 13 |
+| dvna | 14 | 16 | 7 | none 12, reachable 4 |
+| goof | 63 | 157 | 114 | reachable-via-dependency 86, reachable 60, none 11 |
+| vulnerable-node | 41 | 43 | 20 | none 38, reachable-via-dependency 4, reachable 1 |
+
 ## 0.2.6 — 2026-10-16
 
 - v0.2.5 reached staging with a fresh token, then sigstore threw `TLOG_CREATE_ENTRY_ERROR` because Rekor already had that transparency-log entry (HTTP 409). npm 12.2.0 leaves `fetchOnConflict` off, so the publish stopped. Staging now turns that on before loading the publisher, and gives the Rekor request 120 seconds. It still refuses to publish without provenance.

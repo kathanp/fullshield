@@ -850,6 +850,17 @@ These count as R1/R3 approvals.
 | 22.23.3 | 785 | 92.49% | 82.29% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
 | 24.22.0 | 785 | 92.47% | 82.28% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
 
+## Phase 47 — actionable console view (human decision 2026-10-18)
+
+Console-only. D3 shown rule, one row per package, 20-row cap. D4 accepts the grouped-row table and removes the row-count stop. JSON and `--fail-on` stay the full list.
+
+`npm run verify` before merge:
+
+| node | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|---|
+| 22.23.3 | 790 | 92.54% | 82.19% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+| 24.22.0 | 790 | 92.53% | 82.17% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+
 ## Current status
 
 - `main` and `next` include Phases 1–35 (pull request #9, `95e1df6`).

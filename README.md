@@ -203,7 +203,7 @@ npx fullshield scan --debug
 
 `doctor` prints the Node version, lockfile, cache directory, experimental flags that are set to `1`, whether `fullshield.config.json` parses, and whether OSV is allowed to use the network. `--offline` skips that network. CLI failures use `FS-E###` codes. The message stays the same. A stack is printed only with `--debug`.
 
-Console output shows the highest 10 findings, then `N more — use --json`. Each line has the file, the finding message, a fix line, and `rules/<rule-id>.md`.
+Default console prints shown rows only, capped at 20. A dependency advisory is shown when it is `DEPS-MALICIOUS-001`, or when it is `DEPS-VULN-001`, not dev-only, and reachability is reachable, symbol-reachable, via a dependency, or unknown. Severity and confidence do not show a dependency row. SAST, secrets, and config are shown when severity is high or critical, or confidence is high. Shown dependency findings are one row per package. `--all` prints every finding. JSON, SARIF, Markdown, HTML, the baseline, and `--fail-on` stay the full list. On the 2026-10-18 offline-safe recount, grouped rows were NodeGoat 36, goof 63, juice-shop 49, dvna 14, and vulnerable-node 41. Ground truth is still `"reviewed": false`.
 
 Experimental taint propagation (`FULLSHIELD_EXPERIMENTAL_TAINT_V2=1`) and the parse pool (`FULLSHIELD_PARSE_POOL=1`) are off by default. Symbol reachability runs only when an OSV advisory lists `affected_functions`. Advisories without that list keep the import-level class.
 
