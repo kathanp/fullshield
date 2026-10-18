@@ -830,6 +830,26 @@ Verified alone: 559 tests, 92.37% lines / 82.7% branches.
 |---|---|---|---|---|---|---|---|---|
 | 35 | 740 | 92.58% | 81.91% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
 
+## Human decisions 2026-10-18 (Kathan)
+
+These count as R1/R3 approvals.
+
+- D1. Approved: the doctor test treats Node 20.11 as too old (Phase 46).
+- D2. Approved: the console-cap test expects 20 rows instead of 10 (Phase 47).
+- D3. The Phase 47 shown rule is replaced. Dependency rows are shown only for `DEPS-MALICIOUS-001`, or for `DEPS-VULN-001` when reachability is `reachable`, `symbol-reachable`, `reachable-via-dependency`, or `reachability-unknown`, and the finding is not dev-only. SAST, secrets, and config are shown when severity is high or critical, or confidence is high. Shown dependency findings group to one console row per package. JSON and the other reporters stay one finding per advisory.
+- D4. The 2026-10-18 grouped-row counts are accepted: NodeGoat 36, goof 63, juice-shop 49, dvna 14, vulnerable-node 41. The 40-row stop is removed. Phase 47 acceptance is the D3 shown rule passing its tests, plus that table in CHANGELOG under Unreleased and in the Phase 47 report. There is no row-count threshold. The shown rule, the 20-row cap, and severities stay as D3 left them.
+
+## Phase 46 — supported runtime (branch `phase-46`)
+
+`next` already enforced Node >= 22.13 in `engines`, `doctor`, and the CI matrix. This phase adds the locking test and records D1 (Node 20.11 is too old). No scan output change.
+
+`npm run verify` on this tree before merge:
+
+| node | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|---|
+| 22.23.3 | 785 | 92.49% | 82.29% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+| 24.22.0 | 785 | 92.47% | 82.28% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+
 ## Current status
 
 - `main` and `next` include Phases 1–35 (pull request #9, `95e1df6`).

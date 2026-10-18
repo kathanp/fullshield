@@ -21,7 +21,7 @@ Out of scope: findings in `test/fixtures/**` (intentionally vulnerable), third-p
 | 0.1.x | Supported. 0.1.3 is the current npm release. |
 | 0.0.x | Deprecated placeholders. Use >= 0.1.0. |
 
-Security fixes ship as patch releases on 0.1.x until the next minor. A minor release is required for a new rule, command, flag, export, or stable-output change.
+The package enforces Node >= 22.13 (`package.json` `engines` and `doctor`). A minor release is required for a new rule, command, flag, export, or stable-output change.
 
 ## Please do not
 

@@ -2,6 +2,12 @@
 
 All notable changes to FullShield are documented here.
 
+## Unreleased
+
+### Runtime
+
+A test locks the floor the package already enforces: `package.json` `engines` `>=22.13`, `doctor` rejects Node 20.11, and CI lists Node 22 and 24. No new rule, flag, or finding. The version is unchanged.
+
 ## 0.2.6 — 2026-10-16
 
 - v0.2.5 reached staging with a fresh token, then sigstore threw `TLOG_CREATE_ENTRY_ERROR` because Rekor already had that transparency-log entry (HTTP 409). npm 12.2.0 leaves `fetchOnConflict` off, so the publish stopped. Staging now turns that on before loading the publisher, and gives the Rekor request 120 seconds. It still refuses to publish without provenance.
