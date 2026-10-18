@@ -3,6 +3,8 @@ import { createRequire } from 'node:module';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { join } from 'node:path';
 
+import { nodeSqliteAvailable, nodeSqliteUnavailableMessage } from '../core/sqlite.js';
+
 const require = createRequire(import.meta.url);
 
 export interface HistoryRow {
@@ -81,6 +83,9 @@ function sqliteDb(file: string): HistoryDb {
 }
 
 export function openHistory(dir: string): HistoryDb {
+  if (!nodeSqliteAvailable()) {
+    throw new Error(nodeSqliteUnavailableMessage('history'));
+  }
   const root = join(dir, '.fullshield');
   mkdirSync(root, { recursive: true });
   return sqliteDb(join(root, 'history.db'));

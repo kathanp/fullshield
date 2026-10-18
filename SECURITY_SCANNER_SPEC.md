@@ -883,7 +883,7 @@ Acceptance: workflows green; reproducibility passes or differences documented; S
 
 | Item | State |
 |---|---|
-| Repo `package.json` | 0.4.0. README says 0.4.0. Do not invent the npm `latest` dist-tag in this file. |
+| Repo `package.json` | 0.3.0, matching the published npm version (D8). README says 0.3.0. Do not bump past 0.3.0. |
 | `engines` | `>=22.13` in package.json, doctor, and CI (Node 22 and 24). Not pushed. Branch protection still needs a human after the new jobs report. |
 | Built | phases 1–46 in this working tree. Phase 47 console implements D3. D4 accepts the grouped-row table and removes the 40-row stop. Nothing pushed. |
 | Today's queue | Section 36: Lane A 46→47→48→49, then 75/50/51/52 to snapshot diff only; Lane B 67, 68, 73; Lane C 70, 60–66, 71, 72, 74, 69 |
@@ -893,7 +893,7 @@ Acceptance: workflows green; reproducibility passes or differences documented; S
 | Provenance gate | in publish.yml. `0.1.3` was published without provenance and must not be repeated |
 | Section 27 open items | COOKIE/CSRF already covered; BaseEntity negative test added; Juice Shop codefixes documented |
 | Comparison / precision / promotion | comparison run in COMPARISON.md; precision not sampled; nothing promoted |
-| Human decisions 2026-10-18 | D1: doctor test treats Node 20.11 as too old (Phase 46). D2: console-cap test expects 20 rows (Phase 47). D3: Phase 47 shown rule replaced; see Phase 47 and 47.1. D4: the 2026-10-18 grouped-row counts are accepted and the 40-row stop is removed. |
+| Human decisions 2026-10-18 | D1: doctor test treats Node 20.11 as too old (Phase 46). D2: console-cap test expects 20 rows (Phase 47). D3: Phase 47 shown rule replaced; see Phase 47 and 47.1. D4: the 2026-10-18 grouped-row counts are accepted and the 40-row stop is removed. D6: published 0.3.0 is approved and is not a stop; git must match it. D7: restoring that source onto next is an approved R10 change only if the R1 proofs pass. D8: package.json and README are set to 0.3.0 in the restore commit. Do not bump past 0.3.0. |
 | Noise | NodeGoat JSON stays 256. D4 accepts the 2026-10-18 grouped-row recount (nodegoat 36, goof 63, juice-shop 49, dvna 14, vulnerable-node 41). No row-count threshold. Rule unchanged. |
 
 ---

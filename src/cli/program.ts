@@ -1,4 +1,4 @@
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
 import { Command } from 'commander';
@@ -23,11 +23,14 @@ import {
 import { createAiClient, isLiveAi } from '../ai/provider.js';
 import { runAiFix } from '../ai/fixLoop.js';
 import { packageVersion } from '../core/version.js';
+import { renderGithubAnnotations, renderGitlabCodeQuality, renderJunitReport } from '../reporters/ci.js';
 import { renderConsoleReport } from '../reporters/console.js';
 import { renderHtmlReport } from '../reporters/html.js';
 import { renderJsonReport } from '../reporters/json.js';
 import { renderMarkdownReport } from '../reporters/markdown.js';
 import { renderSarifReport } from '../reporters/sarif.js';
+import { addedFails, diffScans, parseScanDocument, renderDiffText } from '../diff/index.js';
+import { CI_REPORTS_FLAG, DIFF_FLAG, diffEnabled } from '../modules/sast/experimental.js';
 import { POLICY_FLAG, renderPrSummary } from '../policy/index.js';
 import { buildSbom } from '../sbom/index.js';
 import { validateCycloneDx15 } from '../sbom/cyclonedx.js';
@@ -58,6 +61,10 @@ interface ScanCliOptions {
   sarif?: string;
   markdown?: string;
   html?: string;
+  githubAnnotations?: string;
+  junit?: string;
+  gitlab?: string;
+  experimentalCiReports?: boolean;
   updateBaseline?: boolean;
   ai?: string | true;
   emitVirtualPatches?: boolean | string;
@@ -131,6 +138,19 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option('--sarif <file>', 'write a SARIF 2.1.0 report to this path')
     .option('--markdown <file>', 'write a Markdown report to this path')
     .option('--html <file>', 'write an HTML report to this path')
+    .option(
+      '--experimental-ci-reports',
+      'experimental: GitHub annotations, JUnit, and GitLab Code Quality (FULLSHIELD_EXPERIMENTAL_CI_REPORTS=1)',
+    )
+    .option(
+      '--github-annotations <file>',
+      'experimental: GitHub Actions workflow commands (requires FULLSHIELD_EXPERIMENTAL_CI_REPORTS=1)',
+    )
+    .option('--junit <file>', 'experimental: JUnit XML (requires FULLSHIELD_EXPERIMENTAL_CI_REPORTS=1)')
+    .option(
+      '--gitlab <file>',
+      'experimental: GitLab Code Quality JSON (requires FULLSHIELD_EXPERIMENTAL_CI_REPORTS=1)',
+    )
     .option('--update-baseline', 'record current findings as accepted (CI fails only on new ones)')
     .option('--ai [mode]', 'experimental: explain findings (off = zero AI network calls)')
     .option('--emit-virtual-patches [file]', 'experimental: write .fullshield/vpatches.json')
@@ -207,6 +227,16 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         if (opts.prSummary === true && process.env[POLICY_FLAG] !== '1') {
           throw new Error(`--pr-summary requires ${POLICY_FLAG}=1`);
         }
+        if (opts.experimentalCiReports === true) {
+          process.env[CI_REPORTS_FLAG] = '1';
+        }
+        const wantsCiReport =
+          opts.githubAnnotations !== undefined || opts.junit !== undefined || opts.gitlab !== undefined;
+        if (wantsCiReport && process.env[CI_REPORTS_FLAG] !== '1') {
+          throw new Error(
+            `--github-annotations, --junit, and --gitlab require ${CI_REPORTS_FLAG}=1`,
+          );
+        }
 
         const result = await scan({
           cwd: resolve(path),
@@ -236,6 +266,15 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         if (opts.html !== undefined) {
           await writeFile(resolve(opts.html), renderHtmlReport(result), 'utf8');
         }
+        if (opts.githubAnnotations !== undefined) {
+          await writeFile(resolve(opts.githubAnnotations), renderGithubAnnotations(result), 'utf8');
+        }
+        if (opts.junit !== undefined) {
+          await writeFile(resolve(opts.junit), renderJunitReport(result), 'utf8');
+        }
+        if (opts.gitlab !== undefined) {
+          await writeFile(resolve(opts.gitlab), renderGitlabCodeQuality(result), 'utf8');
+        }
 
         await writeLastScan(resolve(path), result);
 
@@ -264,6 +303,12 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
 
         if (result.policy !== undefined && result.policy.errors.length > 0) {
           for (const message of result.policy.errors) {
+            io.err(`fullshield: ${message}`);
+          }
+          process.exitCode = 1;
+        }
+        if (result.suppressionErrors !== undefined && result.suppressionErrors.length > 0) {
+          for (const message of result.suppressionErrors) {
             io.err(`fullshield: ${message}`);
           }
           process.exitCode = 1;
@@ -804,6 +849,45 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+
+  program
+    .command('diff')
+    .description('Experimental comparison of two scan --json files (FULLSHIELD_EXPERIMENTAL_DIFF=1)')
+    .argument('<before>', 'earlier scan JSON')
+    .argument('<after>', 'later scan JSON')
+    .option('--experimental-diff', 'enable this command (FULLSHIELD_EXPERIMENTAL_DIFF=1)')
+    .option('--json', 'print the machine diff')
+    .option('--out <file>', 'write the machine diff to this file')
+    .option('--fail-on <severity>', 'exit 1 when an added finding is at or above this severity', 'high')
+    .action(
+      async (
+        beforePath: string,
+        afterPath: string,
+        opts: { experimentalDiff?: boolean; json?: boolean; out?: string; failOn?: string },
+      ) => {
+        try {
+          if (opts.experimentalDiff === true) process.env[DIFF_FLAG] = '1';
+          if (!diffEnabled()) throw new Error(`diff requires ${DIFF_FLAG}=1`);
+          const failOn = parseFailOn(opts.failOn ?? 'high');
+          let beforeText: string;
+          let afterText: string;
+          try {
+            beforeText = await readFile(resolve(beforePath), 'utf8');
+            afterText = await readFile(resolve(afterPath), 'utf8');
+          } catch {
+            throw new Error('cannot read diff input');
+          }
+          const diff = diffScans(parseScanDocument(beforeText), parseScanDocument(afterText));
+          const json = JSON.stringify(diff, null, 2);
+          if (opts.out !== undefined) await writeFile(resolve(opts.out), json, 'utf8');
+          io.out(opts.json === true ? json : renderDiffText(diff));
+          if (addedFails(diff, failOn)) process.exitCode = 1;
+        } catch (error) {
+          io.err(formatCliError(error));
+          process.exitCode = 2;
+        }
+      },
+    );
 
   program
     .command('doctor')

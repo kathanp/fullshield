@@ -2,6 +2,7 @@ import pc from 'picocolors';
 
 import type { ScanResult } from '../core/engine.js';
 import { SEVERITIES, type Finding, type Severity } from '../core/finding.js';
+import { redactScan } from './redact.js';
 
 const SEVERITY_COLOR: Record<Severity, (text: string) => string> = {
   critical: (t) => pc.bold(pc.red(t)),
@@ -250,7 +251,8 @@ export interface ConsoleReportOptions {
 
 /** Human-readable report. Default view is the actionable rows. JSON is unchanged. */
 export function renderConsoleReport(input: ScanResult, options: ConsoleReportOptions = {}): string {
-  const { findings, summary, metadata } = input;
+  const result = redactScan(input);
+  const { findings, summary, metadata } = result;
   const lines: string[] = [];
 
   lines.push(
@@ -260,6 +262,8 @@ export function renderConsoleReport(input: ScanResult, options: ConsoleReportOpt
           ` (modules: ${metadata.modulesRun.length > 0 ? metadata.modulesRun.join(', ') : 'none'})`,
       ),
   );
+  if (metadata.history !== undefined) lines.push(metadata.history);
+
   if (metadata.modulesRun.length < metadata.modulesRequested.length) {
     const pending = metadata.modulesRequested.filter((m) => !metadata.modulesRun.includes(m));
     lines.push(

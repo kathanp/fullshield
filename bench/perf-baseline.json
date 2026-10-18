@@ -1,6 +1,6 @@
 {
   "measured": true,
-  "measuredAt": "2026-10-16T17:21:20.207Z",
+  "measuredAt": "2026-10-16T23:07:57.378Z",
   "targets": {
     "coldSeconds": 60,
     "warmSeconds": 20,
@@ -10,40 +10,54 @@
   "apps": {
     "next": {
       "coldMs": [
-        55413.398291,
-        59725.214416,
-        48877.309291
+        73609.754667,
+        71746.763708,
+        70536.179625
       ],
-      "coldP50Ms": 55413.398291,
-      "warmMs": 56682.830083,
-      "incrementalMs": 51862.936875,
-      "peakRssBytes": 1787969536,
+      "coldP50Ms": 71746.763708,
+      "warmMs": 71491.914333,
+      "incrementalMs": 70596.973875,
+      "peakRssBytes": 825851904,
+      "sampleRssBytes": [
+        706002944,
+        682475520,
+        755318784,
+        825851904,
+        717750272
+      ],
       "statuses": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "signals": [
         null,
         null,
         null,
         null,
         null
       ],
-      "signals": [
-        "SIGABRT",
-        "SIGABRT",
-        "SIGABRT",
-        "SIGABRT",
-        "SIGABRT"
-      ],
-      "finished": false
+      "finished": true
     },
     "nest": {
       "coldMs": [
-        11332.186958,
-        9040.744,
-        9150.018166
+        9095.141792,
+        9079.781,
+        9238.833709
       ],
-      "coldP50Ms": 9150.018166,
-      "warmMs": 9418.972459,
-      "incrementalMs": 8812.313333,
-      "peakRssBytes": 983449600,
+      "coldP50Ms": 9095.141792,
+      "warmMs": 9259.00875,
+      "incrementalMs": 9352.540792,
+      "peakRssBytes": 855097344,
+      "sampleRssBytes": [
+        620773376,
+        783876096,
+        757121024,
+        855097344,
+        800718848
+      ],
       "statuses": [
         1,
         1,
@@ -62,14 +76,21 @@
     },
     "undici": {
       "coldMs": [
-        7930.161167,
-        7829.932834,
-        8424.983542
+        8774.732625,
+        8358.398709,
+        8249.669417
       ],
-      "coldP50Ms": 7930.161167,
-      "warmMs": 8066.221,
-      "incrementalMs": 8031.509125,
-      "peakRssBytes": 638861312,
+      "coldP50Ms": 8358.398709,
+      "warmMs": 8351.143083,
+      "incrementalMs": 8242.960708,
+      "peakRssBytes": 590249984,
+      "sampleRssBytes": [
+        570884096,
+        590249984,
+        577077248,
+        587939840,
+        572915712
+      ],
       "statuses": [
         1,
         1,
@@ -89,11 +110,7 @@
   },
   "withinTargets": false,
   "misses": [
-    "next scan did not finish",
-    "next warm 56682.830083ms",
-    "next incremental 51862.936875ms",
-    "next peak rss 1787969536",
-    "nest incremental 8812.313333ms",
-    "undici incremental 8031.509125ms"
+    "nest incremental 9352.540792ms",
+    "undici incremental 8242.960708ms"
   ]
 }

@@ -65,7 +65,7 @@ function boundNamesFromParams(node: AstNode): string[] {
   return node.params.flatMap((p) => boundNames(p));
 }
 
-export function collectRequires(file: string, ast: AstNode, files: Set<string>): Map<string, string> {
+export function collectRequires(file: string, ast: AstNode, files: ReadonlySet<string>): Map<string, string> {
   /** local binding → resolved file or file#exportName */
   const ns = new Map<string, string>();
   const bind = (local: string, spec: string, exportName?: string): void => {
@@ -137,7 +137,7 @@ function reexportsOf(ast: AstNode): Map<string, { spec: string; name: string }> 
   return out;
 }
 
-function resolveRelative(fromFile: string, spec: string, files: Set<string>): string | undefined {
+function resolveRelative(fromFile: string, spec: string, files: ReadonlySet<string>): string | undefined {
   if (!spec.startsWith('.')) return undefined;
   const base = posix.normalize(posix.join(posix.dirname(fromFile), spec));
   const candidates = [base, `${base}.js`, `${base}.ts`, `${base}.mjs`, `${base}.cjs`, `${base}/index.js`, `${base}/index.ts`];

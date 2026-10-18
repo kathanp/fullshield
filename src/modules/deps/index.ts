@@ -12,6 +12,8 @@ import { affectedFunctionNames } from './symbol-reachability.js';
 import { minFixedVersion, osvSeverity, sameMajor } from './semver.js';
 import { findTyposquats, type TyposquatHit } from './typosquat.js';
 import { experimentalVex } from '../../supply/experimental.js';
+import { licenseEnabled } from '../sast/experimental.js';
+import { scanCopyleftLicenses } from './license.js';
 import { attachOverrideProposals, scanInstalledPackages } from './phase31.js';
 
 const LOCKFILE_NAMES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'] as const;
@@ -236,6 +238,7 @@ export const depsModule: ScanModule = {
       reached = attachOverrideProposals(reached, graph, lockFile, manifestRaw);
       reached.push(...scanInstalledPackages(ctx.cwd, packages));
     }
+    if (licenseEnabled()) reached.push(...(await scanCopyleftLicenses(ctx.cwd)));
     return reached;
   },
 };

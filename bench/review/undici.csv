@@ -1,0 +1,91 @@
+id,ruleId,severity,file,line,code snippet (5 lines),message,label,reviewer,note
+041883cc12e84059,CONFIG-DOCKER-ROOT-001,medium,test/fixtures/docker/dante/Dockerfile,,"FROM alpine:latest
+
+# Install Dante SOCKS server
+RUN apk add --no-cache dante-server
+",No USER instruction; the container defaults to root.,,,
+3894362116aaf249,CONFIG-ERRSTACK-001,medium,test/client-request.js,189,"        t.strictEqual(err.name, 'InvalidArgumentError')
+        t.strictEqual(err.message, 'signal must be an AbortSignal')
+        const stackLines = err.stack.split('\n').map((l) => l.trim())
+
+        t.ok(stackLines[0].startsWith('InvalidArgumentError: signal must be an AbortSignal'))",err.stack is sent in a response and can leak internals.,,,
+94edf5425eea9b2d,CONFIG-ERRSTACK-001,medium,index-fetch.js,16,"  }
+
+  const stack = typeof err.stack === 'string' ? err.stack : ''
+  const normalizedFilename = filename.replace(/\\/g, '/')
+",err.stack is sent in a response and can leak internals.,,,
+ae604b0abd917149,CONFIG-ERRSTACK-001,medium,test/fetch/client-error-stack-trace.js,24,"    await fetch('http://a.com')
+  } catch (error) {
+    const stackLines = error.stack.split('\n')
+    t.assert.ok(stackLines[0].includes('TypeError: fetch failed'))
+    t.assert.ok(stackLines.some(line => line.includes(`lib${sep}web${sep}fetch${sep}index.js`)))",err.stack is sent in a response and can leak internals.,,,
+1b359d271198cb78,CONFIG-ERRSTACK-001,medium,test/fixtures/global-fetch-h2-headers.js,76,"
+main().catch((err) => {
+  console.error(err?.cause?.stack || err?.stack || err)
+  process.exitCode = 1
+})",err.stack is sent in a response and can leak internals.,,,
+1bf5ca358f4e8cd0,CONFIG-ERRSTACK-001,medium,test/errors.js,63,"        t.strictEqual(error.name, scenario.name)
+        t.strictEqual(error.code, scenario.code)
+        t.ok(error.stack)
+      })
+    })",err.stack is sent in a response and can leak internals.,,,
+7d9cf758aa77b477,CONFIG-ERRSTACK-001,medium,test/fixtures/global-fetch-redirect.js,52,"
+main().catch((err) => {
+  console.error(err?.cause?.stack || err?.stack || err)
+  process.exitCode = 1
+})",err.stack is sent in a response and can leak internals.,,,
+c6e6dca903b45561,CONFIG-ERRSTACK-001,medium,test/fetch/client-error-stack-trace.js,36,"    await fetchIndex('http://a.com')
+  } catch (error) {
+    const stackLines = error.stack.split('\n')
+    t.assert.ok(stackLines[0].includes('TypeError: fetch failed'))
+    t.assert.ok(stackLines.some(line => line.includes(`lib${sep}web${sep}fetch${sep}index.js`)))",err.stack is sent in a response and can leak internals.,,,
+89f57889c23f323c,DEPS-VULN-001,info,package-lock.json,,"{
+  ""name"": ""undici"",
+  ""version"": ""8.12.2"",
+  ""lockfileVersion"": 3,
+  ""requires"": true,",sprintf-js@1.0.3 is affected by GHSA-hp3w-g68c-fv3c (sprintf-js vulnerable to denial of service through unbounded precision specifiers). (dev-only),,,
+0bff2cd3031c9a9a,DEPS-DEPRECATED-001,info,package-lock.json,,"{
+  ""name"": ""undici"",
+  ""version"": ""8.12.2"",
+  ""lockfileVersion"": 3,
+  ""requires"": true,","glob@10.5.0 is marked deprecated in the lockfile: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me",,,
+14172fee584e63d6,SAST-CMDI-001,high,test/web-platform-tests/runner/test-runner.mjs,144,"
+  let match
+  while ((match = scriptSrcRegex.exec(body)) !== null) {
+    const src = match[1]
+",Tainted input crosses 1 files and reaches exec.,,,
+de80dc72bd0bf2ad,SAST-CMDI-001,high,test/client-retry-resume-backpressure.js,91,"    } else {
+      resumeSocket = res.socket
+      const start = Number(/bytes=(\d+)-/.exec(req.headers.range)[1])
+      res.writeHead(206, {
+        'content-range': `bytes ${start}-${TOTAL - 1}/${TOTAL}`,",Tainted input reaches a shell command (exec/execSync/spawn with shell: true).,,,
+62f369b9c1541b31,SAST-CMDI-001,high,test/client-retry-resume-backpressure.js,39,"      setTimeout(() => res.socket.resetAndDestroy(), 100)
+    } else {
+      const start = Number(/bytes=(\d+)-/.exec(req.headers.range)[1])
+      res.writeHead(206, {
+        'content-range': `bytes ${start}-${TOTAL - 1}/${TOTAL}`,",Tainted input reaches a shell command (exec/execSync/spawn with shell: true).,,,
+2c6beaf3542d8d33,SAST-CMDI-001,high,test/web-platform-tests/runner/test-runner.mjs,161,"
+  // Extract inline scripts
+  while ((match = inlineScriptRegex.exec(body)) !== null) {
+    const scriptContent = match[1]
+    scripts.push({ content: scriptContent })",Tainted input crosses 1 files and reaches exec.,,,
+fa546de470cb673d,SAST-EVAL-001,high,test/web-platform-tests/runner/test-runner.mjs,171,"  for (let i = 0; i < scripts.length; i++) {
+    log(`Executing script ${i + 1}/${scripts.length}`)
+    runInThisContext(scripts[i].content)
+
+    // Once the testharness is loaded, we want to setup the callbacks in case",eval / vm.runInNewContext is called with a non-literal argument.,,,
+996c5b138271cbb9,SECRET-PRIVKEY-001,critical,test/fixtures/tls-renegotiation/matching-key.pem,1,"-----BEGIN RSA PRIVATE KEY-----
+MIIEogIBAAKCAQEAzB0VfVEOH9YbUzJ6AGDY+pyYxJ3fAqY7pDFJikR2/aiuEEny
+il+x28wO+TrpR+oGAwivImEdZ/WLOeYALZpPiENjIq6oW43sQPMc5Yfu1rkTn45d
+H9S+Bi+yrmm00oBRRtncyg6dCW4Rs2clLTCopJBa7VqmeKHx9SKqtNCMj92Wec30
+DVpDAPYkw/L8ZgPpuPHemwVwGOs+JKb9a5nGlwWD+v1w1bebKUQwzDZNR7ZbBrP3",A PEM private key block is committed to the repository.,,,
+e0958877a534311e,SECRET-PRIVKEY-001,critical,test/fixtures/tls-renegotiation/wrong-key.pem,1,"-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEA9loX+bQq2o1Sh+p2vfnNvDs/lvCexuKKWCst/LZZyPhd6ywu
+Uos0lxs0AN7B4cY54Aq0OUEfoX7oPBxS3rIuTdUwWcswz9Jg2PnUEAvekJtFS78v
+77ORAqnegEyeQzpJ1i+MYZ/Ebnrp6m2Pt11UrvQpkSVofzerrZbxSBBIRm2pianc
+taPuonL3tyV11kZb3i5YD9s0J+g3A51PfUCOB2umPnzDgeAAl97Fw/E+0bQu0C57",A PEM private key block is committed to the repository.,,,
+026135e35c6941c9,SECRET-PRIVKEY-001,critical,test/fixtures/key.pem,1,"-----BEGIN PRIVATE KEY-----
+MIIJQgIBADANBgkqhkiG9w0BAQEFAASCCSwwggkoAgEAAoICAQCwNx4WYcYywrcz
+aqneQ7n85Y+dXT06dh9uunJyg42UEzKQ+Oa3uiFR8mrNd2P9zgPgdu/je94TU0su
+7h7xRHz+tIsr8S5FpeFNRzqe6q/20Qv2dJ+ZVqRvrJ0j9Kva2qgp5YGuD6e1ivce
+pJHHs7CgT6XLliKkEaaxkX4p/9pp4vwsKV0bL92qhhWrWGxtoTDts9D/hBncTZf2",A PEM private key block is committed to the repository.,,,

@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { hasNodeSqlite } from '../../helpers/sqlite.js';
+
 import {
   clearRaspEvents,
   contextFromRequest,
@@ -52,7 +54,7 @@ describe('RASP structure-change corpus', () => {
 });
 
 describe('RASP experimental flag and fail-open', () => {
-  it('stays disabled unless experimental is set', () => {
+  it.skipIf(!hasNodeSqlite())('stays disabled unless experimental is set', () => {
     enableRasp({ mode: 'block' });
     expect(isRaspEnabled()).toBe(false);
     const { DatabaseSync } = require('node:sqlite') as typeof import('node:sqlite');
@@ -62,7 +64,7 @@ describe('RASP experimental flag and fail-open', () => {
     db.close();
   });
 
-  it('fails open: a throwing decide still runs the original call and logs an event', () => {
+  it.skipIf(!hasNodeSqlite())('fails open: a throwing decide still runs the original call and logs an event', () => {
     enableRasp({
       experimental: true,
       mode: 'block',
@@ -81,7 +83,7 @@ describe('RASP experimental flag and fail-open', () => {
     expect(getRaspEvents().some((e) => e.ruleId === 'RASP-FAIL-OPEN-001')).toBe(true);
   });
 
-  it('defaults to monitor: detected SQL injection emits an event but the query still runs', () => {
+  it.skipIf(!hasNodeSqlite())('defaults to monitor: detected SQL injection emits an event but the query still runs', () => {
     enableRasp({ experimental: true });
     const { DatabaseSync } = require('node:sqlite') as typeof import('node:sqlite');
     const db = new DatabaseSync(':memory:');
@@ -97,7 +99,7 @@ describe('RASP experimental flag and fail-open', () => {
 });
 
 describe('RASP real sinks (node:sqlite, child_process, fs)', () => {
-  it('blocks concatenated SQLi on node:sqlite in block mode and leaves the table intact', () => {
+  it.skipIf(!hasNodeSqlite())('blocks concatenated SQLi on node:sqlite in block mode and leaves the table intact', () => {
     enableRasp({ experimental: true, mode: 'block' });
     const { DatabaseSync } = require('node:sqlite') as typeof import('node:sqlite');
     const db = new DatabaseSync(':memory:');
@@ -112,7 +114,7 @@ describe('RASP real sinks (node:sqlite, child_process, fs)', () => {
     db.close();
   });
 
-  it('allows parameterized O\'Brien on node:sqlite', () => {
+  it.skipIf(!hasNodeSqlite())('allows parameterized O\'Brien on node:sqlite', () => {
     enableRasp({ experimental: true, mode: 'block' });
     const { DatabaseSync } = require('node:sqlite') as typeof import('node:sqlite');
     const db = new DatabaseSync(':memory:');
@@ -193,7 +195,7 @@ describe('RASP decideSink kinds', () => {
 });
 
 describe('RASP Express request overhead', () => {
-  it('adds p95 < 1ms on a real Express request that runs a parameterized node:sqlite query', async () => {
+  it.skipIf(!hasNodeSqlite())('adds p95 < 1ms on a real Express request that runs a parameterized node:sqlite query', async () => {
     enableRasp({ experimental: true, mode: 'monitor' });
     // express is an optional peer; no @types/express in this package
     const express = require('express') as (reqHandler?: unknown) => {

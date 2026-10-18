@@ -3,6 +3,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     include: ['test/unit/**/*.test.ts', 'test/e2e/**/*.test.ts'],
+    // Forks reuse a process. Tests that set FULLSHIELD_* must not leak into the next file.
+    setupFiles: ['test/setup/env.ts'],
     // Coverage + extra experimental-phase files can push a SAST fixture scan past 5s.
     testTimeout: 15_000,
     // Coverage + RASP p95 + 100k flood tests contend for the same cores.

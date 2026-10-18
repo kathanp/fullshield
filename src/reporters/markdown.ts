@@ -1,5 +1,6 @@
 import type { ScanResult } from '../core/engine.js';
 import { SEVERITIES, type Finding } from '../core/finding.js';
+import { redactScan } from './redact.js';
 
 function location(finding: Finding): string {
   if (finding.file === undefined) return '(project)';
@@ -7,7 +8,8 @@ function location(finding: Finding): string {
 }
 
 /** Shareable Markdown report grouped by severity (highest first). */
-export function renderMarkdownReport(result: ScanResult): string {
+export function renderMarkdownReport(input: ScanResult): string {
+  const result = redactScan(input);
   const lines = [
     '# FullShield report',
     '',

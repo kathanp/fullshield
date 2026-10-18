@@ -33,3 +33,19 @@ Benchmark impact: none (console only; JSON keys unchanged)
 Next CI: not pushed
 Needs human decision: none
 ```
+
+## Restore 0.3.0
+
+```
+Phase restore-0.3.0 — match published 0.3.0
+Branch/commit: restore-0.3.0 | pushed: no | merged into next: yes
+Flag: none (published source)
+Built: merge of v0.3.0 (91bbc6b). Phase 46 floor and Phase 47 console kept. Version set to 0.3.0.
+Not done / limitations: dist differs from the npm tarball only in the console view, --all, and the Node 22.13 doctor floor. Branch coverage is 81.79% / 81.77%.
+Tests added: 0 (source restored) | total: 817
+default-scan-diff: DIFF 0.2.6 -> 0.3.0 totals nodegoat 379 -> 256, goof 354 -> 271. Unique keys identical.
+verify: Node 22.23.3 tests 817, lines 92.57%, branches 81.79%. Node 24.22.0 tests 817, lines 92.55%, branches 81.77%. vulnerable-app 35, clean-app high/critical 0.
+Benchmark impact: nodegoat 256, juice-shop 105, dvna 23, goof 271, vulnerable-node 61 (unreviewed)
+Next CI: not pushed
+Needs human decision: none
+```

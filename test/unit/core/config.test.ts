@@ -94,5 +94,16 @@ describe('loadConfig', () => {
     await writeFile(join(dir, 'fullshield.config.json'), JSON.stringify({ deps: { offline: 'yes' } }));
     await expect(loadConfig(dir)).rejects.toThrow(/"deps.offline"/);
   });
+
+  it('turns off default excludes and sets the SAST size cap', async () => {
+    await writeFile(
+      join(dir, 'fullshield.config.json'),
+      JSON.stringify({ defaultExcludes: false, excludes: ['custom/'], sast: { maxFileBytes: 4096 } }),
+    );
+    const config = await loadConfig(dir);
+    expect(config.defaultExcludes).toBe(false);
+    expect(config.excludes).toEqual(['custom/']);
+    expect(config.sast.maxFileBytes).toBe(4096);
+  });
 });
 

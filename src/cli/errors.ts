@@ -19,6 +19,16 @@ const KNOWN: Array<{ test: RegExp; code: string; hint: string }> = [
     code: 'FS-E004',
     hint: 'Check the path passed to --config.',
   },
+  {
+    test: /FULLSHIELD_EXPERIMENTAL_CI_REPORTS/,
+    code: 'FS-E005',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_CI_REPORTS=1 or pass --experimental-ci-reports.',
+  },
+  {
+    test: /FULLSHIELD_EXPERIMENTAL_DIFF|scan JSON|cannot read diff/,
+    code: 'FS-E006',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_DIFF=1 or pass --experimental-diff. Both inputs must be scan --json files.',
+  },
 ];
 
 const DOCS = 'https://github.com/kathanp/fullshield/blob/main/docs/errors.md';

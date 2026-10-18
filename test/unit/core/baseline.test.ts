@@ -1,10 +1,10 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { applyBaseline, readBaseline, writeBaseline } from '../../../src/core/baseline.js';
+import { applyBaseline, applySuppressions, readBaseline, writeBaseline } from '../../../src/core/baseline.js';
 import { makeFindingId, type Finding } from '../../../src/core/finding.js';
 
 const finding = (ruleId: string, file: string): Finding => ({
@@ -46,5 +46,38 @@ describe('baseline', () => {
   it('treats a missing baseline file as empty', async () => {
     const items = [finding('SAST-SQLI-001', 'a.js')];
     expect(applyBaseline(items, await readBaseline(join(dir, 'nope.json')))).toEqual(items);
+  });
+
+  it('hides a finding only when owner, reason, and a future expiry are present', () => {
+    const hit = finding('SAST-SQLI-001', 'a.js');
+    const other = finding('SAST-EVAL-001', 'b.js');
+    const hidden = applySuppressions([hit, other], [
+      { ruleId: 'SAST-SQLI-001', file: 'a.js', owner: 'ada', reason: 'accepted', expires: '2099-01-01' },
+    ]);
+    expect(hidden.errors).toEqual([]);
+    expect(hidden.findings.map((item) => item.ruleId)).toEqual(['SAST-EVAL-001']);
+
+    const expired = applySuppressions([hit], [
+      { ruleId: 'SAST-SQLI-001', owner: 'ada', reason: 'old', expires: '2000-01-01' },
+    ]);
+    expect(expired.findings).toHaveLength(1);
+    expect(expired.errors[0]).toMatch(/expired/);
+
+    const incomplete = applySuppressions([hit], [{ ruleId: 'SAST-SQLI-001' }]);
+    expect(incomplete.findings).toHaveLength(1);
+    expect(incomplete.errors[0]).toMatch(/owner/);
+  });
+
+  it('keeps suppressions when the baseline is rewritten', async () => {
+    const path = join(dir, '.fullshield-baseline.json');
+    await writeBaseline(path, []);
+    const doc = JSON.parse(await readFile(path, 'utf8')) as { suppressions?: unknown };
+    doc.suppressions = [
+      { ruleId: 'SAST-SQLI-001', owner: 'ada', reason: 'accepted', expires: '2099-01-01' },
+    ];
+    await writeFile(path, JSON.stringify(doc));
+    await writeBaseline(path, [finding('SAST-EVAL-001', 'b.js')]);
+    const saved = await readBaseline(path);
+    expect(saved?.suppressions?.[0]?.owner).toBe('ada');
   });
 });

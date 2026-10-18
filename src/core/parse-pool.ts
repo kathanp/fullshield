@@ -3,22 +3,31 @@ import { availableParallelism } from 'node:os';
 import { Worker } from 'node:worker_threads';
 import { fileURLToPath } from 'node:url';
 
+import { LruMap } from '../runtime/lru.js';
 import { packageVersion } from './version.js';
 
 const workerUrl = new URL('./parse-worker.mjs', import.meta.url);
-const cache = new Map<string, unknown>();
+const cache = new LruMap<string, unknown>(64);
 
 export function parsePoolEnabled(): boolean {
   return process.env.FULLSHIELD_PARSE_POOL === '1';
 }
 
+/** Explicit `FULLSHIELD_PARSE_WORKERS` is capped at 4. The default is at most 2. */
 export function parsePoolSize(): number {
   const raw = process.env.FULLSHIELD_PARSE_WORKERS;
   if (raw !== undefined && raw !== '') {
     const parsed = Number(raw);
-    if (Number.isFinite(parsed) && parsed >= 1) return Math.floor(parsed);
+    if (Number.isFinite(parsed) && parsed >= 1) return Math.min(4, Math.floor(parsed));
   }
-  return Math.max(1, availableParallelism() - 1);
+  return Math.min(2, Math.max(1, availableParallelism() - 1));
+}
+
+function workerMemoryMb(): number {
+  const raw = process.env.FULLSHIELD_PARSE_WORKER_MB;
+  const parsed = raw !== undefined && raw !== '' ? Number(raw) : 512;
+  if (Number.isFinite(parsed) && parsed >= 64) return Math.floor(parsed);
+  return 512;
 }
 
 export function parseCacheKey(code: string): string {
@@ -30,12 +39,38 @@ function parseOne(code: string): Promise<unknown> {
   const hit = cache.get(key);
   if (hit !== undefined) return Promise.resolve(hit);
   return new Promise((resolve, reject) => {
-    const worker = new Worker(fileURLToPath(workerUrl), { workerData: { code } });
-    worker.once('message', (ast: unknown) => {
-      cache.set(key, ast);
-      resolve(ast);
+    const worker = new Worker(fileURLToPath(workerUrl), {
+      workerData: { code },
+      resourceLimits: { maxOldGenerationSizeMb: workerMemoryMb() },
     });
-    worker.once('error', reject);
+    let settled = false;
+    const finish = (): void => {
+      void worker.terminate();
+    };
+    const succeed = (ast: unknown): void => {
+      if (settled) return;
+      settled = true;
+      cache.set(key, ast);
+      finish();
+      resolve(ast);
+    };
+    const fail = (error: Error): void => {
+      if (settled) return;
+      settled = true;
+      finish();
+      reject(error);
+    };
+    worker.once('message', (ast: unknown) => {
+      succeed(ast);
+    });
+    worker.once('error', (error: Error) => {
+      fail(error);
+    });
+    // terminate() after a message also emits exit. Ignore that one.
+    worker.once('exit', (code) => {
+      if (settled) return;
+      fail(new Error(`parse worker exited ${code ?? 'null'}`));
+    });
   });
 }
 

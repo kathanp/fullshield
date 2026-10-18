@@ -18,6 +18,8 @@ const RAW_LINE =
 export interface HistoryScanResult {
   findings: Finding[];
   hits: SecretHit[];
+  /** Set when the commit cap stopped the walk before the oldest commit. */
+  history?: string;
 }
 
 function gitError(error: unknown): Error {
@@ -71,7 +73,15 @@ interface BlobChange {
   path: string;
 }
 
-async function streamLogChanges(cwd: string): Promise<BlobChange[]> {
+/** Stop history scans after this many commits. `FULLSHIELD_HISTORY_MAX` overrides it (1–5000). */
+export function historyCommitLimit(raw = process.env.FULLSHIELD_HISTORY_MAX): number {
+  if (raw === undefined || raw.trim() === '') return 500;
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed < 1) return 500;
+  return Math.min(parsed, 5000);
+}
+
+async function streamLogChanges(cwd: string, maxCommits: number): Promise<BlobChange[]> {
   const changes: BlobChange[] = [];
   await gitOk(cwd, ['rev-parse', '--is-inside-work-tree']);
 
@@ -89,6 +99,8 @@ async function streamLogChanges(cwd: string): Promise<BlobChange[]> {
       '--format=FSCOMMIT:%H',
       '--no-textconv',
       '--no-ext-diff',
+      '-n',
+      String(maxCommits),
       'HEAD',
     ],
     { stdio: ['ignore', 'pipe', 'pipe'] },
@@ -166,8 +178,15 @@ async function headSecretKeys(cwd: string): Promise<Set<string>> {
  * Scan every commit reachable from HEAD (`git log -p` streamed),
  * deduplicated by blob hash. Annotates first-introduced commit and still-at-HEAD.
  */
-export async function scanGitHistory(cwd: string): Promise<HistoryScanResult> {
-  const changes = await streamLogChanges(cwd);
+async function commitCount(cwd: string): Promise<number> {
+  const raw = await gitOk(cwd, ['rev-list', '--count', 'HEAD']);
+  const total = Number(raw.trim());
+  return Number.isInteger(total) && total >= 0 ? total : 0;
+}
+
+export async function scanGitHistory(cwd: string, maxCommits = historyCommitLimit()): Promise<HistoryScanResult> {
+  const total = await commitCount(cwd);
+  const changes = await streamLogChanges(cwd, maxCommits);
   const blobHits = new Map<string, SecretHit[]>();
   const first = new Map<string, { hit: SecretHit; commit: string }>();
 
@@ -206,5 +225,11 @@ export async function scanGitHistory(cwd: string): Promise<HistoryScanResult> {
       secret: hit.secret,
     });
   }
-  return { findings: hits.map((h) => h.finding), hits };
+  const scanned = Math.min(maxCommits, total);
+  const history = total > maxCommits ? `scanned ${scanned} of ${total} commits` : undefined;
+  return {
+    findings: hits.map((h) => h.finding),
+    hits,
+    ...(history !== undefined ? { history } : {}),
+  };
 }

@@ -5,6 +5,8 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { hasNodeSqlite } from '../../helpers/sqlite.js';
+
 import { scan } from '../../../src/core/engine.js';
 import { buildThreatModel } from '../../../src/threat/index.js';
 import { listWorkspaces } from '../../../src/workspaces/index.js';
@@ -123,7 +125,7 @@ describe('Phase 22 dashboard (127.0.0.1 + Host lock)', () => {
     expect(assertDashboardHost('[::1]')).toBe(false);
   });
 
-  it('GET pages do not mutate history; Host rebinding is rejected; bind is loopback', async () => {
+  it.skipIf(!hasNodeSqlite())('GET pages do not mutate history; Host rebinding is rejected; bind is loopback', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'fullshield-dash-'));
     dirs.push(dir);
     const db = openHistory(dir);
@@ -171,7 +173,7 @@ describe('Phase 22 dashboard (127.0.0.1 + Host lock)', () => {
     }
   });
 
-  it('close() releases history.db so the directory can be removed', () => {
+  it.skipIf(!hasNodeSqlite())('close() releases history.db so the directory can be removed', () => {
     const dir = mkdtempSync(join(tmpdir(), 'fullshield-dash-close-'));
     dirs.push(dir);
     const db = openHistory(dir);
@@ -180,7 +182,7 @@ describe('Phase 22 dashboard (127.0.0.1 + Host lock)', () => {
     expect(() => rmSync(join(dir, '.fullshield'), { recursive: true, force: true })).not.toThrow();
   });
 
-  it('close() is idempotent and still releases the handle', () => {
+  it.skipIf(!hasNodeSqlite())('close() is idempotent and still releases the handle', () => {
     const dir = mkdtempSync(join(tmpdir(), 'fullshield-dash-err-'));
     dirs.push(dir);
     const db = openHistory(dir);

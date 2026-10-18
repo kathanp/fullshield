@@ -1,0 +1,136 @@
+id,ruleId,severity,file,line,code snippet (5 lines),message,label,reviewer,note
+0350abc63bb98b77,CONFIG-ERRSTACK-001,medium,packages/common/services/console-logger.service.ts,585,"      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    };
+    for (const [key, value] of Object.entries(error)) {",err.stack is sent in a response and can leak internals.,,,
+877402be0422c816,CONFIG-HELMET-001,medium,packages/platform-express/test/adapters/express-adapter.spec.ts,247,"
+    it('should not register default parsers if custom parsers have already been registered', () => {
+      const expressInstance = express();
+      expressInstance.use(function jsonParser() {});
+      expressInstance.use(function urlencodedParser() {});",An Express app is created but helmet() is never applied.,,,
+6d867df98d8e03b8,CONFIG-BODYLIMIT-001,low,packages/platform-express/adapters/express-adapter.ts,450,"
+    const parserMiddleware = {
+      jsonParser: express.json(bodyParserJsonOptions),
+      urlencodedParser: express.urlencoded(bodyParserUrlencodedOptions),
+    };",app.use(express.json()) is registered without a size limit.,,,
+2b744f3877b1201e,CONFIG-HELMET-001,medium,integration/hello-world/e2e/exclude-middleware.spec.ts,153,"  describe('when the router is case-sensitive', () => {
+    beforeEach(() => {
+      const instance = express();
+      instance.set('case sensitive routing', true);
+      return createApp(new ExpressAdapter(instance));",An Express app is created but helmet() is never applied.,,,
+48321bede97c8088,CONFIG-INSTALLSCRIPT-001,info,package-lock.json,,"{
+  ""name"": ""@nestjs/core"",
+  ""version"": ""12.0.0"",
+  ""lockfileVersion"": 3,
+  ""requires"": true,",node_modules/@apollo/protobufjs has hasInstallScript in the lockfile.,,,
+e47b97448370c3be,CONFIG-HELMET-001,medium,integration/nest-application/get-url/e2e/express.spec.ts,51,"  });
+  it('should throw an error for calling getUrl before listen', async () => {
+    const app = testModule.createNestApplication(new ExpressAdapter(express()));
+    await expect(app.getUrl()).rejects.toEqual(
+      'app.listen() needs to be called before calling app.getUrl()',",An Express app is created but helmet() is never applied.,,,
+c142633f6999379f,CONFIG-ERRSTACK-001,medium,packages/microservices/test/client/client-tcp.spec.ts,177,"        expect(logError).toHaveBeenCalledWith(
+          `Dropped a response that the deserializer failed on: ${error}`,
+          error.stack,
+        );
+      });",err.stack is sent in a response and can leak internals.,,,
+51f3bf70a1b7d676,CONFIG-ERRSTACK-001,medium,packages/microservices/test/client/client-redis.spec.ts,480,"        expect(logError).toHaveBeenCalledWith(
+          `Dropped a response that the deserializer failed on: ${error}`,
+          error.stack,
+        );
+      });",err.stack is sent in a response and can leak internals.,,,
+a17bb24f42844c3b,DEPS-DEPRECATED-001,info,package-lock.json,,"{
+  ""name"": ""@nestjs/core"",
+  ""version"": ""12.0.0"",
+  ""lockfileVersion"": 3,
+  ""requires"": true,","gulp-util@3.0.8 is marked deprecated in the lockfile: gulp-util is deprecated - replace it, following the guidelines at https://medium.com/gulpjs/gulp-util-ca3b1f9f9ac5",,,
+4f26d4b9f9e91018,DEPS-DEPRECATED-001,info,package-lock.json,,"{
+  ""name"": ""@nestjs/core"",
+  ""version"": ""12.0.0"",
+  ""lockfileVersion"": 3,
+  ""requires"": true,",source-map-resolve@0.5.3 is marked deprecated in the lockfile: See https://github.com/lydell/source-map-resolve#deprecated,,,
+595cbcadadfd0014,DEPS-DEPRECATED-001,info,package-lock.json,,"{
+  ""name"": ""@nestjs/core"",
+  ""version"": ""12.0.0"",
+  ""lockfileVersion"": 3,
+  ""requires"": true,",source-map-url@0.4.1 is marked deprecated in the lockfile: See https://github.com/lydell/source-map-url#deprecated,,,
+da44af3b05b44616,DEPS-DEPRECATED-001,info,package-lock.json,,"{
+  ""name"": ""@nestjs/core"",
+  ""version"": ""12.0.0"",
+  ""lockfileVersion"": 3,
+  ""requires"": true,","request@2.88.2 is marked deprecated in the lockfile: request has been deprecated, see https://github.com/request/request/issues/3142",,,
+b018af70e0b1f158,DEPS-DEPRECATED-001,info,package-lock.json,,"{
+  ""name"": ""@nestjs/core"",
+  ""version"": ""12.0.0"",
+  ""lockfileVersion"": 3,
+  ""requires"": true,","inflight@1.0.6 is marked deprecated in the lockfile: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.",,,
+e7b42876b7e0b92f,DEPS-VULN-001,info,package-lock.json,,"{
+  ""name"": ""@nestjs/core"",
+  ""version"": ""12.0.0"",
+  ""lockfileVersion"": 3,
+  ""requires"": true,","braces@1.8.5 is affected by GHSA-vfj7-8cjw-p6xm (braces vulnerable to stack-exhaustion denial of service through deeply nested patterns). (dev-only) Versions: 1.8.5, 2.3.2.",,,
+cb3ca5188cfb2e8b,DEPS-DEPRECATED-001,info,package-lock.json,,"{
+  ""name"": ""@nestjs/core"",
+  ""version"": ""12.0.0"",
+  ""lockfileVersion"": 3,
+  ""requires"": true,","glob@7.2.3 is marked deprecated in the lockfile: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me",,,
+5ee3e37193a53db3,DEPS-VULN-001,info,package-lock.json,,"{
+  ""name"": ""@nestjs/core"",
+  ""version"": ""12.0.0"",
+  ""lockfileVersion"": 3,
+  ""requires"": true,","micromatch@2.3.11 is affected by GHSA-952p-6rrq-rcjv (Regular Expression Denial of Service (ReDoS) in micromatch). (dev-only) Versions: 2.3.11, 3.1.10.",,,
+10acfa475b1d14c3,SAST-CMDI-001,high,integration/cookies/e2e/cookies.spec.ts,27,"  }
+  req.cookies = { theme: 'from-middleware' };
+  const raw = /(?:^|;\s*)uid=([^;]*)/.exec(req.headers.cookie ?? '')?.[1];
+  req.signedCookies = {};
+  if (raw !== undefined) {",Tainted input reaches a shell command (exec/execSync/spawn with shell: true).,,,
+7be2b1b665aa703e,SAST-CRYPTO-001,medium,integration/microservices/src/kafka/entities/user.entity.ts,5,"export class UserEntity {
+  constructor(user: UserDto) {
+    this.id = Math.random() * 99999999;
+    this.name = user.name;
+    this.email = user.email;",Math.random is used to generate a token or identifier.,,,
+b42ae88bfdcb7b75,SAST-CRYPTO-001,medium,integration/microservices/src/kafka/entities/business.entity.ts,6,"export class BusinessEntity {
+  constructor(business: BusinessDto) {
+    this.id = Math.random() * 99999999;
+    this.name = business.name;
+    this.phone = business.phone;",Math.random is used to generate a token or identifier.,,,
+e5a3cc7b24a98214,SAST-SSRF-001,high,sample/38-webhooks/scripts/send-webhook.ts,52,"
+const body = process.env.TAMPER ? `${signed.body.slice(0, -1)} }` : signed.body;
+const response = await fetch(
+  `${process.env.API_URL ?? 'http://localhost:3000'}/webhooks/${sender}`,
+  {",Tainted URL is passed to fetch/axios/http.request.,,,
+b74886f386d61ebf,SECRET-DBURL-001,high,sample/38-webhooks/README.md,84,"| Variable | Used by | Meaning |
+| --- | --- | --- |
+| `DATABASE_URL` | Order API | The `store` database: `postgres://postgres:postgres@localhost:5432/store` with Docker |
+| `PAYMENTS_WEBHOOK_SECRET` | Order API, `send-webhook.ts` | The payment provider's secret, a `whsec_…` |
+| `CARRIER_WEBHOOK_SECRET` | Order API, `send-webhook.ts` | The carrier's secret |",Database connection string with inline password (post****).,,,
+43dbec78181c0e83,SECRET-DBURL-001,high,sample/37-outbox/README.md,48,"```bash
+$ DATABASE_URL=postgres://postgres:postgres@localhost:5432/store npx drizzle-kit migrate
+$ DATABASE_URL=postgres://postgres:postgres@localhost:5432/analytics npx drizzle-kit migrate --config analytics-service/drizzle.config.ts
+```
+",Database connection string with inline password (post****).,,,
+6c13e073f476ed5d,SECRET-DBURL-001,high,sample/37-outbox/README.md,59,"```bash
+$ DATABASE_URL=postgres://postgres:postgres@localhost:5432/analytics npm run start:analytics
+$ DATABASE_URL=postgres://postgres:postgres@localhost:5432/store ADMIN_TOKEN=s3cret npm run start
+```
+",Database connection string with inline password (post****).,,,
+71e511ce23cb34db,SECRET-DBURL-001,high,sample/37-outbox/README.md,47,"
+```bash
+$ DATABASE_URL=postgres://postgres:postgres@localhost:5432/store npx drizzle-kit migrate
+$ DATABASE_URL=postgres://postgres:postgres@localhost:5432/analytics npx drizzle-kit migrate --config analytics-service/drizzle.config.ts
+```",Database connection string with inline password (post****).,,,
+6fb0f64605b019c2,SECRET-DBURL-001,high,sample/37-outbox/e2e/support/postgres.ts,3,"/**
+ * The PostgreSQL server the store suites run on: the one in `SQL_TEST_PG_URL`, e.g. the
+ * container of docker-compose.yml (`postgres://postgres:postgres@localhost:5432/postgres`).
+ * Resolves to `null`, with the reason, without one, so a suite can skip with a clear message
+ * instead of failing.",Database connection string with inline password (post****).,,,
+09b3a66a4027f872,SECRET-PRIVKEY-001,critical,integration/microservices/src/tcp-tls/privkey.pem,1,"-----BEGIN PRIVATE KEY-----
+MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDZ1IdZZXqrwXql
+4AIOJnlfpoGKOKoIalnK7KaKHTsq1QOF8z2abFuNBVIIrO0etQ/0PPAaFGkXl6HH
+BuA5PrFpsw3V1wSnNs1Cns9NhvypHI2V71lkwBJrEaSicNWL2AOEQkQ9cZ4YsTGd
+0BrM8D5VvgXdrC7gOXfj7Hx3E4K+wFO/Gi4AUXl5CXxleSFcW4U+jFulfq/DE8rB",A PEM private key block is committed to the repository.,,,
+7255851b1c0bdc0c,SECRET-DBURL-001,high,sample/37-outbox/README.md,126,"
+```bash
+$ SQL_TEST_PG_URL=postgres://postgres:postgres@localhost:5432/postgres npm run test:e2e
+```
+",Database connection string with inline password (post****).,,,

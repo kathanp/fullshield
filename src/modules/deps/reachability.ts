@@ -1,4 +1,4 @@
-import { severityRank, SEVERITIES, type Finding, type Severity } from '../../core/finding.js';
+import { makeFindingId, severityRank, SEVERITIES, type Finding, type Severity } from '../../core/finding.js';
 import type { LockfileGraph } from './lockfile.js';
 import { classifySymbolUse } from './symbol-reachability.js';
 
@@ -120,6 +120,36 @@ export function shortestDependencyPath(
   return undefined;
 }
 
+/** Up to `limit` dependency paths, shortest first. Bounded so a wide tree cannot explode. */
+export function collectDependencyPaths(
+  target: string,
+  starts: Iterable<string>,
+  edges: Map<string, Set<string>>,
+  limit = 8,
+): string[][] {
+  const out: string[][] = [];
+  const queue: string[][] = [];
+  let steps = 0;
+  for (const start of starts) queue.push([start]);
+  while (queue.length > 0 && out.length < limit && steps < 4000) {
+    steps += 1;
+    const path = queue.shift();
+    if (path === undefined) continue;
+    const last = path[path.length - 1];
+    if (last === undefined) continue;
+    if (last === target) {
+      if (path.length >= 2) out.push(path);
+      continue;
+    }
+    if (path.length >= 12) continue;
+    for (const next of edges.get(last) ?? []) {
+      if (path.includes(next)) continue;
+      queue.push([...path, next]);
+    }
+  }
+  return out;
+}
+
 function reachableFrom(target: string, roots: Set<string>, edges: Map<string, Set<string>>): boolean {
   if (roots.has(target)) return true;
   return shortestDependencyPath(target, roots, edges) !== undefined;
@@ -139,16 +169,17 @@ export function classifyReachability(
   pkgName: string,
   productionUsage: Map<string, PackageUsage>,
   graph?: LockfileGraph,
-): { reachability: Reachability; path?: string[] } {
+): { reachability: Reachability; path?: string[]; paths?: string[][] } {
   const hit = productionUsage.get(pkgName);
   if (hit?.imported === true) {
     return { reachability: hit.called ? 'reachable' : 'imported-not-called' };
   }
   if (graph !== undefined && graph.edgesKnown) {
     const roots = importedDirectNames(productionUsage, graph);
-    const path = shortestDependencyPath(pkgName, roots, graph.edges);
+    const paths = collectDependencyPaths(pkgName, roots, graph.edges);
+    const path = paths[0];
     if (path !== undefined && path.length >= 2) {
-      return { reachability: 'reachable-via-dependency', path };
+      return { reachability: 'reachable-via-dependency', path, paths };
     }
     return { reachability: 'not-imported' };
   }
@@ -191,12 +222,124 @@ function isDevOnly(pkgName: string, ctx: ReachabilityContext): boolean {
   return directDev.has(pkgName) || reachableFrom(pkgName, directDev, edges);
 }
 
+const REACH_RANK: Record<Reachability, number> = {
+  reachable: 0,
+  'symbol-reachable': 1,
+  'reachable-via-dependency': 2,
+  'imported-not-called': 3,
+  'symbol-not-called': 4,
+  'reachability-unknown': 5,
+  'not-imported': 6,
+};
+
+function versionFromSnippet(snippet: string): string {
+  const name = packageNameFromSnippet(snippet);
+  if (name === undefined) return snippet;
+  return snippet.slice(name.length + 1);
+}
+
+function pathFields(classified: { path?: string[]; paths?: string[][] }): {
+  dependencyPath?: string[];
+  dependencyPaths?: string[][];
+} {
+  const paths = classified.paths ?? (classified.path !== undefined ? [classified.path] : []);
+  if (paths.length === 0) return {};
+  return {
+    dependencyPath: paths[0],
+    ...(paths.length > 1 ? { dependencyPaths: paths } : {}),
+  };
+}
+
+function appendOtherPaths(message: string, paths: string[][] | undefined): string {
+  if (paths === undefined || paths.length < 2) return message;
+  const rest = paths.slice(1).map((p) => p.join(' > ')).join('; ');
+  return `${message} Other paths: ${rest}.`;
+}
+
+/** One finding per package name + advisory. Versions and paths are listed on that finding. */
+export function groupPackageAdvisories(findings: readonly Finding[]): Finding[] {
+  const passthrough: Finding[] = [];
+  const groups = new Map<string, Finding[]>();
+  for (const finding of findings) {
+    if (finding.ruleId !== 'DEPS-VULN-001' && finding.ruleId !== 'DEPS-MALICIOUS-001') {
+      passthrough.push(finding);
+      continue;
+    }
+    const name = packageNameFromSnippet(finding.snippet ?? '') ?? finding.snippet ?? finding.id;
+    const advisory = finding.references?.[0] ?? finding.id;
+    const key = `${finding.ruleId}\0${name}\0${advisory}`;
+    const list = groups.get(key);
+    if (list === undefined) groups.set(key, [finding]);
+    else list.push(finding);
+  }
+  const merged: Finding[] = [];
+  for (const list of groups.values()) {
+    const only = list[0];
+    if (list.length === 1 && only !== undefined) {
+      merged.push(only);
+      continue;
+    }
+    merged.push(mergeAdvisory(list));
+  }
+  return [...passthrough, ...merged];
+}
+
+function mergeAdvisory(list: readonly Finding[]): Finding {
+  const ranked = [...list].sort(
+    (a, b) =>
+      severityRank(b.severity) - severityRank(a.severity) ||
+      (REACH_RANK[a.reachability ?? 'not-imported'] ?? 9) - (REACH_RANK[b.reachability ?? 'not-imported'] ?? 9),
+  );
+  const primary = ranked[0];
+  if (primary === undefined) {
+    throw new Error('empty advisory group');
+  }
+  const name = packageNameFromSnippet(primary.snippet ?? '') ?? 'package';
+  const versions = [...new Set(list.map((f) => versionFromSnippet(f.snippet ?? '')))].filter((v) => v.length > 0).sort();
+  const paths: string[][] = [];
+  const seenPath = new Set<string>();
+  for (const finding of list) {
+    const candidates = finding.dependencyPaths ?? (finding.dependencyPath !== undefined ? [finding.dependencyPath] : []);
+    for (const path of candidates) {
+      const key = path.join('\0');
+      if (seenPath.has(key)) continue;
+      seenPath.add(key);
+      paths.push(path);
+    }
+  }
+  paths.sort((a, b) => a.length - b.length || a.join('>').localeCompare(b.join('>')));
+  const advisory = primary.references?.[0] ?? '';
+  const onManifest = list.find((f) => f.file === 'package.json');
+  const file = onManifest?.file ?? primary.file;
+  const line = onManifest?.line ?? primary.line;
+  const snippet = versions.length > 0 ? `${name}@${versions.join(',')}` : (primary.snippet ?? name);
+  let message = primary.message;
+  if (versions.length > 1) {
+    message = `${message} Versions: ${versions.join(', ')}.`;
+  }
+  if (paths.length > 1) {
+    message = `${message} Dependency paths: ${paths.map((p) => p.join(' > ')).join('; ')}.`;
+  }
+  return {
+    ...primary,
+    id: makeFindingId(primary.ruleId, file, `${name}|${advisory}|${versions.join(',')}`),
+    file,
+    line,
+    snippet,
+    message,
+    severity: primary.severity,
+    reachability: primary.reachability,
+    ...(paths[0] !== undefined ? { dependencyPath: paths[0] } : {}),
+    ...(paths.length > 1 ? { dependencyPaths: paths } : {}),
+  };
+}
+
 export function applyReachability(
   findings: Finding[],
   ctx: ReachabilityContext,
   symbols: ReadonlyMap<string, readonly string[]> = new Map(),
 ): Finding[] {
-  return findings.map((finding) => {
+  const mapped: Finding[] = findings.map((finding): Finding => {
     if (finding.ruleId === 'DEPS-MALICIOUS-001') {
       // Symbol data never downgrades a malicious advisory. Severity stays critical.
       if (finding.snippet === undefined) return finding;
@@ -207,7 +350,7 @@ export function applyReachability(
         ...finding,
         severity: 'critical',
         reachability: classified.reachability,
-        ...(classified.path !== undefined ? { dependencyPath: classified.path } : {}),
+        ...pathFields(classified),
       };
     }
     if (finding.ruleId !== 'DEPS-VULN-001' || finding.snippet === undefined) return finding;
@@ -217,7 +360,7 @@ export function applyReachability(
     const named = symbols.get(finding.id) ?? [];
     if (named.length > 0 && ctx.sources !== undefined) {
       const symbolClass = classifySymbolUse(named, ctx.sources);
-      classified = { reachability: symbolClass, path: classified.path };
+      classified = { reachability: symbolClass, path: classified.path, paths: classified.paths };
     }
     const steps = reachabilitySteps(classified.reachability);
     let severity = steps === 0 ? finding.severity : downgradeSeverity(finding.severity, steps);
@@ -225,6 +368,7 @@ export function applyReachability(
     if (classified.path !== undefined) {
       const shown = classified.path.join(' > ');
       message = `${message} Reachable via ${shown}.`;
+      message = appendOtherPaths(message, classified.paths);
     }
     const devOnly = isDevOnly(pkg, ctx);
     if (devOnly) {
@@ -234,9 +378,10 @@ export function applyReachability(
     return {
       ...finding,
       reachability: classified.reachability,
-      ...(classified.path !== undefined ? { dependencyPath: classified.path } : {}),
+      ...pathFields(classified),
       severity,
       message,
     };
   });
+  return groupPackageAdvisories(mapped);
 }
