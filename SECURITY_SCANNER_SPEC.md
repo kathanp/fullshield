@@ -960,10 +960,10 @@ A not-imported `DEPS-VULN-001` is folded even when its severity is high. A `reac
 ### Phase 48 — Unused dependency removal
 State, for direct `dependencies` that no project file imports and that are not required by an imported package: how many packages that is, and how many advisories sit only on those packages. Example shape: `12 packages are never imported; removing them clears 41 advisories.`
 
-- [  ] Imported and `imported-not-called` packages are not in the list.
-- [  ] `fix --unsafe` may delete those names from `package.json`. It does not edit the lockfile. It prints `run npm install`.
-- [  ] The scan finding list does not lose those advisories.
-- [  ] `DEPS-MALICIOUS-001` on an unused direct package is included in the offer. It is still never downgraded.
+- [x] Imported and `imported-not-called` packages are not in the list.
+- [x] `fix --unsafe` may delete those names from `package.json`. It does not edit the lockfile. It prints `run npm install`.
+- [x] The scan finding list does not lose those advisories.
+- [x] `DEPS-MALICIOUS-001` on an unused direct package is included in the offer. It is still never downgraded.
 
 Acceptance: positive fixture (unused direct dep with a cached advisory) and negative fixture (imported dep, and a dep that is imported but not called). `fix` without `--unsafe` prints the plan and writes nothing. JSON finding keys are unchanged.
 

@@ -65,3 +65,19 @@ Benchmark impact: vulnerable-node 63 (unreviewed)
 Next CI: not pushed
 Needs human decision: none
 ```
+
+## Phase 48
+
+```
+Phase 48 — Unused dependency removal
+Branch/commit: phase-48 | pushed: no | merged into next: yes
+Flag: none
+Built: unused direct dependency count and fix --unsafe removal from package.json only.
+Not done / limitations: devDependencies are not offered for removal. A lockfile with unknown edges produces no list.
+Tests added: 2 (phase48-unused) | total: 830
+default-scan-diff: pending at commit time; merge only if empty
+verify: Node 22.23.3 tests 830, lines 92.61%, branches 82.13%. Node 24.22.0 tests 830, lines 92.6%, branches 82.11%. vulnerable-app 35, clean-app high/critical 0.
+Benchmark impact: none expected (finding keys unchanged)
+Next CI: not pushed
+Needs human decision: none
+```

@@ -1,0 +1,17 @@
+{
+  "fetchedAt": "2026-10-18T00:00:00.000Z",
+  "vulns": [
+    {
+      "id": "GHSA-idle-0001",
+      "summary": "Fixture advisory on an imported but uncalled dependency",
+      "aliases": [],
+      "database_specific": { "severity": "HIGH" },
+      "affected": [
+        {
+          "package": { "ecosystem": "npm", "name": "idle-lib" },
+          "versions": ["1.0.0"]
+        }
+      ]
+    }
+  ]
+}

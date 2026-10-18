@@ -1,0 +1,23 @@
+{
+  "fetchedAt": "2026-10-18T00:00:00.000Z",
+  "vulns": [
+    {
+      "id": "MAL-2026-0048",
+      "summary": "Malicious code in evil-unused (npm)",
+      "aliases": [],
+      "database_specific": {
+        "malicious": {
+          "published": "2026-01-01T00:00:00Z",
+          "sources": ["osv"]
+        },
+        "severity": "MODERATE"
+      },
+      "affected": [
+        {
+          "package": { "ecosystem": "npm", "name": "evil-unused" },
+          "versions": ["1.0.0"]
+        }
+      ]
+    }
+  ]
+}

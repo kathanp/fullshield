@@ -882,9 +882,18 @@ Same-function Mongo filters from the stash, on `SAST-NOSQLI-001`. Version stays 
 | 22.23.3 | 828 | 92.62% | 82.06% | 35 | 0 |
 | 24.22.0 | 828 | 92.61% | 82.03% | 35 | 0 |
 
+## Phase 48 — Unused dependency removal
+
+Direct `dependencies` that no project file imports and that no imported package requires are listed on `metadata.unusedDirect` and in the console sentence. `fix` prints the plan and writes nothing. `fix --unsafe` deletes those names from `package.json`, leaves the lockfile, and prints `run npm install`. Findings, including critical `DEPS-MALICIOUS-001`, stay. One Node 22 coverage run hit a RASP p95 timing flake (1.61ms); the same test passed alone and the full verify passed on the retry.
+
+| node | tests | coverage lines | coverage branches | vulnerable-app | clean-app high/critical |
+|---|---|---|---|---|---|
+| 22.23.3 | 830 | 92.61% | 82.13% | 35 | 0 |
+| 24.22.0 | 830 | 92.6% | 82.11% | 35 | 0 |
+
 ## Current status
 
-- `next` includes published 0.3.0, phases 46 and 47, and the unpublished Mongo-filter change.
+- `next` includes published 0.3.0, phases 46–48, and the unpublished Mongo-filter change.
 - Package version in this tree is `0.3.0`. Do not bump past it (D8).
 - Ground truth in `bench/` stays `"reviewed": false`.
 - Host check gaps: live Linux sshd is not required in CI (fixtures only). OSV is mocked in tests. FullShield does not stop OS or SSH exploits.

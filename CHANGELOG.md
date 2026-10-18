@@ -10,6 +10,10 @@ git restored to match published 0.3.0 (D7). Phase 46 still enforces Node >= 22.1
 
 Same-function Mongo filters are reported by the existing `SAST-NOSQLI-001` rule (the unpublished 0.4.0 change, approved under D7). The version is not bumped. vulnerable-node gains two keys: `routes/shop.js` lines 41 and 58, both high. Every other tuning app is unchanged. Ground truth was not edited.
 
+### Unused direct dependencies
+
+A scan names direct `dependencies` that no project file imports and that no imported package requires. Imported and imported-not-called packages stay out. `fix` prints the removal plan and writes nothing. `fix --unsafe` deletes those names from `package.json` only, leaves the lockfile alone, and prints `run npm install`. The finding list is unchanged, including a `DEPS-MALICIOUS-001` on an unused package, which stays critical.
+
 ### Console
 
 Default console prints the human-decision shown rows (2026-10-18), grouped one row per package name. JSON, SARIF, Markdown, HTML, the baseline, and `--fail-on` stay the full list. `--all` prints every finding, ungrouped. This is not a stable-output change.

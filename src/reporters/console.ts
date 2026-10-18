@@ -263,6 +263,15 @@ export function renderConsoleReport(input: ScanResult, options: ConsoleReportOpt
       ),
   );
   if (metadata.history !== undefined) lines.push(metadata.history);
+  if (metadata.unusedDirect !== undefined) {
+    const count = metadata.unusedDirect.packages.length;
+    const advisories = metadata.unusedDirect.advisories;
+    const packageWord = count === 1 ? 'package is' : 'packages are';
+    const advisoryWord = advisories === 1 ? 'advisory' : 'advisories';
+    lines.push(
+      `${count} ${packageWord} never imported; removing them clears ${advisories} ${advisoryWord}.`,
+    );
+  }
 
   if (metadata.modulesRun.length < metadata.modulesRequested.length) {
     const pending = metadata.modulesRequested.filter((m) => !metadata.modulesRun.includes(m));

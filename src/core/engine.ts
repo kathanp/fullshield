@@ -95,6 +95,8 @@ export interface ScanMetadata {
   modulesRun: ModuleName[];
   /** Set when `scan --history` stops at the commit cap. Exact text: `scanned N of M commits`. */
   history?: string;
+  /** Phase 48. Direct dependencies no project file imports. Absent when the list is empty. */
+  unusedDirect?: { packages: string[]; advisories: number };
 }
 
 export interface PolicyScanResult {
@@ -147,6 +149,7 @@ export async function runScan(
 ): Promise<ScanResult> {
   const startedAt = new Date().toISOString();
   const t0 = performance.now();
+  depsModule.unusedDirect = undefined;
 
   const cwd = resolve(options.cwd ?? process.cwd());
   const stats = await stat(cwd).catch(() => null);
@@ -337,6 +340,7 @@ export async function runScan(
       modulesRequested: [...modulesRequested],
       modulesRun,
       ...(historyNotice !== undefined ? { history: historyNotice } : {}),
+      ...(depsModule.unusedDirect !== undefined ? { unusedDirect: depsModule.unusedDirect } : {}),
     },
     config,
     policy: policyResult,
