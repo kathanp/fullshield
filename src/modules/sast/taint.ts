@@ -34,6 +34,10 @@ export interface ScopeFacts {
   hasPasswordName: boolean;
   /** Identifiers bound to req.body/query/params themselves (not a property). */
   requestObjects: Set<string>;
+  /** Identifiers that hold an object or array assembled from request input. */
+  builtFilters: Set<string>;
+  /** Same-file functions whose return value is a built Mongo filter. */
+  filterReturners: Set<string>;
   /** Local names of functions whose return value is tainted. */
   returners: Set<string>;
 }
@@ -210,6 +214,111 @@ function exprIsTainted(
   }
 }
 
+/**
+ * True when this value can put request data into a Mongo filter object.
+ * A bare tainted name is not itself a built filter; an object, array, or
+ * Object.assign that contains one is.
+ */
+function valueFeedsFilter(
+  node: AstNode | undefined,
+  tainted: Set<string>,
+  returners: ReadonlySet<string>,
+  nosqlSanitized: Set<string>,
+  built: Set<string>,
+  filterReturners: ReadonlySet<string>,
+): boolean {
+  if (node === undefined) return false;
+  if (isCoercionCall(node) || isSchemaValidatorCall(node) || isMongoSanitizeCall(node)) return false;
+  if (node.type === 'Identifier') {
+    if (nosqlSanitized.has(node.name)) return false;
+    return built.has(node.name) || tainted.has(node.name);
+  }
+  if (isRequestObjectNode(node)) return true;
+  if (node.type === 'AwaitExpression') {
+    return valueFeedsFilter(node.argument, tainted, returners, nosqlSanitized, built, filterReturners);
+  }
+  if (
+    node.type === 'CallExpression' &&
+    node.callee.type === 'Identifier' &&
+    filterReturners.has(node.callee.name)
+  ) {
+    return true;
+  }
+  if (node.type === 'ObjectExpression') {
+    return node.properties.some((prop) => {
+      if (prop.type === 'SpreadElement') {
+        return valueFeedsFilter(prop.argument, tainted, returners, nosqlSanitized, built, filterReturners);
+      }
+      if (prop.type !== 'Property') return false;
+      return valueFeedsFilter(prop.value, tainted, returners, nosqlSanitized, built, filterReturners);
+    });
+  }
+  if (node.type === 'ArrayExpression') {
+    return node.elements.some((el) => {
+      if (el === null) return false;
+      if (el.type === 'SpreadElement') {
+        return valueFeedsFilter(el.argument, tainted, returners, nosqlSanitized, built, filterReturners);
+      }
+      return valueFeedsFilter(el, tainted, returners, nosqlSanitized, built, filterReturners);
+    });
+  }
+  if (
+    node.type === 'CallExpression' &&
+    node.callee.type === 'MemberExpression' &&
+    node.callee.object.type === 'Identifier' &&
+    node.callee.object.name === 'Object' &&
+    propName(node.callee) === 'assign'
+  ) {
+    return node.arguments.some(
+      (arg) =>
+        arg.type !== 'SpreadElement' &&
+        valueFeedsFilter(arg, tainted, returners, nosqlSanitized, built, filterReturners),
+    );
+  }
+  if (
+    node.type === 'ChainExpression' ||
+    node.type === 'TSAsExpression' ||
+    node.type === 'TSNonNullExpression' ||
+    node.type === 'TSTypeAssertion' ||
+    node.type === 'MemberExpression'
+  ) {
+    return exprIsTainted(node, tainted, returners);
+  }
+  return false;
+}
+
+function initIsBuiltFilter(
+  node: AstNode,
+  tainted: Set<string>,
+  returners: ReadonlySet<string>,
+  nosqlSanitized: Set<string>,
+  built: Set<string>,
+  filterReturners: ReadonlySet<string>,
+): boolean {
+  if (node.type === 'AwaitExpression') {
+    return initIsBuiltFilter(node.argument, tainted, returners, nosqlSanitized, built, filterReturners);
+  }
+  if (node.type === 'Identifier') return built.has(node.name) && !nosqlSanitized.has(node.name);
+  if (
+    node.type === 'CallExpression' &&
+    node.callee.type === 'Identifier' &&
+    filterReturners.has(node.callee.name)
+  ) {
+    return true;
+  }
+  if (node.type === 'ObjectExpression' || node.type === 'ArrayExpression') {
+    return valueFeedsFilter(node, tainted, returners, nosqlSanitized, built, filterReturners);
+  }
+  return (
+    node.type === 'CallExpression' &&
+    node.callee.type === 'MemberExpression' &&
+    node.callee.object.type === 'Identifier' &&
+    node.callee.object.name === 'Object' &&
+    propName(node.callee) === 'assign' &&
+    valueFeedsFilter(node, tainted, returners, nosqlSanitized, built, filterReturners)
+  );
+}
+
 function exprIsSanitized(
   node: AstNode | undefined,
   tainted: Set<string>,
@@ -295,6 +404,8 @@ function analyzeScope(
   scope: AstNode,
   seed: Iterable<string> = [],
   returners: ReadonlySet<string> = NO_RETURNERS,
+  filterReturners: ReadonlySet<string> = NO_RETURNERS,
+  initialBuilt: ReadonlySet<string> = NO_RETURNERS,
 ): ScopeFacts {
   const tainted = new Set<string>(seed);
   seedDestructuredRequestParams(scope, tainted);
@@ -406,6 +517,40 @@ function analyzeScope(
     }
   });
 
+  const builtFilters = new Set<string>(initialBuilt);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    const add = (names: readonly string[]): void => {
+      for (const name of names) {
+        if (nosqlSanitized.has(name) || builtFilters.has(name)) continue;
+        builtFilters.add(name);
+        grew = true;
+      }
+    };
+    walkScope(scope, (node) => {
+      if (node.type === 'VariableDeclarator' && node.init !== null) {
+        if (initIsBuiltFilter(node.init, tainted, returners, nosqlSanitized, builtFilters, filterReturners)) {
+          add(boundNames(node.id));
+        }
+      }
+      if (node.type !== 'AssignmentExpression') return;
+      if (
+        node.left.type === 'Identifier' &&
+        initIsBuiltFilter(node.right, tainted, returners, nosqlSanitized, builtFilters, filterReturners)
+      ) {
+        add([node.left.name]);
+      }
+      if (
+        node.left.type === 'MemberExpression' &&
+        node.left.object.type === 'Identifier' &&
+        valueFeedsFilter(node.right, tainted, returners, nosqlSanitized, builtFilters, filterReturners)
+      ) {
+        add([node.left.object.name]);
+      }
+    });
+  }
+
   return {
     tainted,
     pathSanitized,
@@ -414,8 +559,61 @@ function analyzeScope(
     nosqlSanitized,
     hasPasswordName,
     requestObjects,
+    builtFilters,
+    filterReturners: new Set(filterReturners),
     returners: new Set(returners),
   };
+}
+
+function locallyDeclared(scope: AstNode): Set<string> {
+  const names = new Set<string>();
+  if (isFunctionNode(scope)) {
+    for (const param of scope.params) {
+      for (const name of boundNames(param)) names.add(name);
+    }
+  }
+  walkScope(scope, (node) => {
+    if (node.type === 'VariableDeclarator') {
+      for (const name of boundNames(node.id)) names.add(name);
+    }
+    if (node.type === 'FunctionDeclaration' && node.id !== null) names.add(node.id.name);
+  });
+  return names;
+}
+
+function inheritedBuiltFilters(fn: AstNode, facts: WeakMap<AstNode, ScopeFacts>): Set<string> {
+  const local = locallyDeclared(fn);
+  const inherited = new Set<string>();
+  let parent: AstNode | undefined = (fn as { parent?: AstNode }).parent;
+  while (parent !== undefined && !isFunctionNode(parent)) {
+    parent = (parent as { parent?: AstNode }).parent;
+  }
+  const outer = parent === undefined ? undefined : facts.get(parent);
+  if (outer === undefined) return inherited;
+  for (const name of outer.builtFilters) {
+    if (!local.has(name)) inherited.add(name);
+  }
+  return inherited;
+}
+
+function scopeReturnsBuiltFilter(scope: AstNode, facts: ScopeFacts): boolean {
+  let yes = false;
+  walkScope(scope, (node) => {
+    if (node.type !== 'ReturnStatement' || node.argument === null) return;
+    if (
+      initIsBuiltFilter(
+        node.argument,
+        facts.tainted,
+        facts.returners,
+        facts.nosqlSanitized,
+        facts.builtFilters,
+        facts.filterReturners,
+      )
+    ) {
+      yes = true;
+    }
+  });
+  return yes;
 }
 
 function functionName(fn: AstNode): string | undefined {
@@ -524,12 +722,13 @@ export function analyzeFile(
   const seeds = new Map<AstNode, Set<string>>();
   for (const fn of functions) seeds.set(fn, new Set());
   const returners = new Set<string>(extraReturners);
+  const filterReturners = new Set<string>();
 
   for (let hop = 0; hop < MAX_TAINT_HOPS; hop += 1) {
     let changed = false;
-    facts.set(ast, analyzeScope(ast, [], returners));
+    facts.set(ast, analyzeScope(ast, [], returners, filterReturners));
     for (const fn of functions) {
-      facts.set(fn, analyzeScope(fn, seeds.get(fn) ?? [], returners));
+      facts.set(fn, analyzeScope(fn, seeds.get(fn) ?? [], returners, filterReturners, inheritedBuiltFilters(fn, facts)));
     }
     for (const fn of functions) {
       const name = functionName(fn);
@@ -537,6 +736,10 @@ export function analyzeFile(
       if (name === undefined || f === undefined) continue;
       if (scopeReturnsTaint(fn, f.tainted, returners) && !returners.has(name)) {
         returners.add(name);
+        changed = true;
+      }
+      if (scopeReturnsBuiltFilter(fn, f) && !filterReturners.has(name)) {
+        filterReturners.add(name);
         changed = true;
       }
     }
@@ -604,9 +807,21 @@ export function factsFor(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): Scop
       nosqlSanitized: new Set(),
       hasPasswordName: false,
       requestObjects: new Set(),
+      builtFilters: new Set(),
+      filterReturners: new Set(),
       returners: new Set(),
     }
   );
+}
+
+export function nodeHoldsBuiltFilter(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): boolean {
+  const facts = factsFor(node, map);
+  if (node.type === 'Identifier') return facts.builtFilters.has(node.name);
+  if (node.type === 'AwaitExpression') return nodeHoldsBuiltFilter(node.argument, map);
+  if (node.type === 'CallExpression' && node.callee.type === 'Identifier') {
+    return facts.filterReturners.has(node.callee.name);
+  }
+  return false;
 }
 
 export function nodeIsTainted(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): boolean {

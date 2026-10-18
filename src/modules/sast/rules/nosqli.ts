@@ -180,6 +180,14 @@ export const nosqliRule: SastRule = {
           return;
         }
         if (middleware) return;
+        if (ctx.holdsBuiltFilter(filter)) {
+          ctx.report({
+            node,
+            message: 'A Mongo filter built from request input is passed to the query.',
+            confidence: 'medium',
+          });
+          return;
+        }
         if (objectHasUnsafeTaintedValue(filter, (n) => ctx.isTainted(n), isSafe)) {
           ctx.report({
             node,

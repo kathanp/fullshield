@@ -873,9 +873,18 @@ CASE A. Provenance `gitCommit` is `91bbc6bb2b8e8fb46805e872a47952c3bd4a0907`, wh
 | 22.23.3 | 817 | 92.57% | 81.79% | 35 | 0 |
 | 24.22.0 | 817 | 92.55% | 81.77% | 35 | 0 |
 
+## Restore 0.4.0 (unpublished, D7)
+
+Same-function Mongo filters from the stash, on `SAST-NOSQLI-001`. Version stays 0.3.0. vulnerable-node 61 → 63. New keys: `routes/shop.js:41` and `:58`, both high. No other key changes.
+
+| node | tests | coverage lines | coverage branches | vulnerable-app | clean-app high/critical |
+|---|---|---|---|---|---|
+| 22.23.3 | 828 | 92.62% | 82.06% | 35 | 0 |
+| 24.22.0 | 828 | 92.61% | 82.03% | 35 | 0 |
+
 ## Current status
 
-- `next` will include published 0.3.0 plus phases 46 and 47 after this restore merges.
-- Package version in this tree is `0.3.0`.
+- `next` includes published 0.3.0, phases 46 and 47, and the unpublished Mongo-filter change.
+- Package version in this tree is `0.3.0`. Do not bump past it (D8).
 - Ground truth in `bench/` stays `"reviewed": false`.
 - Host check gaps: live Linux sshd is not required in CI (fixtures only). OSV is mocked in tests. FullShield does not stop OS or SSH exploits.

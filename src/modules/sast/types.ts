@@ -27,6 +27,8 @@ export interface RuleContext {
   isSanitizedFor(node: AstNode, kind: 'url' | 'xss'): boolean;
   isNosqlSanitized(node: AstNode): boolean;
   isRequestObject(node: AstNode): boolean;
+  /** True when this identifier holds a Mongo filter assembled from request input. */
+  holdsBuiltFilter(node: AstNode): boolean;
   functionHasPasswordName(node: AstNode): boolean;
   assignedName(node: AstNode): string | undefined;
   /** True when any file in this scan already applies a CSRF guard. */

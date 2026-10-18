@@ -49,3 +49,19 @@ Benchmark impact: nodegoat 256, juice-shop 105, dvna 23, goof 271, vulnerable-no
 Next CI: not pushed
 Needs human decision: none
 ```
+
+## Restore 0.4.0
+
+```
+Phase restore-0.4.0 — same-function Mongo filter
+Branch/commit: restore-0.4.0 | pushed: no | merged into next: yes
+Flag: none
+Built: SAST-NOSQLI-001 reports a filter built from request input in the same function. Version stays 0.3.0.
+Not done / limitations: stash docs were not copied. Unknown stash files: none.
+Tests added: nosql-built-filter | total: 828
+default-scan-diff: vulnerable-node 61 -> 63. Added SAST-NOSQLI-001 routes/shop.js:41 high and :58 high. Other apps unchanged.
+verify: Node 22.23.3 tests 828, lines 92.62%, branches 82.06%. Node 24.22.0 tests 828, lines 92.61%, branches 82.03%. vulnerable-app 35, clean-app high/critical 0.
+Benchmark impact: vulnerable-node 63 (unreviewed)
+Next CI: not pushed
+Needs human decision: none
+```
