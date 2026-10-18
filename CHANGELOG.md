@@ -14,7 +14,7 @@ Same-function Mongo filters are reported by the existing `SAST-NOSQLI-001` rule 
 
 Default console prints the human-decision shown rows (2026-10-18), grouped one row per package name. JSON, SARIF, Markdown, HTML, the baseline, and `--fail-on` stay the full list. `--all` prints every finding, ungrouped. This is not a stable-output change.
 
-Re-measure of the local `scan --json --offline-safe` files from 2026-10-18, unreviewed. Human decision 2026-10-18 (D4) accepts these grouped-row counts. There is no row-count threshold. The shown rule, the 20-row cap, and severities were not changed.
+Recount on `next` after restore-0.4.0, from `scan --json --offline-safe`, unreviewed. The counts match the 2026-10-18 decision (D4). There is no row-count threshold. The shown rule, the 20-row cap, and severities were not changed.
 
 | app | shown rows | shown findings | folded findings | shown findings by reachability |
 |---|---|---|---|---|
