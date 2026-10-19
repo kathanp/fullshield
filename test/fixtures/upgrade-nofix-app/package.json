@@ -1,0 +1,6 @@
+{
+  "name": "upgrade-nofix-app",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": { "held": "1.0.0" }
+}

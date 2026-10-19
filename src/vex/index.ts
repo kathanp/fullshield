@@ -47,14 +47,19 @@ function openVexStatement(finding: Finding): Record<string, unknown> {
     vulnerability: { name: vulnName(finding) },
     products: [{ '@id': npmPurl(finding.snippet) }],
   };
+  const detail =
+    process.env.FULLSHIELD_EXPERIMENTAL_SBOM_REACH === '1' && finding.reachabilityEvidence?.reason !== undefined
+      ? { detail: finding.reachabilityEvidence.reason }
+      : {};
   if (notImported(finding)) {
     return {
       ...base,
       status: 'not_affected',
       justification: OPENVEX_NOT_AFFECTED_JUSTIFICATION,
+      ...detail,
     };
   }
-  return { ...base, status: 'under_investigation' };
+  return { ...base, status: 'under_investigation', ...detail };
 }
 
 export function buildOpenVex(findings: readonly Finding[]): Record<string, unknown> {

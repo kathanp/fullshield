@@ -1,0 +1,4 @@
+{
+  "name": "ws-vuln",
+  "dependencies": { "express": "4.17.0" }
+}

@@ -32,6 +32,10 @@ import { renderSarifReport } from '../reporters/sarif.js';
 import { addedFails, diffScans, parseScanDocument, renderDiffText } from '../diff/index.js';
 import { CI_REPORTS_FLAG, DIFF_FLAG, diffEnabled } from '../modules/sast/experimental.js';
 import { POLICY_FLAG, renderPrSummary } from '../policy/index.js';
+import { diffLockedPackages, lockAtRef, packagesFromLock, releaseAgeLabel } from '../deps-diff/index.js';
+import { explainFinding } from '../explain/index.js';
+import { queryOsv } from '../modules/deps/osv.js';
+import { osvSeverity } from '../modules/deps/semver.js';
 import { buildSbom } from '../sbom/index.js';
 import { validateCycloneDx15 } from '../sbom/cyclonedx.js';
 import { runEdge } from '../modules/edge/index.js';
@@ -79,6 +83,14 @@ interface ScanCliOptions {
   verifySecrets?: boolean;
   iOwnTheseCredentials?: boolean;
   experimentalVex?: boolean;
+  experimentalReachEvidence?: boolean;
+  experimentalLockfiles?: boolean;
+  experimentalSupply?: boolean;
+  experimentalWorkspaces?: boolean;
+  experimentalSarifV2?: boolean;
+  experimentalCustomSanitizers?: boolean;
+  experimentalValidation?: boolean;
+  taintSummaries?: boolean;
   experimentalMcpcfg?: boolean;
   includeHome?: boolean;
   prSummary?: boolean;
@@ -190,6 +202,35 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       'experimental: worm/workflow indicators, overrides, provenance, VEX (FULLSHIELD_EXPERIMENTAL_VEX=1)',
     )
     .option(
+      '--experimental-reach-evidence',
+      'experimental: record why a dependency reachability class was chosen (FULLSHIELD_EXPERIMENTAL_REACH_EVIDENCE=1)',
+    )
+    .option(
+      '--experimental-lockfiles',
+      'experimental: yarn berry, pnpm v9, and bun.lock (FULLSHIELD_EXPERIMENTAL_LOCKFILES=1)',
+    )
+    .option(
+      '--experimental-supply',
+      'experimental: supply-chain campaign heuristics (FULLSHIELD_EXPERIMENTAL_SUPPLY=1)',
+    )
+    .option(
+      '--experimental-workspaces',
+      'experimental: scan each workspace lockfile (FULLSHIELD_EXPERIMENTAL_WORKSPACES=1)',
+    )
+    .option(
+      '--experimental-sarif-v2',
+      'experimental: extra SARIF fields (FULLSHIELD_EXPERIMENTAL_SARIF_V2=1)',
+    )
+    .option(
+      '--experimental-custom-sanitizers',
+      'experimental: config-declared sources and sanitizers (FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS=1)',
+    )
+    .option(
+      '--experimental-validation',
+      'experimental: route schema validation inference (FULLSHIELD_EXPERIMENTAL_VALIDATION=1)',
+    )
+    .option('--taint-summaries', 'cache per-function taint summaries (FULLSHIELD_TAINT_SUMMARIES=1)')
+    .option(
       '--experimental-mcpcfg',
       'experimental: MCP client/server config rules (FULLSHIELD_EXPERIMENTAL_MCPCFG=1)',
     )
@@ -220,6 +261,30 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
         if (opts.experimentalVex === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_VEX = '1';
+        }
+        if (opts.experimentalReachEvidence === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_REACH_EVIDENCE = '1';
+        }
+        if (opts.experimentalLockfiles === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_LOCKFILES = '1';
+        }
+        if (opts.experimentalSupply === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY = '1';
+        }
+        if (opts.experimentalWorkspaces === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_WORKSPACES = '1';
+        }
+        if (opts.experimentalSarifV2 === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_SARIF_V2 = '1';
+        }
+        if (opts.experimentalCustomSanitizers === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS = '1';
+        }
+        if (opts.experimentalValidation === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_VALIDATION = '1';
+        }
+        if (opts.taintSummaries === true) {
+          process.env.FULLSHIELD_TAINT_SUMMARIES = '1';
         }
         if (opts.experimentalMcpcfg === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_MCPCFG = '1';
@@ -453,7 +518,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         if (opts.format !== undefined && opts.format !== 'cyclonedx') {
           throw new Error(`unsupported SBOM format "${opts.format}" (valid: cyclonedx)`);
         }
-        const doc = await buildSbom(resolve(path));
+        const doc = await buildSbom(resolve(path), {
+          includeReach: process.env.FULLSHIELD_EXPERIMENTAL_SBOM_REACH === '1',
+        });
         const errors = validateCycloneDx15(doc);
         if (errors.length > 0) throw new Error(`invalid SBOM: ${errors.join('; ')}`);
         const json = JSON.stringify(doc, null, 2);
@@ -639,6 +706,105 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
         const req = JSON.parse(text) as { jsonrpc?: string; id?: number; method?: string };
         io.out(JSON.stringify(await handleMcpRequest(session, req)));
+      } catch (error) {
+        io.err(formatCliError(error));
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('explain')
+    .description('Print one finding from a scan JSON file (requires FULLSHIELD_EXPERIMENTAL_EXPLAIN=1)')
+    .argument('<id>', 'finding id or a prefix of at least 6 characters')
+    .option('--from <file>', 'scan --json file')
+    .action(async (id: string, opts: { from?: string }) => {
+      try {
+        if (process.env.FULLSHIELD_EXPERIMENTAL_EXPLAIN !== '1') {
+          throw new Error('explain requires FULLSHIELD_EXPERIMENTAL_EXPLAIN=1');
+        }
+        if (opts.from === undefined) throw new Error('explain needs --from <scan.json> (FULLSHIELD_EXPERIMENTAL_EXPLAIN)');
+        const raw = JSON.parse(await readFile(opts.from, 'utf8')) as { findings?: unknown };
+        if (!Array.isArray(raw.findings)) throw new Error('explain --from is not scan JSON (FULLSHIELD_EXPERIMENTAL_EXPLAIN)');
+        const text = await explainFinding({
+          cwd: process.cwd(),
+          id,
+          findings: raw.findings as Parameters<typeof explainFinding>[0]['findings'],
+        });
+        io.out(text);
+      } catch (error) {
+        io.err(formatCliError(error));
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('deps-diff')
+    .description('Compare a lockfile at a git ref with the working tree (requires FULLSHIELD_EXPERIMENTAL_DEPS_DIFF=1)')
+    .argument('<ref>', 'git ref to read with git show')
+    .argument('[path]', 'project directory', '.')
+    .option('--json', 'print JSON')
+    .option('--fail-on <severity>', 'exit 1 when an introduced advisory is at or above this severity')
+    .option('--offline', 'use the OSV cache only')
+    .action(async (ref: string, path: string, opts: { json?: boolean; failOn?: string; offline?: boolean }) => {
+      try {
+        if (process.env.FULLSHIELD_EXPERIMENTAL_DEPS_DIFF !== '1') {
+          throw new Error('deps-diff requires FULLSHIELD_EXPERIMENTAL_DEPS_DIFF=1');
+        }
+        const cwd = resolve(path);
+        const previous = await lockAtRef(cwd, ref);
+        let currentText = '';
+        try {
+          currentText = await readFile(join(cwd, previous.file), 'utf8');
+        } catch {
+          currentText = '';
+        }
+        const before = packagesFromLock(previous.file, previous.text);
+        const after = packagesFromLock(previous.file, currentText);
+        const changes = diffLockedPackages(before.packages, after.packages, after.direct);
+        const moved = after.packages.filter((pkg) =>
+          changes.some((change) => change.name === pkg.name && change.change !== 'removed' && change.newVersion === pkg.version),
+        );
+        const hits = await queryOsv(moved, {
+          cacheDir: join(cwd, 'osv-cache'),
+          offline: opts.offline === true,
+        });
+        const introduced = hits.flatMap((hit) =>
+          hit.vulns.map((vuln) => ({
+            name: hit.pkg.name,
+            version: hit.pkg.version,
+            id: vuln.id,
+            severity: osvSeverity(vuln),
+          })),
+        );
+        const added = changes.filter((change) => change.change === 'added');
+        const ages = [];
+        for (const change of added) {
+          let published: string | undefined;
+          let installScripts: 'yes' | 'no' | 'unknown' = 'unknown';
+          try {
+            const raw = JSON.parse(await readFile(join(cwd, 'osv-cache', 'registry', `${change.name}.json`), 'utf8')) as {
+              time?: string;
+              hasInstallScript?: boolean;
+            };
+            published = raw.time;
+            if (raw.hasInstallScript === true) installScripts = 'yes';
+            if (raw.hasInstallScript === false) installScripts = 'no';
+          } catch {
+            published = undefined;
+          }
+          ages.push({
+            name: change.name,
+            version: change.newVersion,
+            age: releaseAgeLabel(published, Date.now()),
+            installScripts,
+          });
+        }
+        const report = { changes, introduced, ages };
+        io.out(JSON.stringify(report, null, 2));
+        if (opts.failOn !== undefined) {
+          const threshold = parseFailOn(opts.failOn);
+          if (introduced.some((item) => meetsThreshold(item.severity, threshold))) process.exitCode = 1;
+        }
       } catch (error) {
         io.err(formatCliError(error));
         process.exitCode = 2;

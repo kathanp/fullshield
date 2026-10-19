@@ -23,6 +23,7 @@ export interface RuleContext {
   source: string;
   report(report: SastReport): void;
   isTainted(node: AstNode): boolean;
+  isSqlCleared(node: AstNode): boolean;
   isPathSanitized(node: AstNode): boolean;
   isSanitizedFor(node: AstNode, kind: 'url' | 'xss'): boolean;
   isNosqlSanitized(node: AstNode): boolean;

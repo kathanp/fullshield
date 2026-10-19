@@ -12,4 +12,7 @@ FullShield prints `fullshield: FS-E### <message>`. The message is the same text 
 | FS-E004 | `--config` cannot be read | Check the path. |
 | FS-E005 | `--github-annotations`, `--junit`, or `--gitlab` without the experimental flag | Set `FULLSHIELD_EXPERIMENTAL_CI_REPORTS=1` or pass `--experimental-ci-reports`. |
 | FS-E006 | `diff` without its flag, or a diff input that is not scan JSON | Set `FULLSHIELD_EXPERIMENTAL_DIFF=1` or pass `--experimental-diff`. Pass two `scan --json` files. |
+| FS-E007 | `explain` without its flag, or an id prefix that is short, missing, or ambiguous | Set `FULLSHIELD_EXPERIMENTAL_EXPLAIN=1`. Use at least 6 characters that match one finding. |
+| FS-E008 | `deps-diff` without its flag, or the git ref has no lockfile | Set `FULLSHIELD_EXPERIMENTAL_DEPS_DIFF=1`. Pass a ref that contains a lockfile. |
+| FS-E009 | `sast.sources` or `sast.sanitizers` without the experimental flag | Set `FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS=1`. `clears` takes B4 class names. |
 | FS-E000 | Any other command error | Read the message. Re-run with `--debug` if you need the stack. |

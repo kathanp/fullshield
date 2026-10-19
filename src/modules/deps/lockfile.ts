@@ -1,3 +1,5 @@
+import { parseBunLock, parsePnpmV9, parseYarnBerry } from './lockfile-modern.js';
+
 export interface LockedPackage {
   name: string;
   version: string;
@@ -323,8 +325,16 @@ export function parseLockfileGraph(filename: string, contents: string): Lockfile
     directDev: new Set(),
     edgesKnown: false,
   };
-  if (name === 'yarn.lock') return parseYarnGraph(contents);
-  if (name === 'pnpm-lock.yaml') return parsePnpmGraph(contents);
+  const modern = process.env.FULLSHIELD_EXPERIMENTAL_LOCKFILES === '1';
+  if (name === 'yarn.lock') {
+    if (modern && contents.includes('__metadata')) return parseYarnBerry(contents);
+    return parseYarnGraph(contents);
+  }
+  if (name === 'pnpm-lock.yaml') {
+    if (modern && /lockfileVersion:\s*['"]?9/.test(contents)) return parsePnpmV9(contents);
+    return parsePnpmGraph(contents);
+  }
+  if (modern && name === 'bun.lock') return parseBunLock(contents);
   if (name !== 'package-lock.json') return empty;
 
   try {

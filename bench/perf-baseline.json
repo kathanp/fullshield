@@ -112,5 +112,38 @@
   "misses": [
     "nest incremental 9352.540792ms",
     "undici incremental 8242.960708ms"
-  ]
+  ],
+  "phase65": {
+    "measuredAt": "2026-10-19T02:02:46.636Z",
+    "flag": "FULLSHIELD_TAINT_SUMMARIES=1",
+    "note": "Single full offline scans. The 5s figure is the Phase 42 incremental target. These samples are not a 3-run p50.",
+    "apps": {
+      "nest": {
+        "offMs": 13912.892083,
+        "coldMs": 13200.17625,
+        "warmMs": 13725.244708,
+        "statuses": [
+          1,
+          1,
+          1
+        ]
+      },
+      "undici": {
+        "offMs": 10980.205,
+        "coldMs": 10944.097,
+        "warmMs": 9613.8315,
+        "statuses": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    "incrementalTargetMs": 5000,
+    "misses": [
+      "nest warm 13725.244708ms",
+      "undici warm 9613.8315ms"
+    ],
+    "withinIncrementalTarget": false
+  }
 }

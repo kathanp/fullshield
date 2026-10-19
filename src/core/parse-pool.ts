@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
-import { availableParallelism } from 'node:os';
+import { availableParallelism, homedir } from 'node:os';
+import { join } from 'node:path';
 import { Worker } from 'node:worker_threads';
 import { fileURLToPath } from 'node:url';
 
@@ -28,6 +29,11 @@ function workerMemoryMb(): number {
   const parsed = raw !== undefined && raw !== '' ? Number(raw) : 512;
   if (Number.isFinite(parsed) && parsed >= 64) return Math.floor(parsed);
   return 512;
+}
+
+/** On-disk parse cache. Taint summaries live in a subdirectory of this path. */
+export function parseCacheDir(): string {
+  return join(homedir(), '.cache', 'fullshield', 'parse');
 }
 
 export function parseCacheKey(code: string): string {

@@ -1,6 +1,6 @@
 # Contributing
 
-The source of truth is `SECURITY_SCANNER_SPEC.md`. Phases 1–48 are built. The package enforces Node >= 22.13. The next build is Phase 49. Do not mark ground truth `"reviewed": true`.
+The source of truth is `SECURITY_SCANNER_SPEC.md`. Phases 1–49 are built, plus phases 53, 54, 60, 61, 62, 63, 64, 65, 66, 70, and 74 behind experimental flags where the spec says so. The package enforces Node >= 22.13. The next build in the run order is Phase 55. Do not mark ground truth `"reviewed": true`.
 
 ## Rules
 

@@ -1,4 +1,9 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import type { ScanResult } from '../core/engine.js';
+import { lineIndependentFingerprint } from '../core/fingerprint.js';
 import type { Finding, Severity } from '../core/finding.js';
 import { redactScan } from './redact.js';
 
@@ -14,16 +19,41 @@ function uri(file: string | undefined): string {
   return (file ?? '').replace(/\\/g, '/');
 }
 
+function sarifV2(): boolean {
+  return process.env.FULLSHIELD_EXPERIMENTAL_SARIF_V2 === '1';
+}
+
+function ruleMarkdown(ruleId: string): string | undefined {
+  const path = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'rules', `${ruleId}.md`);
+  if (!existsSync(path)) return undefined;
+  return readFileSync(path, 'utf8').slice(0, 2048);
+}
+
+function relatedLocations(finding: Finding): unknown[] | undefined {
+  if (finding.dependencyPath === undefined || finding.dependencyPath.length === 0) return undefined;
+  return finding.dependencyPath.map((step) => ({
+    message: { text: step },
+    physicalLocation: {
+      artifactLocation: { uri: uri(finding.file) },
+      ...(finding.line !== undefined ? { region: { startLine: finding.line } } : {}),
+    },
+  }));
+}
+
 /** SARIF 2.1.0 report for GitHub Code Scanning and other consumers. */
 export function renderSarifReport(input: ScanResult): string {
   const result = redactScan(input);
-  const rules = new Map<string, { id: string; name: string; shortDescription: { text: string } }>();
+  const v2 = sarifV2();
+  const rules = new Map<string, Record<string, unknown>>();
   for (const finding of result.findings) {
     if (!rules.has(finding.ruleId)) {
+      const markdown = v2 ? ruleMarkdown(finding.ruleId) : undefined;
       rules.set(finding.ruleId, {
         id: finding.ruleId,
         name: finding.ruleId,
         shortDescription: { text: finding.title },
+        ...(markdown !== undefined ? { help: { markdown } } : {}),
+        ...(v2 ? { properties: { precision: 'unreviewed' } } : {}),
       });
     }
   }
@@ -56,6 +86,7 @@ export function renderSarifReport(input: ScanResult): string {
                   },
                 ]
               : [];
+          const related = v2 ? relatedLocations(finding) : undefined;
           const codeFlows =
             finding.trace !== undefined && finding.trace.length > 0
               ? [
@@ -82,6 +113,15 @@ export function renderSarifReport(input: ScanResult): string {
             message: { text: finding.message },
             locations: location,
             ...(codeFlows !== undefined ? { codeFlows } : {}),
+            ...(v2
+              ? {
+                  partialFingerprints: { 'fullshield/v1': lineIndependentFingerprint(finding) },
+                  ...(related !== undefined ? { relatedLocations: related } : {}),
+                  ...(finding.module === 'deps' && finding.reachability !== undefined
+                    ? { properties: { reachability: finding.reachability } }
+                    : {}),
+                }
+              : {}),
           };
         }),
       },
