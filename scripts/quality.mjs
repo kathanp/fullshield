@@ -397,6 +397,7 @@ function main() {
     const apiText = sortedJson(currentApi);
     rows.push(row('Q5', 'public API', writeBaseline || apiText === committed, writeBaseline ? 0 : Number(apiText !== committed), 0));
     rows.push(row('Q9', 'new file coverage', q9Miss.length === 0, q9Miss.length, 0));
+    // Q10 counts new rule ids. It does not rewrite source. The in-place mutator was mutation-smoke.
     rows.push(row('Q10', 'mutation', newRules.length === 0, newRules.length, 0));
     let q11Ok = true;
     if (!writeBaseline) {
@@ -459,6 +460,14 @@ function main() {
   if (q6UndocNew.length > 0 || q6BareNew.length > 0) console.error(`Q6 new: ${[...q6UndocNew, ...q6BareNew].slice(0, 20).join(', ')}`);
   if (q7New.length > 0) console.error(`Q7 new: ${q7New.map((use) => `${use.path}:${use.api}`).join(', ')}`);
   if (q8New.length > 0) console.error(`Q8 new: ${q8New.slice(0, 20).join(', ')}`);
+  if (!fixture) {
+    const dirty = spawnSync('git', ['diff', '--exit-code', '--', 'src', 'test'], { cwd: root, encoding: 'utf8' });
+    if (dirty.status !== 0) {
+      console.error('fullshield: FS-E011 src or test changed during quality');
+      console.error(dirty.stdout ?? '');
+      process.exit(1);
+    }
+  }
   if (rows.some((item) => item.result === 'fail')) process.exit(1);
 }
 

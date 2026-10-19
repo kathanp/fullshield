@@ -13,9 +13,12 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { acquireVerifyLock, assertSrcTestClean, releaseVerifyLock, srcTestDiff } from './verify-lock.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const isWindows = process.platform === 'win32';
+acquireVerifyLock(root);
+process.on('exit', () => releaseVerifyLock(root));
 
 const args = process.argv.slice(2);
 let phase = null;
@@ -29,6 +32,12 @@ if (phaseIdx !== -1) {
 }
 
 function fail(message) {
+  const dirty = srcTestDiff(root);
+  if (dirty !== '') {
+    console.error('fullshield: FS-E011 src or test changed during verify');
+    console.error(dirty);
+  }
+  releaseVerifyLock(root);
   console.error(`\nVERIFY FAILED: ${message}`);
   process.exit(1);
 }
@@ -1746,4 +1755,6 @@ if (phase !== null) {
   console.log(`  ✔ phase ${phase} acceptance criteria passed`);
 }
 
+assertSrcTestClean(root, 'verify');
+releaseVerifyLock(root);
 console.log('\nVERIFY PASSED');

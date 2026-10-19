@@ -73,7 +73,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "node scripts/atomic-build.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
