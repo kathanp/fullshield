@@ -187,6 +187,7 @@ export function classifyReachability(
   if (graph !== undefined && graph.edgesKnown) {
     const roots = importedDirectNames(productionUsage, graph);
     const paths = collectDependencyPaths(pkgName, roots, graph.edges);
+    paths.sort((a, b) => a.length - b.length || a.join('>').localeCompare(b.join('>')));
     const path = paths[0];
     if (path !== undefined && path.length >= 2) {
       return { reachability: 'reachable-via-dependency', path, paths };
@@ -295,7 +296,7 @@ function pathFields(classified: { path?: string[]; paths?: string[][] }): {
 
 function appendOtherPaths(message: string, paths: string[][] | undefined): string {
   if (paths === undefined || paths.length < 2) return message;
-  const rest = paths.slice(1).map((p) => p.join(' > ')).join('; ');
+  const rest = paths.slice(1).map((p) => p.join(' > ')).sort().join('; ');
   return `${message} Other paths: ${rest}.`;
 }
 
