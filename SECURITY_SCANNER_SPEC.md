@@ -1,11 +1,11 @@
-# FullShield — Build Spec for Cursor (full, rev 2026-10-19b)
+# FullShield — Build Spec for Cursor (full, rev 2026-10-19e)
 
 > Package: `fullshield` on npm (owner `kathan2404`). Repo: https://github.com/kathanp/fullshield (public, MIT).
 > Language: TypeScript (strict). Runtime: Node.js ≥ 22.13. Distribution: one npm package (CLI + library + runtime middleware).
 > Live on npm: `0.1.0`, `0.1.1` (both with provenance), `0.1.3` (**published WITHOUT provenance — must never happen again**). Placeholders `0.0.0-stage`, `0.0.1` deprecated. `0.1.2` was never published.
 > This file is the only spec. The 2026-10-14 draft (`SECURITY_SCANNER_SPEC (1).md`) is deleted. Its design lives here; Section 33 lists the few requirements that draft stated and this file had shortened. Later text wins where the draft disagreed.
 > [X] Complete: phases 1–49, 53–55, 57–64, 66–74. Phase 65 is coded; the 5-second nest/undici target is still unmet. Phases 50, 51, 52, and 75 have fixture tests and still need a bench snapshot diff before merge (R10). Skip Phase 56 until R15 is amended. Experimental phases stay off unless their flag is set. Phases 36–45 are reference, not a queue.
-> **Today's queue is Section 40** (2026-10-19, lanes A/B/C). Section 36 is the 2026-10-18 record. Leadership phases 76–93 are in Section 39. Advanced phases 60–75 are in Section 37; Phase 47 has an addendum (47.1) there that is part of its acceptance. Section 38 is the production-reliance stance (not a queue). Section 41 lists human-only work. Phases 76–93 are not started.
+> **Current queue is Section 43 (Finish-All Run)**; Section 42 adds the quality gate (R24, Phase 94) and the definition of done for every remaining phase. Section 40.5 report-file rules still apply. Earlier queue: Section 40 (2026-10-19, lanes A/B/C). Section 36 is the 2026-10-18 record. Leadership phases 76–93 are in Section 39. Advanced phases 60–75 are in Section 37; Phase 47 has an addendum (47.1) there that is part of its acceptance. Section 38 is the production-reliance stance (not a queue). Section 41 lists human-only work. Phases 76–93 are not started.
 
 ---
 
@@ -24,6 +24,7 @@ Breaking any rule below = stop work and report to the human. Do not "fix forward
 - [ X ] **R6.** Never invent vulnerability data. Dependency advisories come only from OSV (https://api.osv.dev) or `npm audit --json`. Never invent finding counts, benchmark numbers, or tool comparisons.
 - [ X ] **R7.** Cursor never grades its own work as final. Any number that appears in README, CHANGELOG, BENCHMARK.md, COMPARISON.md, or a release note is either from human-reviewed ground truth or labeled `unreviewed`.
 - [ X ] **R8.** Paste real command output. Never summarize a failing run as passing. For long output, paste the summary table plus every failure in full.
+- [ X ] **R3a. Never silence a rule.** Never make a shipped rule stop reporting (no-op `ctx.report`, early `return`, commented-out sink, narrowed matcher, raised threshold, added suppression) to change a count, a diff, or a test result. Changing what a shipped rule reports is an R10 change and needs its own phase, a failing test, and human approval. Doing it in passing is a session stop (S7).
 - [ X ] **R8a. Fixture reclassification:** an attack fixture may move to the benign corpus only if (a) it provably cannot change the sink's structure in its context, AND (b) a genuine breakout payload for that same context is added to the attack corpus and is detected. Document both in the fixture file. Report to the human (counts as R3 decision).
 
 ### 0.3 Stable behavior
@@ -1683,7 +1684,7 @@ Run the Phase 73 report for: `_VALIDATION` (53), `_WORKSPACES` (54), `_OBSERVED_
 Replaces Section 36 as the queue. Section 36 stays as the 2026-10-18 record. Section 0 wins over this section (S7).
 
 ### 40.1 Start of day (once)
-0. **Spec check.** The first line of this file must read `rev 2026-10-19b` (or later). If it does not, stop and tell the human the file was not replaced. Never reconstruct this spec from chat text.
+0. **Spec check.** The first line of this file must read `rev 2026-10-19e` (or later). If it does not, stop and tell the human the file was not replaced. Never reconstruct this spec from chat text.
 0a. **Snapshot currency.** `bench/snapshots/HEAD.json` must be the default-scan snapshot of the version `npm view fullshield dist-tags.latest` returns (R9). If it is older, report the drift keys and wait for the human's approval line naming the exact keys before regenerating it. After approval: regenerate from the release commit of that version, commit as `snapshot: HEAD = <version>`, and quote the approval line in the commit body.
 1. `git switch next && git pull`. `npm run verify` on the untouched tree; paste the summary table. Red → stop (S4).
 2. `node scripts/default-scan-diff.mjs` against `bench/snapshots/HEAD.json` must be empty.
@@ -1767,3 +1768,71 @@ Features do not make the package lead its area; measured, reviewed numbers and r
 6. [  ] Decide promotions from `bench/promotion/SUMMARY.md` (Phase 43 criteria).
 7. [  ] Pick the next release number (expected minor, R16) and run Section 2 with provenance (S6).
 8. [  ] After 1–2: publish per-rule precision with n and interval in BENCHMARK.md, labeled reviewed. That table, not a feature list, is the credible public claim.
+
+---
+
+## 42. Quality Gate (R24) and Phase 94
+
+**R24. Quality gate.** From Phase 94 on, `npm run verify` includes `npm run quality`. A phase whose branch fails `quality` cannot merge into `next`. The checks only tighten (ratchet); loosening any of them is an R1 threshold change.
+
+### Phase 94 — Quality gate (dev tooling, run BEFORE the wip split)
+All tools are `devDependencies` only (R13 covers runtime deps; nothing here ships in the tarball). Build `scripts/quality.mjs`, which runs Q1–Q12 and prints one table: `check | scope | result | count | baseline`.
+
+| ID | Check | Scope | Fails when |
+|---|---|---|---|
+| Q1 | ESLint as errors: `eqeqeq`, `no-var`, `prefer-const`, `curly`, `no-throw-literal`, `default-case-last`, `no-implicit-coercion`, `@typescript-eslint/no-explicit-any`, `@typescript-eslint/no-floating-promises`, `@typescript-eslint/no-misused-promises`, `@typescript-eslint/switch-exhaustiveness-check`, `complexity: 15`, `max-depth: 4`, `max-params: 5`, `max-lines-per-function: 80` | files changed vs `next` (`git diff --name-only next...HEAD -- src`) | any violation in a changed file |
+| Q2 | Same rules, whole `src/` | whole repo | count rises above `quality/baseline.json` (ratchet; record today's count, never raise it) |
+| Q3 | `eslint-disable` lines | whole repo | a disable without `-- reason`, or total disables rise above baseline. Each one listed in `docs/DECISIONS.md` |
+| Q4 | Dead code (`knip`) | whole repo | an unused export, file, or devDependency introduced by the branch. Public exports in `package.json#exports` are kept |
+| Q5 | Public API snapshot `api/fullshield.api.json`: exported names and `.d.ts` text (comments stripped) for every `exports` entry, `fullshield --help` and every subcommand `--help`, the `FS-E` code list, the rule ID list, the experimental flag list | whole package | differs from the committed file. Updating it is allowed only in the phase that adds the API, and that phase's report lists the diff (R16 minor bump) |
+| Q6 | Error codes: every `throw` / CLI failure in `src/` uses `FullShieldError` with an `FS-E###` code documented in `docs/errors.md` | whole repo | an undocumented code, or a new bare `throw new Error` |
+| Q7 | Dangerous APIs: `child_process`, `eval`, `new Function`, `vm`, dynamic `require(<non-literal>)`, `process.binding` | `src/` | any use not in `quality/allowed-dangerous.json` (path + API + reason; existing fix-engine/git uses go there today). Runtime entry points (`src/runtime*`) allow none |
+| Q8 | Network hosts: every `fetch`/`http(s).request`/`undici` call site resolves to an allowlisted host constant in `src/net/hosts.ts` (OSV, registry.npmjs.org, localhost, user-configured; EPSS/KEV only if Phase 56 is approved) | `src/` | a literal URL or host outside that file |
+| Q9 | Per-file coverage for files **added** by the branch: lines ≥ 90%, branches ≥ 80% | new files | below either. Global thresholds are unchanged (R1) |
+| Q10 | Mutation smoke: every new rule ID and every new suppression path has a mutant that the tests kill | new rules | a surviving mutant |
+| Q11 | Determinism: default `scan --json` run twice on vulnerable-app and one bench app, sorted, byte-identical; same with every new flag on | — | any byte difference |
+| Q12 | Pack: `npm pack --dry-run` file list matches `quality/pack-files.txt`; no `test/`, `bench/`, `reports/`, `scripts/` (except shipped ones), `.map`; `pack-budget` passes | tarball | an unexpected file |
+
+Also in Phase 94:
+- [  ] `docs/QUALITY.md`: one page listing Q1–Q12, what each enforces, and today's numbers. Linked from README.
+- [  ] `quality/baseline.json` is generated once in this phase from `next`, committed, and is human-owned afterwards (Cursor may lower counts, never raise them).
+- [  ] No refactor of existing code in this phase. Existing violations are recorded in the baseline, not fixed. Behavior must not change: default-scan-diff EMPTY.
+
+Acceptance: `npm run quality` passes on `next`; a fixture branch with an `any`, an undocumented `FS-E`, a literal `https://example.com` fetch, and an unused export fails with four named rows.
+
+### 42.1 Definition of done for every remaining phase (applies to 50, 51, 52, 56, 65, 76–93)
+A phase is `merged` only when ALL of these are in its report with raw output:
+1. [  ] Acceptance section of the phase met item by item (checklist copied into the report, each line `met` / `not met` with evidence).
+2. [  ] Tests: failing first (R4), then green; ≥ 1 positive and ≥ 1 negative per rule / suppression / signal; total test count before → after.
+3. [  ] `npm run verify` (incl. `quality` after Phase 94) summary table, all green.
+4. [  ] `default-scan-diff`: EMPTY, or the phase is parked with `DIFF.txt` (R10).
+5. [  ] Flag-off identical test, and clean-app 0 with flag on (R12).
+6. [  ] Docs in the same commit: `rules/<ID>.md` for new rules, README flag table row, CHANGELOG under Unreleased, Section 28 if a limit remains, `docs/errors.md` for new codes, `api/fullshield.api.json` diff listed.
+7. [  ] "False-positive risk" paragraph: which real code could trigger this wrongly, and what the negative fixture covers.
+8. [  ] Branch pushed (phase branch and `next`; never `main`).
+
+A phase that cannot meet 1–8 is `parked` with the failing item named. "Coded" is not a status.
+
+---
+
+## 43. Finish-All Run (supersedes the Section 40.2 order; Section 40.5 report rules still apply)
+
+**R25. One queue only.** This section is the only work queue. `docs/RUN-PROMPT.md`, `PROGRESS.md`, `docs/RUN-LOG.md`, `.cursor/rules/*`, `AGENTS.md`, and any other file may record history but may not define a queue, batches, or a stop point. Any batch list or "stop after this batch" text in those files is void. At Stage 0, replace the body of `docs/RUN-PROMPT.md` with one line: `Superseded. The only queue is SECURITY_SCANNER_SPEC.md Section 43.` and remove any stop/batch instructions from `.cursor/rules/*` and `AGENTS.md` if present (commit `docs: retire old run prompt (R25)`). Phases already marked [X] in this spec are never redone.
+
+Report file: keep appending to `reports/2026-10-19.md`; after midnight local time start `reports/2026-10-20.md` with the same summary table carried over.
+
+| Stage | Items | Notes |
+|---|---|---|
+| 0 | Safety | `git status` on every worktree. Commit any uncommitted work on its own branch as `wip: <phase> checkpoint`; push all `phase-*`, `wip/*`, and `next`. Paste `git branch -vv`. |
+| 1 | 75, 51 (D9), 50 (D10), 52 rework (D11) | Per the human decisions of 2026-10-19 in the report file. 52 ends parked for approval. |
+| 2 | 94 Quality gate | Before any further merge. |
+| 3 | 78 steps 3–6, then 65 re-measure | `bench/perf-v2.json` after each step, 3 runs, p50, no `--cpu-prof`. |
+| 4 | Split `wip/2026-10-19-bulk` in this order: 76, 82, 81 (single generated `models/index.json`), 80, 84, 83, 86, 87, 85, 79, 91, 89, 92 | The wip code is a draft, not trusted. Re-read each phase's Section 39 text, write the missing tests first, then fix the code until 42.1 is met. Do not copy wip's edit to `test/fixtures/clean-app/package.json` (R3; only D11 may change it). |
+| 5 | 77, 88, 90 | New work. |
+| 6 | 56 | Only if the human's current message contains the line `R15 AMENDED FOR PHASE 56`. Otherwise skip, status `blocked (R15)`. |
+| 7 | 93 promotion evidence, Section 30 update, end-of-day block (40.4) | Last. |
+
+Parallelism: Stage 4 and 5 items may be built in parallel worktrees (R21) after Stage 2 is merged. Merge into `next` strictly in the table order, one at a time, verify + diff after each. A parked item never blocks a later item that does not import its code.
+
+### 43.1 Phase 56 under the R15 amendment (only if approved)
+If approved, R15 additionally allows, **only** with `--exploit-intel` or `FULLSHIELD_EXPERIMENTAL_EXPLOIT_INTEL=1`: `GET https://api.first.org/data/v1/epss` (query by CVE, batch ≤ 100) and `GET https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json`. Default scan never contacts them (test asserts). Cache 24 h next to the OSV cache; `--offline` uses cache only; missing data leaves fields unset. Hosts are added to `src/net/hosts.ts` (Q8) and README "Network" section in the same commit. Then build Phase 56 exactly as Section 32 specifies.
