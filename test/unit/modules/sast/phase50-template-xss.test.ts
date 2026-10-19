@@ -23,4 +23,15 @@ describe('phase 50 template-engine XSS', () => {
     const other = await scan({ cwd: join(root, 'cons-other-app'), modules: ['sast'], offline: true });
     expect(other.findings.some((finding) => finding.ruleId === 'SAST-XSS-001')).toBe(false);
   });
+
+  it('flags a Swig variable only when it traces from req or a database read', async () => {
+    const result = await scan({ cwd: join(root, 'swig-traced-app'), modules: ['sast'], offline: true });
+    const xss = result.findings.filter((finding) => finding.ruleId === 'SAST-XSS-001');
+    const lines = xss.map((finding) => `${finding.file?.split('/').pop()}:${finding.line}`);
+    expect(lines).toContain('item.swig:1');
+    expect(lines).toContain('profile.swig:1');
+    expect(lines).not.toContain('item.swig:2');
+    expect(lines).not.toContain('profile.swig:2');
+    expect(xss.some((finding) => finding.file?.endsWith('other.swig'))).toBe(false);
+  });
 });

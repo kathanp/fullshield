@@ -31,6 +31,7 @@ import { redirectRule } from './rules/redirect.js';
 import { sqliRule } from './rules/sqli.js';
 import { ssrfRule } from './rules/ssrf.js';
 import { TEMPLATE_EXT, xssRule } from './rules/xss.js';
+import { lineHasTracedSwig, mergeSwigViews, swigNamesForFile, taintedSwigViews, type SwigViewTaint } from './swig-render.js';
 import { phase29Rules, sourceHasCsrfGuard } from './rules/phase29.js';
 import type { AstNode, RuleContext, SastRule } from './types.js';
 import { scanPromptInjection } from '../../ai/injection.js';
@@ -151,7 +152,12 @@ async function projectViewEngine(ctx: Parameters<ScanModule['run']>[0]): Promise
   return undefined;
 }
 
-function findingsFromTemplate(filename: string, source: string, engine?: string): Finding[] {
+function findingsFromTemplate(
+  filename: string,
+  source: string,
+  engine?: string,
+  swigViews?: ReadonlyMap<string, SwigViewTaint>,
+): Finding[] {
   const findings: Finding[] = [];
   const ctx: RuleContext = {
     filename,
@@ -187,9 +193,10 @@ function findingsFromTemplate(filename: string, source: string, engine?: string)
     projectCsrfProtected: false,
   };
   xssRule.create(ctx);
-  if (engine === 'swig') {
+  if (engine === 'swig' && swigViews !== undefined) {
+    const traced = swigNamesForFile(filename, swigViews);
     source.split(/\r?\n/).forEach((line, index) => {
-      if (!/\{\{[^{}]/.test(line)) return;
+      if (traced === undefined || !lineHasTracedSwig(line, traced)) return;
       ctx.report({
         node: {
           type: 'Literal',
@@ -340,6 +347,8 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
   const returning = new Map<string, Set<string>>();
   const parseable: string[] = [];
   const fileSet = new Set<string>();
+  const templates: { rel: string; source: string }[] = [];
+  const swigViews = new Map<string, SwigViewTaint>();
   let projectCsrf = false;
 
   for (const rel of ctx.files) {
@@ -355,11 +364,12 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
     }
     if (sourceHasCsrfGuard(source)) projectCsrf = true;
     if (isTemplate) {
-      findings.push(...findingsFromTemplate(rel, source, viewEngine));
+      templates.push({ rel, source });
       continue;
     }
     const ast = await parseCode(source);
     if (ast === undefined) continue;
+    if (viewEngine === 'swig') mergeSwigViews(swigViews, taintedSwigViews([{ ast }]));
     returning.set(rel, taintSummariesEnabled() ? cachedReturners(source, ast) : functionsThatReturnTaint(ast));
     parseable.push(rel);
     fileSet.add(rel);
@@ -387,6 +397,9 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
     }
     findings.push(...runInterproc(parsed));
     releaseParsed(parsed);
+  }
+  for (const template of templates) {
+    findings.push(...findingsFromTemplate(template.rel, template.source, viewEngine, swigViews));
   }
   return dedupeSastSinks(findings);
 }
@@ -417,6 +430,7 @@ export const sastModule: ScanModule = {
     const maxBytes = ctx.config.sast.maxFileBytes;
     const findings: Finding[] = [];
     const parsed: ParsedSource[] = [];
+    const templates: { rel: string; source: string }[] = [];
     for (const rel of candidates) {
       const source = await readScanSource(ctx.cwd, rel);
       if (source === undefined) continue;
@@ -426,7 +440,7 @@ export const sastModule: ScanModule = {
         continue;
       }
       if (TEMPLATE_EXT.test(rel) || (viewEngine === 'swig' && /\.(swig|html)$/.test(rel))) {
-        findings.push(...findingsFromTemplate(rel, source, viewEngine));
+        templates.push({ rel, source });
         continue;
       }
       const ast = await parseCode(source);
@@ -454,6 +468,10 @@ export const sastModule: ScanModule = {
       );
     }
     findings.push(...runInterproc(parsed));
+    const swigViews = viewEngine === 'swig' ? taintedSwigViews(parsed) : undefined;
+    for (const template of templates) {
+      findings.push(...findingsFromTemplate(template.rel, template.source, viewEngine, swigViews));
+    }
     const out = dedupeSastSinks(findings);
     releaseParsed(parsed);
     return out;
