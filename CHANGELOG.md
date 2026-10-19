@@ -2,6 +2,12 @@
 
 All notable changes to FullShield are documented here.
 
+## Unreleased
+
+### New/changed stable findings — may change CI results; use --update-baseline
+
+Phase 75 router-level auth inheritance. Parked. Default-scan diff against `bench/snapshots/HEAD.json` (0.4.0) was empty on vulnerable-app, clean-app, and every bench app. Not merged.
+
 ## 0.4.0 — 2026-10-18
 
 Phase 46 still enforces Node >= 22.13 in `engines`, `doctor`, and CI. Phase 47 still owns the console view.

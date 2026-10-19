@@ -1,14 +1,10 @@
-DIFF 0.2.6 -> 0.3.0
-summary.total: vulnerable-app 35 -> 35, clean-app 0 -> 0, nodegoat 379 -> 256, juice-shop 105 -> 105, dvna 23 -> 23, goof 354 -> 271, vulnerable-node 61 -> 61
-Unique (ruleId, file, line, severity) keys are identical.
-
-DIFF 0.3.0 -> restore-0.4.0
-vulnerable-node 61 -> 63
-+ SAST-NOSQLI-001	routes/shop.js	41	high
-+ SAST-NOSQLI-001	routes/shop.js	58	high
-Other apps: no added or removed keys.
-
-Unique (ruleId, file, line, severity) keys for 0.2.6 -> 0.3.0:
+  scanned vulnerable-app: 35
+  scanned clean-app: 0
+  scanned nodegoat: 256
+  scanned juice-shop: 105
+  scanned dvna: 23
+  scanned goof: 271
+  scanned vulnerable-node: 63
 IDENTICAL vulnerable-app
 IDENTICAL clean-app
 IDENTICAL nodegoat
