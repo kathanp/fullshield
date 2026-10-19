@@ -1,5 +1,5 @@
   scanned vulnerable-app: 38
-  scanned clean-app: 3
+  scanned clean-app: 0
   scanned nodegoat: 259
   scanned juice-shop: 105
   scanned dvna: 23
@@ -9,20 +9,17 @@ DRIFT vulnerable-app
 + DEPS-PHANTOM-001	src/index.js	5	medium
 + DEPS-PHANTOM-001	src/index.js	62	medium
 + DEPS-PHANTOM-001	src/index.js	8	medium
-DRIFT clean-app
-+ DEPS-PHANTOM-001	src/index.js	52	medium
-+ DEPS-PHANTOM-001	src/index.js	6	medium
-+ DEPS-PHANTOM-001	src/index.js	7	medium
+IDENTICAL clean-app
 DRIFT nodegoat
 + DEPS-LOCKMISMATCH-001	package.json	19	medium
 + DEPS-LOCKMISMATCH-001	package.json	56	medium
-+ DEPS-PHANTOM-001	test/security/profile-test.js	6	medium
++ DEPS-PHANTOM-001	test/security/profile-test.js	6	low
 IDENTICAL juice-shop
 IDENTICAL dvna
 DRIFT goof
 + DEPS-LOCKMISMATCH-001	package.json	34	medium
 + DEPS-LOCKMISMATCH-001	package.json	41	medium
-+ DEPS-PHANTOM-001	tests/authentication.component.spec.js	1	medium
++ DEPS-PHANTOM-001	tests/authentication.component.spec.js	1	low
 DRIFT vulnerable-node
-+ DEPS-PHANTOM-001	sast/seeds/deserialization.js	10	medium
-+ DEPS-PHANTOM-001	scripts/verify-fix.js	22	medium
++ DEPS-PHANTOM-001	sast/seeds/deserialization.js	10	low
++ DEPS-PHANTOM-001	scripts/verify-fix.js	22	low
