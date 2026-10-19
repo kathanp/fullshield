@@ -15,6 +15,7 @@ import { createAiClient, isInternalAi, isLiveAi } from '../ai/provider.js';
 import { applyBaseline, applySuppressions, readBaseline, writeBaseline } from './baseline.js';
 import { loadConfig, type ResolvedConfig } from './config.js';
 import { walkFiles } from './fileWalker.js';
+import { partitionPerf2, perf2Enabled } from './perf2.js';
 import { listStagedFiles } from './git.js';
 import { applyInlineSuppressions } from './suppression.js';
 import {
@@ -97,6 +98,15 @@ export interface ScanMetadata {
   history?: string;
   /** Phase 48. Direct dependencies no project file imports. Absent when the list is empty. */
   unusedDirect?: { packages: string[]; advisories: number };
+  /** Phase 78. Present only when FULLSHIELD_EXPERIMENTAL_PERF2=1. Not findings. */
+  skipped?: {
+    total: number;
+    oversize: number;
+    minified: number;
+    declaration: number;
+    sourceMap: number;
+    generated: number;
+  };
   /** Phase 49. Direct version bumps taken from OSV `fixed` versions. Absent when there is nothing to say. */
   upgradePlan?: {
     bumps: Array<{ name: string; from: string; to: string; safe: boolean; findings: number }>;
@@ -205,6 +215,13 @@ export async function runScan(
       const allow = new Set(listed);
       files = files.filter((file) => allow.has(file));
     }
+  }
+
+  let skipped: ScanMetadata['skipped'];
+  if (perf2Enabled()) {
+    const part = await partitionPerf2(cwd, files, config.sast.maxFileBytes);
+    files = part.kept;
+    skipped = part.skipped;
   }
 
   const available = new Map(modules.map((m) => [m.name, m]));
@@ -347,6 +364,7 @@ export async function runScan(
       modulesRequested: [...modulesRequested],
       modulesRun,
       ...(historyNotice !== undefined ? { history: historyNotice } : {}),
+      ...(skipped !== undefined ? { skipped } : {}),
       ...(depsModule.unusedDirect !== undefined ? { unusedDirect: depsModule.unusedDirect } : {}),
       ...(depsModule.upgradePlan !== undefined ? { upgradePlan: depsModule.upgradePlan } : {}),
     },
