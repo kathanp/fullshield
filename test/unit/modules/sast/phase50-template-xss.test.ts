@@ -34,4 +34,13 @@ describe('phase 50 template-engine XSS', () => {
     expect(lines).not.toContain('profile.swig:2');
     expect(xss.some((finding) => finding.file?.endsWith('other.swig'))).toBe(false);
   });
+
+  it('does not treat a CSRF token as user input', async () => {
+    const result = await scan({ cwd: join(root, 'swig-traced-app'), modules: ['sast'], offline: true });
+    const xss = result.findings.filter((finding) => finding.ruleId === 'SAST-XSS-001');
+    const lines = xss.map((finding) => `${finding.file?.split('/').pop()}:${finding.line}`);
+    expect(lines).not.toContain('profile.swig:3');
+    expect(xss.some((finding) => finding.file?.endsWith('token.swig'))).toBe(false);
+    expect(lines).toContain('profile.swig:1');
+  });
 });

@@ -5,6 +5,8 @@ import type { AstNode } from './types.js';
 const DB_METHOD =
   /^(find|findOne|findOneAnd\w+|aggregate|query|execute|exec|toArray|getBy\w+|getAll\w+|addUser|update\w+)$/;
 
+const CSRF_NAMES = new Set(['csrftoken', 'csrfToken', '_csrf']);
+
 export interface SwigViewTaint {
   tainted: Set<string>;
   safe: Set<string>;
@@ -66,7 +68,7 @@ export function swigNamesForFile(file: string, views: ReadonlyMap<string, SwigVi
 export function lineHasTracedSwig(line: string, info: SwigViewTaint): boolean {
   for (const match of line.matchAll(/\{\{\s*([A-Za-z_$][\w$]*)/g)) {
     const name = match[1];
-    if (name === undefined) continue;
+    if (name === undefined || CSRF_NAMES.has(name)) continue;
     if (info.tainted.has(name)) return true;
     if (info.spread && !info.safe.has(name)) return true;
   }
@@ -120,10 +122,27 @@ function flowsFromReqOrDb(
   facts: WeakMap<AstNode, ScopeFacts>,
   dbNames: ReadonlySet<string>,
 ): boolean {
-  if (node === undefined) return false;
+  if (node === undefined || isCsrfValue(node)) return false;
   if (nodeIsTainted(node, facts)) return true;
   if (mentionsReq(node)) return true;
   return isDbNode(node, dbNames);
+}
+
+function isCsrfValue(node: AstNode): boolean {
+  if (node.type === 'CallExpression' && node.callee?.type === 'MemberExpression') {
+    const prop = node.callee.property;
+    return prop?.type === 'Identifier' && prop.name === 'csrfToken' && mentionsReq(node.callee.object);
+  }
+  if (node.type !== 'MemberExpression' || node.computed === true) return false;
+  const prop = node.property;
+  if (prop?.type !== 'Identifier' || !CSRF_NAMES.has(prop.name)) return false;
+  const locals = node.object;
+  return (
+    locals?.type === 'MemberExpression' &&
+    locals.computed !== true &&
+    locals.property?.type === 'Identifier' &&
+    locals.property.name === 'locals'
+  );
 }
 
 function mentionsReq(node: AstNode | undefined): boolean {
