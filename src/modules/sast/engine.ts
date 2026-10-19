@@ -19,7 +19,7 @@ import {
   nodeIsTainted,
   setCustomTaint,
 } from './taint.js';
-import { authRule } from './rules/auth.js';
+import { authRule, setAuthProject } from './rules/auth.js';
 import { cmdiRule } from './rules/cmdi.js';
 import { cryptoRule } from './rules/crypto.js';
 import { evalRule } from './rules/eval.js';
@@ -396,6 +396,7 @@ export const sastModule: ScanModule = {
         taintSummariesEnabled() ? cachedReturners(entry.source, entry.ast) : functionsThatReturnTaint(entry.ast),
       );
     }
+    setAuthProject(new Map(parsed.map((entry) => [entry.file, entry.ast])));
     for (const entry of parsed) {
       findings.push(
         ...findingsFromAst(
@@ -414,6 +415,7 @@ export const sastModule: ScanModule = {
     } finally {
       setCustomTaint(undefined);
       setTaintSummaryConfig(undefined);
+      setAuthProject(undefined);
     }
   },
 };
