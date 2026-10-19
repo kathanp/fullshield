@@ -5,6 +5,7 @@ import type { ScanModule } from '../../core/engine.js';
 import { makeFindingId, type Finding } from '../../core/finding.js';
 import { assignedNameOf, walk } from './ast.js';
 import { collectRequires, runInterproc, type ParsedSource } from './interproc.js';
+import { crossFileReturnFindings } from './returns.js';
 import { cachedReturners, setTaintSummaryConfig, taintSummariesEnabled } from './summaries.js';
 import {
   analyzeFile,
@@ -170,9 +171,9 @@ export async function runSastOnText(filename: string, source: string): Promise<F
   return findingsFromAst(filename, source, ast);
 }
 
-/** Same rule and sink line is one finding. The first report wins. */
+/** Same rule and sink line is one finding. The first report wins, except a later cross-file return trace is kept when the first report has none. */
 export function dedupeSastSinks(findings: readonly Finding[]): Finding[] {
-  const seen = new Set<string>();
+  const seen = new Map<string, number>();
   const out: Finding[] = [];
   for (const finding of findings) {
     if (finding.module !== 'sast' || finding.line === undefined) {
@@ -180,9 +181,17 @@ export function dedupeSastSinks(findings: readonly Finding[]): Finding[] {
       continue;
     }
     const key = `${finding.ruleId}\0${finding.file ?? ''}\0${finding.line}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(finding);
+    const at = seen.get(key);
+    if (at === undefined) {
+      seen.set(key, out.length);
+      out.push(finding);
+      continue;
+    }
+    const prev = out[at];
+    const crossFile = finding.trace?.some((step) => step.note?.startsWith('returned from')) === true;
+    if (prev !== undefined && crossFile && (prev.trace === undefined || prev.trace.length === 0)) {
+      out[at] = { ...prev, trace: finding.trace };
+    }
   }
   return out;
 }
@@ -343,6 +352,7 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
       parsed.push({ file: rel, source, ast });
     }
     findings.push(...runInterproc(parsed));
+    findings.push(...crossFileReturnFindings(parsed));
     releaseParsed(parsed);
   }
   return dedupeSastSinks(findings);
@@ -409,6 +419,7 @@ export const sastModule: ScanModule = {
       );
     }
     findings.push(...runInterproc(parsed));
+    findings.push(...crossFileReturnFindings(parsed));
     const out = dedupeSastSinks(findings);
     releaseParsed(parsed);
     return out;
