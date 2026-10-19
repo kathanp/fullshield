@@ -2,6 +2,12 @@
 
 All notable changes to FullShield are documented here.
 
+## Unreleased
+
+### New/changed stable findings — may change CI results; use --update-baseline
+
+Phase 52 adds `DEPS-PHANTOM-001` and `DEPS-LOCKMISMATCH-001`. Parked. Not merged. clean-app is not at 0 findings on this branch: `src/index.js` reports `DEPS-PHANTOM-001` for `cors`, `express-rate-limit`, and `jsonwebtoken`. The existing clean-app fixture was not edited.
+
 ## 0.4.0 — 2026-10-18
 
 Phase 46 still enforces Node >= 22.13 in `engines`, `doctor`, and CI. Phase 47 still owns the console view.

@@ -1,18 +1,28 @@
-DIFF 0.2.6 -> 0.3.0
-summary.total: vulnerable-app 35 -> 35, clean-app 0 -> 0, nodegoat 379 -> 256, juice-shop 105 -> 105, dvna 23 -> 23, goof 354 -> 271, vulnerable-node 61 -> 61
-Unique (ruleId, file, line, severity) keys are identical.
-
-DIFF 0.3.0 -> restore-0.4.0
-vulnerable-node 61 -> 63
-+ SAST-NOSQLI-001	routes/shop.js	41	high
-+ SAST-NOSQLI-001	routes/shop.js	58	high
-Other apps: no added or removed keys.
-
-Unique (ruleId, file, line, severity) keys for 0.2.6 -> 0.3.0:
-IDENTICAL vulnerable-app
-IDENTICAL clean-app
-IDENTICAL nodegoat
+  scanned vulnerable-app: 38
+  scanned clean-app: 3
+  scanned nodegoat: 259
+  scanned juice-shop: 105
+  scanned dvna: 23
+  scanned goof: 274
+  scanned vulnerable-node: 65
+DRIFT vulnerable-app
++ DEPS-PHANTOM-001	src/index.js		medium
++ DEPS-PHANTOM-001	src/index.js		medium
++ DEPS-PHANTOM-001	src/index.js		medium
+DRIFT clean-app
++ DEPS-PHANTOM-001	src/index.js		medium
++ DEPS-PHANTOM-001	src/index.js		medium
++ DEPS-PHANTOM-001	src/index.js		medium
+DRIFT nodegoat
++ DEPS-LOCKMISMATCH-001	package.json		medium
++ DEPS-LOCKMISMATCH-001	package.json		medium
++ DEPS-PHANTOM-001	test/security/profile-test.js		medium
 IDENTICAL juice-shop
 IDENTICAL dvna
-IDENTICAL goof
-IDENTICAL vulnerable-node
+DRIFT goof
++ DEPS-LOCKMISMATCH-001	package.json		medium
++ DEPS-LOCKMISMATCH-001	package.json		medium
++ DEPS-PHANTOM-001	tests/authentication.component.spec.js		medium
+DRIFT vulnerable-node
++ DEPS-PHANTOM-001	sast/seeds/deserialization.js		medium
++ DEPS-PHANTOM-001	scripts/verify-fix.js		medium
