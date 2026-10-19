@@ -2,11 +2,11 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-export function verifyLockPath(root) {
+function verifyLockPath(root) {
   return process.env.FULLSHIELD_VERIFY_LOCK || join(root, '.fullshield-verify.lock');
 }
 
-export function pidAlive(pid) {
+function pidAlive(pid) {
   if (!Number.isInteger(pid) || pid <= 0) return false;
   try {
     process.kill(pid, 0);
