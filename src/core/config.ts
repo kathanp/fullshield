@@ -31,9 +31,22 @@ export interface AiConfig {
   maxFindings: number;
 }
 
+export interface SastSourceConfig {
+  callee: string;
+  returns: 'tainted';
+}
+
+export interface SastSanitizerConfig {
+  callee: string;
+  clears: string[];
+}
+
 export interface SastConfig {
   /** Files larger than this are not parsed. Reported as SAST-SKIP-001. */
   maxFileBytes: number;
+  /** Present only when FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS=1. */
+  sources?: SastSourceConfig[];
+  sanitizers?: SastSanitizerConfig[];
 }
 
 export interface ResolvedConfig {
@@ -77,6 +90,59 @@ const KNOWN_KEYS = new Set([
   'ai',
   'sast',
 ]);
+
+const SAST_CLASSES = new Set([
+  'sqli',
+  'nosqli',
+  'cmdi',
+  'path',
+  'xss',
+  'ssrf',
+  'redirect',
+  'eval',
+  'jwt',
+  'crypto',
+  'proto',
+  'secrets',
+  'deps',
+  'config',
+]);
+
+function parseSastSources(value: unknown, source: string): SastSourceConfig[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) throw new ConfigError(`${source}: "sast.sources" must be an array`);
+  return value.map((item) => {
+    if (typeof item !== 'object' || item === null) {
+      throw new ConfigError(`${source}: "sast.sources" entries must be objects`);
+    }
+    const row = item as Record<string, unknown>;
+    if (typeof row.callee !== 'string' || row.callee.length === 0) {
+      throw new ConfigError(`${source}: "sast.sources[].callee" must be a string`);
+    }
+    if (row.returns !== 'tainted') {
+      throw new ConfigError(`${source}: "sast.sources[].returns" must be "tainted"`);
+    }
+    return { callee: row.callee, returns: 'tainted' };
+  });
+}
+
+function parseSastSanitizers(value: unknown, source: string): SastSanitizerConfig[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) throw new ConfigError(`${source}: "sast.sanitizers" must be an array`);
+  return value.map((item) => {
+    if (typeof item !== 'object' || item === null) {
+      throw new ConfigError(`${source}: "sast.sanitizers" entries must be objects`);
+    }
+    const row = item as Record<string, unknown>;
+    if (typeof row.callee !== 'string' || row.callee.length === 0) {
+      throw new ConfigError(`${source}: "sast.sanitizers[].callee" must be a string`);
+    }
+    if (!Array.isArray(row.clears) || row.clears.some((name) => typeof name !== 'string' || !SAST_CLASSES.has(name))) {
+      throw new ConfigError(`${source}: "sast.sanitizers[].clears" must be B4 class names`);
+    }
+    return { callee: row.callee, clears: row.clears.filter((name) => name !== 'secrets' && name !== 'deps') };
+  });
+}
 
 function validate(raw: unknown, source: string): Partial<ResolvedConfig> {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
@@ -212,6 +278,16 @@ function validate(raw: unknown, source: string): Partial<ResolvedConfig> {
         throw new ConfigError(`${source}: "sast.maxFileBytes" must be a positive number`);
       }
       sast.maxFileBytes = rawSast.maxFileBytes;
+    }
+    const custom = process.env.FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS === '1';
+    if (!custom && (rawSast.sources !== undefined || rawSast.sanitizers !== undefined)) {
+      throw new ConfigError(
+        `${source}: unknown key "sast.sources" (FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS)`,
+      );
+    }
+    if (custom) {
+      sast.sources = parseSastSources(rawSast.sources, source);
+      sast.sanitizers = parseSastSanitizers(rawSast.sanitizers, source);
     }
     out.sast = sast;
   }

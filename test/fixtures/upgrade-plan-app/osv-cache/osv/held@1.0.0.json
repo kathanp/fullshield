@@ -1,0 +1,11 @@
+{
+  "fetchedAt": "2026-10-18T00:00:00.000Z",
+  "vulns": [
+    {
+      "id": "GHSA-held-0001",
+      "summary": "no fix",
+      "database_specific": { "severity": "HIGH" },
+      "affected": [{ "package": { "ecosystem": "npm", "name": "held" }, "ranges": [{ "type": "SEMVER", "events": [{ "introduced": "0" }] }] }]
+    }
+  ]
+}

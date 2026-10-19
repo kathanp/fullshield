@@ -1,6 +1,7 @@
 import { calleeName, literalString, propName } from '../ast.js';
 import { isCoercionCall, isMongoSanitizeCall, isSchemaValidatorCall } from '../taint.js';
 import type { AstNode, SastRule } from '../types.js';
+import { isValidatedRouteField } from '../validation.js';
 
 const MONGO_SINKS = new Set([
   'find',
@@ -111,6 +112,7 @@ function isNosqlSafeValue(
   if (isNosqlSanitized(node) || isCoercionCall(node) || isSchemaValidatorCall(node) || isMongoSanitizeCall(node)) {
     return true;
   }
+  if (isValidatedRouteField(node)) return true;
   return isSanitizeWrap(node, source);
 }
 

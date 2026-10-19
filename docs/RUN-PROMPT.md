@@ -9,6 +9,7 @@ This file is the only run prompt. A later chat says: `Read docs/RUN-PROMPT.md an
 - R2. `restore-0.4.0` merged. vulnerable-node 61 → 63. New keys: `SAST-NOSQLI-001` at `routes/shop.js:41` and `:58`, both high. Version stayed 0.3.0.
 - M. Phase 47 grouped rows recorded. nodegoat 36, juice-shop 49, dvna 14, goof 63, vulnerable-node 41. No row-count threshold.
 - Phase 48. Unused direct dependencies. Merged. default-scan-diff EMPTY.
+- Batch 1 and the start of Batch 2, in one commit: phases 49, 61, 60, 66, 70, 62, 63. Flags stay off by default. Version stays 0.3.0.
 
 ## RESUME 2 (Kathan, 2026-10-18)
 
@@ -20,14 +21,14 @@ Record each in spec Section 30 and in `PROGRESS.md`.
 
 - D6: 0.3.0 is published on npm and was approved. That is known. It is not a stop condition. The job was to make git match it. DONE.
 - D7: Restoring the exact 0.3.0 source onto next was approved, including the default-scan change from 0.2.6 (R10), because the R1 checks passed. The unpublished Mongo-filter change was approved the same way.
-- D8: `package.json` and README on next are 0.3.0. That is the version npm already has. Do not bump past 0.3.0. 0.4.0 is the human's to set at release.
+- D8: the restore commit was 0.3.0. On 2026-10-18 the human set 0.4.0 and asked to publish it. Do not bump past 0.4.0 unless they ask again.
 
 ### Never
 
 - Never run `git stash drop`, `git stash clear`, or `git stash pop`.
 - Never delete branch `backup/stash-2026-10-18` (`31bf17a`) or the iCloud patch file.
 - Never push `backup/stash-2026-10-18`.
-- Never tag, publish, or merge to main.
+- Do not tag, publish, or merge to main unless the human asks. They asked to publish 0.4.0 on 2026-10-18.
 - Push `next` only when the human asks.
 - Never set `reviewed: true`. Never fill a label, reviewer, or note cell. Never scan an untouched holdout (`verademo-javascript`, `serverless-goat`, `mongection`).
 - Never edit `ground-truth.json`, `triage.json`, `expected-findings.json`, or an existing test to make a check pass. Never weaken a phase 46 or 47 test.

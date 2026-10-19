@@ -1,4 +1,5 @@
-import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { readFile, readdir } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -7,7 +8,10 @@ import { makeFindingId, type Finding } from '../../core/finding.js';
 import { parseLockfileGraph, type LockedPackage, type LockfileGraph } from './lockfile.js';
 import { isMaliciousAdvisory, queryOsv, type OsvVuln } from './osv.js';
 import { exactPinsFromManifest, lineOfManifestDep } from './pins.js';
+import { collectImportSites, evidenceForFinding } from './evidence.js';
 import { applyReachability, indexPackageUsage, isProductionSource, unusedDirectPlan } from './reachability.js';
+import { chooseUpgradePlan, type UpgradeAdvisory } from './upgrade-plan.js';
+import { campaignFindings, securityPlaceholderFinding } from '../../supply/campaign.js';
 import { affectedFunctionNames } from './symbol-reachability.js';
 import { minFixedVersion, osvSeverity, sameMajor } from './semver.js';
 import { findTyposquats, type TyposquatHit } from './typosquat.js';
@@ -150,10 +154,12 @@ function deprecatedFinding(lockFile: string, pkg: LockedPackage): Finding {
 
 export const depsModule: ScanModule & {
   unusedDirect?: { packages: string[]; advisories: number };
+  upgradePlan?: { bumps: Array<{ name: string; from: string; to: string; safe: boolean; findings: number }>; unresolved: string[]; sentence: string };
 } = {
   name: 'deps',
   async run(ctx) {
     depsModule.unusedDirect = undefined;
+    depsModule.upgradePlan = undefined;
     const lockFile = LOCKFILE_NAMES.find((name) => ctx.files.includes(name));
     const cacheDir =
       ctx.config.deps.cacheDir !== undefined
@@ -200,7 +206,7 @@ export const depsModule: ScanModule & {
         }
       }
       const noLockCtx = await reachabilityCtx(ctx.cwd, ctx.files, graphFromManifest(manifest));
-      return applyReachability(findings, noLockCtx, symbols);
+      return withWorkspaceAdvisories(ctx.cwd, manifestRaw, osvOpts, applyReachability(findings, noLockCtx, symbols));
     }
 
     let contents: string;
@@ -244,9 +250,131 @@ export const depsModule: ScanModule & {
     }
     if (licenseEnabled()) reached.push(...(await scanCopyleftLicenses(ctx.cwd)));
     depsModule.unusedDirect = unusedDirectPlan(reached, reachCtx);
+    const direct = new Set([...graph.directProd, ...graph.directDev]);
+    const advisories: UpgradeAdvisory[] = [];
+    for (const hit of osvHits) {
+      if (!direct.has(hit.pkg.name)) continue;
+      for (const vuln of hit.vulns) {
+        if (isMaliciousAdvisory(vuln)) continue;
+        advisories.push({
+          name: hit.pkg.name,
+          from: hit.pkg.version,
+          id: vuln.id,
+          fixed: minFixedVersion(vuln.affected ?? []),
+        });
+      }
+    }
+    depsModule.upgradePlan = chooseUpgradePlan(advisories);
+    if (process.env.FULLSHIELD_EXPERIMENTAL_REACH_EVIDENCE === '1') {
+      const sites = collectImportSites(reachCtx.sources);
+      const files = [...reachCtx.sources.keys()].sort();
+      reached = reached.map((finding) => {
+        const evidence = evidenceForFinding(finding, sites, files, graph.edgesKnown);
+        return evidence === undefined ? finding : { ...finding, reachabilityEvidence: evidence };
+      });
+    }
+    reached = await withWorkspaceAdvisories(ctx.cwd, manifestRaw, osvOpts, reached);
+    if (process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY === '1') {
+      reached.push(...campaignFindings([...reachCtx.sources.entries()].map(([file, text]) => ({ file, text }))));
+      for (const name of [...direct].sort()) {
+        const locked = packages.find((pkg) => pkg.name === name)?.version;
+        if (locked === undefined) continue;
+        const latest = await readPlaceholderLatest(join(cacheDir, 'registry', `${name.replaceAll('/', '__')}.json`));
+        const placeholder = securityPlaceholderFinding(name, locked, latest);
+        if (placeholder !== undefined) reached.push(placeholder);
+      }
+    }
     return reached;
   },
 };
+
+function workspacesEnabled(): boolean {
+  return process.env.FULLSHIELD_EXPERIMENTAL_WORKSPACES === '1';
+}
+
+function workspacePatterns(manifestRaw: string): string[] {
+  try {
+    const manifest = JSON.parse(manifestRaw) as { workspaces?: unknown };
+    const field = manifest.workspaces;
+    if (Array.isArray(field)) return field.filter((item): item is string => typeof item === 'string');
+    if (field !== null && typeof field === 'object' && Array.isArray((field as { packages?: unknown }).packages)) {
+      return (field as { packages: unknown[] }).packages.filter((item): item is string => typeof item === 'string');
+    }
+  } catch {
+    return [];
+  }
+  return [];
+}
+
+async function expandWorkspace(cwd: string, pattern: string): Promise<string[]> {
+  const normalized = pattern.replace(/\\/g, '/').replace(/^\.\//, '');
+  if (!normalized.includes('*')) return [normalized];
+  const slash = normalized.indexOf('/*');
+  if (slash < 0) return [];
+  const parent = normalized.slice(0, slash);
+  try {
+    const entries = await readdir(join(cwd, parent), { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => `${parent}/${entry.name}`)
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
+async function workspaceAdvisoryFindings(
+  cwd: string,
+  manifestRaw: string,
+  osvOpts: { cacheDir: string; offline: boolean },
+): Promise<Finding[]> {
+  const dirs = new Set<string>();
+  for (const pattern of workspacePatterns(manifestRaw)) {
+    for (const dir of await expandWorkspace(cwd, pattern)) dirs.add(dir);
+  }
+  const findings: Finding[] = [];
+  for (const dir of [...dirs].sort()) {
+    if (dir === '' || dir === '.') continue;
+    const lockName = LOCKFILE_NAMES.find((name) => existsSync(join(cwd, dir, name)));
+    if (lockName === undefined) continue;
+    let text: string;
+    try {
+      text = await readFile(join(cwd, dir, lockName), 'utf8');
+    } catch {
+      continue;
+    }
+    const graph = parseLockfileGraph(lockName, text);
+    const hits = await queryOsv(graph.packages, osvOpts);
+    const file = `${dir}/${lockName}`;
+    for (const hit of hits) {
+      for (const vuln of hit.vulns) {
+        findings.push(
+          isMaliciousAdvisory(vuln) ? maliciousFinding(file, hit.pkg, vuln) : vulnFinding(file, hit.pkg, vuln),
+        );
+      }
+    }
+  }
+  return findings;
+}
+
+async function withWorkspaceAdvisories(
+  cwd: string,
+  manifestRaw: string | undefined,
+  osvOpts: { cacheDir: string; offline: boolean },
+  findings: Finding[],
+): Promise<Finding[]> {
+  if (!workspacesEnabled() || manifestRaw === undefined) return findings;
+  return [...findings, ...(await workspaceAdvisoryFindings(cwd, manifestRaw, osvOpts))];
+}
+
+async function readPlaceholderLatest(file: string): Promise<string | undefined> {
+  try {
+    const raw = JSON.parse(await readFile(file, 'utf8')) as { latest?: string };
+    return typeof raw.latest === 'string' ? raw.latest : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 function graphFromManifest(manifest: Record<string, unknown>): LockfileGraph {
   const keys = (field: string): Set<string> => {

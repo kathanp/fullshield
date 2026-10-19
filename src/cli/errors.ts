@@ -29,6 +29,21 @@ const KNOWN: Array<{ test: RegExp; code: string; hint: string }> = [
     code: 'FS-E006',
     hint: 'Set FULLSHIELD_EXPERIMENTAL_DIFF=1 or pass --experimental-diff. Both inputs must be scan --json files.',
   },
+  {
+    test: /FULLSHIELD_EXPERIMENTAL_EXPLAIN|id prefix|no finding matches|ambiguous id/,
+    code: 'FS-E007',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_EXPLAIN=1. Pass an id prefix of at least 6 characters from a scan JSON file.',
+  },
+  {
+    test: /FULLSHIELD_EXPERIMENTAL_DEPS_DIFF|deps-diff cannot/,
+    code: 'FS-E008',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_DEPS_DIFF=1. Pass a git ref that contains a lockfile.',
+  },
+  {
+    test: /FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS|sast\.sources|sast\.sanitizers/,
+    code: 'FS-E009',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS=1 before naming sast.sources or sast.sanitizers.',
+  },
 ];
 
 const DOCS = 'https://github.com/kathanp/fullshield/blob/main/docs/errors.md';

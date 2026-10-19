@@ -25,9 +25,22 @@ import type { AstNode } from './types.js';
 
 export type SinkSanitizer = 'url' | 'xss';
 
+export interface CustomTaintConfig {
+  sources: ReadonlySet<string>;
+  /** Callee name → B4 classes it clears. `secrets` and `deps` are never included. */
+  sanitizers: ReadonlyMap<string, ReadonlySet<string>>;
+}
+
+let customTaint: CustomTaintConfig | undefined;
+
+export function setCustomTaint(config: CustomTaintConfig | undefined): void {
+  customTaint = config;
+}
+
 export interface ScopeFacts {
   tainted: Set<string>;
   pathSanitized: Set<string>;
+  sqlCleared: Set<string>;
   urlSanitized: Set<string>;
   xssSanitized: Set<string>;
   nosqlSanitized: Set<string>;
@@ -414,6 +427,8 @@ function analyzeScope(
   const urlSanitized = new Set<string>();
   const xssSanitized = new Set<string>();
   const nosqlSanitized = new Set<string>();
+  const sqlCleared = new Set<string>();
+  const customPath = new Set<string>();
   let changed = true;
   while (changed) {
     changed = false;
@@ -424,6 +439,7 @@ function analyzeScope(
           for (const name of boundNames(node.id)) nosqlSanitized.add(name);
         }
         if (isSchemaValidatorCall(init)) return;
+        applyCustomCall(init, boundNames(node.id), tainted, sqlCleared, customPath);
         if (isUrlSanitizerCall(init)) {
           for (const name of boundNames(node.id)) urlSanitized.add(name);
         }
@@ -444,6 +460,7 @@ function analyzeScope(
           for (const name of boundNames(node.left)) nosqlSanitized.add(name);
         }
         if (isSchemaValidatorCall(node.right)) return;
+        applyCustomCall(node.right, boundNames(node.left), tainted, sqlCleared, customPath);
         if (isUrlSanitizerCall(node.right)) {
           for (const name of boundNames(node.left)) urlSanitized.add(name);
         }
@@ -472,7 +489,7 @@ function analyzeScope(
     }
   });
 
-  const pathSanitized = new Set<string>();
+  const pathSanitized = new Set<string>(customPath);
   walkScope(scope, (node) => {
     if (node.type !== 'CallExpression' || node.callee.type !== 'MemberExpression') return;
     if (propName(node.callee) !== 'startsWith') return;
@@ -554,6 +571,7 @@ function analyzeScope(
   return {
     tainted,
     pathSanitized,
+    sqlCleared,
     urlSanitized,
     xssSanitized,
     nosqlSanitized,
@@ -775,6 +793,65 @@ export function analyzeFile(
   return facts;
 }
 
+export interface FunctionTaintSummary {
+  name: string;
+  line: number;
+  paramsToReturn: number[];
+  sinks: Array<{ param: number; class: string }>;
+}
+
+const SQL_SINK_NAMES = new Set(['query', 'execute']);
+const CMD_SINK_NAMES = new Set(['exec', 'execSync', 'spawn', 'spawnSync']);
+const PATH_SINK_NAMES = new Set(['readFile', 'readFileSync', 'writeFile', 'writeFileSync']);
+
+function sinkClasses(scope: AstNode, tainted: Set<string>, returners: ReadonlySet<string>): string[] {
+  const found = new Set<string>();
+  walkScope(scope, (node) => {
+    if (node.type !== 'CallExpression') return;
+    const name = calleeName(node);
+    const first = node.arguments[0];
+    if (name === undefined || first === undefined || first.type === 'SpreadElement') return;
+    if (!exprIsTainted(first, tainted, returners)) return;
+    if (SQL_SINK_NAMES.has(name)) found.add('sqli');
+    if (CMD_SINK_NAMES.has(name)) found.add('cmdi');
+    if (PATH_SINK_NAMES.has(name)) found.add('path');
+  });
+  return [...found].sort();
+}
+
+/** Same returner set as `functionsThatReturnTaint`, plus which params reach a return or a sink. */
+export function fileTaintSummary(ast: AstNode): { returnsTaint: string[]; functions: FunctionTaintSummary[] } {
+  attachParents(ast);
+  const facts = analyzeFile(ast);
+  const returnsTaint: string[] = [];
+  const functions: FunctionTaintSummary[] = [];
+  walk(ast, (node) => {
+    if (!isFunctionNode(node)) return;
+    const name = functionName(node);
+    const own = facts.get(node);
+    if (name === undefined || own === undefined) return;
+    if (scopeReturnsTaint(node, own.tainted, own.returners)) returnsTaint.push(name);
+    const paramsToReturn: number[] = [];
+    const sinks: Array<{ param: number; class: string }> = [];
+    node.params.forEach((param, index) => {
+      const pname = boundNames(param)[0];
+      if (pname === undefined) return;
+      const seeded = analyzeScope(node, [pname]);
+      if (scopeReturnsTaint(node, seeded.tainted, seeded.returners)) paramsToReturn.push(index);
+      for (const cls of sinkClasses(node, seeded.tainted, seeded.returners)) sinks.push({ param: index, class: cls });
+    });
+    functions.push({
+      name,
+      line: node.loc?.start.line ?? 0,
+      paramsToReturn,
+      sinks,
+    });
+  });
+  returnsTaint.sort();
+  functions.sort((a, b) => a.line - b.line || a.name.localeCompare(b.name));
+  return { returnsTaint, functions };
+}
+
 export function functionsThatReturnTaint(ast: AstNode): Set<string> {
   attachParents(ast);
   const names = new Set<string>();
@@ -802,6 +879,7 @@ export function factsFor(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): Scop
     map.get(enclosingScope(node)) ?? {
       tainted: new Set(),
       pathSanitized: new Set(),
+      sqlCleared: new Set(),
       urlSanitized: new Set(),
       xssSanitized: new Set(),
       nosqlSanitized: new Set(),
@@ -827,6 +905,34 @@ export function nodeHoldsBuiltFilter(node: AstNode, map: WeakMap<AstNode, ScopeF
 export function nodeIsTainted(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): boolean {
   const facts = factsFor(node, map);
   return exprIsTainted(node, facts.tainted, facts.returners);
+}
+
+export function nodeIsSqlCleared(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): boolean {
+  if (node.type === 'Identifier') return factsFor(node, map).sqlCleared.has(node.name);
+  return false;
+}
+
+function applyCustomCall(
+  init: AstNode | undefined,
+  names: readonly string[],
+  tainted: Set<string>,
+  sqlCleared: Set<string>,
+  customPath: Set<string>,
+): void {
+  if (customTaint === undefined || init === undefined || init.type !== 'CallExpression') return;
+  const called = calleeName(init);
+  if (called === undefined) return;
+  if (customTaint.sources.has(called)) {
+    for (const name of names) tainted.add(name);
+  }
+  const clears = customTaint.sanitizers.get(called);
+  if (clears === undefined) return;
+  if (clears.has('sqli')) {
+    for (const name of names) sqlCleared.add(name);
+  }
+  if (clears.has('path')) {
+    for (const name of names) customPath.add(name);
+  }
 }
 
 export function nodeIsPathSanitized(node: AstNode, map: WeakMap<AstNode, ScopeFacts>): boolean {

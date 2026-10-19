@@ -3,6 +3,7 @@ import { posix } from 'node:path';
 import { makeFindingId, type Finding } from '../../core/finding.js';
 import { assignedNameOf, attachParents, boundNames, calleeName, isFunctionNode, literalString, propName, walk } from './ast.js';
 import { taintV2Enabled } from './experimental.js';
+import { cachedFunctionFacts, taintSummariesEnabled } from './summaries.js';
 import { analyzeFile, analyzeFunctionWithSeed, exprIsTainted, isSchemaValidatorCall, nodeIsTainted } from './taint.js';
 import type { AstNode } from './types.js';
 
@@ -293,9 +294,11 @@ export function runInterproc(parsed: readonly ParsedSource[]): Finding[] {
     if (fn === undefined) continue;
     const param = fn.params[seed.paramIndex];
     if (param === undefined) continue;
-    const facts = analyzeFunctionWithSeed(fn.node, [param]);
     const p = byFile.get(fn.file);
     if (p === undefined) continue;
+    const facts = taintSummariesEnabled()
+      ? cachedFunctionFacts(p.source, fn.node, [param])
+      : analyzeFunctionWithSeed(fn.node, [param]);
     const ns = requires.get(fn.file) ?? new Map<string, string>();
     const inst = instances.get(fn.file) ?? new Map<string, string>();
 

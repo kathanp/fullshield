@@ -1,0 +1,7 @@
+{
+  "modules": ["sast"],
+  "sast": {
+    "sources": [{ "callee": "getUserInput", "returns": "tainted" }],
+    "sanitizers": [{ "callee": "escapeSql", "clears": ["sqli", "deps"] }]
+  }
+}

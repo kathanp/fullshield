@@ -162,6 +162,16 @@ const EXTRA_TARGETS = [
     },
   },
   {
+    name: 'SUPPLY-CHAINC2-001',
+    file: join(root, 'src', 'supply', 'campaign.ts'),
+    apply: (src) => {
+      if (!src.includes('if (hasChain && hasNet)')) {
+        throw new Error('SUPPLY-CHAINC2-001 site missing');
+      }
+      return src.replace('if (hasChain && hasNet)', 'if (false && hasChain && hasNet)');
+    },
+  },
+  {
     name: 'SUPPLY-NPMRC-NET-001',
     file: join(root, 'src', 'supply', 'index.ts'),
     apply: (src) => {

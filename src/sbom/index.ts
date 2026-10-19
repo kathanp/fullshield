@@ -8,7 +8,7 @@ import { renderCycloneDx, type SbomComponent } from './cyclonedx.js';
 
 const LOCKFILE_NAMES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'] as const;
 
-export async function buildSbom(cwd: string): Promise<Record<string, unknown>> {
+export async function buildSbom(cwd: string, options: { includeReach?: boolean } = {}): Promise<Record<string, unknown>> {
   const result = await scan({ cwd, modules: ['deps'] });
   let name = 'app';
   let version = '0.0.0';
@@ -37,5 +37,11 @@ export async function buildSbom(cwd: string): Promise<Record<string, unknown>> {
   if (components.length === 0) {
     components = exactPinsFromManifest(manifest).map((p) => ({ name: p.name, version: p.version }));
   }
-  return renderCycloneDx({ name, version, components, findings: result.findings });
+  return renderCycloneDx({
+    name,
+    version,
+    components,
+    findings: result.findings,
+    includeReach: options.includeReach === true,
+  });
 }

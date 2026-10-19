@@ -1,0 +1,11 @@
+{
+  "fetchedAt": "2026-10-18T00:00:00.000Z",
+  "vulns": [
+    {
+      "id": "GHSA-mini-0001",
+      "summary": "transitive",
+      "database_specific": { "severity": "HIGH" },
+      "affected": [{ "package": { "ecosystem": "npm", "name": "minimist" }, "ranges": [{ "type": "SEMVER", "events": [{ "introduced": "0" }, { "fixed": "1.2.6" }] }] }]
+    }
+  ]
+}

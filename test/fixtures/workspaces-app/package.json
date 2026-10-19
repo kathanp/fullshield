@@ -1,0 +1,5 @@
+{
+  "name": "workspaces-app",
+  "private": true,
+  "workspaces": ["packages/vuln", "packages/clean"]
+}

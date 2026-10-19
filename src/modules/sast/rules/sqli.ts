@@ -49,7 +49,7 @@ export const sqliRule: SastRule = {
       CallExpression(node) {
         if (node.type !== 'CallExpression' || !isSqlSink(node)) return;
         const sql = node.arguments[0];
-        if (sql !== undefined && sql.type !== 'SpreadElement' && ctx.isTainted(sql)) {
+        if (sql !== undefined && sql.type !== 'SpreadElement' && ctx.isTainted(sql) && !ctx.isSqlCleared(sql)) {
           ctx.report({
             node,
             message: 'Tainted input is concatenated into a SQL string passed to query/execute.',

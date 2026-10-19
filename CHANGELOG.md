@@ -2,13 +2,21 @@
 
 All notable changes to FullShield are documented here.
 
-## Unreleased
+## 0.4.0 — 2026-10-18
 
-git restored to match published 0.3.0 (D7). Phase 46 still enforces Node >= 22.13 in `engines`, `doctor`, and CI. Phase 47 still owns the console view. The version is 0.3.0, which npm already has (D8).
+Phase 46 still enforces Node >= 22.13 in `engines`, `doctor`, and CI. Phase 47 still owns the console view.
 
 ### New/changed stable findings — may change CI results; use --update-baseline
 
-Same-function Mongo filters are reported by the existing `SAST-NOSQLI-001` rule (the unpublished 0.4.0 change, approved under D7). The version is not bumped. vulnerable-node gains two keys: `routes/shop.js` lines 41 and 58, both high. Every other tuning app is unchanged. Ground truth was not edited.
+Same-function Mongo filters are reported by the existing `SAST-NOSQLI-001` rule (approved under D7). vulnerable-node gains two keys: `routes/shop.js` lines 41 and 58, both high. Every other tuning app is unchanged. Ground truth was not edited.
+
+### Upgrade plan, evidence, explain, SBOM, supply heuristics, lockfile diff, modern lockfiles
+
+Phases 49, 61, 60, 66, 70, 62, and 63. The upgrade plan is a sentence built from OSV `fixed` versions. The other six are off unless their `FULLSHIELD_EXPERIMENTAL_*` flag is set. Default `(ruleId, file, line, severity)` keys are unchanged.
+
+### Validation, workspaces, custom taint, summaries, SARIF
+
+Phases 53, 54, 64, 65, and 74. Each stays off unless its flag is set. Phase 54 reads `package.json` workspaces. Phase 65 caches taint summaries; the 5-second nest and undici target was not met. Default scan keys stay the same when the flags are off.
 
 ### Unused direct dependencies
 

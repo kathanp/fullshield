@@ -5,6 +5,7 @@ import type { ScanModule } from '../../core/engine.js';
 import { makeFindingId, type Finding } from '../../core/finding.js';
 import { assignedNameOf, walk } from './ast.js';
 import { collectRequires, runInterproc, type ParsedSource } from './interproc.js';
+import { cachedReturners, setTaintSummaryConfig, taintSummariesEnabled } from './summaries.js';
 import {
   analyzeFile,
   factsFor,
@@ -14,7 +15,9 @@ import {
   nodeIsPathSanitized,
   nodeIsRequestObject,
   nodeIsSanitizedFor,
+  nodeIsSqlCleared,
   nodeIsTainted,
+  setCustomTaint,
 } from './taint.js';
 import { authRule } from './rules/auth.js';
 import { cmdiRule } from './rules/cmdi.js';
@@ -102,6 +105,7 @@ export function findingsFromAst(
         });
       },
       isTainted: (node) => nodeIsTainted(node, facts),
+      isSqlCleared: (node) => nodeIsSqlCleared(node, facts),
       isPathSanitized: (node) => nodeIsPathSanitized(node, facts),
       isSanitizedFor: (node, kind) => nodeIsSanitizedFor(node, facts, kind),
       isNosqlSanitized: (node) => nodeIsNosqlSanitized(node, facts),
@@ -145,6 +149,7 @@ function findingsFromTemplate(filename: string, source: string): Finding[] {
       });
     },
     isTainted: () => false,
+    isSqlCleared: () => false,
     isPathSanitized: () => false,
     isSanitizedFor: () => false,
     isNosqlSanitized: () => false,
@@ -312,7 +317,7 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
     }
     const ast = await parseCode(source);
     if (ast === undefined) continue;
-    returning.set(rel, functionsThatReturnTaint(ast));
+    returning.set(rel, taintSummariesEnabled() ? cachedReturners(source, ast) : functionsThatReturnTaint(ast));
     parseable.push(rel);
     fileSet.add(rel);
   }
@@ -346,8 +351,22 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
 export const sastModule: ScanModule = {
   name: 'sast',
   async run(ctx) {
+    if (process.env.FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS === '1') {
+      const sources = new Set((ctx.config.sast.sources ?? []).map((row) => row.callee));
+      const sanitizers = new Map<string, Set<string>>();
+      for (const row of ctx.config.sast.sanitizers ?? []) {
+        const classes = sanitizers.get(row.callee) ?? new Set<string>();
+        for (const name of row.clears) classes.add(name);
+        sanitizers.set(row.callee, classes);
+      }
+      setCustomTaint({ sources, sanitizers });
+    } else {
+      setCustomTaint(undefined);
+    }
+    setTaintSummaryConfig(taintSummariesEnabled() ? ctx.config : undefined);
+    try {
     const candidates = ctx.files.filter((rel) => SOURCE_EXT.test(rel) || TEMPLATE_EXT.test(rel));
-    if (candidates.length > sastStreamThreshold()) return runSastStreaming(ctx);
+    if (candidates.length > sastStreamThreshold()) return await runSastStreaming(ctx);
 
     const maxBytes = ctx.config.sast.maxFileBytes;
     const findings: Finding[] = [];
@@ -372,7 +391,10 @@ export const sastModule: ScanModule = {
     const projectCsrf = parsed.some((p) => sourceHasCsrfGuard(p.source));
     const returning = new Map<string, Set<string>>();
     for (const entry of parsed) {
-      returning.set(entry.file, functionsThatReturnTaint(entry.ast));
+      returning.set(
+        entry.file,
+        taintSummariesEnabled() ? cachedReturners(entry.source, entry.ast) : functionsThatReturnTaint(entry.ast),
+      );
     }
     for (const entry of parsed) {
       findings.push(
@@ -389,5 +411,9 @@ export const sastModule: ScanModule = {
     const out = dedupeSastSinks(findings);
     releaseParsed(parsed);
     return out;
+    } finally {
+      setCustomTaint(undefined);
+      setTaintSummaryConfig(undefined);
+    }
   },
 };

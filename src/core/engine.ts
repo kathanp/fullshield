@@ -97,6 +97,12 @@ export interface ScanMetadata {
   history?: string;
   /** Phase 48. Direct dependencies no project file imports. Absent when the list is empty. */
   unusedDirect?: { packages: string[]; advisories: number };
+  /** Phase 49. Direct version bumps taken from OSV `fixed` versions. Absent when there is nothing to say. */
+  upgradePlan?: {
+    bumps: Array<{ name: string; from: string; to: string; safe: boolean; findings: number }>;
+    unresolved: string[];
+    sentence: string;
+  };
 }
 
 export interface PolicyScanResult {
@@ -150,6 +156,7 @@ export async function runScan(
   const startedAt = new Date().toISOString();
   const t0 = performance.now();
   depsModule.unusedDirect = undefined;
+  depsModule.upgradePlan = undefined;
 
   const cwd = resolve(options.cwd ?? process.cwd());
   const stats = await stat(cwd).catch(() => null);
@@ -341,6 +348,7 @@ export async function runScan(
       modulesRun,
       ...(historyNotice !== undefined ? { history: historyNotice } : {}),
       ...(depsModule.unusedDirect !== undefined ? { unusedDirect: depsModule.unusedDirect } : {}),
+      ...(depsModule.upgradePlan !== undefined ? { upgradePlan: depsModule.upgradePlan } : {}),
     },
     config,
     policy: policyResult,

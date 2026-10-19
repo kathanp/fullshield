@@ -119,8 +119,8 @@ jobs:
 
       - run: npm run build
 
-      # Packs the tarball and stops. A version npm already has is expected while
-      # package.json stays at 0.3.0 (D8). Any other error still fails the job.
+      # Packs the tarball and stops. A version npm already has is expected
+      # after that version is published. Any other error still fails the job.
       - name: npm publish --dry-run
         run: |
           set +e

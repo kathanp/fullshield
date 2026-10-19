@@ -240,6 +240,10 @@ function renderRow(row: ConsoleRow): string[] {
   if (row.file !== undefined) {
     lines.push(`    ${row.file}${row.line !== undefined ? `:${row.line}` : ''}`);
   }
+  const evidenceImport = row.findings[0]?.reachabilityEvidence?.imports[0];
+  if (evidenceImport !== undefined) {
+    lines.push(`    import: ${evidenceImport.file}:${evidenceImport.line} ${evidenceImport.specifier}`);
+  }
   lines.push(`    docs: rules/${row.ruleId}.md`);
   return lines;
 }
@@ -263,6 +267,9 @@ export function renderConsoleReport(input: ScanResult, options: ConsoleReportOpt
       ),
   );
   if (metadata.history !== undefined) lines.push(metadata.history);
+  if (metadata.upgradePlan !== undefined && metadata.upgradePlan.sentence.length > 0) {
+    lines.push(metadata.upgradePlan.sentence);
+  }
   if (metadata.unusedDirect !== undefined) {
     const count = metadata.unusedDirect.packages.length;
     const advisories = metadata.unusedDirect.advisories;

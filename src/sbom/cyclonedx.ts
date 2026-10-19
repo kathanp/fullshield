@@ -12,6 +12,8 @@ export interface SbomInput {
   version: string;
   components: SbomComponent[];
   findings?: Finding[];
+  /** Phase 66. Off unless the caller sets it. */
+  includeReach?: boolean;
 }
 
 export function validateCycloneDx15(doc: unknown): string[] {
@@ -26,6 +28,17 @@ export function validateCycloneDx15(doc: unknown): string[] {
   return errors;
 }
 
+function reachProperties(finding: Finding): Array<{ name: string; value: string }> {
+  const properties = [
+    { name: 'fullshield:reachability', value: finding.reachability ?? 'unspecified' },
+    { name: 'fullshield:devOnly', value: finding.message.includes('(dev-only)') ? 'true' : 'false' },
+  ];
+  if (finding.dependencyPath !== undefined && finding.dependencyPath.length > 0) {
+    properties.splice(1, 0, { name: 'fullshield:dependencyPath', value: finding.dependencyPath.join(' > ') });
+  }
+  return properties;
+}
+
 export function renderCycloneDx(input: SbomInput): Record<string, unknown> {
   const vulns = (input.findings ?? []).filter((f) => f.ruleId === 'DEPS-VULN-001');
   return {
@@ -36,13 +49,18 @@ export function renderCycloneDx(input: SbomInput): Record<string, unknown> {
     metadata: {
       component: { type: 'application', name: input.name, version: input.version },
     },
-    components: input.components.map((c) => ({
-      type: 'library',
-      name: c.name,
-      version: c.version,
-      purl: c.purl ?? `pkg:npm/${encodeURIComponent(c.name)}@${c.version}`,
-      ...(c.license !== undefined ? { licenses: [{ license: { id: c.license } }] } : {}),
-    })),
+    components: input.components.map((c) => {
+      const match = (input.findings ?? []).find((finding) => finding.snippet?.startsWith(`${c.name}@`));
+      const properties = input.includeReach === true && match !== undefined ? reachProperties(match) : undefined;
+      return {
+        type: 'library',
+        name: c.name,
+        version: c.version,
+        purl: c.purl ?? `pkg:npm/${encodeURIComponent(c.name)}@${c.version}`,
+        ...(c.license !== undefined ? { licenses: [{ license: { id: c.license } }] } : {}),
+        ...(properties !== undefined ? { properties } : {}),
+      };
+    }),
     vulnerabilities: vulns.map((f) => ({
       id: f.references?.find((r) => r.startsWith('GHSA-') || r.startsWith('CVE-')) ?? f.id,
       description: f.message,
