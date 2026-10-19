@@ -830,9 +830,70 @@ Verified alone: 559 tests, 92.37% lines / 82.7% branches.
 |---|---|---|---|---|---|---|---|---|
 | 35 | 740 | 92.58% | 81.91% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
 
+## Human decisions 2026-10-18 (Kathan)
+
+These count as R1/R3 approvals.
+
+- D1. Approved: the doctor test treats Node 20.11 as too old (Phase 46).
+- D2. Approved: the console-cap test expects 20 rows instead of 10 (Phase 47).
+- D3. The Phase 47 shown rule is replaced. Dependency rows are shown only for `DEPS-MALICIOUS-001`, or for `DEPS-VULN-001` when reachability is `reachable`, `symbol-reachable`, `reachable-via-dependency`, or `reachability-unknown`, and the finding is not dev-only. SAST, secrets, and config are shown when severity is high or critical, or confidence is high. Shown dependency findings group to one console row per package. JSON and the other reporters stay one finding per advisory.
+- D4. The 2026-10-18 grouped-row counts are accepted: NodeGoat 36, goof 63, juice-shop 49, dvna 14, vulnerable-node 41. The 40-row stop is removed. Phase 47 acceptance is the D3 shown rule passing its tests, plus that table in CHANGELOG under Unreleased and in the Phase 47 report. There is no row-count threshold. The shown rule, the 20-row cap, and severities stay as D3 left them.
+- D6. 0.3.0 is published on npm and was approved. That is known. It is not a stop condition. The job is to make git match it.
+- D7. Restoring the exact 0.3.0 source onto next is approved. It changes default scan output from 0.2.6 (R10). It is approved only if the STEP R1 proofs pass.
+- D8. `package.json` and the README on next are set to 0.3.0 in the restore commit. That is the version npm already has. Do not bump past 0.3.0. 0.4.0 is set at release.
+
+## Phase 46 — supported runtime (branch `phase-46`)
+
+`next` already enforced Node >= 22.13 in `engines`, `doctor`, and the CI matrix. This phase adds the locking test and records D1 (Node 20.11 is too old). No scan output change.
+
+`npm run verify` on this tree before merge:
+
+| node | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|---|
+| 22.23.3 | 785 | 92.49% | 82.29% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+| 24.22.0 | 785 | 92.47% | 82.28% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+
+## Phase 47 — actionable console view (human decision 2026-10-18)
+
+Console-only. D3 shown rule, one row per package, 20-row cap. D4 accepts the grouped-row table and removes the row-count stop. JSON and `--fail-on` stay the full list.
+
+`npm run verify` before merge:
+
+| node | tests | coverage lines | coverage branches | implemented modules | expected findings | found expected | vulnerable-app findings | clean-app high/critical |
+|---|---|---|---|---|---|---|---|---|
+| 22.23.3 | 790 | 92.54% | 82.19% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+| 24.22.0 | 790 | 92.53% | 82.17% | deps,secrets,sast,config | 30 | 30 | 35 | 0 |
+
+## Restore 0.3.0 (D6–D8)
+
+CASE A. Provenance `gitCommit` is `91bbc6bb2b8e8fb46805e872a47952c3bd4a0907`, which is tag `v0.3.0` and `origin/main`. Merged into `restore-0.3.0`. Phase 46 keeps the Node >= 22.13 floor. Phase 47 keeps the console view. Proof 2 totals match. Branch coverage is 81.79% on Node 22 and 81.77% on Node 24, which is under a 2-point margin above the 80% threshold. R1's merge gate is green verify plus both proofs, so this still merges.
+
+| node | tests | coverage lines | coverage branches | vulnerable-app | clean-app high/critical |
+|---|---|---|---|---|---|
+| 22.23.3 | 817 | 92.57% | 81.79% | 35 | 0 |
+| 24.22.0 | 817 | 92.55% | 81.77% | 35 | 0 |
+
+## Restore 0.4.0 (unpublished, D7)
+
+Same-function Mongo filters from the stash, on `SAST-NOSQLI-001`. Version stays 0.3.0. vulnerable-node 61 → 63. New keys: `routes/shop.js:41` and `:58`, both high. No other key changes.
+
+| node | tests | coverage lines | coverage branches | vulnerable-app | clean-app high/critical |
+|---|---|---|---|---|---|
+| 22.23.3 | 828 | 92.62% | 82.06% | 35 | 0 |
+| 24.22.0 | 828 | 92.61% | 82.03% | 35 | 0 |
+
+## Phase 48 — Unused dependency removal
+
+Direct `dependencies` that no project file imports and that no imported package requires are listed on `metadata.unusedDirect` and in the console sentence. `fix` prints the plan and writes nothing. `fix --unsafe` deletes those names from `package.json`, leaves the lockfile, and prints `run npm install`. Findings, including critical `DEPS-MALICIOUS-001`, stay. One Node 22 coverage run hit a RASP p95 timing flake (1.61ms); the same test passed alone and the full verify passed on the retry.
+
+| node | tests | coverage lines | coverage branches | vulnerable-app | clean-app high/critical |
+|---|---|---|---|---|---|
+| 22.23.3 | 830 | 92.61% | 82.13% | 35 | 0 |
+| 24.22.0 | 830 | 92.6% | 82.11% | 35 | 0 |
+
 ## Current status
 
-- `main` and `next` include Phases 1–35 (pull request #9, `95e1df6`).
-- Package version in this tree is `0.1.3`.
+- `next` includes published 0.3.0, phases 46–48, and the unpublished Mongo-filter change.
+- Package version in this tree is `0.3.0`. Do not bump past it (D8).
 - Ground truth in `bench/` stays `"reviewed": false`.
 - Host check gaps: live Linux sshd is not required in CI (fixtures only). OSV is mocked in tests. FullShield does not stop OS or SSH exploits.

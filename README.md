@@ -1,6 +1,6 @@
 # FullShield
 
-**v0.2.6 / alpha.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
+**v0.3.0 / alpha.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
 
 **Headline: dependency reachability.** A lockfile CVE is not the same as an unused package. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (lockfile path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), `not-imported` (−2, only when no such path exists), or `reachability-unknown` (severity kept) when the lockfile format has no parsed dependency edges. DevDependency-only vulns are `info` with a `dev-only` note unless production sources import the package. Pair it with `fullshield sbom --format cyclonedx`.
 
@@ -12,7 +12,7 @@ npx fullshield scan --sarif fullshield.sarif
 
 This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 
-**Requires Node.js >= 20.11.** Scan, fix, and init run on Node 20.11+. History storage (`report --serve`) needs `node:sqlite` and prints `requires Node 22.13+` on older Node instead of failing at import. `node:sqlite` is still experimental and is not loaded by `--import` register.
+**Supported runtime is Node.js >= 22.13.** `package.json` `engines` and `doctor` enforce that floor. `node:sqlite` runs without `--experimental-sqlite` from 22.13.0 (the module is still experimental and is loaded only by history/confirm, not by `--import` register).
 
 ## Coverage map
 
@@ -68,7 +68,7 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 
 ## Known limitations
 
-- Platforms: Linux, macOS, and Windows on Node 20.11, 22, and 24. Quoted filenames in dirty-tree tests are POSIX-only (Windows forbids `"` in names). History storage needs Node 22.13+.
+- Platforms: Linux, macOS, and Windows on Node >= 22.13. Quoted filenames in dirty-tree tests are POSIX-only (Windows forbids `"` in names).
 - `node:sqlite` is loaded only by history/confirm, not by `--import fullshield/runtime/register`. Dashboard closes every handle in `try/finally` (Windows cannot delete an open `history.db`).
 - FullShield does not stop OS or SSH exploits (including regreSSHion). It scans Node/TS apps you own.
 - Extra classes (ReDoS, deserialization, XXE, upload, cookie flags, CSRF, mass assignment, timing compare, hash cost, GraphQL limits, `trust proxy` + IP rate limit) run only with `FULLSHIELD_EXPERIMENTAL_CLASSES=1` or `scan --experimental-classes`. ReDoS is a same-file static quantifier check. CSRF looks for `csurf` or `sameSite: 'strict'|'lax'` in that file.
@@ -208,7 +208,7 @@ npx fullshield scan --debug
 
 `doctor` prints the Node version, lockfile, cache directory, experimental flags that are set to `1`, whether `fullshield.config.json` parses, and whether OSV is allowed to use the network. `--offline` skips that network. CLI failures use `FS-E###` codes. The message stays the same. A stack is printed only with `--debug`.
 
-Console output shows the highest 10 findings, then `N more — use --json`. Each line has the file, the finding message, a fix line, and `rules/<rule-id>.md`.
+Default console prints shown rows only, capped at 20. A dependency advisory is shown when it is `DEPS-MALICIOUS-001`, or when it is `DEPS-VULN-001`, not dev-only, and reachability is reachable, symbol-reachable, via a dependency, or unknown. Severity and confidence do not show a dependency row. SAST, secrets, and config are shown when severity is high or critical, or confidence is high. Shown dependency findings are one row per package. `--all` prints every finding. JSON, SARIF, Markdown, HTML, the baseline, and `--fail-on` stay the full list. On the 2026-10-18 offline-safe recount, grouped rows were NodeGoat 36, goof 63, juice-shop 49, dvna 14, and vulnerable-node 41. Ground truth is still `"reviewed": false`.
 
 Experimental taint propagation (`FULLSHIELD_EXPERIMENTAL_TAINT_V2=1`) and the parse pool (`FULLSHIELD_PARSE_POOL=1`) are off by default. Symbol reachability runs only when an OSV advisory lists `affected_functions`. Advisories without that list keep the import-level class.
 

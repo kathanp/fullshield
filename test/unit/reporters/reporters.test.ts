@@ -87,12 +87,11 @@ describe('renderConsoleReport', () => {
   it('groups findings under severity headers with location and remediation', () => {
     const output = renderConsoleReport(mkResult([highFinding, infoFinding]));
     expect(output).toContain('HIGH (1)');
-    expect(output).toContain('INFO (1)');
+    expect(output).not.toContain('INFO (1)');
     expect(output).toContain('[SAST-SQLI-001]');
     expect(output).toContain('src/index.js:14');
     expect(output).toContain('Use a parameterized query.');
     expect(output).toContain('2 finding(s)');
-    // Higher severity group is printed first.
-    expect(output.indexOf('HIGH (1)')).toBeLessThan(output.indexOf('INFO (1)'));
+    expect(output).toContain('1 more (not directly reachable, or below high confidence) — --all or see JSON');
   });
 });

@@ -1,0 +1,17 @@
+{
+  "fetchedAt": "2026-10-18T00:00:00.000Z",
+  "vulns": [
+    {
+      "id": "GHSA-unused-0001",
+      "summary": "Fixture advisory on an unused direct dependency",
+      "aliases": [],
+      "database_specific": { "severity": "HIGH" },
+      "affected": [
+        {
+          "package": { "ecosystem": "npm", "name": "never-used" },
+          "versions": ["1.0.0"]
+        }
+      ]
+    }
+  ]
+}

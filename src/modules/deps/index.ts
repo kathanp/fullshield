@@ -7,7 +7,7 @@ import { makeFindingId, type Finding } from '../../core/finding.js';
 import { parseLockfileGraph, type LockedPackage, type LockfileGraph } from './lockfile.js';
 import { isMaliciousAdvisory, queryOsv, type OsvVuln } from './osv.js';
 import { exactPinsFromManifest, lineOfManifestDep } from './pins.js';
-import { applyReachability, indexPackageUsage, isProductionSource } from './reachability.js';
+import { applyReachability, indexPackageUsage, isProductionSource, unusedDirectPlan } from './reachability.js';
 import { affectedFunctionNames } from './symbol-reachability.js';
 import { minFixedVersion, osvSeverity, sameMajor } from './semver.js';
 import { findTyposquats, type TyposquatHit } from './typosquat.js';
@@ -148,9 +148,12 @@ function deprecatedFinding(lockFile: string, pkg: LockedPackage): Finding {
   };
 }
 
-export const depsModule: ScanModule = {
+export const depsModule: ScanModule & {
+  unusedDirect?: { packages: string[]; advisories: number };
+} = {
   name: 'deps',
   async run(ctx) {
+    depsModule.unusedDirect = undefined;
     const lockFile = LOCKFILE_NAMES.find((name) => ctx.files.includes(name));
     const cacheDir =
       ctx.config.deps.cacheDir !== undefined
@@ -233,12 +236,14 @@ export const depsModule: ScanModule = {
         findings.push(finding);
       }
     }
-    let reached = applyReachability(findings, await reachabilityCtx(ctx.cwd, ctx.files, graph), symbols);
+    const reachCtx = await reachabilityCtx(ctx.cwd, ctx.files, graph);
+    let reached = applyReachability(findings, reachCtx, symbols);
     if (experimentalVex()) {
       reached = attachOverrideProposals(reached, graph, lockFile, manifestRaw);
       reached.push(...scanInstalledPackages(ctx.cwd, packages));
     }
     if (licenseEnabled()) reached.push(...(await scanCopyleftLicenses(ctx.cwd)));
+    depsModule.unusedDirect = unusedDirectPlan(reached, reachCtx);
     return reached;
   },
 };

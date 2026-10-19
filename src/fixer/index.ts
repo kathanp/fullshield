@@ -109,6 +109,29 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
     byFile.set(sourceFile, after);
   }
 
+  const unused = result.metadata.unusedDirect?.packages ?? [];
+  if (unused.length > 0) {
+    let manifest = byFile.get('package.json');
+    if (manifest === undefined) {
+      try {
+        manifest = await readFile(join(cwd, 'package.json'), 'utf8');
+      } catch {
+        manifest = undefined;
+      }
+    }
+    if (manifest !== undefined) {
+      const next = removeDirectDependencies(manifest, unused);
+      const diff = dependencyRemovalDiff(manifest, unused);
+      if (diff.length > 0) {
+        patches.push({ file: 'package.json', ruleId: 'DEPS-VULN-001', safe: false, diff });
+        if (options.unsafe === true) {
+          byFile.set('package.json', next);
+          appliedOverride = true;
+        }
+      }
+    }
+  }
+
   const notice = appliedOverride ? 'run npm install' : undefined;
 
   if (options.apply !== true) {
@@ -163,6 +186,31 @@ async function restoreSnapshots(cwd: string, snapshots: Map<string, Buffer | nul
       await writeFile(abs, original);
     }
   }
+}
+
+function dependencyRemovalDiff(manifest: string, names: readonly string[]): string {
+  const drop = names.map((name) => `"${name}"`);
+  const removed = manifest.split('\n').filter((line) => drop.some((token) => line.includes(token)));
+  if (removed.length === 0) return '';
+  return ['--- a/package.json', '+++ b/package.json', ...removed.map((line) => `-${line}`)].join('\n');
+}
+
+function removeDirectDependencies(manifest: string, names: readonly string[]): string {
+  let parsed: { dependencies?: Record<string, unknown> };
+  try {
+    parsed = JSON.parse(manifest) as { dependencies?: Record<string, unknown> };
+  } catch {
+    return manifest;
+  }
+  if (parsed.dependencies === undefined || typeof parsed.dependencies !== 'object') return manifest;
+  const drop = new Set(names);
+  const next: Record<string, unknown> = {};
+  for (const [name, version] of Object.entries(parsed.dependencies)) {
+    if (!drop.has(name)) next[name] = version;
+  }
+  parsed.dependencies = next;
+  const trailing = manifest.endsWith('\n') ? '\n' : '';
+  return `${JSON.stringify(parsed, null, 2)}${trailing}`;
 }
 
 function runProjectTests(cwd: string): boolean {

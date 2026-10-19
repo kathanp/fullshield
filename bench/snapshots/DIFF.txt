@@ -1,19 +1,14 @@
-Default scan key diff against bench/snapshots/0.1.3.json.
-Keys are ruleId, file, line, severity. A repeated key is one row in the snapshot array.
+DIFF 0.2.6 -> 0.3.0
+summary.total: vulnerable-app 35 -> 35, clean-app 0 -> 0, nodegoat 379 -> 256, juice-shop 105 -> 105, dvna 23 -> 23, goof 354 -> 271, vulnerable-node 61 -> 61
+Unique (ruleId, file, line, severity) keys are identical.
 
-Unique keys are unchanged on every app (no added or removed key).
-Finding counts dropped where several versions of one package+advisory shared that same key.
+DIFF 0.3.0 -> restore-0.4.0
+vulnerable-node 61 -> 63
++ SAST-NOSQLI-001	routes/shop.js	41	high
++ SAST-NOSQLI-001	routes/shop.js	58	high
+Other apps: no added or removed keys.
 
-| app | before | after | unique keys |
-|---|---|---|---|
-| vulnerable-app | 35 | 35 | 35 |
-| clean-app | 0 | 0 | 0 |
-| nodegoat | 379 | 256 | 39 |
-| juice-shop | 105 | 105 | 98 |
-| dvna | 23 | 23 | 23 |
-| goof | 354 | 271 | 61 |
-| vulnerable-node | 61 | 61 | 61 |
-
+Unique (ruleId, file, line, severity) keys for 0.2.6 -> 0.3.0:
 IDENTICAL vulnerable-app
 IDENTICAL clean-app
 IDENTICAL nodegoat

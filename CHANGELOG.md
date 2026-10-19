@@ -2,6 +2,32 @@
 
 All notable changes to FullShield are documented here.
 
+## Unreleased
+
+git restored to match published 0.3.0 (D7). Phase 46 still enforces Node >= 22.13 in `engines`, `doctor`, and CI. Phase 47 still owns the console view. The version is 0.3.0, which npm already has (D8).
+
+### New/changed stable findings — may change CI results; use --update-baseline
+
+Same-function Mongo filters are reported by the existing `SAST-NOSQLI-001` rule (the unpublished 0.4.0 change, approved under D7). The version is not bumped. vulnerable-node gains two keys: `routes/shop.js` lines 41 and 58, both high. Every other tuning app is unchanged. Ground truth was not edited.
+
+### Unused direct dependencies
+
+A scan names direct `dependencies` that no project file imports and that no imported package requires. Imported and imported-not-called packages stay out. `fix` prints the removal plan and writes nothing. `fix --unsafe` deletes those names from `package.json` only, leaves the lockfile alone, and prints `run npm install`. The finding list is unchanged, including a `DEPS-MALICIOUS-001` on an unused package, which stays critical.
+
+### Console
+
+Default console prints the human-decision shown rows (2026-10-18), grouped one row per package name. JSON, SARIF, Markdown, HTML, the baseline, and `--fail-on` stay the full list. `--all` prints every finding, ungrouped. This is not a stable-output change.
+
+Recount on `next` after restore-0.4.0, from `scan --json --offline-safe`, unreviewed. The counts match the 2026-10-18 decision (D4). There is no row-count threshold. The shown rule, the 20-row cap, and severities were not changed.
+
+| app | shown rows | shown findings | folded findings | shown findings by reachability |
+|---|---|---|---|---|
+| nodegoat | 36 | 62 | 194 | reachable-via-dependency 41, reachable 12, none 8, not-imported 1 |
+| juice-shop | 49 | 59 | 46 | none 46, reachable 13 |
+| dvna | 14 | 16 | 7 | none 12, reachable 4 |
+| goof | 63 | 157 | 114 | reachable-via-dependency 86, reachable 60, none 11 |
+| vulnerable-node | 41 | 43 | 20 | none 38, reachable-via-dependency 4, reachable 1 |
+
 ## 0.3.0 — 2026-10-16
 
 ### Default scan changes

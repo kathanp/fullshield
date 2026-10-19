@@ -190,6 +190,39 @@ export function classifyReachability(
 }
 
 /**
+ * Direct production dependencies that no project file imports and that no
+ * imported package requires. Imported and imported-not-called names stay out.
+ * When the lockfile has no edges, the list is empty.
+ */
+export function unusedDirectPackages(ctx: ReachabilityContext): string[] {
+  if (!ctx.graph.edgesKnown) return [];
+  const imported = importedDirectNames(ctx.productionUsage, ctx.graph);
+  return [...ctx.graph.directProd]
+    .filter((name) => {
+      if (ctx.productionUsage.get(name)?.imported === true) return false;
+      return !reachableFrom(name, imported, ctx.graph.edges);
+    })
+    .sort();
+}
+
+export function unusedDirectPlan(
+  findings: readonly Finding[],
+  ctx: ReachabilityContext,
+): { packages: string[]; advisories: number } | undefined {
+  const packages = unusedDirectPackages(ctx);
+  if (packages.length === 0) return undefined;
+  const names = new Set(packages);
+  let advisories = 0;
+  for (const finding of findings) {
+    if (finding.ruleId !== 'DEPS-VULN-001' && finding.ruleId !== 'DEPS-MALICIOUS-001') continue;
+    if (finding.snippet === undefined) continue;
+    const pkg = packageNameFromSnippet(finding.snippet);
+    if (pkg !== undefined && names.has(pkg)) advisories += 1;
+  }
+  return { packages, advisories };
+}
+
+/**
  * reachable-via-dependency keeps OSV severity: the parent that the app
  * imports loads this package. imported-not-called is −1; not-imported is −2.
  */

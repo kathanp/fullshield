@@ -1,0 +1,11 @@
+{
+  "name": "unused-dep-app",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "never-used": "1.0.0",
+    "evil-unused": "1.0.0",
+    "idle-lib": "1.0.0",
+    "used-lib": "1.0.0"
+  }
+}

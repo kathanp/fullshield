@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { loadConfig } from '../../core/config.js';
 
-const MIN_NODE = [20, 11, 0] as const;
+const MIN_NODE = [22, 13, 0] as const;
 const LOCKFILES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'] as const;
 const FLAGS = [
   'FULLSHIELD_EXPERIMENTAL_SAST_GAPS',
@@ -43,7 +43,7 @@ export interface DoctorOptions {
 export async function runDoctor(cwd: string, options: DoctorOptions = {}): Promise<string> {
   const lines: string[] = [];
   const version = process.versions.node;
-  lines.push(`node: ${version} ${nodeOk(version) ? 'ok' : 'too old (need >= 20.11.0)'}`);
+  lines.push(`node: ${version} ${nodeOk(version) ? 'ok' : 'too old (need >= 22.13.0)'}`);
   const locks = LOCKFILES.filter((name) => existsSync(join(cwd, name)));
   lines.push(locks.length > 0 ? `lockfile: ${locks.join(', ')}` : 'lockfile: none');
   const cacheDir = join(homedir(), '.cache', 'fullshield', 'osv');
