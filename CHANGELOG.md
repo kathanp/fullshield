@@ -4,6 +4,10 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+### Quality gate
+
+Phase 94 adds `npm run quality` (Q1–Q12) for contributors. Default scan findings are unchanged.
+
 ### New/changed stable findings — may change CI results; use --update-baseline
 
 Phase 75 router-level auth inheritance. Default-scan diff against `bench/snapshots/HEAD.json` (0.4.0) was empty on vulnerable-app, clean-app, and every bench app. Merged (D9).
