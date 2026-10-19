@@ -33,11 +33,11 @@
     "./package.json": "./package.json"
   },
   "peerDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "express": "*",
     "fastify": "*",
-    "koa": "*",
     "hono": "*",
-    "@modelcontextprotocol/sdk": "^1.32.1",
+    "koa": "*",
     "zod": "^4.6.7"
   },
   "peerDependenciesMeta": {
@@ -84,7 +84,8 @@
     "bench": "node scripts/bench.mjs",
     "bench:public": "node scripts/bench-public.mjs",
     "verify": "node scripts/verify.mjs",
-    "verify:phase": "node scripts/verify.mjs --phase"
+    "verify:phase": "node scripts/verify.mjs --phase",
+    "quality": "node scripts/quality.mjs"
   },
   "dependencies": {
     "@typescript-eslint/typescript-estree": "^8.71.2",
@@ -93,13 +94,14 @@
     "picocolors": "^1.1.1"
   },
   "devDependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.1",
     "@eslint/js": "^9.14.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "@types/node": "^22.9.0",
     "@vitest/coverage-v8": "^2.1.4",
     "eslint": "^9.14.0",
     "express": "^4.22.3",
     "globals": "^15.12.0",
+    "knip": "^6.42.1",
     "tsup": "^8.3.5",
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.13.0",
