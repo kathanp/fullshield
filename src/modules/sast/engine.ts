@@ -124,7 +124,24 @@ export function findingsFromAst(
   return findings;
 }
 
-function findingsFromTemplate(filename: string, source: string): Finding[] {
+function declaredViewEngine(source: string): string | undefined {
+  const set = /set\(\s*['"]view engine['"]\s*,\s*['"]([A-Za-z0-9_-]+)['"]\s*\)/.exec(source);
+  if (set?.[1] !== undefined) return set[1].toLowerCase();
+  const named = /\.engine\(\s*['"]([A-Za-z0-9_-]+)['"]/.exec(source);
+  return named?.[1]?.toLowerCase();
+}
+
+async function projectViewEngine(ctx: Parameters<ScanModule['run']>[0]): Promise<string | undefined> {
+  for (const rel of ctx.files) {
+    if (!SOURCE_EXT.test(rel)) continue;
+    const source = await readScanSource(ctx.cwd, rel);
+    const engine = source === undefined ? undefined : declaredViewEngine(source);
+    if (engine !== undefined) return engine;
+  }
+  return undefined;
+}
+
+function findingsFromTemplate(filename: string, source: string, engine?: string): Finding[] {
   const findings: Finding[] = [];
   const ctx: RuleContext = {
     filename,
@@ -160,6 +177,21 @@ function findingsFromTemplate(filename: string, source: string): Finding[] {
     projectCsrfProtected: false,
   };
   xssRule.create(ctx);
+  if (engine === 'swig') {
+    source.split(/\r?\n/).forEach((line, index) => {
+      if (!/\{\{[^{}]/.test(line)) return;
+      ctx.report({
+        node: {
+          type: 'Literal',
+          value: '',
+          raw: "''",
+          loc: { start: { line: index + 1, column: 0 }, end: { line: index + 1, column: 0 } },
+          range: [0, 0],
+        } as AstNode,
+        message: 'Swig {{ }} is unescaped and can produce XSS.',
+      });
+    });
+  }
   return findings;
 }
 
@@ -293,6 +325,7 @@ function extraReturners(
 
 async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<Finding[]> {
   const maxBytes = ctx.config.sast.maxFileBytes;
+  const viewEngine = await projectViewEngine(ctx);
   const findings: Finding[] = [];
   const returning = new Map<string, Set<string>>();
   const parseable: string[] = [];
@@ -301,7 +334,7 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
 
   for (const rel of ctx.files) {
     const isSource = SOURCE_EXT.test(rel);
-    const isTemplate = TEMPLATE_EXT.test(rel);
+    const isTemplate = TEMPLATE_EXT.test(rel) || (viewEngine === 'swig' && /\.(swig|html)$/.test(rel));
     if (!isSource && !isTemplate) continue;
     const source = await readScanSource(ctx.cwd, rel);
     if (source === undefined) continue;
@@ -312,7 +345,7 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
     }
     if (sourceHasCsrfGuard(source)) projectCsrf = true;
     if (isTemplate) {
-      findings.push(...findingsFromTemplate(rel, source));
+      findings.push(...findingsFromTemplate(rel, source, viewEngine));
       continue;
     }
     const ast = await parseCode(source);
@@ -365,7 +398,10 @@ export const sastModule: ScanModule = {
     }
     setTaintSummaryConfig(taintSummariesEnabled() ? ctx.config : undefined);
     try {
-    const candidates = ctx.files.filter((rel) => SOURCE_EXT.test(rel) || TEMPLATE_EXT.test(rel));
+    const viewEngine = await projectViewEngine(ctx);
+    const candidates = ctx.files.filter(
+      (rel) => SOURCE_EXT.test(rel) || TEMPLATE_EXT.test(rel) || (viewEngine === 'swig' && /\.(swig|html)$/.test(rel)),
+    );
     if (candidates.length > sastStreamThreshold()) return await runSastStreaming(ctx);
 
     const maxBytes = ctx.config.sast.maxFileBytes;
@@ -379,8 +415,8 @@ export const sastModule: ScanModule = {
         findings.push(skipFinding(rel, `Skipped ${rel}: ${why}.`));
         continue;
       }
-      if (TEMPLATE_EXT.test(rel)) {
-        findings.push(...findingsFromTemplate(rel, source));
+      if (TEMPLATE_EXT.test(rel) || (viewEngine === 'swig' && /\.(swig|html)$/.test(rel))) {
+        findings.push(...findingsFromTemplate(rel, source, viewEngine));
         continue;
       }
       const ast = await parseCode(source);
