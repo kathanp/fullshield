@@ -1,0 +1,31 @@
+{
+  "measured": true,
+  "measuredAt": "2026-10-19T22:55:00.000Z",
+  "label": "unreviewed",
+  "note": "Three cold scans after steps 3-6 together (fea3ce2), flag FULLSHIELD_EXPERIMENTAL_PERF2=1, --json --offline-safe, no --cpu-prof. The same machine was also running npm run verify mutation-smoke, so these times are not a quiet-machine p50. --changed was not measured. Exit 1 is findings, not a crash.",
+  "targets": {
+    "nextColdSeconds": 60,
+    "changedSeconds": 5,
+    "peakRssBytes": 1610612736
+  },
+  "apps": {
+    "next": {
+      "coldSeconds": [107.95, 100.45, 111.52],
+      "coldP50Seconds": 107.95,
+      "peakRssBytes": [1571667968, 1578991616, 1417347072],
+      "statuses": [1, 1, 1]
+    },
+    "nest": {
+      "coldSeconds": [14.56, 12.2, 12.23],
+      "coldP50Seconds": 12.23,
+      "peakRssBytes": [807075840, 842350592, 823197696],
+      "statuses": [1, 1, 1]
+    },
+    "undici": {
+      "coldSeconds": [15.26, 20.94, 13.92],
+      "coldP50Seconds": 15.26,
+      "peakRssBytes": [640434176, 536576000, 793411584],
+      "statuses": [1, 1, 1]
+    }
+  }
+}
