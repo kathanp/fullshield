@@ -28,4 +28,14 @@ describe('phase 52 phantom and lock mismatch', () => {
     expect(keys.every((key) => !key.includes('\tundefined\t'))).toBe(true);
     expect(new Set(keys).size).toBe(keys.length);
   });
+
+  it('reports an undeclared import under scripts/ as low and keeps a src import medium', async () => {
+    const result = await scan({ cwd: join(import.meta.dirname, '../../../fixtures/phantom-app'), modules: ['deps'], offline: true });
+    const script = result.findings.find(
+      (finding) => finding.ruleId === 'DEPS-PHANTOM-001' && finding.file.endsWith('scripts/undeclared.js'),
+    );
+    const src = result.findings.find((finding) => finding.ruleId === 'DEPS-PHANTOM-001' && finding.snippet === 'missing-pkg');
+    expect(script?.severity).toBe('low');
+    expect(src?.severity).toBe('medium');
+  });
 });

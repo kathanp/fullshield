@@ -29,7 +29,7 @@ export function dependencyShapeFindings(
         ruleId: 'DEPS-PHANTOM-001',
         module: 'deps',
         title: `Imported package ${name} is not declared`,
-        severity: 'medium',
+        severity: devSatisfiedPath(source.file) ? 'low' : 'medium',
         confidence: 'high',
         file: source.file,
         line: imported.line,
