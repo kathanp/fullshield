@@ -6,7 +6,7 @@ All notable changes to FullShield are documented here.
 
 ### New/changed stable findings — may change CI results; use --update-baseline
 
-Phase 50 flags Swig `{{ }}` only when the view engine is Swig. Parked. Default-scan diff against `bench/snapshots/HEAD.json` (0.4.0) was empty on vulnerable-app, clean-app, and every bench app. Not merged.
+Phase 50 flags Swig `{{ }}` when the view engine is Swig, including `app.engine('.html', consolidate.swig)` with `app.set('view engine', 'html')`. Parked. NodeGoat gains `SAST-XSS-001` keys. Not merged.
 
 ## 0.4.0 — 2026-10-18
 

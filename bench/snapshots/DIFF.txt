@@ -1,13 +1,61 @@
   scanned vulnerable-app: 35
   scanned clean-app: 0
-  scanned nodegoat: 256
+  scanned nodegoat: 304
   scanned juice-shop: 105
   scanned dvna: 23
   scanned goof: 271
   scanned vulnerable-node: 63
 IDENTICAL vulnerable-app
 IDENTICAL clean-app
-IDENTICAL nodegoat
+DRIFT nodegoat
++ SAST-XSS-001	app/views/allocations.html	15	high
++ SAST-XSS-001	app/views/allocations.html	35	high
++ SAST-XSS-001	app/views/allocations.html	39	high
++ SAST-XSS-001	app/views/allocations.html	42	high
++ SAST-XSS-001	app/views/allocations.html	45	high
++ SAST-XSS-001	app/views/benefits.html	20	high
++ SAST-XSS-001	app/views/benefits.html	50	high
++ SAST-XSS-001	app/views/benefits.html	51	high
++ SAST-XSS-001	app/views/benefits.html	52	high
++ SAST-XSS-001	app/views/benefits.html	56	high
++ SAST-XSS-001	app/views/benefits.html	57	high
++ SAST-XSS-001	app/views/contributions.html	20	high
++ SAST-XSS-001	app/views/contributions.html	65	high
++ SAST-XSS-001	app/views/contributions.html	73	high
++ SAST-XSS-001	app/views/contributions.html	81	high
++ SAST-XSS-001	app/views/contributions.html	91	high
++ SAST-XSS-001	app/views/error-template.html	11	high
++ SAST-XSS-001	app/views/layout.html	126	high
++ SAST-XSS-001	app/views/layout.html	56	high
++ SAST-XSS-001	app/views/layout.html	75	high
++ SAST-XSS-001	app/views/login.html	101	high
++ SAST-XSS-001	app/views/login.html	110	high
++ SAST-XSS-001	app/views/login.html	115	high
++ SAST-XSS-001	app/views/login.html	117	high
++ SAST-XSS-001	app/views/login.html	146	high
++ SAST-XSS-001	app/views/memos.html	31	high
++ SAST-XSS-001	app/views/profile.html	24	high
++ SAST-XSS-001	app/views/profile.html	41	high
++ SAST-XSS-001	app/views/profile.html	45	high
++ SAST-XSS-001	app/views/profile.html	49	high
++ SAST-XSS-001	app/views/profile.html	53	high
++ SAST-XSS-001	app/views/profile.html	57	high
++ SAST-XSS-001	app/views/profile.html	61	high
++ SAST-XSS-001	app/views/profile.html	66	high
++ SAST-XSS-001	app/views/profile.html	70	high
++ SAST-XSS-001	app/views/profile.html	73	high
++ SAST-XSS-001	app/views/profile.html	78	high
++ SAST-XSS-001	app/views/signup.html	102	high
++ SAST-XSS-001	app/views/signup.html	104	high
++ SAST-XSS-001	app/views/signup.html	126	high
++ SAST-XSS-001	app/views/signup.html	57	high
++ SAST-XSS-001	app/views/signup.html	75	high
++ SAST-XSS-001	app/views/signup.html	80	high
++ SAST-XSS-001	app/views/signup.html	86	high
++ SAST-XSS-001	app/views/signup.html	91	high
++ SAST-XSS-001	app/views/signup.html	96	high
++ SAST-XSS-001	app/views/tutorial/a8.html	98	high
++ SAST-XSS-001	app/views/tutorial/layout.html	96	high
 IDENTICAL juice-shop
 IDENTICAL dvna
 IDENTICAL goof

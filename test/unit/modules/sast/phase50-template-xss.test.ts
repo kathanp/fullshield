@@ -16,5 +16,11 @@ describe('phase 50 template-engine XSS', () => {
     expect(hbs.findings.some((finding) => finding.ruleId === 'SAST-XSS-001')).toBe(false);
     const html = await scan({ cwd: join(root, 'html-app'), modules: ['sast'], offline: true });
     expect(html.findings.some((finding) => finding.ruleId === 'SAST-XSS-001')).toBe(false);
+    const cons = await scan({ cwd: join(root, 'cons-swig-app'), modules: ['sast'], offline: true });
+    expect(cons.findings.some((finding) => finding.ruleId === 'SAST-XSS-001' && finding.file?.endsWith('.html'))).toBe(
+      true,
+    );
+    const other = await scan({ cwd: join(root, 'cons-other-app'), modules: ['sast'], offline: true });
+    expect(other.findings.some((finding) => finding.ruleId === 'SAST-XSS-001')).toBe(false);
   });
 });

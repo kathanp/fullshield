@@ -125,10 +125,20 @@ export function findingsFromAst(
 }
 
 function declaredViewEngine(source: string): string | undefined {
-  const set = /set\(\s*['"]view engine['"]\s*,\s*['"]([A-Za-z0-9_-]+)['"]\s*\)/.exec(source);
-  if (set?.[1] !== undefined) return set[1].toLowerCase();
-  const named = /\.engine\(\s*['"]([A-Za-z0-9_-]+)['"]/.exec(source);
-  return named?.[1]?.toLowerCase();
+  // consolidate.swig / cons.swig registered for another extension, as NodeGoat does:
+  // app.engine(".html", consolidate.swig); app.set("view engine", "html");
+  if (/\.engine\(\s*['"]\.?[A-Za-z0-9_-]+['"]\s*,\s*[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*\.swig\b/.test(source)) {
+    return 'swig';
+  }
+  if (/\.engine\(\s*['"]\.?swig['"]/.test(source)) return 'swig';
+  const set = /set\(\s*['"]view engine['"]\s*,\s*['"]\.?([A-Za-z0-9_-]+)['"]\s*\)/.exec(source);
+  if (set?.[1]?.toLowerCase() === 'swig') return 'swig';
+  const named = /\.engine\(\s*['"]\.?([A-Za-z0-9_-]+)['"]/.exec(source);
+  const name = named?.[1]?.toLowerCase();
+  if (name === 'swig') return 'swig';
+  if (set?.[1] !== undefined && set[1].toLowerCase() !== 'html') return set[1].toLowerCase();
+  if (name !== undefined && name !== 'html') return name;
+  return undefined;
 }
 
 async function projectViewEngine(ctx: Parameters<ScanModule['run']>[0]): Promise<string | undefined> {
