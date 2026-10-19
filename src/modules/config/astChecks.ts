@@ -1,3 +1,4 @@
+import { sharedAstActive, sharedParse } from '../../core/shared-ast.js';
 import { calleeName, literalString, walk } from '../sast/ast.js';
 import { classesEnabled } from '../sast/experimental.js';
 import type { AstNode } from '../sast/types.js';
@@ -35,16 +36,24 @@ function objectProp(
   return undefined;
 }
 
-export async function runConfigAstChecks(file: string, source: string): Promise<Finding[]> {
+async function configAst(file: string, source: string): Promise<AstNode> {
+  if (sharedAstActive()) {
+    const shared = await sharedParse(file, source);
+    if (shared !== undefined) return shared;
+  }
   const { parse } = await import('@typescript-eslint/typescript-estree');
-  const ast = parse(source, {
+  return parse(source, {
     loc: true,
     range: true,
     comment: false,
     jsx: true,
     errorOnUnknownASTType: false,
     errorOnTypeScriptSyntacticAndSemanticIssues: false,
-  }) as AstNode;
+  });
+}
+
+export async function runConfigAstChecks(file: string, source: string): Promise<Finding[]> {
+  const ast = await configAst(file, source);
 
   const findings: Finding[] = [];
   let createsApp = false;

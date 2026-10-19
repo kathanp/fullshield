@@ -16,6 +16,7 @@ import { applyBaseline, applySuppressions, readBaseline, writeBaseline } from '.
 import { loadConfig, type ResolvedConfig } from './config.js';
 import { walkFiles } from './fileWalker.js';
 import { partitionPerf2, perf2Enabled } from './perf2.js';
+import { beginSharedAst, endSharedAst, preparseProject } from './shared-ast.js';
 import { listStagedFiles } from './git.js';
 import { applyInlineSuppressions } from './suppression.js';
 import {
@@ -154,6 +155,31 @@ function dedupe(findings: readonly Finding[]): Finding[] {
   return out;
 }
 
+async function collectModuleFindings(
+  available: ReadonlyMap<ModuleName, ScanModule>,
+  modulesRun: readonly ModuleName[],
+  ctx: ModuleContext,
+): Promise<Finding[]> {
+  if (!perf2Enabled()) {
+    const collected: Finding[] = [];
+    for (const name of modulesRun) {
+      const module = available.get(name);
+      if (module !== undefined) collected.push(...(await module.run(ctx)));
+    }
+    return collected;
+  }
+  const runs = await Promise.all(
+    modulesRun.map(async (name) => {
+      const module = available.get(name);
+      const findings = module === undefined ? [] : await module.run(ctx);
+      findings.sort((a, b) => a.id.localeCompare(b.id));
+      return { name, findings };
+    }),
+  );
+  runs.sort((a, b) => a.name.localeCompare(b.name));
+  return runs.flatMap((run) => run.findings);
+}
+
 /**
  * Core scan: load config, walk files, run the requested modules that exist,
  * then dedupe, sort, and summarize findings. `modules` is injectable so the
@@ -228,12 +254,15 @@ export async function runScan(
   const modulesRun = modulesRequested.filter((name) => available.has(name));
 
   const ctx: ModuleContext = { cwd, files, config };
-  const collected: Finding[] = [];
-  for (const name of modulesRun) {
-    const module = available.get(name);
-    if (module !== undefined) {
-      collected.push(...(await module.run(ctx)));
-    }
+  if (perf2Enabled()) {
+    beginSharedAst();
+    await preparseProject(cwd, files, config.sast.maxFileBytes);
+  }
+  let collected: Finding[];
+  try {
+    collected = await collectModuleFindings(available, modulesRun, ctx);
+  } finally {
+    if (perf2Enabled()) endSharedAst();
   }
   if (process.env.FULLSHIELD_EXPERIMENTAL_MCPCFG === '1') {
     collected.push(
