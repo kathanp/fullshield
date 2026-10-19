@@ -1,5 +1,5 @@
 {
-  "version": "HEAD",
+  "version": "0.4.0",
   "flags": [
     "--json",
     "--offline-safe"
@@ -738,6 +738,8 @@
       "SAST-CRYPTO-001\tsast/seeds/crypto-weak.js\t5\tmedium",
       "SAST-EVAL-001\tsast/seeds/eval-code.js\t7\thigh",
       "SAST-JWT-001\tmiddleware/auth.js\t30\thigh",
+      "SAST-NOSQLI-001\troutes/shop.js\t41\thigh",
+      "SAST-NOSQLI-001\troutes/shop.js\t58\thigh",
       "SAST-PATH-001\troutes/extras.js\t17\thigh",
       "SAST-PATH-001\troutes/progress.js\t67\thigh",
       "SAST-PATH-001\tsast/seeds/path-traversal.js\t12\thigh",
