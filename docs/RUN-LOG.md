@@ -92,6 +92,7 @@ Built: brought still-true sentences from the stash into errors, noise, Node 20, 
 Not done / limitations: stash package.json, lockfile, CHANGELOG, README, and the spec were not touched.
 Tests added: 0
 default-scan-diff: EMPTY (base 43f8590 head a815b5a)
+CI: `npm publish --dry-run` on next exits 1 when the version is already on npm. The job still packs the tarball and now treats that collision as expected. The version stays 0.3.0.
 verify: docs only; scan keys are the gate
 Benchmark impact: none
 Next CI: not pushed
