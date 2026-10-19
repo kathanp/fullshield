@@ -17,5 +17,15 @@ describe('phase 52 phantom and lock mismatch', () => {
     expect(result.findings.some((finding) => finding.ruleId === 'DEPS-LOCKMISMATCH-001' && finding.snippet === 'left-pad@2.0.0')).toBe(
       true,
     );
+    const phantom = result.findings.find((finding) => finding.ruleId === 'DEPS-PHANTOM-001' && finding.snippet === 'missing-pkg');
+    const mismatch = result.findings.find((finding) => finding.ruleId === 'DEPS-LOCKMISMATCH-001');
+    expect(phantom?.line).toBe(4);
+    expect(mismatch?.line).toBe(4);
+    expect(result.findings.some((finding) => finding.snippet === 'dev-only-pkg')).toBe(false);
+    const keys = result.findings
+      .filter((finding) => finding.ruleId === 'DEPS-PHANTOM-001' || finding.ruleId === 'DEPS-LOCKMISMATCH-001')
+      .map((finding) => `${finding.ruleId}\t${finding.file}\t${finding.line}\t${finding.severity}`);
+    expect(keys.every((key) => !key.includes('\tundefined\t'))).toBe(true);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 });

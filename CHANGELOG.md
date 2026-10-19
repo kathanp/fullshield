@@ -6,7 +6,7 @@ All notable changes to FullShield are documented here.
 
 ### New/changed stable findings — may change CI results; use --update-baseline
 
-Phase 52 adds `DEPS-PHANTOM-001` and `DEPS-LOCKMISMATCH-001`. Parked. Not merged. clean-app is not at 0 findings on this branch: `src/index.js` reports `DEPS-PHANTOM-001` for `cors`, `express-rate-limit`, and `jsonwebtoken`. The existing clean-app fixture was not edited.
+Phase 52 adds `DEPS-PHANTOM-001` and `DEPS-LOCKMISMATCH-001`. Each key includes the import line or the package.json line. Imports under test/, tests/, __tests__/, scripts/, seeds/, and *.test.* / *.spec.* files are not reported when the package is in devDependencies. Parked. clean-app still reports three phantom imports. The fixture was not edited: vulnerable-app does not declare versions for those packages.
 
 ## 0.4.0 — 2026-10-18
 
