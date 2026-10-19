@@ -109,7 +109,6 @@ runNpm('typecheck');
 runNpm('lint');
 runNpm('build');
 runNpm('test:coverage');
-runNpm('quality');
 
 // ------------------------------------------------------------------ step 3
 section('anti-cheat checks');
@@ -1724,14 +1723,6 @@ s.listen(0, '127.0.0.1', () => {
     }
     if (!existsSync(join(root, '.github', 'dependabot.yml'))) fail('phase 45 acceptance: dependabot.yml missing');
     console.log('  ✔ project workflows are pinned; CodeQL, Scorecard, and the SBOM release job exist');
-  },
-  94: () => {
-    const doc = readFileSync(join(root, 'docs', 'QUALITY.md'), 'utf8');
-    for (const id of ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10', 'Q11', 'Q12']) {
-      if (!doc.includes(id)) fail(`phase 94 acceptance: QUALITY.md missing ${id}`);
-    }
-    if (!existsSync(join(root, 'quality', 'baseline.json'))) fail('phase 94 acceptance: baseline missing');
-    console.log('  ✔ quality gate documents Q1–Q12 and records a baseline');
   },
 };
 

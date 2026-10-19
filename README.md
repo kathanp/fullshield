@@ -14,8 +14,6 @@ This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
 
 **Supported runtime is Node.js >= 22.13.** `package.json` `engines` and `doctor` enforce that floor. `node:sqlite` runs without `--experimental-sqlite` from 22.13.0 (the module is still experimental and is loaded only by history/confirm, not by `--import` register).
 
-Contributor quality gate: [docs/QUALITY.md](docs/QUALITY.md) (`npm run quality`). It does not change scan results.
-
 ## Coverage map
 
 | Layer | Covered by |
