@@ -44,6 +44,36 @@ const KNOWN: Array<{ test: RegExp; code: string; hint: string }> = [
     code: 'FS-E009',
     hint: 'Set FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS=1 before naming sast.sources or sast.sanitizers.',
   },
+  {
+    test: /custom rules|FULLSHIELD_EXPERIMENTAL_CUSTOM_RULES|sast\.customRules/,
+    code: 'FS-E010',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_CUSTOM_RULES=1. The rules file is JSON with id, severity, sources, sinks, and message.',
+  },
+  {
+    test: /FULLSHIELD_EXPERIMENTAL_ROUTES/,
+    code: 'FS-E011',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_ROUTES=1 or pass --experimental-routes.',
+  },
+  {
+    test: /FULLSHIELD_EXPERIMENTAL_BUDGET|invalid --max-time/,
+    code: 'FS-E012',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_BUDGET=1. Pass --max-time as a positive number of seconds.',
+  },
+  {
+    test: /FULLSHIELD_EXPERIMENTAL_SPDX|invalid SPDX/,
+    code: 'FS-E013',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_SPDX=1 before --format spdx.',
+  },
+  {
+    test: /FULLSHIELD_EXPERIMENTAL_INGEST|cannot ingest/,
+    code: 'FS-E014',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_INGEST=1. Pass local Semgrep, OSV-Scanner, npm audit, or SARIF JSON files.',
+  },
+  {
+    test: /FULLSHIELD_EXPERIMENTAL_PATHS/,
+    code: 'FS-E015',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_PATHS=1 or pass --experimental-paths.',
+  },
 ];
 
 const DOCS = 'https://github.com/kathanp/fullshield/blob/main/docs/errors.md';

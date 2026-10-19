@@ -1,0 +1,13 @@
+{
+  "package": "express",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sink",
+      "sinkClass": "xss",
+      "memberPath": "res.send(",
+      "argumentIndex": 0,
+      "reference": "https://expressjs.com/en/api.html#res.send"
+    }
+  ]
+}

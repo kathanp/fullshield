@@ -1,0 +1,23 @@
+name: False negative
+description: A vulnerability the scanner missed
+title: "false negative: "
+labels: ["false-negative"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: FullShield version
+    validations:
+      required: true
+  - type: textarea
+    id: code
+    attributes:
+      label: Minimal code
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected rule
+    validations:
+      required: true

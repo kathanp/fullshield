@@ -1,0 +1,13 @@
+{
+  "package": "pg",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sink",
+      "sinkClass": "sqli",
+      "memberPath": "client.query(",
+      "argumentIndex": 0,
+      "reference": "https://node-postgres.com/apis/client#clientquery"
+    }
+  ]
+}

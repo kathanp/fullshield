@@ -1,0 +1,13 @@
+{
+  "package": "typeorm",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sink",
+      "sinkClass": "sqli",
+      "memberPath": "manager.query(",
+      "argumentIndex": 0,
+      "reference": "https://typeorm.io/docs/working-with-entity-manager/entity-manager-api"
+    }
+  ]
+}

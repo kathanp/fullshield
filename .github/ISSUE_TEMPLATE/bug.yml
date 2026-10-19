@@ -1,23 +1,23 @@
 name: Bug
-description: Something FullShield does wrong (crash, wrong CLI, broken report)
-title: '[bug] '
-labels: ['bug']
+description: A crash, wrong exit code, or broken command
+title: "bug: "
+labels: ["bug"]
 body:
-  - type: markdown
+  - type: input
+    id: version
     attributes:
-      value: |
-        For a **wrong finding**, use the False positive template. For a **missed vuln**, use New rule.
-  - type: textarea
-    id: what
-    attributes:
-      label: What happened
-      description: Command, expected vs actual, and FullShield version (`fullshield --version`).
+      label: FullShield version
     validations:
       required: true
   - type: textarea
-    id: repro
+    id: command
     attributes:
-      label: Reproduction
-      description: Minimal steps or a tiny fixture. Do not paste real secrets.
+      label: Command
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
     validations:
       required: true

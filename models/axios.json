@@ -1,0 +1,13 @@
+{
+  "package": "axios",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sink",
+      "sinkClass": "ssrf",
+      "memberPath": "axios.get(",
+      "argumentIndex": 0,
+      "reference": "https://axios-http.com/docs/api_intro"
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import diagnosticsChannel from 'node:diagnostics_channel';
 import { createRequire } from 'node:module';
 
 import { currentRaspContext } from './context.js';
@@ -107,6 +108,102 @@ function wrapSqlMethod(obj: object, key: string): void {
       );
     };
   });
+}
+
+const MONGO_METHODS = [
+  'find',
+  'findOne',
+  'aggregate',
+  'updateOne',
+  'updateMany',
+  'deleteOne',
+  'deleteMany',
+  'countDocuments',
+] as const;
+
+const MONGOOSE_QUERY_METHODS = [
+  'find',
+  'findOne',
+  'updateOne',
+  'updateMany',
+  'deleteOne',
+  'deleteMany',
+  'countDocuments',
+] as const;
+
+const AXIOS_METHODS = ['request', 'get', 'post', 'put', 'patch', 'delete', 'head', 'options'] as const;
+
+function wrapNosqlMethod(obj: object, key: string): void {
+  patchMethod(obj, key, (orig) => {
+    return function (this: unknown, query: unknown, ...rest: unknown[]) {
+      const extra = rest[0];
+      const sink =
+        extra !== undefined && extra !== null && typeof extra === 'object'
+          ? { query: query ?? {}, extra }
+          : (query ?? {});
+      return applySink('nosql', sink, undefined, () => orig.call(this, query as never, ...(rest as never[])));
+    };
+  });
+}
+
+function httpUrlOf(args: unknown[]): string {
+  const first = args[0];
+  if (typeof first === 'string') return first;
+  if (first instanceof URL) return first.href;
+  if (first !== null && typeof first === 'object') {
+    const rec = first as Record<string, unknown>;
+    if (typeof rec.url === 'string') return rec.url;
+    if (typeof rec.origin === 'string' && typeof rec.path === 'string') return `${rec.origin}${rec.path}`;
+  }
+  return '';
+}
+
+function wrapAxiosClient(client: object): void {
+  for (const key of AXIOS_METHODS) wrapSsrf(client, key, httpUrlOf);
+  patchMethod(client, 'create', (orig) => {
+    return function (this: unknown, ...args: unknown[]) {
+      const created = orig.call(this, ...(args as never[]));
+      if (created !== null && typeof created === 'object') wrapAxiosClient(created);
+      return created;
+    };
+  });
+}
+
+function urlFromUndiciMessage(message: unknown): string {
+  if (typeof message === 'string') return message;
+  if (message === null || typeof message !== 'object') return '';
+  const rec = message as Record<string, unknown>;
+  if (typeof rec.url === 'string') return rec.url;
+  const request = rec.request;
+  if (request !== null && typeof request === 'object') {
+    const row = request as Record<string, unknown>;
+    if (typeof row.origin === 'string' && typeof row.path === 'string') return `${row.origin}${row.path}`;
+    if (typeof row.href === 'string') return row.href;
+  }
+  return '';
+}
+
+function subscribeUndiciCreate(): void {
+  try {
+    const onMessage = (message: unknown): void => {
+      try {
+        const url = urlFromUndiciMessage(message);
+        if (url.length > 0) applySink('ssrf', url, undefined, () => undefined);
+      } catch {
+        // Second signal only. A bad message must not stop the request.
+      }
+    };
+    diagnosticsChannel.subscribe('undici:request:create', onMessage);
+    restorers.push(() => {
+      try {
+        diagnosticsChannel.unsubscribe('undici:request:create', onMessage);
+      } catch {
+        // fail open
+      }
+    });
+  } catch {
+    // fail open
+  }
 }
 
 function wrapNosqlWhere(obj: object, key: string): void {
@@ -494,11 +591,7 @@ export function wrapKnownPackage(request: string, exported: unknown): unknown {
   if (name === 'mongodb' || name.includes('mongodb')) {
     const col = (exported as { Collection?: { prototype: object } }).Collection?.prototype;
     if (col) {
-      patchMethod(col, 'find', (orig) => {
-        return function (this: unknown, query: unknown, ...rest: unknown[]) {
-          return applySink('nosql', query ?? {}, undefined, () => orig.call(this, query as never, ...(rest as never[])));
-        };
-      });
+      for (const key of MONGO_METHODS) wrapNosqlMethod(col, key);
     }
     wrappedPackages.add(obj);
     return exported;
@@ -506,29 +599,28 @@ export function wrapKnownPackage(request: string, exported: unknown): unknown {
   if (name === 'mongoose' || name.includes('mongoose')) {
     const q = (exported as { Query?: { prototype: object } }).Query?.prototype;
     if (q) {
-      patchMethod(q, 'find', (orig) => {
-        return function (this: unknown, query: unknown, ...rest: unknown[]) {
-          return applySink('nosql', query ?? {}, undefined, () => orig.call(this, query as never, ...(rest as never[])));
-        };
-      });
+      for (const key of MONGOOSE_QUERY_METHODS) wrapNosqlMethod(q, key);
       wrapNosqlWhere(q, '$where');
     }
-    const model = (exported as { Model?: { prototype?: object } }).Model?.prototype;
-    if (model) wrapNosqlWhere(model, '$where');
+    const modelExport = (exported as { Model?: object & { prototype?: object } }).Model;
+    if (modelExport) {
+      wrapNosqlMethod(modelExport, 'aggregate');
+      if (modelExport.prototype) wrapNosqlWhere(modelExport.prototype, '$where');
+    }
     wrappedPackages.add(obj);
     return exported;
   }
   if (name === 'axios') {
-    const ax = exported as { request?: unknown; get?: unknown; post?: unknown };
-    const urlOf = (args: unknown[]) => {
-      const a = args[0];
-      if (typeof a === 'string') return a;
-      if (a && typeof a === 'object' && 'url' in a && typeof a.url === 'string') return a.url;
-      return '';
-    };
-    wrapSsrf(ax, 'request', urlOf);
-    wrapSsrf(ax, 'get', urlOf);
-    wrapSsrf(ax, 'post', urlOf);
+    wrapAxiosClient(obj);
+    wrappedPackages.add(obj);
+    return exported;
+  }
+  if (name === 'undici') {
+    wrapSsrf(obj, 'request', httpUrlOf);
+    const dispatcher = (exported as { Dispatcher?: { prototype?: object } }).Dispatcher?.prototype;
+    if (dispatcher) wrapSsrf(dispatcher, 'request', httpUrlOf);
+    const agent = (exported as { Agent?: { prototype?: object } }).Agent?.prototype;
+    if (agent) wrapSsrf(agent, 'request', httpUrlOf);
     wrappedPackages.add(obj);
     return exported;
   }
@@ -555,6 +647,7 @@ export function wrapKnownPackage(request: string, exported: unknown): unknown {
 export function installHooks(): void {
   hooksLive = true;
   wrapBuiltins();
+  subscribeUndiciCreate();
 }
 
 export function restoreHooks(): void {

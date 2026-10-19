@@ -1,0 +1,13 @@
+{
+  "package": "node-fetch",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sink",
+      "sinkClass": "ssrf",
+      "memberPath": "fetch(",
+      "argumentIndex": 0,
+      "reference": "https://github.com/node-fetch/node-fetch"
+    }
+  ]
+}

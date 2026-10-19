@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SPDX 2.3 document subset used by FullShield",
+  "type": "object",
+  "required": ["spdxVersion", "dataLicense", "SPDXID", "name", "documentNamespace", "creationInfo", "packages", "relationships"],
+  "properties": {
+    "spdxVersion": { "const": "SPDX-2.3" },
+    "dataLicense": { "const": "CC0-1.0" },
+    "SPDXID": { "const": "SPDXRef-DOCUMENT" },
+    "name": { "type": "string" },
+    "documentNamespace": { "type": "string" },
+    "creationInfo": {
+      "type": "object",
+      "required": ["created", "creators"],
+      "properties": {
+        "created": { "type": "string" },
+        "creators": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "packages": { "type": "array" },
+    "relationships": { "type": "array" }
+  }
+}

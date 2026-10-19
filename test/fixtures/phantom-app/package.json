@@ -1,0 +1,7 @@
+{
+  "name": "phantom-app",
+  "dependencies": {
+    "left-pad": "^1.0.0",
+    "express": "4.17.0"
+  }
+}

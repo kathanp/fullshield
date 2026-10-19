@@ -1,0 +1,13 @@
+{
+  "package": "zod",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "validator",
+      "sinkClass": "nosqli",
+      "memberPath": "z.number()",
+      "argumentIndex": 0,
+      "reference": "https://zod.dev/api"
+    }
+  ]
+}

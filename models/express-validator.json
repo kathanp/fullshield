@@ -1,0 +1,13 @@
+{
+  "package": "express-validator",
+  "versionRange": ">=6.0.0",
+  "entries": [
+    {
+      "kind": "validator",
+      "sinkClass": "sqli",
+      "memberPath": "body('id').isInt()",
+      "argumentIndex": 0,
+      "reference": "https://express-validator.github.io/docs/api/validation-chain/#isint"
+    }
+  ]
+}

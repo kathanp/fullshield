@@ -1,0 +1,13 @@
+{
+  "package": "path",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sanitizer",
+      "sinkClass": "path",
+      "memberPath": "path.resolve(",
+      "argumentIndex": 0,
+      "reference": "https://nodejs.org/api/path.html#pathresolvepaths"
+    }
+  ]
+}

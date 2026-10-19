@@ -1,11 +1,11 @@
-# FullShield — Build Spec for Cursor (full, rev 2026-10-18b)
+# FullShield — Build Spec for Cursor (full, rev 2026-10-19b)
 
 > Package: `fullshield` on npm (owner `kathan2404`). Repo: https://github.com/kathanp/fullshield (public, MIT).
 > Language: TypeScript (strict). Runtime: Node.js ≥ 22.13. Distribution: one npm package (CLI + library + runtime middleware).
 > Live on npm: `0.1.0`, `0.1.1` (both with provenance), `0.1.3` (**published WITHOUT provenance — must never happen again**). Placeholders `0.0.0-stage`, `0.0.1` deprecated. `0.1.2` was never published.
 > This file is the only spec. The 2026-10-14 draft (`SECURITY_SCANNER_SPEC (1).md`) is deleted. Its design lives here; Section 33 lists the few requirements that draft stated and this file had shortened. Later text wins where the draft disagreed.
-> [X] Complete: phases 1–49, 53, 61, 64, 66, and 74. Started, not complete: 54, 60, 62, 63, 65, and 70. Experimental phases stay off unless their flag is set. The next build in the run order is Phase 55. Skip Phase 56 until R15 is amended. Phases 36–45 are reference, not a queue.
-> **Today's queue is Section 36** (lanes A/B/C). New advanced phases 60–75 are in Section 37. Phase 47 has an addendum (47.1) in Section 37 that is part of its acceptance. Section 38 is the production-reliance stance. It is not a build queue.
+> [X] Complete: phases 1–49, 53–55, 57–64, 66–74. Phase 65 is coded; the 5-second nest/undici target is still unmet. Phases 50, 51, 52, and 75 have fixture tests and still need a bench snapshot diff before merge (R10). Skip Phase 56 until R15 is amended. Experimental phases stay off unless their flag is set. Phases 36–45 are reference, not a queue.
+> **Today's queue is Section 40** (2026-10-19, lanes A/B/C). Section 36 is the 2026-10-18 record. Leadership phases 76–93 are in Section 39. Advanced phases 60–75 are in Section 37; Phase 47 has an addendum (47.1) there that is part of its acceptance. Section 38 is the production-reliance stance (not a queue). Section 41 lists human-only work. Phases 76–93 are not started.
 
 ---
 
@@ -48,7 +48,18 @@ Breaking any rule below = stop work and report to the human. Do not "fix forward
 - [ X ] **R21.** Parallel subagents: one git worktree per phase on branch `phase-N`. Integrate into `next` sequentially in numeric order; full verify + diff after each merge. Shared files (CLI registration, rule registry, compliance map, CHANGELOG, README) are appended to, never rewritten.
 - [ X ] **R22.** Every platform-sensitive test (paths, filenames, shell, line endings) must pass on Linux, macOS, Windows, or use `it.skipIf(process.platform === 'win32')` with a comment giving the reason. No `"` in filenames, use `path.join`, never hardcode `/`. `--import` paths use `pathToFileURL(...).href`.
 
-### 0.7 Stop conditions (stop immediately and report)
+### 0.7 Stop conditions
+**Scope of a stop (R23).** A stop condition stops the **phase** that hit it, not the session. Cursor parks that phase on its `phase-N` branch, writes the full 0.8 report for it into the day's report file (Section 40.5), and moves on to the next queue item that does not depend on the parked one. The human decides parked items later.
+
+The **session** stops only for:
+- the `next` baseline itself is red (S4 on `next`, not on a phase branch),
+- S6 (a publish would lack provenance, or the pack budget is exceeded on `next`),
+- S7 (an instruction would require breaking R1–R22),
+- any R1 action (tag, publish, merge to `main`, ground-truth review, test edit, threshold change, promotion). These are never done. They are listed under "Needs human decision" and the work continues.
+
+Even when the session stops, Cursor writes the report file first.
+
+Conditions:
 - [ X ] S1. Stable-output diff not pre-approved.
 - [ X ] S2. Any existing test/fixture/ground-truth needs editing.
 - [ X ] S3. A phase can't meet acceptance criteria.
@@ -886,7 +897,9 @@ Acceptance: workflows green; reproducibility passes or differences documented; S
 | Repo `package.json` | 0.4.0. The human set this release on 2026-10-18. README says 0.4.0. |
 | `engines` | `>=22.13` in package.json, doctor, and CI (Node 22 and 24). Not pushed. Branch protection still needs a human after the new jobs report. |
 | Built | phases 1–46 in this working tree. Phase 47 console implements D3. D4 accepts the grouped-row table and removes the 40-row stop. Nothing pushed. |
-| Today's queue | Section 36: Lane A 46→47→48→49, then 75/50/51/52 to snapshot diff only; Lane B 67, 68, 73; Lane C 70, 60–66, 71, 72, 74, 69 |
+| Today's queue | Section 40 (2026-10-19): Lane A 75/50/51/52 diffs → 78 → 65 re-measure; Lane B 76, 77, 92, 93; Lane C 82, 81, 80, 84, 83, 86, 87, 85, 79, 88, 91, 89, 90. Section 36 (2026-10-18) is the record: 46–49, 53–55, 57–64, 66–74 done. |
+| Phases 76–93 | specified 2026-10-19, not started |
+| Precision | not measured; Phase 76 builds the sampler, labels are human-only |
 | Phase 56 | blocked on R15 amendment (EPSS/KEV hosts) |
 | Ground truth reviewed | none (all `reviewed: false`). Human only |
 | Untouched holdouts in reserve | 3 (verademo-javascript, serverless-goat, mongection), not scanned |
@@ -910,6 +923,10 @@ Acceptance: workflows green; reproducibility passes or differences documented; S
 - [ X ] A pull-request comment bot. `scan --pr-summary` prints Markdown. Phase 59's Action uploads SARIF. Neither posts a comment.
 - [ X ] A new detection category before Phase 47's console acceptance passes. Phases 50 and later wait.
 - [ X ] Hiding `DEPS-VULN-001` or lowering its severity to shrink the NodeGoat count. Phase 47 folds the console view. The JSON list stays complete.
+- [ X ] Bundling, mirroring, or downloading third-party rule registries (Semgrep registry or others). Phase 90 reads user-supplied files only.
+- [ X ] Running the project's tests or app to verify a fix (R15). Phase 91 verifies by re-scanning only.
+- [ X ] Marketing words in any shipped file: "number 1", "best", "leader", "one of a kind", "complete protection", "prevents attacks", "full shield from cyber attacks".
+- [ X ] ML-based scoring. Phase 84 is a documented, deterministic table.
 
 ---
 
@@ -979,10 +996,10 @@ Acceptance: a fixture lockfile and a fixture OSV cache produce one deterministic
 ### Phase 50 — Template-engine-aware XSS
 Read `app.set('view engine', ...)` and `app.engine(...)`. Flag `{{ }}` in a template only when that engine is on the raw-mustache list. The list starts with Swig. Adding an engine requires a new positive fixture and a new negative fixture.
 
-- [  ] The engine is unknown: do not flag `{{ }}`. That is the current `.html` behavior.
-- [  ] Handlebars / `hbs`: `{{ name }}` is a negative fixture.
-- [  ] Swig, with the view engine set to Swig: `{{ name }}` is a positive fixture for `SAST-XSS-001`.
-- [  ] Existing `<%-` and `{{{` checks stay as they are.
+- [x] The engine is unknown: do not flag `{{ }}`. That is the current `.html` behavior.
+- [x] Handlebars / `hbs`: `{{ name }}` is a negative fixture.
+- [x] Swig, with the view engine set to Swig: `{{ name }}` is a positive fixture for `SAST-XSS-001`.
+- [x] Existing `<%-` and `{{{` checks stay as they are.
 
 This changes default `scan --json` on apps that set Swig. R10 applies. Do not edit ground truth. Do not claim a NodeGoat recall change.
 
@@ -991,17 +1008,17 @@ Acceptance: the Swig positive fixture fails before the implementation and passes
 ### Phase 51 — Cross-file returns
 Follow a SQL string or a Mongo filter built in one file and returned to a caller in another file, up to the existing depth of 5. One finding, with a `trace` that includes both files. The same path already works for a helper in the same file. This phase is the other file.
 
-- [  ] Negative fixture: the helper returns a literal.
-- [  ] Do not turn on `FULLSHIELD_EXPERIMENTAL_TAINT_V2`.
-- [  ] Fixtures are written from scratch (B8).
+- [x] Negative fixture: the helper returns a literal.
+- [x] Do not turn on `FULLSHIELD_EXPERIMENTAL_TAINT_V2`.
+- [x] Fixtures are written from scratch (B8).
 
 R10 applies when a bench app gains or loses a key. Do not edit ground truth.
 
 Acceptance: SQL and NoSQL each have a cross-file positive and a literal-return negative. Same-file cases already covered stay covered. `clean-app` stays at 0.
 
 ### Phase 52 — Phantom and mismatched dependencies
-- [  ] `DEPS-PHANTOM-001`: a package import that is not in `dependencies`, `devDependencies`, `optionalDependencies`, or `peerDependencies`. Node built-ins and relative imports are not packages.
-- [  ] `DEPS-LOCKMISMATCH-001`: a `package.json` range the locked version does not satisfy. Use the existing semver helper. Do not guess a version.
+- [x] `DEPS-PHANTOM-001`: a package import that is not in `dependencies`, `devDependencies`, `optionalDependencies`, or `peerDependencies`. Node built-ins and relative imports are not packages.
+- [x] `DEPS-LOCKMISMATCH-001`: a `package.json` range the locked version does not satisfy. Use the existing semver helper. Do not guess a version.
 
 New rule IDs change stable output. R10 applies. Positive and negative fixtures for each rule. `clean-app` stays at 0.
 
@@ -1014,7 +1031,7 @@ Default `scan --json` is unchanged until the human approves an R10 diff and prom
 
 Acceptance: positive (schema covers the field, flag on, NoSQL finding absent), negative (SQL concat of a validated string still reports; flag off, the NoSQL finding remains). `clean-app` stays at 0 with and without the flag.
 
-### Phase 54 — Per-workspace lockfiles [`FULLSHIELD_EXPERIMENTAL_WORKSPACES`]
+### [X] Phase 54 — Per-workspace lockfiles [`FULLSHIELD_EXPERIMENTAL_WORKSPACES`]
 Off unless `FULLSHIELD_EXPERIMENTAL_WORKSPACES=1` or `scan --experimental-workspaces`.
 
 npm, pnpm, and yarn workspaces: scan each workspace with its own lockfile when that file exists, and attribute findings to that workspace package. The root package still uses the root lockfile. A repo with one package scans as it does today, flag on or off.
@@ -1023,7 +1040,7 @@ No new hard dependency. Default `scan --json` of a single-package app is unchang
 
 Acceptance: a two-workspace fixture reports an advisory on the workspace that locks the vulnerable version, and does not report it on the workspace that does not. The single-package fixture matches the unflagged scan.
 
-### Phase 55 — Runtime-observed reachability [`FULLSHIELD_EXPERIMENTAL_OBSERVED_REACH`]
+### [X] Phase 55 — Runtime-observed reachability [`FULLSHIELD_EXPERIMENTAL_OBSERVED_REACH`]
 Opt-in and local. The register hook, when `FULLSHIELD_EXPERIMENTAL_OBSERVED_REACH=1`, appends loaded package names and export names to `.fullshield/observed-reach.json` in the project directory. The file is never sent anywhere. A hook error fails open and the app keeps running.
 
 The next scan reads that file only when the same flag is set. It may confirm a package as reached, or record a downgrade, from names in the file. Default `scan` ignores the file, so `(ruleId, file, line, severity)` does not change. A missing or unreadable file changes nothing.
@@ -1039,21 +1056,21 @@ When that amendment exists:
 - [  ] With the flag on, the Phase 47 console sorts known-exploited reachable findings first.
 - [  ] With the flag off, `scan --json` keys are unchanged.
 
-### Phase 57 — Custom rules [`FULLSHIELD_EXPERIMENTAL_CUSTOM_RULES`]
+### [X] Phase 57 — Custom rules [`FULLSHIELD_EXPERIMENTAL_CUSTOM_RULES`]
 Off unless `FULLSHIELD_EXPERIMENTAL_CUSTOM_RULES=1` and a rules file is configured. A rules file with the flag off is not loaded.
 
 The file is a schema of `id`, `severity`, `sources`, `sinks`, and `message`. It cannot contain JavaScript. A rule that fails the schema is rejected with an `FS-E` code and is not run. No new hard dependency. A YAML parser, if one is required, is an optional peer, lazy-loaded, with an install hint.
 
 Acceptance: one shipped fixture rule has a positive and a negative test. An invalid file fails closed. Default scan with no flag matches the scan from before this phase.
 
-### Phase 58 — Route security map [`FULLSHIELD_EXPERIMENTAL_ROUTES`]
+### [X] Phase 58 — Route security map [`FULLSHIELD_EXPERIMENTAL_ROUTES`]
 `fullshield routes` refuses to run unless `FULLSHIELD_EXPERIMENTAL_ROUTES=1` or `--experimental-routes`.
 
 Print a table of method, path, auth middleware, validation, and the sink classes that route can reach (SQL, shell, file system, and the other sinks the SAST rules already name). The table does not detect IDOR or missing ownership checks. The command makes no network call. The README states that limit in the same change.
 
 Acceptance: a fixture app with one authenticated route and one unauthenticated sink route produces both rows. `clean-app` is not given a new default-scan finding.
 
-### Phase 59 — GitHub Action wrapper
+### [X] Phase 59 — GitHub Action wrapper
 Extend the generated workflow and add `templates/action/` so it can be published as `kathanp/fullshield-action`. The Action runs the scan, uploads SARIF, and caches the baseline. It pins the `fullshield` version. It does not post a pull-request comment and it does not phone home.
 
 Publishing the Marketplace listing is a human action (R1). This phase stops at the files in this repo.
@@ -1154,7 +1171,7 @@ SAST was re-scanned on the pinned apps. NodeGoat, Juice Shop, DVNA, and goof kep
 
 ---
 
-## 36. Today's Cursor Work Order (2026-10-18, full day)
+## 36. Cursor Work Order 2026-10-18 (record — superseded by Section 40)
 
 This is the queue for a single long Cursor session. It does not override Section 0. If anything here conflicts with R1–R22, Section 0 wins and Cursor stops (S7).
 
@@ -1255,12 +1272,12 @@ Accepted 2026-10-18 from the existing offline-safe JSON (unreviewed). Human deci
 | goof | 63 | 157 | 114 | reachable-via-dependency 86, reachable 60, none 11 |
 | vulnerable-node | 41 | 43 | 20 | none 38, reachable-via-dependency 4, reachable 1 |
 
-### Phase 60 — Offline finding explainer [`FULLSHIELD_EXPERIMENTAL_EXPLAIN`]
+### [X] Phase 60 — Offline finding explainer [`FULLSHIELD_EXPERIMENTAL_EXPLAIN`]
 `fullshield explain <findingId>` reads the last scan (`.fullshield/last-scan.json`) or `--from <scan.json>` and prints one finding in full: rule title, severity, confidence, file:line with 5 lines of context read from disk, the full `trace`, the reachability class with its dependency path, the fix proposal diff if any, and the path to `rules/<id>.md`. No AI. No network. Deterministic.
 
 - [x] An id prefix of at least 6 characters is accepted when it matches exactly one finding. Ambiguous or missing ids exit 2 with an `FS-E` code and list up to 5 candidates.
 - [x] Secrets stay masked. A snippet is re-read from disk and masked again before printing, because the file may have changed since the scan.
-- [  ] The MCP `explain_finding` tool may call the same renderer. It stays read-only.
+- [x] The MCP `explain_finding` tool may call the same renderer. It stays read-only.
 
 Acceptance: golden-file tests for a SAST finding with a 3-file trace, a reachable dependency finding, a secret finding (masked), and an ambiguous prefix. A test asserts zero network calls.
 
@@ -1282,22 +1299,22 @@ reachabilityEvidence?: {
 
 Acceptance: fixtures for each reachability class assert the evidence. A test asserts the field is absent with the flag off. A test asserts no evidence entry points into `test/` or a devDependency-only file for a production finding.
 
-### Phase 62 — Lockfile PR diff [`FULLSHIELD_EXPERIMENTAL_DEPS_DIFF`]
+### [X] Phase 62 — Lockfile PR diff [`FULLSHIELD_EXPERIMENTAL_DEPS_DIFF`]
 `fullshield deps-diff <base-ref>` compares the lockfile at a git ref with the working tree. It reads the old lockfile with `git show <ref>:<path>`. It never checks out the ref and never runs `npm install`.
 
 Output:
 - [x] Packages added, removed, upgraded, downgraded (name, old version, new version, direct or transitive, path from a direct dep).
-- [  ] Advisories introduced by the change and advisories cleared by it, from OSV (cache first, `--offline` honored).
-- [  ] For each **added** package version: publish age and whether that version has install scripts, from `registry.npmjs.org` (allowed host, R15). Versions younger than `deps.minReleaseAgeHours` (default 72) are listed as `new-release`. Missing registry data stays `unknown`. Never guessed.
+- [x] Advisories introduced by the change and advisories cleared by it, from OSV (cache first, `--offline` honored).
+- [x] For each **added** package version: publish age and whether that version has install scripts, from `registry.npmjs.org` (allowed host, R15). Versions younger than `deps.minReleaseAgeHours` (default 72) are listed as `new-release`. Missing registry data stays `unknown`. Never guessed.
 - [x] `--json` for CI. `--fail-on <severity>` applies only to advisories introduced by the diff.
 
 Acceptance: a fixture git repo with two lockfile commits (fixture OSV cache, mocked registry). Added, removed, upgraded, and an introduced advisory each appear. A downgrade that introduces an advisory exits 1 with `--fail-on high`. A test asserts no `git checkout`, no `npm` child process, and only allowlisted hosts.
 
-### Phase 63 — Modern lockfile formats [`FULLSHIELD_EXPERIMENTAL_LOCKFILES`]
+### [X] Phase 63 — Modern lockfile formats [`FULLSHIELD_EXPERIMENTAL_LOCKFILES`]
 Parse packages **and dependency edges** from:
 - [x] yarn berry (`yarn.lock` with `__metadata`), including `npm:` aliases and `patch:` protocols (patch protocol resolves to the underlying version).
 - [x] pnpm lockfile v9 (`importers`, `packages`, `snapshots` split).
-- [  ] Bun text lockfile `bun.lock` (JSONC). The binary `bun.lockb` is not parsed; it yields `DEPS-NOLOCK-001`-style info that the format is unsupported and keeps `reachability-unknown`.
+- [x] Bun text lockfile `bun.lock` (JSONC). The binary `bun.lockb` is not parsed; it yields `DEPS-NOLOCK-001`-style info that the format is unsupported and keeps `reachability-unknown`.
 
 A format that parses packages but not edges sets `edgesKnown: false` → `reachability-unknown` (never a silent downgrade). With the flag off, these files behave exactly as today.
 
@@ -1340,33 +1357,33 @@ VEX output (existing `vex` command) cites the same evidence in `detail` when Pha
 
 Acceptance: CycloneDX 1.5 validation still passes. Properties absent with the flag off. A malicious package component never carries a downgrading statement.
 
-### Phase 67 — Human review CLI (dev tooling, not shipped)
+### [X] Phase 67 — Human review CLI (dev tooling, not shipped)
 `node bench/review-cli.mjs --app <name> [--findings | --ground-truth]` walks a human through review in the terminal.
 
-- [  ] Ground-truth mode: for each entry shows the cited source link, the file excerpt at that line, class, and in/out-of-scope. Keys: `y` confirm, `n` reject with a required reason, `s` skip, `q` quit. Writes `bench/<app>/review-log.json` with reviewer name (asked once, from `git config user.name` as the default), timestamp, decision, reason.
-- [  ] Findings mode: reads `bench/review/<repo>.csv`, shows the 5-line snippet, and writes `label` (`TP` / `FP` / `unsure`), `reviewer`, `note`.
-- [  ] `reviewed: true` is set on an app's `ground-truth.json` only after every entry has a decision **and** the human types the app name to confirm.
-- [  ] The script refuses to run when stdin is not a TTY, when `CI` is set, or when `CURSOR_AGENT`/`FULLSHIELD_AGENT` env is set. Cursor builds and tests it with an injected fake TTY in tests only. Cursor never runs it against real files.
-- [  ] Not in `package.json` `files`. `pack-budget` asserts it is not packed.
+- [x] Ground-truth mode: for each entry shows the cited source link, the file excerpt at that line, class, and in/out-of-scope. Keys: `y` confirm, `n` reject with a required reason, `s` skip, `q` quit. Writes `bench/<app>/review-log.json` with reviewer name (asked once, from `git config user.name` as the default), timestamp, decision, reason.
+- [x] Findings mode: reads `bench/review/<repo>.csv`, shows the 5-line snippet, and writes `label` (`TP` / `FP` / `unsure`), `reviewer`, `note`.
+- [x] `reviewed: true` is set on an app's `ground-truth.json` only after every entry has a decision **and** the human types the app name to confirm.
+- [x] The script refuses to run when stdin is not a TTY, when `CI` is set, or when `CURSOR_AGENT`/`FULLSHIELD_AGENT` env is set. Cursor builds and tests it with an injected fake TTY in tests only. Cursor never runs it against real files.
+- [x] Not in `package.json` `files`. `pack-budget` asserts it is not packed.
 
 Acceptance: tests with an injected input stream cover confirm, reject-requires-reason, resume after quit, and the non-TTY refusal. A test asserts no file under `bench/` changes when the refusal triggers.
 
-### Phase 68 — Holdout freeze and one-shot run (dev tooling)
+### [X] Phase 68 — Holdout freeze and one-shot run (dev tooling)
 `node bench/holdout-run.mjs --release <version>` enforces B3:
-- [  ] Refuses unless `HEAD` is tagged `freeze-<version>` and no file under `src/modules/` or `rules/` changed since that tag.
-- [  ] Runs default scan once on each `untouched` app in `bench/holdouts.json`, writes `bench/results/<app>-<version>.json`, sets `firstRunDate`, flips status to `seen`, and refuses to run a second time for the same app.
-- [  ] Leaves at least 2 untouched apps (B3). If running would leave fewer, it refuses and says so.
-- [  ] Recall printed only against `reviewed: true` ground truth; otherwise labeled `unreviewed`.
+- [x] Refuses unless `HEAD` is tagged `freeze-<version>` and no file under `src/modules/` or `rules/` changed since that tag.
+- [x] Runs default scan once on each `untouched` app in `bench/holdouts.json`, writes `bench/results/<app>-<version>.json`, sets `firstRunDate`, flips status to `seen`, and refuses to run a second time for the same app.
+- [x] Leaves at least 2 untouched apps (B3). If running would leave fewer, it refuses and says so.
+- [x] Recall printed only against `reviewed: true` ground truth; otherwise labeled `unreviewed`.
 
 Acceptance: tests on a fixture holdouts file cover freeze-tag missing, rule file changed after freeze, second run refused, and reserve-floor refusal. Cursor does not run it on the real holdouts (human-only, Section 2 step 5).
 
-### Phase 69 — Secret rotation playbooks (docs only)
+### [X] Phase 69 — Secret rotation playbooks (docs only)
 For each secrets rule, `rules/<ID>.md` gains a "Rotate" section: where to revoke, how to issue a new key, how to find where the old key was used, and that removing it from git history does not un-leak it. Providers: AWS, GitHub, Stripe, Slack, Google, OpenAI/Anthropic-style keys, PEM keys, DB URLs, JWT and session secrets.
 
-- [  ] Docs only. Remediation strings in findings are not changed (that would be a message change on stable output; not worth an R10 for docs).
-- [  ] Every external link is to the provider's own documentation domain. A link-check test (Phase 44) covers them.
+- [x] Docs only. Remediation strings in findings are not changed (that would be a message change on stable output; not worth an R10 for docs).
+- [x] Every external link is to the provider's own documentation domain. A link-check test (Phase 44) covers them.
 
-### Phase 70 — Stealer, chain-C2, and security-placeholder heuristics [`FULLSHIELD_EXPERIMENTAL_SUPPLY`]
+### [X] Phase 70 — Stealer, chain-C2, and security-placeholder heuristics [`FULLSHIELD_EXPERIMENTAL_SUPPLY`]
 Static only, inside the existing `install` guard and the supply helpers. Never executes or installs the analyzed package (R15). Motivation: npm campaigns in 2026 that used platform-gated loaders, credential stealers, and blockchain lookups for command-and-control.
 
 New rule IDs:
@@ -1380,36 +1397,36 @@ New rule IDs:
 
 Rules:
 - [x] Each detector requires the combination listed. A single signal (only a wallet path string, only an RPC method name, only a platform check) is not a finding. Negative fixtures prove that.
-- [  ] `SUPPLY-SECHOLDER-001` reads `registry.npmjs.org` only, honors `--offline` (cache only, missing data = no finding), and is never downgraded by reachability, same as `DEPS-MALICIOUS-001`. Remediation: remove the package, delete `node_modules`, reinstall from a clean lockfile, rotate any credential the machine could read.
+- [x] `SUPPLY-SECHOLDER-001` reads `registry.npmjs.org` only, honors `--offline` (cache only, missing data = no finding), and is never downgraded by reachability, same as `DEPS-MALICIOUS-001`. Remediation: remove the package, delete `node_modules`, reinstall from a clean lockfile, rotate any credential the machine could read.
 - [x] Fixtures are inert strings and dead code paths. No real wallet addresses, RPC endpoints, or payload URLs. Hosts in fixtures use `example.invalid`.
 
 Acceptance: positive + negative fixture per rule; registry mocked; a test asserts that with `FULLSHIELD_EXPERIMENTAL_SUPPLY` unset, default `scan` emits none of these IDs.
 
-### Phase 71 — RASP sink coverage [`FULLSHIELD_EXPERIMENTAL_RASP`]
+### [X] Phase 71 — RASP sink coverage [`FULLSHIELD_EXPERIMENTAL_RASP`]
 Close the "Not covered" rows in `RASP-SINKS.md` that do not break the host:
-- [  ] `mongodb` `Collection.prototype.findOne`, `aggregate`, `updateOne`, `updateMany`, `deleteOne`, `deleteMany`, `countDocuments` (filter and pipeline `$` operators from user input).
-- [  ] `mongoose` `Query.prototype` `findOne`, `updateOne`, `updateMany`, `deleteOne`, `deleteMany`, `countDocuments`, and `Model.aggregate`.
-- [  ] `axios` `put` / `patch` / `delete` / `head` / `options` and instance clients from `axios.create()`.
-- [  ] `undici.request` and `undici.Dispatcher` / `Agent` `request` (SSRF host check).
-- [  ] `diagnostics_channel` subscription for `undici:request:create` where available, as a second signal (not a replacement for the wrap).
+- [x] `mongodb` `Collection.prototype.findOne`, `aggregate`, `updateOne`, `updateMany`, `deleteOne`, `deleteMany`, `countDocuments` (filter and pipeline `$` operators from user input).
+- [x] `mongoose` `Query.prototype` `findOne`, `updateOne`, `updateMany`, `deleteOne`, `deleteMany`, `countDocuments`, and `Model.aggregate`.
+- [x] `axios` `put` / `patch` / `delete` / `head` / `options` and instance clients from `axios.create()`.
+- [x] `undici.request` and `undici.Dispatcher` / `Agent` `request` (SSRF host check).
+- [x] `diagnostics_channel` subscription for `undici:request:create` where available, as a second signal (not a replacement for the wrap).
 
 Every new hook fails open (`RASP-FAIL-OPEN-001`). `RASP-SINKS.md` is updated in the same commit.
 
 Acceptance: ≥ 10 attack and ≥ 10 benign cases per new sink group in the corpus (R8a applies to any reclassification). Benign stays 0 blocked. Express + parameterized query p95 stays under 1 ms.
 
-### Phase 72 — RASP DNS pin store [`FULLSHIELD_EXPERIMENTAL_RASP`]
+### [X] Phase 72 — RASP DNS pin store [`FULLSHIELD_EXPERIMENTAL_RASP`]
 Close the "sticky DNS-rebinding pin" gap. When a request-derived host is resolved for an outbound call, pin the resolved address set for that host for `rasp.dnsPinTtlMs` (default 60 000) inside the current request context, and refuse a later connection in the same request to a different, private, loopback, link-local, or metadata address for that host.
 
-- [  ] Store is in-memory and LRU-capped (default 1 000 hosts). No persistence across processes.
-- [  ] Fails open on resolver errors, consistent with the rest of RASP.
+- [x] Store is in-memory and LRU-capped (default 1 000 hosts). No persistence across processes.
+- [x] Fails open on resolver errors, consistent with the rest of RASP.
 
 Acceptance: a mock resolver that returns a public IP first and `127.0.0.1` second is blocked on the second connection within the TTL and allowed after expiry when the second address is public. Benign corpus 0 blocked.
 
-### Phase 73 — Promotion evidence (process, no promotion)
+### [X] Phase 73 — Promotion evidence (process, no promotion)
 Run `scripts/promotion-report.mjs` for `FULLSHIELD_EXPERIMENTAL_TAINT_V2`, `_SAST_GAPS`, `_FRAMEWORKS`, and `_CLASSES` against Phase 43 criteria. For each flag, produce `bench/promotion/<flag>.md` with: tuning-app key diff with the flag on vs off (labeled `seen`), crash count on the `bench/realworld.json` corpus, default-scan-diff if promoted, and the list of criteria not met.
 
-- [  ] Cursor does not promote anything (R1, R11). The report is evidence for the human.
-- [  ] Untouched holdouts are not scanned (B3). Where a criterion needs an untouched app, the report says "unmet — needs Phase 68 run after review".
+- [x] Cursor does not promote anything (R1, R11). The report is evidence for the human.
+- [x] Untouched holdouts are not scanned (B3). Where a criterion needs an untouched app, the report says "unmet — needs Phase 68 run after review".
 
 ### [X] Phase 74 — SARIF v2 fields [`FULLSHIELD_EXPERIMENTAL_SARIF_V2`]
 With the flag on, `scan --sarif` adds:
@@ -1425,10 +1442,10 @@ Acceptance: SARIF 2.1.0 schema validation passes. A test shifts a finding by 3 l
 ### Phase 75 — Router-level auth inheritance (R10, precision)
 `SAST-AUTH-001` currently treats each route alone. Recognize auth middleware mounted before the route on the same router or app: `router.use(requireAuth)` then `router.get(...)`; `app.use('/admin', requireAuth, adminRouter)`; NestJS `@UseGuards` on the controller class when `--experimental-frameworks` is on.
 
-- [  ] Order matters: middleware mounted after the route does not cover it.
-- [  ] Path-prefixed `app.use('/api', auth)` covers only routes mounted under `/api`.
-- [  ] Auth recognition uses the existing auth-name heuristics. Do not widen the name list in this phase.
-- [  ] Cross-file: a router imported into the app file inherits middleware mounted on its mount path (existing module graph, depth 5).
+- [x] Order matters: middleware mounted after the route does not cover it.
+- [x] Path-prefixed `app.use('/api', auth)` covers only routes mounted under `/api`.
+- [x] Auth recognition uses the existing auth-name heuristics. Do not widen the name list in this phase.
+- [x] Cross-file: a router imported into the app file inherits middleware mounted on its mount path (existing module graph, depth 5).
 
 This removes findings, so it changes stable output (R10). Snapshot diff required. Do not edit ground truth.
 
@@ -1449,3 +1466,302 @@ These points constrain README, release notes, and later phases (Section 4.4, R7)
 4. [  ] **Large apps are slow.** Phase 42's cold target is 60 seconds. The stored local run in `bench/perf-baseline.json` (`measuredAt` 2026-10-16) has the Next.js sample (`bench/realworld.json`, repo `vercel/next.js`, pin `a6d4c15991fd2f69c14eea4e8b655b596bc162bf`) at a cold p50 of 71746.763708 ms, about 72 seconds, with warm and incremental runs in the same range. That number is a local measurement, labeled unreviewed. It is not a headline. Phase 42 and Phase 65 may improve it. They do not trade accuracy for speed, and they do not rewrite this point with a new number unless that number comes from a new stored run.
 
 5. [  ] **How to use it beside other tools.** Use FullShield as a Node-only CI gate (`scan --fail-on high`) and as a reachability layer on dependency alerts. Do not drop Semgrep, npm audit, OSV-Scanner, or a secrets scanner because this package exists. Secrets rules here do not retire Gitleaks or TruffleHog (Section 4.4).
+
+---
+
+## 39. Leadership Phases 76–93 (rev 2026-10-19)
+
+### 39.0 Why these phases, and what they cannot do
+The 2026-10-18 market read was: a useful Node-only add-on, not a category leader. These phases target the measured weak points, in this order of importance:
+
+| Weak point (measured or stated in this spec) | Phases |
+|---|---|
+| Precision is not measured. All ground truth is `reviewed: false`. | 76, 77 (tooling); the review itself is human-only (R1) |
+| Large apps are slow: Next.js cold p50 ≈ 72 s vs 60 s target; Phase 65 nest/undici 5 s target unmet | 78, 79, 88 |
+| Noise: NodeGoat JSON 256 vs about 7 in-scope real bugs | 80, 81, 82, 84 |
+| Semgrep has a larger rule set; npm audit / OSV-Scanner are the mature databases (Section 38) | 83, 90 (be the layer beside them, not a replacement) |
+| Supply-chain detection is mostly advisory lookup plus install-script heuristics | 86, 87 |
+| Findings are a list, not a story a developer can act on | 84, 85, 91 |
+| SBOM is CycloneDX only | 89 |
+| Repo hygiene items still open (issue templates, branch protection) | 92 |
+| 20+ experimental flags, nothing promoted | 93 (evidence only) |
+
+No phase here lets README, CHANGELOG, or any copy say "number 1", "best", "leader", "one of a kind", "complete protection", or "prevents attacks". Position is earned by numbers from human-reviewed ground truth (R7) and is stated as numbers, not adjectives.
+
+### 39.1 Rules for every phase in this section (in addition to Section 0 and the Section 37 header rules)
+- [  ] Experimental behind its own flag unless the phase says "R10" or "dev tooling". New command/flag/export/rule ID = minor bump (R16).
+- [  ] No new hard dependency (R13). Optional peers are lazy-loaded with an install hint and an `FS-E###` code.
+- [  ] No new network host (R15). Phases 83, 86, 89, 90 are local-file only. Phase 87 uses `registry.npmjs.org` only.
+- [  ] Byte-identical default `scan --json` with every new flag off. A test per phase asserts it on vulnerable-app, clean-app, and every bench app (R9).
+- [  ] `clean-app` stays at 0 with each flag on (R12).
+- [  ] Every number in a phase report is from a stored run (`bench/perf-*.json`, `bench/precision/*.json`) and labeled `reviewed` or `unreviewed`.
+- [  ] Untouched holdouts are never scanned by these phases (B3). Only the Phase 68 one-shot script may scan them, after the human says so.
+
+### Phase 76 — Precision sampling harness (dev tooling, not shipped)
+Precision has never been measured. Build the tool that lets the human measure it in about an hour.
+
+- [  ] `scripts/precision-sample.mjs --app <name> --per-rule 10 --seed <n>`: deterministic sample (seeded) of up to N findings per rule ID from the default scan of tuning and seen apps. Writes `bench/precision/<app>.todo.json` with `label: null`, `reviewer: null`, `note: null` for every row.
+- [  ] Plugs into the Phase 67 review CLI so the human labels `tp` / `fp` / `unsure` in the terminal with the code snippet (±5 lines) and the trace shown.
+- [  ] `scripts/precision-report.mjs` computes per-rule precision **only from rows the human labeled**, with Wilson 95% interval and n. Rules with n < 10 print `insufficient sample`. Output `bench/precision/REPORT.md`.
+- [  ] Cursor never fills a `label`, `reviewer`, or `note` cell (Section 36.3). A test asserts the sampler writes `null` for all three.
+- [  ] Not in the npm tarball (`pack-budget` test asserts `bench/precision` and both scripts are absent).
+
+Acceptance: sampler is deterministic for a fixed seed (test). Report on a fixture todo file with hand-written labels produces the expected precision and interval (test). Report refuses to run on a file with zero labels and says so.
+
+### Phase 77 — Real-world precision regression gate (dev tooling + CI job on `next`)
+New findings on real code are the noise users see. Freeze them.
+
+- [  ] `bench/snapshots/realworld.json`: default-scan keys `(ruleId, file, line, severity)` for every pinned repo in `bench/realworld.json`. Generated by `scripts/realworld-snapshot.mjs`. Repos are cloned at their pin into a cache dir, never executed, never installed.
+- [  ] `scripts/realworld-diff.mjs` prints added and removed keys per repo and exits 1 on any **added** key unless `bench/snapshots/realworld-approved.txt` (human-edited only, R1) lists it.
+- [  ] CI: a separate job on push to `next` only (not the 6-job matrix), ubuntu-24.04 / Node 24, cache-keyed by pin. Timeout 30 min.
+- [  ] Cursor never writes to `realworld-approved.txt`. A test asserts the script only reads it.
+
+Acceptance: a fixture "realworld" repo plus a fixture rule change produces one added key and exit 1; the same key in the approved file exits 0.
+
+### Phase 78 — Cold-scan performance v2 [`FULLSHIELD_EXPERIMENTAL_PERF2`]
+Target: Next.js sample cold p50 ≤ 60 s, nest and undici `--changed` p50 ≤ 5 s, peak RSS ≤ 1.5 GB, on the Phase 42 harness and machine. Output byte-identical (sorted JSON) with the flag on and off on every bench app and every realworld repo. Accuracy is never traded for speed; if the target needs that, stop and report (S3).
+
+Build, in this order, measuring after each step and storing every run in `bench/perf-v2.json`:
+1. [  ] **Profile first.** `node --cpu-prof` on the Next.js sample. Commit the top-20 self-time table to `bench/perf-v2-profile.md` before changing code. Each later step names which profile row it targets.
+2. [  ] **Skip what cannot be source.** Before parsing: skip files over `scan.maxFileBytes` (default 1 MB) with an `info` note (not a finding), skip minified files (avg line length > 500 or one-line > 50 KB), skip `*.d.ts`, `*.map`, `dist/`, `build/`, `.next/`, `coverage/`, `out/` unless the user includes them. Skipped counts appear in `scan --json` `meta.skipped` **only with the flag on**.
+3. [  ] **Parse once, share everywhere.** One AST per file shared by SAST, secrets context, reachability, and route map. Assert with a counter test that each file is parsed at most once per scan.
+4. [  ] **Module-level parallelism.** deps (OSV, cache-first), secrets (regex, no AST), config, and SAST run concurrently; SAST parse stays on the Phase 42 worker pool. Deterministic merge order (sort by module, then key).
+5. [  ] **Persistent call-graph cache.** Reachability import/call graph cached per file by content hash + version + config hash under the parse cache dir. Corrupt entry → discard (same contract as Phase 65).
+6. [  ] **Lazy taint.** Run interprocedural taint only from files that contain a recognized source or are imported (depth ≤ 5) by a file that does; a file with no path to a source is not walked. Must be byte-identical; prove with the identical-output test.
+
+Acceptance: identical-output test on all apps; cache-invalidation test; `bench/perf-v2.json` before/after on the same machine. If any target is still unmet, Section 28 is updated with the stored numbers. Section 38 point 4 changes only from a stored run.
+
+### Phase 79 — Time budget and partial results [`FULLSHIELD_EXPERIMENTAL_BUDGET`]
+CI users need a predictable upper bound.
+
+- [  ] `scan --max-time <seconds>`: when the budget is reached, finish the current file, stop SAST taint expansion, still run deps/secrets/config to completion, and mark output `meta.incomplete: true` with `meta.incompleteModules`.
+- [  ] Exit code 3 for "incomplete, no findings at or above --fail-on in what was scanned". A finding at or above `--fail-on` still exits 1. Documented in `docs/errors.md`.
+- [  ] Console prints one yellow line: "Scan stopped at budget. N files not taint-checked."
+- [  ] Never reports an incomplete scan as clean.
+
+Acceptance: a fixture with a slow fake rule and `--max-time 1` exits 3 with `incomplete: true`; with a high finding in the scanned part exits 1; without the flag, output and exit codes are unchanged.
+
+### Phase 80 — Type-aware receiver resolution [`FULLSHIELD_EXPERIMENTAL_TYPES`]
+Most remaining SAST false positives are receiver guesses (is `db.query` a SQL client? is `x.find` Mongo or an array?). Use the TypeScript checker when the project has it.
+
+- [  ] `typescript` is an optional peer, lazy-loaded only with the flag. Missing → `FS-E` with install hint; scan continues on the existing heuristics (no crash, no silent change).
+- [  ] Build a `ts.Program` from the project's `tsconfig.json` (or `jsconfig.json`, or an inferred one with `allowJs`, `checkJs: false`). Memory cap: if the program exceeds `types.maxFiles` (default 5 000), fall back to heuristics and print one `info` line.
+- [  ] Resolve receiver types for sink calls used by NoSQL, SQL, command, path, SSRF, and XSS rules. Resolved type matches a known sink type (from Phase 81 model packs) → keep; resolves to a non-sink type (e.g. `Array`, `Map`, a user class without a sink base) → suppress with `suppressedBy: "types"` in JSON (finding listed under `suppressed[]`, not deleted, only with the flag on); unresolved/`any` → existing behavior.
+- [  ] Never adds a finding that the heuristic would not; this phase only removes. (Adding is a later, separate phase.)
+
+Acceptance: fixtures — `items.find({ name: req.query.n })` on an array is suppressed; the same on a Mongoose model is kept; `any`-typed receiver keeps current behavior. clean-app 0. Report the per-app removed keys on tuning apps (labeled `seen`, unreviewed).
+
+### Phase 81 — Library model packs [`FULLSHIELD_EXPERIMENTAL_MODELS`]
+Ship source/sink/sanitizer knowledge as data, not code, using the Phase 64 schema.
+
+- [  ] `models/<package>.json` for: express, express-validator, joi, yup, zod, validator, dompurify, sanitize-html, helmet, pg, mysql2, sqlite3, better-sqlite3, knex, sequelize, typeorm, prisma, mongoose, mongodb, child_process, execa, axios, node-fetch, undici, got, fs, fs-extra, path, ejs, pug, handlebars, nunjucks, jsonwebtoken, bcrypt.
+- [  ] Each entry names: package, version range it was written against, kind (`source` / `sink` / `sanitizer` / `validator`), sink class, member path, argument index, and a one-line reference to the public API doc. No code copied from the libraries.
+- [  ] A pack applies only when the package is in the project's dependency graph at a matching version range. Out-of-range → pack skipped with one `info` line.
+- [  ] Packs are versioned with FullShield; a schema test validates every pack; a fixture test per pack (one positive, one negative).
+
+Acceptance: with the flag on, `express-validator` `body('id').isInt()` before `db.query(... req.body.id ...)` suppresses the SQL finding (`suppressedBy: "model:express-validator"`); `.trim()` alone does not. Output identical with the flag off.
+
+### Phase 82 — Secret precision: offline structure checks [`FULLSHIELD_EXPERIMENTAL_SECRET_CHECK`]
+Cut secret false positives with no network call.
+
+- [  ] Checksum validation only for token formats whose checksum is publicly documented by the issuer (GitHub `ghp_`/`gho_`/`ghu_`/`ghs_`/`ghr_`/`github_pat_` CRC32 suffix; npm `npm_` tokens if and only if the format doc is cited in the rule file). Others: no checksum logic. Cite the doc URL in `rules/<ID>.md`.
+- [  ] Failed checksum → `confidence: low` and `secretCheck: "checksum-failed"`. Never raises severity. Never deletes the finding.
+- [  ] Placeholder filter: values that are all one char, sequential, contain `example`, `sample`, `dummy`, `changeme`, `your_`, `xxxx`, `<...>`, `${...}`, or match the documented AWS example key → `confidence: low`, `secretCheck: "placeholder"`.
+- [  ] Context: files under `test/`, `__tests__/`, `fixtures/`, `*.test.*`, `*.spec.*`, `*.example`, `*.sample` → `confidence` lowered one step, `context: "test"`.
+- [  ] With Phase 47 D3, low-confidence secrets below high severity drop out of the console view (JSON keeps them).
+
+Acceptance: a valid-format fixture token (generated in the test with the documented algorithm, never a real token) passes; a one-char-off token fails; placeholder fixtures are low; output identical with the flag off.
+
+### Phase 83 — External findings ingest and dedupe [`FULLSHIELD_EXPERIMENTAL_INGEST`]
+Section 38 says use FullShield beside Semgrep, npm audit, and OSV-Scanner. Make that one command.
+
+- [  ] `fullshield ingest <file...>` reads local files only: SARIF 2.1.0 (any tool), OSV-Scanner `--format json`, `npm audit --json`, Semgrep `--json`. Never runs those tools. Never fetches.
+- [  ] Normalizes each to the Finding model with `source: "<tool>"`, keeps the tool's original rule ID in `externalRuleId`, never rewrites its severity.
+- [  ] Dedupe keys: dependency findings by `(advisoryId or alias, package, version)`; code findings by `(cwe, file, line ±3)` or SARIF `partialFingerprints` when present. Merged rows list every `sources[]`.
+- [  ] Annotates every ingested finding with FullShield's own evidence where it has it: dependency reachability class (Phase 39/61), route exposure and auth (Phase 58/75), sink class. Never changes the external tool's severity; adds `fullshieldPriority` only with Phase 84's flag.
+- [  ] Output: console (Phase 47 view), `--json`, `--sarif` (one run per source tool + one FullShield run, so GitHub keeps tool identity).
+- [  ] Malformed input → `FS-E` code naming the file and the first schema error; other files still ingested.
+
+Acceptance: fixture outputs from each tool (hand-written, small, schema-valid) dedupe as expected: a CVE reported by npm audit and OSV-Scanner becomes one row with two sources; a Semgrep SQLi on the same line as `SAST-SQLI-001` becomes one row. Default scan unchanged.
+
+### Phase 84 — Deterministic priority score [`FULLSHIELD_EXPERIMENTAL_PRIORITY`]
+Sort by what to fix first, not only by severity.
+
+- [  ] `priority` 0–100, computed from a documented table in `docs/priority.md`: severity, confidence, reachability class, route exposure (unauthenticated route reaches the sink → up; dev-only dependency → down), sink class, number of agreeing sources (Phase 83), KEV/EPSS only if Phase 56 exists and data is cached.
+- [  ] Pure function, no ML, no network. Same input → same score (property test).
+- [  ] `DEPS-MALICIOUS-001`, `SUPPLY-SECHOLDER-001`, `SUPPLY-STEALER-001` are always 100.
+- [  ] Console sorts by priority, then severity, then file. JSON adds `priority` and `priorityFactors[]` only with the flag. Severity is never changed by priority.
+
+Acceptance: table-driven test for every factor; ordering test on vulnerable-app; JSON identical with the flag off.
+
+### Phase 85 — Attack paths [`FULLSHIELD_EXPERIMENTAL_PATHS`]
+Join existing findings into the chain an attacker would use. No new rule IDs (no stable-output change).
+
+- [  ] `scan --paths` adds a `paths[]` section: entry route (method, path, auth state from Phase 58/75) → trace steps (existing `trace`) → sink finding; plus dependency chains: route → call into a `reachable` vulnerable dependency symbol (Phase 61 evidence).
+- [  ] Secret chains: a hardcoded secret finding whose identifier is used in reachable code (same module graph) is linked to the sink or client that consumes it.
+- [  ] Each path lists only findings that already exist; a path never creates a finding and never raises severity.
+- [  ] Console: top 5 paths by the highest priority in the path (Phase 84 if on, else severity). `report` HTML gets a Paths tab.
+
+Acceptance: vulnerable-app fixture with an unauthenticated route → SQL sink produces one path; adding router-level auth (Phase 75 fixture) marks the path `auth: present`. No path appears on clean-app.
+
+### Phase 86 — Dependency capability profile and diff [`FULLSHIELD_EXPERIMENTAL_CAPABILITIES`]
+The MALFEX packages looked like small helpers but used process spawning and network on install. Show what each dependency can do.
+
+- [  ] Static read of already-installed package files in `node_modules` (never execute, never install, R15). For each package version: `child_process`, `net`/`http(s)`/`dgram`/`fetch`, `fs` write APIs, `process.env` reads, `eval`/`new Function`/`vm`, native addon (`.node`, `binding.gyp`), dynamic `require` of a computed string, install scripts (`preinstall`/`install`/`postinstall`), and obfuscation signals (long hex/base64 blobs, `\x` density) — reusing Phase 70 heuristics where they exist.
+- [  ] `fullshield deps --capabilities` prints per direct dependency the union of its own and transitive capabilities, with the package that introduces each one.
+- [  ] `deps-diff` (Phase 62) with the flag adds "new capabilities introduced by this change", e.g. a patch bump that adds `child_process` + `postinstall`.
+- [  ] Policy: `deps.capabilityPolicy` in config (`deny` / `warn` per capability per package glob). A `deny` hit produces `SUPPLY-CAP-001` (new rule ID, experimental only, never in default scan).
+- [  ] Results cached by package integrity hash.
+
+Acceptance: fixture `node_modules` with an inert package that has a `postinstall` and a `child_process` import is listed with both, attributed correctly through a transitive path; a version bump fixture that adds `net` appears in deps-diff; no child process is spawned during the scan (test spies `child_process`).
+
+### Phase 87 — Provenance and maintainer change signals [`FULLSHIELD_EXPERIMENTAL_PROVENANCE`]
+Uses `registry.npmjs.org` only (R15 allowed). Cache-first; `--offline` uses cache only; missing data stays `unknown`, never guessed.
+
+- [  ] For each installed version: whether the registry lists a provenance attestation (`dist.attestations`), and the publishing user for that version.
+- [  ] Signals (informational, `SUPPLY-PROV-001` experimental): (a) **provenance regression** — earlier versions of the same package had provenance and the installed version does not; (b) **publisher change** — the installed version was published by a user who published none of the previous N (default 10) versions; (c) **new-release** — reuse Phase 62's age check.
+- [  ] Never claims a package is malicious from these signals. Severity `medium` at most; `DEPS-MALICIOUS-001` still only from OSV `MAL-` advisories.
+- [  ] Request concurrency ≤ 8, respects `Retry-After`, one request per package (packument), shared with Phase 62's registry cache.
+
+Acceptance: mocked registry fixtures for each signal; a test asserts only `registry.npmjs.org` is contacted; `--offline` with an empty cache produces `unknown`, not a signal.
+
+### Phase 88 — Developer loop: `fullshield dev` [`FULLSHIELD_EXPERIMENTAL_DEV`]
+Feedback while coding, without an editor extension (Section 31).
+
+- [  ] `fullshield dev` watches the project with `fs.watch` (recursive where supported; polling fallback on Linux without recursive support, interval configurable). Debounce 300 ms.
+- [  ] On change: rescan only changed files and their reverse dependents (Phase 42 `--changed` logic + Phase 78 caches). Print only **new** and **resolved** findings since the previous run, using the Section 34 line-independent key.
+- [  ] Never runs deps OSV lookups on every save; deps rescan only when a manifest or lockfile changes.
+- [  ] Ctrl-C closes watchers and every DB handle (Windows, R22).
+
+Acceptance: a test edits a fixture file to add a SQLi and asserts one "new" line within 5 s, then reverts and asserts one "resolved" line. Runs on Linux/macOS/Windows CI (or `skipIf` with reason).
+
+### Phase 89 — SPDX SBOM [`FULLSHIELD_EXPERIMENTAL_SPDX`]
+- [  ] `fullshield sbom --format spdx` emits SPDX 2.3 JSON: packages with PURL external refs, `DEPENDS_ON` relationships from the lockfile graph, license only when present in package data (never invented, Section 17).
+- [  ] Vulnerability data stays in CycloneDX/VEX (SPDX 2.3 has no native vuln section); the SPDX doc references the CycloneDX file if generated in the same run.
+- [  ] Validation against the SPDX 2.3 JSON schema, vendored under `test/schemas/` (not shipped).
+
+Acceptance: schema validation passes on vulnerable-app and one bench app; deterministic output (sorted, fixed `created` timestamp via `--sbom-timestamp` or `SOURCE_DATE_EPOCH`).
+
+### Phase 90 — User-supplied Semgrep-style rules (subset) [`FULLSHIELD_EXPERIMENTAL_SEMGREP_RULES`]
+Lets teams reuse rules they already wrote. FullShield never bundles or downloads third-party registry rules (license and R15).
+
+- [  ] Reads user-provided YAML (optional peer `yaml`, lazy) and compiles a documented subset into the Phase 57 schema: `languages: [javascript, typescript]`, `pattern`, `pattern-either`, `pattern-not`, `pattern-inside`, metavariables `$X`, `...` in arguments, and `mode: taint` with `pattern-sources` / `pattern-sinks` / `pattern-sanitizers` mapped to the existing taint engine.
+- [  ] Any unsupported construct → the rule is rejected (fail closed) with `FS-E` listing the construct and the rule id. Never partially applied.
+- [  ] `docs/semgrep-subset.md` lists exactly what is supported and states that results may differ from Semgrep.
+- [  ] Findings carry `ruleId: "CUSTOM-<user id>"` and `source: "user-rule"`.
+
+Acceptance: 10 hand-written rules (from scratch, B8) covering every supported construct each have a positive and negative fixture; 3 rules with unsupported constructs are rejected with the right message; flag off → rules file not even parsed.
+
+### Phase 91 — Fix verification [`FULLSHIELD_EXPERIMENTAL_FIX_VERIFY`]
+Every proposed fix proves it removes its finding and adds none. Never executes project code (R15).
+
+- [  ] For each `fix` patch (Section 8) and each `explain` (Phase 60) suggested change: apply in memory, re-run the affected rules on the patched file and its direct importers, and record `verified: "removes-finding" | "does-not-remove" | "introduces-finding"`.
+- [  ] Patches that `introduces-finding` are never written, even with `--yes`. `does-not-remove` patches are shown with a warning and require `--force-unverified`.
+- [  ] Dependency fixes (overrides, Phase 31/49) are verified by re-resolving the advisory set against the planned versions using OSV cache; never by running `npm install`.
+
+Acceptance: fixture fix that works → `removes-finding`; a deliberately wrong fixture patch → `does-not-remove`; a patch that adds `eval` → `introduces-finding` and is not written.
+
+### Phase 92 — Repository hygiene (docs and templates)
+- [  ] `.github/ISSUE_TEMPLATE/false-positive.yml` (rule ID, minimal code, version, expected), `false-negative.yml`, `bug.yml`, `config.yml` (blank issues off, link to SECURITY.md for vulnerabilities).
+- [  ] `docs/use-with-other-tools.md`: concrete commands to run Semgrep, OSV-Scanner, npm audit, Gitleaks next to FullShield and then `fullshield ingest` (Phase 83). No claims about other tools' accuracy.
+- [  ] `docs/branch-protection.md`: the exact required check names from the 6-job matrix, for the human to set (R1). Cursor does not change repo settings.
+- [  ] Closes the Section 33 issue-templates item.
+
+Acceptance: YAML templates validate against GitHub's issue-form schema (vendored, test-only); doc links resolve (link-check test on local paths).
+
+### Phase 93 — Promotion evidence batch 2 (process, no promotion)
+Run the Phase 73 report for: `_VALIDATION` (53), `_WORKSPACES` (54), `_OBSERVED_REACH` (55), `_CUSTOM_RULES` (57), `_ROUTES` (58), `_EXPLAIN` (60), `_REACH_EVIDENCE` (61), `_DEPS_DIFF` (62), `_LOCKFILES` (63), `_CUSTOM_SANITIZERS` (64), `_SBOM_REACH` (66), `_SARIF_V2` (74), and every flag from Phases 78–91 that is merged.
+
+- [  ] One `bench/promotion/<flag>.md` per flag, same columns as Phase 73.
+- [  ] `bench/promotion/SUMMARY.md`: flag | criteria met | criteria unmet | default-scan-diff if promoted (EMPTY / count).
+- [  ] Cursor promotes nothing (R1, R11).
+
+---
+
+## 40. Today's Cursor Work Order (2026-10-19, full day)
+
+Replaces Section 36 as the queue. Section 36 stays as the 2026-10-18 record. Section 0 wins over this section (S7).
+
+### 40.1 Start of day (once)
+1. `git switch next && git pull`. `npm run verify` on the untouched tree; paste the summary table. Red → stop (S4).
+2. `node scripts/default-scan-diff.mjs` against `bench/snapshots/HEAD.json` must be empty.
+3. One worktree per item (R21): `git worktree add ../fs-<N> -b phase-<N> next`.
+
+### 40.2 Lanes
+Lane A is the priority. B and C run only while A waits on the human or after A is done. Realistic expectation: Lane A plus 3–5 Lane C items in one day. Unfinished items stay on their branch and are reported (S3); do not rush acceptance.
+
+**Lane A — finish what blocks a release (sequential):**
+
+| Order | Item | Stable change? | Gate |
+|---|---|---|---|
+| A1 | 75, 50, 51, 52: produce `bench/snapshots/DIFF.txt` on each `phase-N` branch if not already there | **Yes (R10)** | Report under 0.8 with "Needs human decision: approve stable diff". Do not merge. |
+| A2 | 78 Cold-scan performance v2 (steps 1–6 in order, measure after each) | No (byte-identical) | identical-output test on all apps + `bench/perf-v2.json` |
+| A3 | 65 re-measure nest/undici with 78 on; update Section 28 from the stored run | No | stored numbers only |
+
+**Lane B — evidence tooling (dev only, not in tarball):**
+
+| Order | Phase |
+|---|---|
+| B1 | 76 Precision sampling harness |
+| B2 | 77 Real-world precision regression gate |
+| B3 | 92 Repository hygiene |
+| B4 | 93 Promotion evidence batch 2 (run last, after merges) |
+
+**Lane C — experimental features (one flag each; merge one at a time after verify + empty default-scan-diff):**
+
+| Order | Phase | Flag |
+|---|---|---|
+| C1 | 82 Secret structure checks | `FULLSHIELD_EXPERIMENTAL_SECRET_CHECK` |
+| C2 | 81 Library model packs | `FULLSHIELD_EXPERIMENTAL_MODELS` |
+| C3 | 80 Type-aware receivers | `FULLSHIELD_EXPERIMENTAL_TYPES` |
+| C4 | 84 Priority score | `FULLSHIELD_EXPERIMENTAL_PRIORITY` |
+| C5 | 83 Ingest and dedupe | `FULLSHIELD_EXPERIMENTAL_INGEST` |
+| C6 | 86 Capability profile | `FULLSHIELD_EXPERIMENTAL_CAPABILITIES` |
+| C7 | 87 Provenance signals | `FULLSHIELD_EXPERIMENTAL_PROVENANCE` |
+| C8 | 85 Attack paths | `FULLSHIELD_EXPERIMENTAL_PATHS` |
+| C9 | 79 Time budget | `FULLSHIELD_EXPERIMENTAL_BUDGET` |
+| C10 | 88 `fullshield dev` | `FULLSHIELD_EXPERIMENTAL_DEV` |
+| C11 | 91 Fix verification | `FULLSHIELD_EXPERIMENTAL_FIX_VERIFY` |
+| C12 | 89 SPDX SBOM | `FULLSHIELD_EXPERIMENTAL_SPDX` |
+| C13 | 90 Semgrep-style rules | `FULLSHIELD_EXPERIMENTAL_SEMGREP_RULES` |
+
+Dependencies: 84 before 85 (85 sorts by priority if on). 81 before 80 (80 uses pack sink types). 62 already merged before 86/87.
+
+Not today: 53–55, 57–59 are done; 56 stays blocked on R15.
+
+### 40.3 Hard stops for today
+- [  ] Lane A1 items: stop that phase at the diff (R10), park it, continue the queue.
+- [  ] Any test / fixture / `expected-findings.json` / `ground-truth.json` / `triage.json` / `realworld-approved.txt` / `bench/precision/*` label edit needed: stop (S2).
+- [  ] Coverage within 2 points of a threshold: stop (S5).
+- [  ] Phase 78 cannot reach a target without changing output: stop and report numbers (S3).
+- [  ] No tag, no publish, no push to `main`. Version on `next` bumps to the next minor only if R16 requires it, and the human picks the number.
+- [  ] Never set `"reviewed": true`; never fill `label`, `reviewer`, `note`.
+
+### 40.4 End of day
+Same as Section 36.4, plus: `bench/perf-v2.json` p50 table (before/after) and, if Phase 76 is merged, the count of rows waiting for human labels per app. All of it goes into the report file (Section 40.5), not only the chat.
+
+### 40.5 Run to completion and the report file
+1. **Work the whole queue.** Go through Lane A, then B, then C, in order, without waiting for the human between items. A stop condition parks only that phase (R23). Do not ask "should I continue?" The answer is always yes unless R23 lists the condition as a session stop.
+2. **Report file.** At the start of the day, create `reports/2026-10-19.md` on `next` (create the `reports/` folder if needed; add `reports/` to `.npmignore` / the `files` allowlist exclusion, and confirm `pack-budget` still passes). Commit it as `report: 2026-10-19 start`.
+3. **Append after every phase**, whether finished, parked, or failed, and commit right away as `report: phase-N`. Each entry has:
+   - the full 0.8 block for that phase,
+   - `Status: merged into next | parked (reason + stop code) | not started (why)`,
+   - real command output: the `verify` summary table and every failure in full (R8). No summaries of failures.
+4. **Top of the file** is a live summary table kept up to date: `phase | lane | status | branch | sha | flag | tests added | default-scan-diff | needs human`.
+5. **Resume rule.** If the chat ends, runs out of context, or is restarted, the first action of the new chat is: read Section 0, Section 39.1, Section 40, and `reports/2026-10-19.md`, then continue with the first item whose status is not `merged` or `parked`. Never redo a merged item.
+6. **End of day.** Append the Section 40.4 block under `## End of day` and commit as `report: 2026-10-19 end`. Push `next` (pushing `next` is allowed; `main` is not). The human pastes this file into the review chat.
+7. The report file is the record. Numbers in it follow R6–R8: real output only, `unreviewed` where it applies, nothing invented.
+
+---
+
+## 41. Human-only work that decides market position (Cursor cannot do these)
+Features do not make the package lead its area; measured, reviewed numbers and releases do. These are blocked on the human (R1):
+
+1. [  ] Review ground truth for the tuning apps with the Phase 67 CLI (`reviewed: true` is human-only).
+2. [  ] Label the Phase 76 precision samples (about 10 per rule per app).
+3. [  ] Approve or reject the R10 diffs for Phases 75, 50, 51, 52.
+4. [  ] Set branch protection to the 6 required checks (`docs/branch-protection.md`), and confirm the full matrix ran green on `main`.
+5. [  ] Decide on R15 for Phase 56 (EPSS / KEV hosts): amend or keep blocked.
+6. [  ] Decide promotions from `bench/promotion/SUMMARY.md` (Phase 43 criteria).
+7. [  ] Pick the next release number (expected minor, R16) and run Section 2 with provenance (S6).
+8. [  ] After 1–2: publish per-rule precision with n and interval in BENCHMARK.md, labeled reviewed. That table, not a feature list, is the credible public claim.

@@ -1,8 +1,59 @@
 import dns from 'node:dns';
 
+import { currentRaspContext } from './context.js';
+
 export type HostLookup = (host: string) => string[];
 
 let lookupImpl: HostLookup | undefined;
+const PIN_CAP = 1000;
+let dnsPinTtlMs = 60_000;
+
+interface DnsPin {
+  addresses: string[];
+  at: number;
+}
+
+const pinsByRequest = new WeakMap<object, Map<string, DnsPin>>();
+
+export function setDnsPinTtlMs(ms: number | undefined): void {
+  dnsPinTtlMs = ms === undefined || !Number.isFinite(ms) || ms < 0 ? 60_000 : ms;
+}
+
+/**
+ * Pin the first resolved set for this host inside the current request.
+ * A later set that adds a private, loopback, link-local, or metadata address is refused until the TTL.
+ * Resolver trouble and a missing request context fail open.
+ */
+export function dnsPinBlocks(host: string, addresses: readonly string[], now = Date.now()): boolean {
+  try {
+    const ctx = currentRaspContext();
+    if (!ctx || addresses.length === 0) return false;
+    const key = normalizeHost(host);
+    let pins = pinsByRequest.get(ctx);
+    if (!pins) {
+      pins = new Map();
+      pinsByRequest.set(ctx, pins);
+    }
+    const prev = pins.get(key);
+    if (prev) pins.delete(key);
+    if (!prev || now - prev.at >= dnsPinTtlMs) {
+      if (pins.size >= PIN_CAP) {
+        const oldest = pins.keys().next().value;
+        if (oldest !== undefined) pins.delete(oldest);
+      }
+      pins.set(key, { addresses: addresses.map((addr) => normalizeHost(addr)), at: now });
+      return false;
+    }
+    pins.set(key, prev);
+    const known = new Set(prev.addresses);
+    return addresses.some((addr) => {
+      const normalized = normalizeHost(addr);
+      return !known.has(normalized) && isPrivateOrMetadata(normalized);
+    });
+  } catch {
+    return false;
+  }
+}
 
 export function setSsrfLookup(fn: HostLookup | undefined): void {
   lookupImpl = fn;
@@ -115,10 +166,14 @@ export function resolveHostAddresses(host: string): string[] {
 
 export function hostIsBlocked(host: string): boolean {
   if (isPrivateOrMetadata(host)) return true;
-  for (const addr of resolveHostAddresses(host)) {
-    if (isPrivateOrMetadata(addr)) return true;
+  let addresses: string[] = [];
+  try {
+    addresses = resolveHostAddresses(host);
+  } catch {
+    return false;
   }
-  return false;
+  if (addresses.some((addr) => isPrivateOrMetadata(addr))) return true;
+  return dnsPinBlocks(host, addresses);
 }
 
 /** Block when user input overlaps the URL hostname and that host (or its resolved IP) is private/metadata. */

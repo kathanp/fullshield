@@ -1,0 +1,13 @@
+{
+  "package": "fs",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sink",
+      "sinkClass": "path",
+      "memberPath": "fs.readFile(",
+      "argumentIndex": 0,
+      "reference": "https://nodejs.org/api/fs.html#fsreadfilepath-options-callback"
+    }
+  ]
+}

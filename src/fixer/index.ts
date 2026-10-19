@@ -12,6 +12,7 @@ import {
   type LockfileKind,
 } from './override.js';
 import { applyUnifiedDiff, proposeFix } from './patches.js';
+import { mayWrite, verifyEnabled, verifyPatchedSource, type FixVerification } from './verify.js';
 
 function detectLockKind(cwd: string): LockfileKind {
   if (existsSync(join(cwd, 'yarn.lock'))) return 'yarn';
@@ -26,6 +27,8 @@ export interface FixOptions {
   force?: boolean;
   unsafe?: boolean;
   noBranch?: boolean;
+  /** Phase 91. Write a patch that does not remove its finding. Never writes a patch that adds a finding. */
+  forceUnverified?: boolean;
 }
 
 export interface FixPatch {
@@ -33,6 +36,7 @@ export interface FixPatch {
   ruleId: string;
   safe: boolean;
   diff: string;
+  verified?: FixVerification;
 }
 
 export interface FixResult {
@@ -106,6 +110,12 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
     patches.push({ file: sourceFile, ruleId: finding.ruleId, safe: proposed.safe, diff: proposed.diff });
     if (proposed.safe !== true && options.unsafe !== true) continue;
     const after = applyUnifiedDiff(source, proposed.diff);
+    if (verifyEnabled()) {
+      const status = await verifyPatchedSource(sourceFile, source, after, finding.ruleId);
+      const current = patches[patches.length - 1];
+      if (current !== undefined) current.verified = status;
+      if (!mayWrite(status, options.forceUnverified === true)) continue;
+    }
     byFile.set(sourceFile, after);
   }
 
@@ -168,7 +178,7 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
     await writeFile(abs, contents, 'utf8');
   }
 
-  const testFailed = runProjectTests(cwd);
+  const testFailed = verifyEnabled() ? false : runProjectTests(cwd);
   if (testFailed) {
     await restoreSnapshots(cwd, snapshots);
     return { applied: false, reverted: true, branch, patches, findings: result.findings };

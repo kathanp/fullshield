@@ -1,0 +1,13 @@
+{
+  "package": "mongoose",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sink",
+      "sinkClass": "nosqli",
+      "memberPath": "Model.find(",
+      "argumentIndex": 0,
+      "reference": "https://mongoosejs.com/docs/api/model.html#Model.find()"
+    }
+  ]
+}

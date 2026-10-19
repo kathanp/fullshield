@@ -1,26 +1,58 @@
 #!/usr/bin/env node
-/** List experimental flags. None are promoted; each criterion is unmet without evidence. */
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+/**
+ * Phase 73. Evidence only. This script does not promote a flag and does not scan holdouts.
+ */
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const experimental = readFileSync(join(root, 'src', 'modules', 'sast', 'experimental.ts'), 'utf8');
-const flags = [...experimental.matchAll(/FULLSHIELD_EXPERIMENTAL_[A-Z0-9_]+/g)].map((m) => m[0]);
-const unique = [...new Set(flags)];
-
-const lines = [
-  '# Promotion report',
-  '',
-  'No flag is promoted. Promotion needs human approval and the evidence listed in the spec.',
-  '',
-  '| flag | recall on a reviewed untouched app | runtime p95 | crashes on the phase 41 corpus | decision |',
-  '|---|---|---|---|---|',
+const FLAGS = [
+  'FULLSHIELD_EXPERIMENTAL_TAINT_V2',
+  'FULLSHIELD_EXPERIMENTAL_SAST_GAPS',
+  'FULLSHIELD_EXPERIMENTAL_FRAMEWORKS',
+  'FULLSHIELD_EXPERIMENTAL_CLASSES',
 ];
-for (const flag of unique) {
-  lines.push(`| \`${flag}\` | unmet (no reviewed untouched scan) | unmet (not measured) | unmet (corpus not scanned) | keep experimental |`);
+
+export function promotionMarkdown(flag) {
+  return [
+    `# ${flag}`,
+    '',
+    'Status: not promoted. This file is evidence for a human. Cursor does not promote this flag.',
+    '',
+    '## Tuning-app key diff (seen)',
+    '',
+    'unmet — tuning apps were not scanned by this report run.',
+    '',
+    '## Crash count',
+    '',
+    'unmet — `bench/realworld.json` corpus was not executed here.',
+    '',
+    '## default-scan-diff if promoted',
+    '',
+    'not produced. Promotion was not performed.',
+    '',
+    '## Criteria not met',
+    '',
+    '- Phase 43 promotion criteria are not met in this report.',
+    '- unmet — needs Phase 68 run after review',
+    '',
+  ].join('\n');
 }
-lines.push('');
-lines.push('Promoted flags would become no-ops for one minor release. None are no-ops today.');
-lines.push('');
-process.stdout.write(`${lines.join('\n')}\n`);
+
+export function writePromotionReports(dir) {
+  mkdirSync(dir, { recursive: true });
+  for (const flag of FLAGS) {
+    writeFileSync(join(dir, `${flag}.md`), promotionMarkdown(flag));
+  }
+  return FLAGS;
+}
+
+function arg(name) {
+  const index = process.argv.indexOf(name);
+  return index === -1 ? undefined : process.argv[index + 1];
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const dir = arg('--out') ?? join(process.cwd(), 'bench/promotion');
+  writePromotionReports(dir);
+  console.log(`promotion-report wrote ${FLAGS.length} files to ${dir}`);
+}

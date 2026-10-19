@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path';
 import { Command } from 'commander';
 
 import { scan } from '../core/engine.js';
+import { DEFAULT_CONFIG } from '../core/config.js';
 import { readLastScanIds, writeLastScan } from '../core/lastScan.js';
 import { diffNewFindings } from '../core/watch.js';
 import { runFix } from '../fixer/index.js';
@@ -32,8 +33,9 @@ import { renderSarifReport } from '../reporters/sarif.js';
 import { addedFails, diffScans, parseScanDocument, renderDiffText } from '../diff/index.js';
 import { CI_REPORTS_FLAG, DIFF_FLAG, diffEnabled } from '../modules/sast/experimental.js';
 import { POLICY_FLAG, renderPrSummary } from '../policy/index.js';
-import { diffLockedPackages, lockAtRef, packagesFromLock, releaseAgeLabel } from '../deps-diff/index.js';
+import { advisoriesCleared, diffLockedPackages, lockAtRef, packagesFromLock, registryRecord, releaseAgeLabel } from '../deps-diff/index.js';
 import { explainFinding } from '../explain/index.js';
+import { renderRouteTable, routeMap, routesEnabled } from '../routes/index.js';
 import { queryOsv } from '../modules/deps/osv.js';
 import { osvSeverity } from '../modules/deps/semver.js';
 import { buildSbom } from '../sbom/index.js';
@@ -42,6 +44,7 @@ import { runEdge } from '../modules/edge/index.js';
 import { runHostCheck } from '../host/index.js';
 import { runDoctor } from './commands/doctor.js';
 import { formatCliError } from './errors.js';
+import { priorityEnabled, sortByPriority } from '../priority/index.js';
 
 export interface ProgramIO {
   out(text: string): void;
@@ -90,10 +93,21 @@ interface ScanCliOptions {
   experimentalSarifV2?: boolean;
   experimentalCustomSanitizers?: boolean;
   experimentalValidation?: boolean;
+  experimentalObservedReach?: boolean;
+  experimentalCustomRules?: boolean;
   taintSummaries?: boolean;
   experimentalMcpcfg?: boolean;
   includeHome?: boolean;
   prSummary?: boolean;
+  maxTime?: string;
+  paths?: boolean;
+  experimentalSecretCheck?: boolean;
+  experimentalPriority?: boolean;
+  experimentalModels?: boolean;
+  experimentalTypes?: boolean;
+  experimentalPaths?: boolean;
+  experimentalPerf2?: boolean;
+  experimentalBudget?: boolean;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -229,6 +243,14 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       '--experimental-validation',
       'experimental: route schema validation inference (FULLSHIELD_EXPERIMENTAL_VALIDATION=1)',
     )
+    .option(
+      '--experimental-observed-reach',
+      'experimental: read .fullshield/observed-reach.json (FULLSHIELD_EXPERIMENTAL_OBSERVED_REACH=1)',
+    )
+    .option(
+      '--experimental-custom-rules',
+      'experimental: load a JSON custom rules file (FULLSHIELD_EXPERIMENTAL_CUSTOM_RULES=1)',
+    )
     .option('--taint-summaries', 'cache per-function taint summaries (FULLSHIELD_TAINT_SUMMARIES=1)')
     .option(
       '--experimental-mcpcfg',
@@ -242,6 +264,15 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       '--pr-summary',
       'experimental: deterministic Markdown of new findings versus baseline (FULLSHIELD_EXPERIMENTAL_POLICY=1)',
     )
+    .option('--max-time <seconds>', 'experimental: stop SAST after this many seconds (FULLSHIELD_EXPERIMENTAL_BUDGET=1)')
+    .option('--paths', 'experimental: print attack paths (FULLSHIELD_EXPERIMENTAL_PATHS=1)')
+    .option('--experimental-secret-check', 'experimental: offline secret checksum and placeholder checks')
+    .option('--experimental-priority', 'experimental: deterministic priority score')
+    .option('--experimental-models', 'experimental: library model packs')
+    .option('--experimental-types', 'experimental: TypeScript receiver types')
+    .option('--experimental-paths', 'experimental: attack paths')
+    .option('--experimental-perf2', 'experimental: cold-scan performance v2')
+    .option('--experimental-budget', 'experimental: --max-time partial results')
     .action(async (path: string, opts: ScanCliOptions) => {
       try {
         const failOnOverride = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;
@@ -283,11 +314,40 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         if (opts.experimentalValidation === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_VALIDATION = '1';
         }
+        if (opts.experimentalObservedReach === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_OBSERVED_REACH = '1';
+        }
+        if (opts.experimentalCustomRules === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_CUSTOM_RULES = '1';
+        }
         if (opts.taintSummaries === true) {
           process.env.FULLSHIELD_TAINT_SUMMARIES = '1';
         }
         if (opts.experimentalMcpcfg === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_MCPCFG = '1';
+        }
+        if (opts.experimentalSecretCheck === true) process.env.FULLSHIELD_EXPERIMENTAL_SECRET_CHECK = '1';
+        if (opts.experimentalPriority === true) process.env.FULLSHIELD_EXPERIMENTAL_PRIORITY = '1';
+        if (opts.experimentalModels === true) process.env.FULLSHIELD_EXPERIMENTAL_MODELS = '1';
+        if (opts.experimentalTypes === true) process.env.FULLSHIELD_EXPERIMENTAL_TYPES = '1';
+        if (opts.experimentalPaths === true || opts.paths === true) process.env.FULLSHIELD_EXPERIMENTAL_PATHS = '1';
+        if (opts.experimentalPerf2 === true) process.env.FULLSHIELD_EXPERIMENTAL_PERF2 = '1';
+        if (opts.experimentalBudget === true || opts.maxTime !== undefined) {
+          process.env.FULLSHIELD_EXPERIMENTAL_BUDGET = '1';
+        }
+        if (opts.paths === true && process.env.FULLSHIELD_EXPERIMENTAL_PATHS !== '1') {
+          throw new Error('--paths requires FULLSHIELD_EXPERIMENTAL_PATHS=1');
+        }
+        if (opts.maxTime !== undefined && process.env.FULLSHIELD_EXPERIMENTAL_BUDGET !== '1') {
+          throw new Error('--max-time requires FULLSHIELD_EXPERIMENTAL_BUDGET=1');
+        }
+        let maxTimeMs: number | undefined;
+        if (opts.maxTime !== undefined) {
+          const seconds = Number(opts.maxTime);
+          if (!Number.isFinite(seconds) || seconds <= 0) {
+            throw new Error(`invalid --max-time "${opts.maxTime}" (FULLSHIELD_EXPERIMENTAL_BUDGET)`);
+          }
+          maxTimeMs = seconds * 1000;
         }
         if (opts.prSummary === true && process.env[POLICY_FLAG] !== '1') {
           throw new Error(`--pr-summary requires ${POLICY_FLAG}=1`);
@@ -320,6 +380,8 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           verifySecrets: opts.verifySecrets === true,
           iOwnTheseCredentials: opts.iOwnTheseCredentials === true,
           experimentalPolicy: process.env[POLICY_FLAG] === '1',
+          maxTimeMs,
+          paths: opts.paths === true,
         });
 
         if (opts.sarif !== undefined) {
@@ -356,13 +418,15 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           io.err(`wrote virtual patches ${out}`);
         }
 
+        const consoleResult =
+          priorityEnabled() ? { ...result, findings: sortByPriority(result.findings) } : result;
         if (opts.prSummary === true) {
           io.out(renderPrSummary(result.findings));
         } else {
           io.out(
             opts.json === true
               ? renderJsonReport(result)
-              : renderConsoleReport(result, { all: opts.all === true }),
+              : renderConsoleReport(consoleResult, { all: opts.all === true }),
           );
         }
 
@@ -381,6 +445,8 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         const failOn = failOnOverride ?? result.policy?.failOn ?? result.config.failOn;
         if (result.findings.some((f) => failsCi(f, failOn))) {
           process.exitCode = 1;
+        } else if (result.metadata.incomplete === true) {
+          process.exitCode = 3;
         }
       } catch (error) {
         io.err(formatCliError(error));
@@ -515,8 +581,29 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option('--out <file>', 'write to this file instead of stdout')
     .action(async (path: string, opts: { format?: string; out?: string }) => {
       try {
+        if (opts.format === 'spdx') {
+          if (process.env.FULLSHIELD_EXPERIMENTAL_SPDX !== '1') {
+            throw new Error('sbom --format spdx requires FULLSHIELD_EXPERIMENTAL_SPDX=1');
+          }
+          const { buildSpdx, spdxErrors } = await import('../sbom/spdx.js');
+          const doc = await buildSpdx(resolve(path), {
+            created: process.env.SOURCE_DATE_EPOCH !== undefined
+              ? new Date(Number(process.env.SOURCE_DATE_EPOCH) * 1000).toISOString()
+              : '1970-01-01T00:00:00.000Z',
+          });
+          const spdxProblems = spdxErrors(doc);
+          if (spdxProblems.length > 0) throw new Error(`invalid SPDX SBOM: ${spdxProblems.join('; ')}`);
+          const json = JSON.stringify(doc, null, 2);
+          if (opts.out !== undefined) {
+            await writeFile(resolve(opts.out), json, 'utf8');
+            io.out(`Wrote SPDX 2.3 SBOM to ${opts.out}`);
+          } else {
+            io.out(json);
+          }
+          return;
+        }
         if (opts.format !== undefined && opts.format !== 'cyclonedx') {
-          throw new Error(`unsupported SBOM format "${opts.format}" (valid: cyclonedx)`);
+          throw new Error(`unsupported SBOM format "${opts.format}" (valid: cyclonedx, spdx)`);
         }
         const doc = await buildSbom(resolve(path), {
           includeReach: process.env.FULLSHIELD_EXPERIMENTAL_SBOM_REACH === '1',
@@ -530,6 +617,38 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         } else {
           io.out(json);
         }
+      } catch (error) {
+        io.err(formatCliError(error));
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('ingest')
+    .description('Read Semgrep, OSV-Scanner, npm audit, or SARIF files (FULLSHIELD_EXPERIMENTAL_INGEST=1)')
+    .argument('<files...>', 'local report files')
+    .option('--json', 'machine-readable JSON output')
+    .action(async (files: string[], opts: { json?: boolean }) => {
+      try {
+        if (process.env.FULLSHIELD_EXPERIMENTAL_INGEST !== '1') {
+          throw new Error('ingest requires FULLSHIELD_EXPERIMENTAL_INGEST=1');
+        }
+        const { ingestFiles } = await import('../ingest/index.js');
+        const findings = await ingestFiles(files.map((file) => resolve(file)));
+        io.out(opts.json === true ? JSON.stringify({ findings }, null, 2) : renderConsoleReport({
+          findings,
+          summary: summarize(findings),
+          metadata: {
+            version: packageVersion(),
+            startedAt: new Date().toISOString(),
+            durationMs: 0,
+            cwd: process.cwd(),
+            filesScanned: files.length,
+            modulesRequested: [],
+            modulesRun: [],
+          },
+          config: DEFAULT_CONFIG,
+        }));
       } catch (error) {
         io.err(formatCliError(error));
         process.exitCode = 2;
@@ -764,10 +883,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         const moved = after.packages.filter((pkg) =>
           changes.some((change) => change.name === pkg.name && change.change !== 'removed' && change.newVersion === pkg.version),
         );
-        const hits = await queryOsv(moved, {
-          cacheDir: join(cwd, 'osv-cache'),
-          offline: opts.offline === true,
-        });
+        const cacheDir = join(cwd, 'osv-cache');
+        const offline = opts.offline === true;
+        const hits = await queryOsv(moved, { cacheDir, offline });
         const introduced = hits.flatMap((hit) =>
           hit.vulns.map((vuln) => ({
             name: hit.pkg.name,
@@ -776,30 +894,30 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
             severity: osvSeverity(vuln),
           })),
         );
+        const present = new Set(after.packages.map((pkg) => `${pkg.name}@${pkg.version}`));
+        const departed = before.packages.filter((pkg) => !present.has(`${pkg.name}@${pkg.version}`));
+        const oldHits = await queryOsv(departed, { cacheDir, offline });
+        const departedAdvisories = oldHits.flatMap((hit) =>
+          hit.vulns.map((vuln) => ({
+            name: hit.pkg.name,
+            version: hit.pkg.version,
+            id: vuln.id,
+            severity: osvSeverity(vuln),
+          })),
+        );
+        const cleared = advisoriesCleared(departedAdvisories, introduced);
         const added = changes.filter((change) => change.change === 'added');
         const ages = [];
         for (const change of added) {
-          let published: string | undefined;
-          let installScripts: 'yes' | 'no' | 'unknown' = 'unknown';
-          try {
-            const raw = JSON.parse(await readFile(join(cwd, 'osv-cache', 'registry', `${change.name}.json`), 'utf8')) as {
-              time?: string;
-              hasInstallScript?: boolean;
-            };
-            published = raw.time;
-            if (raw.hasInstallScript === true) installScripts = 'yes';
-            if (raw.hasInstallScript === false) installScripts = 'no';
-          } catch {
-            published = undefined;
-          }
+          const record = await registryRecord(change.name, change.newVersion, { cacheDir, offline });
           ages.push({
             name: change.name,
             version: change.newVersion,
-            age: releaseAgeLabel(published, Date.now()),
-            installScripts,
+            age: releaseAgeLabel(record.publishedAt, Date.now()),
+            installScripts: record.hasInstallScript === true ? 'yes' : record.hasInstallScript === false ? 'no' : 'unknown',
           });
         }
-        const report = { changes, introduced, ages };
+        const report = { changes, introduced, cleared, ages };
         io.out(JSON.stringify(report, null, 2));
         if (opts.failOn !== undefined) {
           const threshold = parseFailOn(opts.failOn);
@@ -1054,6 +1172,35 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
       },
     );
+
+  program
+    .command('routes')
+    .description('Print a route security map (requires FULLSHIELD_EXPERIMENTAL_ROUTES=1)')
+    .argument('[path]', 'project directory', '.')
+    .option('--experimental-routes', 'set FULLSHIELD_EXPERIMENTAL_ROUTES=1')
+    .action(async (scanPath: string, opts: { experimentalRoutes?: boolean }) => {
+      try {
+        if (opts.experimentalRoutes === true) process.env.FULLSHIELD_EXPERIMENTAL_ROUTES = '1';
+        if (!routesEnabled()) throw new Error('routes requires FULLSHIELD_EXPERIMENTAL_ROUTES=1');
+        const cwd = resolve(scanPath);
+        const { readdir } = await import('node:fs/promises');
+        const files: string[] = [];
+        const walkDir = async (dir: string, prefix: string): Promise<void> => {
+          const entries = await readdir(dir, { withFileTypes: true });
+          for (const entry of entries) {
+            if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue;
+            const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+            if (entry.isDirectory()) await walkDir(join(dir, entry.name), rel);
+            else files.push(rel);
+          }
+        };
+        await walkDir(cwd, '');
+        io.out(renderRouteTable(await routeMap(cwd, files)).trimEnd());
+      } catch (error) {
+        io.err(formatCliError(error));
+        process.exitCode = 2;
+      }
+    });
 
   program
     .command('doctor')

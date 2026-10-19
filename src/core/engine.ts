@@ -34,12 +34,20 @@ import {
   resolvePolicyBranch,
   type FullShieldPolicy,
 } from '../policy/index.js';
+import { priorityEnabled, withPriority } from '../priority/index.js';
 
 export interface ModuleContext {
   cwd: string;
   /** Posix-style relative paths of every scannable file under cwd. */
   files: string[];
   config: ResolvedConfig;
+  /** Phase 79. Set only when `scan --max-time` is passed. */
+  budget?: {
+    deadline: number;
+    fileDelayMs?: number;
+    sastStopped: boolean;
+    filesNotTaintChecked: number;
+  };
 }
 
 export interface ScanModule {
@@ -82,6 +90,12 @@ export interface ScanOptions {
   experimentalPolicy?: boolean;
   /** Override git/CI branch when applying `failOn` per branch. */
   policyBranch?: string;
+  /** Phase 79. Stop SAST taint expansion after this many milliseconds. */
+  maxTimeMs?: number;
+  /** Test-only delay before each SAST file, so a budget can trip. */
+  sastFileDelayMs?: number;
+  /** Phase 85. */
+  paths?: boolean;
 }
 
 export interface ScanMetadata {
@@ -103,6 +117,22 @@ export interface ScanMetadata {
     unresolved: string[];
     sentence: string;
   };
+  /** Phase 79. True when SAST stopped at the time budget. Never means the scan was clean. */
+  incomplete?: boolean;
+  incompleteModules?: string[];
+  filesNotTaintChecked?: number;
+  /** Phase 78. Present only with FULLSHIELD_EXPERIMENTAL_PERF2=1. */
+  skipped?: { count: number; reasons: Record<string, number> };
+  /** Phase 85. Present only when `scan --paths` is set. */
+  paths?: AttackPath[];
+}
+
+export interface AttackPath {
+  auth: 'present' | 'absent' | 'unknown';
+  entry?: { method: string; path: string };
+  steps: Array<{ file: string; line?: number; note: string }>;
+  findingId: string;
+  ruleId: string;
 }
 
 export interface PolicyScanResult {
@@ -122,6 +152,8 @@ export interface ScanResult {
   policy?: PolicyScanResult;
   /** Set when a baseline suppression is missing fields or has expired. */
   suppressionErrors?: string[];
+  /** Phase 80 / 81. Heuristic findings moved out of `findings` only when that flag is on. */
+  suppressed?: Finding[];
 }
 
 /**
@@ -210,7 +242,16 @@ export async function runScan(
   const available = new Map(modules.map((m) => [m.name, m]));
   const modulesRun = modulesRequested.filter((name) => available.has(name));
 
-  const ctx: ModuleContext = { cwd, files, config };
+  const budget =
+    options.maxTimeMs !== undefined && options.maxTimeMs > 0
+      ? {
+          deadline: performance.now() + options.maxTimeMs,
+          fileDelayMs: options.sastFileDelayMs,
+          sastStopped: false,
+          filesNotTaintChecked: 0,
+        }
+      : undefined;
+  const ctx: ModuleContext = { cwd, files, config, ...(budget !== undefined ? { budget } : {}) };
   const collected: Finding[] = [];
   for (const name of modulesRun) {
     const module = available.get(name);
@@ -335,6 +376,21 @@ export async function runScan(
       findings = sortFindings([...findings, ...(await runLogicHunt(cwd, files, client))]);
     }
   }
+  let moved: Finding[] | undefined;
+  if (process.env.FULLSHIELD_EXPERIMENTAL_MODELS === '1' || process.env.FULLSHIELD_EXPERIMENTAL_TYPES === '1') {
+    const { applyExperimentalSuppressions } = await import('../modules/sast/suppress.js');
+    const applied = await applyExperimentalSuppressions(cwd, files, findings);
+    findings = applied.findings;
+    moved = applied.suppressed.length > 0 ? applied.suppressed : undefined;
+  }
+  if (priorityEnabled()) {
+    findings = findings.map((finding) => withPriority(finding));
+  }
+  const attackPaths =
+    options.paths === true && process.env.FULLSHIELD_EXPERIMENTAL_PATHS === '1'
+      ? (await import('../paths/index.js')).attackPaths(findings)
+      : undefined;
+  const incomplete = budget?.sastStopped === true;
   return {
     findings,
     summary: summarize(findings),
@@ -349,10 +405,19 @@ export async function runScan(
       ...(historyNotice !== undefined ? { history: historyNotice } : {}),
       ...(depsModule.unusedDirect !== undefined ? { unusedDirect: depsModule.unusedDirect } : {}),
       ...(depsModule.upgradePlan !== undefined ? { upgradePlan: depsModule.upgradePlan } : {}),
+      ...(incomplete
+        ? {
+            incomplete: true,
+            incompleteModules: ['sast'],
+            filesNotTaintChecked: budget?.filesNotTaintChecked ?? 0,
+          }
+        : {}),
+      ...(attackPaths !== undefined ? { paths: attackPaths } : {}),
     },
     config,
     policy: policyResult,
     ...(suppressionErrors.length > 0 ? { suppressionErrors } : {}),
+    ...(moved !== undefined ? { suppressed: moved } : {}),
   };
 }
 

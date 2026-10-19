@@ -1,0 +1,13 @@
+{
+  "package": "validator",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sanitizer",
+      "sinkClass": "xss",
+      "memberPath": "validator.escape(",
+      "argumentIndex": 0,
+      "reference": "https://github.com/validatorjs/validator.js#sanitizers"
+    }
+  ]
+}

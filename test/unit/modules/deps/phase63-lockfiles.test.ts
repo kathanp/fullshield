@@ -1,5 +1,8 @@
+import { join } from 'node:path';
+
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { scan } from '../../../../src/core/engine.js';
 import { parseLockfileGraph } from '../../../../src/modules/deps/lockfile.js';
 
 const yarnBerry = `
@@ -74,5 +77,18 @@ describe('phase 63 modern lockfiles', () => {
     const bunGraph = parseLockfileGraph('bun.lock', bun);
     expect(bunGraph.edges.get('left-pad')?.has('pad-left')).toBe(true);
     expect(bunGraph.edgesKnown).toBe(true);
+  });
+
+  it('reports bun.lockb as an unsupported binary and leaves it alone when the flag is off', async () => {
+    const app = join(import.meta.dirname, '../../../fixtures/bun-lockb-app');
+    const off = await scan({ cwd: app, modules: ['deps'], offline: true });
+    expect(off.findings.some((finding) => finding.file === 'bun.lockb')).toBe(false);
+    expect(off.findings.some((finding) => finding.ruleId === 'DEPS-NOLOCK-001')).toBe(true);
+    process.env.FULLSHIELD_EXPERIMENTAL_LOCKFILES = '1';
+    const on = await scan({ cwd: app, modules: ['deps'], offline: true });
+    const info = on.findings.find((finding) => finding.file === 'bun.lockb');
+    expect(info?.ruleId).toBe('DEPS-NOLOCK-001');
+    expect(info?.severity).toBe('info');
+    expect(info?.message).toContain('unsupported');
   });
 });

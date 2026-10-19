@@ -1,0 +1,13 @@
+{
+  "package": "prisma",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sink",
+      "sinkClass": "sqli",
+      "memberPath": "$queryRawUnsafe(",
+      "argumentIndex": 0,
+      "reference": "https://www.prisma.io/docs/orm/prisma-client/using-raw-sql/raw-queries"
+    }
+  ]
+}

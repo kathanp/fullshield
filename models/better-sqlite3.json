@@ -1,0 +1,13 @@
+{
+  "package": "better-sqlite3",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sink",
+      "sinkClass": "sqli",
+      "memberPath": "db.prepare(",
+      "argumentIndex": 0,
+      "reference": "https://github.com/WiseLibs/better-sqlite3/blob/master/docs/api.md"
+    }
+  ]
+}

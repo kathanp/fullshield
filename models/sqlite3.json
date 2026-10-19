@@ -1,0 +1,13 @@
+{
+  "package": "sqlite3",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sink",
+      "sinkClass": "sqli",
+      "memberPath": "db.run(",
+      "argumentIndex": 0,
+      "reference": "https://github.com/TryGhost/node-sqlite3/wiki/API"
+    }
+  ]
+}

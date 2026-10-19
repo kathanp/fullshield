@@ -1,0 +1,13 @@
+{
+  "package": "handlebars",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sink",
+      "sinkClass": "xss",
+      "memberPath": "Handlebars.compile(",
+      "argumentIndex": 0,
+      "reference": "https://handlebarsjs.com/api-reference/compilation.html"
+    }
+  ]
+}

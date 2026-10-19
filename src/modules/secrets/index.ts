@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import type { ScanModule } from '../../core/engine.js';
 import { makeFindingId, type Finding } from '../../core/finding.js';
 import { foldStringConcat, maskSecret } from './mask.js';
+import { applySecretStructure, secretCheckEnabled } from './structure.js';
 import { aiKeyRule } from './rules/aiKey.js';
 import { awsRule } from './rules/aws.js';
 import { dbUrlRule } from './rules/dbUrl.js';
@@ -92,7 +93,11 @@ export const secretsModule: ScanModule = {
         continue; // unreadable file: nothing to scan
       }
       if (text.length > MAX_FILE_SIZE || text.includes('\u0000')) continue;
-      findings.push(...scanTextForSecrets(rel, text));
+      if (secretCheckEnabled()) {
+        findings.push(...scanTextForSecretHits(rel, text).map((hit) => applySecretStructure(hit.finding, hit.secret, rel)));
+      } else {
+        findings.push(...scanTextForSecrets(rel, text));
+      }
     }
     return findings;
   },

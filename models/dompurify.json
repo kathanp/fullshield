@@ -1,0 +1,13 @@
+{
+  "package": "dompurify",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sanitizer",
+      "sinkClass": "xss",
+      "memberPath": "DOMPurify.sanitize(",
+      "argumentIndex": 0,
+      "reference": "https://github.com/cure53/DOMPurify#api"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "package": "joi",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "validator",
+      "sinkClass": "nosqli",
+      "memberPath": "Joi.number()",
+      "argumentIndex": 0,
+      "reference": "https://joi.dev/api/?v=17.13.3#number"
+    }
+  ]
+}

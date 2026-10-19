@@ -1,0 +1,13 @@
+{
+  "package": "child_process",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sink",
+      "sinkClass": "cmdi",
+      "memberPath": "exec(",
+      "argumentIndex": 0,
+      "reference": "https://nodejs.org/api/child_process.html#child_processexeccommand-options-callback"
+    }
+  ]
+}

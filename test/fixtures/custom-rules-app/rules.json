@@ -1,0 +1,11 @@
+{
+  "rules": [
+    {
+      "id": "CUSTOM-SINK-001",
+      "severity": "high",
+      "sources": ["req.body"],
+      "sinks": ["danger"],
+      "message": "request body reached danger"
+    }
+  ]
+}

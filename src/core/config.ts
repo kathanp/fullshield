@@ -47,6 +47,8 @@ export interface SastConfig {
   /** Present only when FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS=1. */
   sources?: SastSourceConfig[];
   sanitizers?: SastSanitizerConfig[];
+  /** Present only when FULLSHIELD_EXPERIMENTAL_CUSTOM_RULES=1. */
+  customRules?: string;
 }
 
 export interface ResolvedConfig {
@@ -288,6 +290,12 @@ function validate(raw: unknown, source: string): Partial<ResolvedConfig> {
     if (custom) {
       sast.sources = parseSastSources(rawSast.sources, source);
       sast.sanitizers = parseSastSanitizers(rawSast.sanitizers, source);
+    }
+    if (process.env.FULLSHIELD_EXPERIMENTAL_CUSTOM_RULES === '1' && rawSast.customRules !== undefined) {
+      if (typeof rawSast.customRules !== 'string' || rawSast.customRules.length === 0) {
+        throw new ConfigError(`${source}: "sast.customRules" must be a path`);
+      }
+      sast.customRules = rawSast.customRules;
     }
     out.sast = sast;
   }

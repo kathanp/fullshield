@@ -32,6 +32,15 @@ describe('phase 54 workspace lockfiles', () => {
     expect(keys(on.findings)).toEqual(keys(off.findings));
   });
 
+  it('reads pnpm-workspace.yaml when package.json has no workspaces field', async () => {
+    process.env.FULLSHIELD_EXPERIMENTAL_WORKSPACES = '1';
+    const pnpm = join(import.meta.dirname, '../../../fixtures/pnpm-ws-app');
+    const result = await scan({ cwd: pnpm, modules: ['deps'], offline: true });
+    const vuln = result.findings.filter((finding) => finding.ruleId === 'DEPS-VULN-001');
+    expect(vuln.map((finding) => finding.file)).toEqual(['packages/vuln/package-lock.json']);
+    expect(result.findings.some((finding) => finding.file?.startsWith('packages/clean/'))).toBe(false);
+  });
+
   it('does not read workspace lockfiles when the flag is off', async () => {
     const result = await scan({ cwd: app, modules: ['deps'], offline: true });
     expect(result.findings.some((finding) => finding.ruleId === 'DEPS-VULN-001')).toBe(false);

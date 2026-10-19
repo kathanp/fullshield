@@ -1,0 +1,13 @@
+{
+  "package": "jsonwebtoken",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sink",
+      "sinkClass": "jwt",
+      "memberPath": "jwt.verify(",
+      "argumentIndex": 0,
+      "reference": "https://github.com/auth0/node-jsonwebtoken#jwtverifytoken-secretorpublickey-options-callback"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "package": "got",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sink",
+      "sinkClass": "ssrf",
+      "memberPath": "got(",
+      "argumentIndex": 0,
+      "reference": "https://github.com/sindresorhus/got"
+    }
+  ]
+}

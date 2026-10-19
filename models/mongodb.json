@@ -1,0 +1,13 @@
+{
+  "package": "mongodb",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sink",
+      "sinkClass": "nosqli",
+      "memberPath": "collection.find(",
+      "argumentIndex": 0,
+      "reference": "https://www.mongodb.com/docs/drivers/node/current/fundamentals/crud/read-operations/query-document/"
+    }
+  ]
+}

@@ -57,6 +57,7 @@ function main() {
     fileCount,
     hardDeps: current,
     previousHardDeps: previousDeps,
+    packedFiles: Array.isArray(entry.files) ? entry.files : [],
   });
   console.log(`pack-budget unpacked=${unpackedBytes} files=${fileCount} hardDeps=${current.length}`);
   if (errors.length > 0) {

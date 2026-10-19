@@ -1,10 +1,12 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { performance } from 'node:perf_hooks';
 
 import type { ScanModule } from '../../core/engine.js';
 import { makeFindingId, type Finding } from '../../core/finding.js';
 import { assignedNameOf, walk } from './ast.js';
 import { collectRequires, runInterproc, type ParsedSource } from './interproc.js';
+import { crossFileReturnFindings } from './returns.js';
 import { cachedReturners, setTaintSummaryConfig, taintSummariesEnabled } from './summaries.js';
 import {
   analyzeFile,
@@ -19,7 +21,8 @@ import {
   nodeIsTainted,
   setCustomTaint,
 } from './taint.js';
-import { authRule } from './rules/auth.js';
+import { activeCustomRules, loadCustomRules, setCustomRules } from './custom-rules.js';
+import { authRule, setAuthProject } from './rules/auth.js';
 import { cmdiRule } from './rules/cmdi.js';
 import { cryptoRule } from './rules/crypto.js';
 import { evalRule } from './rules/eval.js';
@@ -81,7 +84,7 @@ export function findingsFromAst(
   const facts = analyzeFile(ast, extraReturners);
   const findings: Finding[] = [];
 
-  for (const rule of sastRules) {
+  for (const rule of [...sastRules, ...activeCustomRules()]) {
     const ctx: RuleContext = {
       filename,
       source,
@@ -124,7 +127,24 @@ export function findingsFromAst(
   return findings;
 }
 
-function findingsFromTemplate(filename: string, source: string): Finding[] {
+function declaredViewEngine(source: string): string | undefined {
+  const set = /set\(\s*['"]view engine['"]\s*,\s*['"]([A-Za-z0-9_-]+)['"]\s*\)/.exec(source);
+  if (set?.[1] !== undefined) return set[1].toLowerCase();
+  const named = /\.engine\(\s*['"]([A-Za-z0-9_-]+)['"]/.exec(source);
+  return named?.[1]?.toLowerCase();
+}
+
+async function projectViewEngine(ctx: Parameters<ScanModule['run']>[0]): Promise<string | undefined> {
+  for (const rel of ctx.files) {
+    if (!SOURCE_EXT.test(rel)) continue;
+    const source = await readScanSource(ctx.cwd, rel);
+    const engine = source === undefined ? undefined : declaredViewEngine(source);
+    if (engine !== undefined) return engine;
+  }
+  return undefined;
+}
+
+function findingsFromTemplate(filename: string, source: string, engine?: string): Finding[] {
   const findings: Finding[] = [];
   const ctx: RuleContext = {
     filename,
@@ -160,6 +180,21 @@ function findingsFromTemplate(filename: string, source: string): Finding[] {
     projectCsrfProtected: false,
   };
   xssRule.create(ctx);
+  if (engine === 'swig') {
+    source.split(/\r?\n/).forEach((line, index) => {
+      if (!/\{\{[^{}]/.test(line)) return;
+      ctx.report({
+        node: {
+          type: 'Literal',
+          value: '',
+          raw: "''",
+          loc: { start: { line: index + 1, column: 0 }, end: { line: index + 1, column: 0 } },
+          range: [0, 0],
+        } as AstNode,
+        message: 'Swig {{ }} is unescaped and can produce XSS.',
+      });
+    });
+  }
   return findings;
 }
 
@@ -170,9 +205,9 @@ export async function runSastOnText(filename: string, source: string): Promise<F
   return findingsFromAst(filename, source, ast);
 }
 
-/** Same rule and sink line is one finding. The first report wins. */
+/** Same rule and sink line is one finding. The first report wins, except a later cross-file return trace is kept when the first report has none. */
 export function dedupeSastSinks(findings: readonly Finding[]): Finding[] {
-  const seen = new Set<string>();
+  const seen = new Map<string, number>();
   const out: Finding[] = [];
   for (const finding of findings) {
     if (finding.module !== 'sast' || finding.line === undefined) {
@@ -180,9 +215,17 @@ export function dedupeSastSinks(findings: readonly Finding[]): Finding[] {
       continue;
     }
     const key = `${finding.ruleId}\0${finding.file ?? ''}\0${finding.line}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(finding);
+    const at = seen.get(key);
+    if (at === undefined) {
+      seen.set(key, out.length);
+      out.push(finding);
+      continue;
+    }
+    const prev = out[at];
+    const crossFile = finding.trace?.some((step) => step.note?.startsWith('returned from')) === true;
+    if (prev !== undefined && crossFile && (prev.trace === undefined || prev.trace.length === 0)) {
+      out[at] = { ...prev, trace: finding.trace };
+    }
   }
   return out;
 }
@@ -293,6 +336,7 @@ function extraReturners(
 
 async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<Finding[]> {
   const maxBytes = ctx.config.sast.maxFileBytes;
+  const viewEngine = await projectViewEngine(ctx);
   const findings: Finding[] = [];
   const returning = new Map<string, Set<string>>();
   const parseable: string[] = [];
@@ -301,7 +345,7 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
 
   for (const rel of ctx.files) {
     const isSource = SOURCE_EXT.test(rel);
-    const isTemplate = TEMPLATE_EXT.test(rel);
+    const isTemplate = TEMPLATE_EXT.test(rel) || (viewEngine === 'swig' && /\.(swig|html)$/.test(rel));
     if (!isSource && !isTemplate) continue;
     const source = await readScanSource(ctx.cwd, rel);
     if (source === undefined) continue;
@@ -312,7 +356,7 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
     }
     if (sourceHasCsrfGuard(source)) projectCsrf = true;
     if (isTemplate) {
-      findings.push(...findingsFromTemplate(rel, source));
+      findings.push(...findingsFromTemplate(rel, source, viewEngine));
       continue;
     }
     const ast = await parseCode(source);
@@ -343,6 +387,7 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
       parsed.push({ file: rel, source, ast });
     }
     findings.push(...runInterproc(parsed));
+    findings.push(...crossFileReturnFindings(parsed));
     releaseParsed(parsed);
   }
   return dedupeSastSinks(findings);
@@ -364,28 +409,51 @@ export const sastModule: ScanModule = {
       setCustomTaint(undefined);
     }
     setTaintSummaryConfig(taintSummariesEnabled() ? ctx.config : undefined);
+    if (process.env.FULLSHIELD_EXPERIMENTAL_CUSTOM_RULES === '1' && ctx.config.sast.customRules !== undefined) {
+      setCustomRules(await loadCustomRules(ctx.cwd, ctx.config.sast.customRules));
+    } else {
+      setCustomRules(undefined);
+    }
     try {
-    const candidates = ctx.files.filter((rel) => SOURCE_EXT.test(rel) || TEMPLATE_EXT.test(rel));
+    const viewEngine = await projectViewEngine(ctx);
+    const candidates = ctx.files.filter(
+      (rel) => SOURCE_EXT.test(rel) || TEMPLATE_EXT.test(rel) || (viewEngine === 'swig' && /\.(swig|html)$/.test(rel)),
+    );
     if (candidates.length > sastStreamThreshold()) return await runSastStreaming(ctx);
 
     const maxBytes = ctx.config.sast.maxFileBytes;
     const findings: Finding[] = [];
     const parsed: ParsedSource[] = [];
-    for (const rel of candidates) {
+    let finishedOne = false;
+    for (let index = 0; index < candidates.length; index += 1) {
+      const rel = candidates[index] ?? '';
+      if (finishedOne && ctx.budget !== undefined && performance.now() > ctx.budget.deadline) {
+        ctx.budget.sastStopped = true;
+        ctx.budget.filesNotTaintChecked += candidates.length - index;
+        break;
+      }
+      if (ctx.budget?.fileDelayMs !== undefined && ctx.budget.fileDelayMs > 0) {
+        await new Promise((resolveDelay) => setTimeout(resolveDelay, ctx.budget?.fileDelayMs));
+      }
       const source = await readScanSource(ctx.cwd, rel);
-      if (source === undefined) continue;
+      if (source === undefined) {
+        finishedOne = true;
+        continue;
+      }
       const why = skipReason(source, maxBytes);
       if (why !== undefined) {
         findings.push(skipFinding(rel, `Skipped ${rel}: ${why}.`));
+        finishedOne = true;
         continue;
       }
-      if (TEMPLATE_EXT.test(rel)) {
-        findings.push(...findingsFromTemplate(rel, source));
+      if (TEMPLATE_EXT.test(rel) || (viewEngine === 'swig' && /\.(swig|html)$/.test(rel))) {
+        findings.push(...findingsFromTemplate(rel, source, viewEngine));
+        finishedOne = true;
         continue;
       }
       const ast = await parseCode(source);
-      if (ast === undefined) continue;
-      parsed.push({ file: rel, source, ast });
+      if (ast !== undefined) parsed.push({ file: rel, source, ast });
+      finishedOne = true;
     }
     const files = new Set(parsed.map((p) => p.file));
     const projectCsrf = parsed.some((p) => sourceHasCsrfGuard(p.source));
@@ -396,6 +464,7 @@ export const sastModule: ScanModule = {
         taintSummariesEnabled() ? cachedReturners(entry.source, entry.ast) : functionsThatReturnTaint(entry.ast),
       );
     }
+    setAuthProject(new Map(parsed.map((entry) => [entry.file, entry.ast])));
     for (const entry of parsed) {
       findings.push(
         ...findingsFromAst(
@@ -408,12 +477,15 @@ export const sastModule: ScanModule = {
       );
     }
     findings.push(...runInterproc(parsed));
+    findings.push(...crossFileReturnFindings(parsed));
     const out = dedupeSastSinks(findings);
     releaseParsed(parsed);
     return out;
     } finally {
       setCustomTaint(undefined);
       setTaintSummaryConfig(undefined);
+      setCustomRules(undefined);
+      setAuthProject(undefined);
     }
   },
 };

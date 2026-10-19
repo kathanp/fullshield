@@ -11,6 +11,15 @@ export async function load(
   nextLoad: (url: string, context: unknown) => Promise<unknown>,
 ): Promise<unknown> {
   const result = await nextLoad(url, context);
+  if (typeof url === 'string') {
+    try {
+      const { packageFromFileUrl, recordLoaded } = await import('../observed-reach.js');
+      const loaded = packageFromFileUrl(url);
+      if (loaded !== undefined) await recordLoaded(process.cwd(), loaded.name, loaded.exportName);
+    } catch {
+      // Fail open. Observed reach never stops the app.
+    }
+  }
   if (typeof url === 'string' && (url === 'node:sqlite' || url.startsWith('node:sqlite'))) {
     try {
       const wrap = (globalThis as Record<symbol, (() => void) | undefined>)[

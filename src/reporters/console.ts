@@ -267,6 +267,9 @@ export function renderConsoleReport(input: ScanResult, options: ConsoleReportOpt
       ),
   );
   if (metadata.history !== undefined) lines.push(metadata.history);
+  if (metadata.incomplete === true) {
+    lines.push(pc.yellow(`Scan stopped at budget. ${metadata.filesNotTaintChecked ?? 0} files not taint-checked.`));
+  }
   if (metadata.upgradePlan !== undefined && metadata.upgradePlan.sentence.length > 0) {
     lines.push(metadata.upgradePlan.sentence);
   }

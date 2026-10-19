@@ -6,6 +6,7 @@ import { join, resolve } from 'node:path';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { scan } from '../core/engine.js';
+import { explainFinding } from '../explain/index.js';
 import type { Finding, ModuleName } from '../core/finding.js';
 import { proposeFix, applyUnifiedDiff } from '../fixer/patches.js';
 import { scanLlmApp } from '../llm/index.js';
@@ -63,9 +64,9 @@ export async function callMcpTool(
     return { findings: session.findings };
   }
   if (name === 'explain_finding') {
-    const hit = session.findings.find((f) => f.ruleId === args.ruleId);
+    const hit = session.findings.find((finding) => finding.ruleId === args.ruleId || finding.id === args.ruleId);
     if (!hit) return { text: `no finding ${args.ruleId}` };
-    return { text: `${hit.title}: ${hit.message} ${hit.remediation}` };
+    return { text: await explainFinding({ cwd: session.cwd ?? '', id: hit.id, findings: session.findings }) };
   }
   if (name === 'propose_fix') {
     return proposeOnly(session, args.ruleId);

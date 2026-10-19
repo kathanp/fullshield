@@ -1,0 +1,13 @@
+{
+  "package": "knex",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sink",
+      "sinkClass": "sqli",
+      "memberPath": "knex.raw(",
+      "argumentIndex": 0,
+      "reference": "https://knexjs.org/guide/raw.html"
+    }
+  ]
+}

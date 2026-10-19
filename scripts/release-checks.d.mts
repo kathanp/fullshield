@@ -22,6 +22,7 @@ export function packBudgetErrors(pack: {
   fileCount: number;
   hardDeps: string[];
   previousHardDeps: string[];
+  packedFiles?: Array<string | { path?: string }>;
 }): string[];
 export function attestationsPresent(packument: { dist?: { attestations?: object } } | null): boolean;
 export function addedLines(before: string[], after: string[]): string[];

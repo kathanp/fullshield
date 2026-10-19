@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { readFile, readdir } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -9,8 +9,11 @@ import { parseLockfileGraph, type LockedPackage, type LockfileGraph } from './lo
 import { isMaliciousAdvisory, queryOsv, type OsvVuln } from './osv.js';
 import { exactPinsFromManifest, lineOfManifestDep } from './pins.js';
 import { collectImportSites, evidenceForFinding } from './evidence.js';
+import { dependencyShapeFindings } from './phantom.js';
+import { applyObservedReach } from '../../runtime/observed-reach.js';
 import { applyReachability, indexPackageUsage, isProductionSource, unusedDirectPlan } from './reachability.js';
 import { chooseUpgradePlan, type UpgradeAdvisory } from './upgrade-plan.js';
+import { registryRecord } from '../../deps-diff/index.js';
 import { campaignFindings, securityPlaceholderFinding } from '../../supply/campaign.js';
 import { affectedFunctionNames } from './symbol-reachability.js';
 import { minFixedVersion, osvSeverity, sameMajor } from './semver.js';
@@ -119,6 +122,20 @@ function typosquatFinding(lockFile: string, hit: TyposquatHit): Finding {
   };
 }
 
+function bunLockbFinding(): Finding {
+  return {
+    id: makeFindingId('DEPS-NOLOCK-001', 'bun.lockb', 'unsupported'),
+    ruleId: 'DEPS-NOLOCK-001',
+    module: 'deps',
+    title: 'bun.lockb is not parsed',
+    severity: 'info',
+    confidence: 'high',
+    file: 'bun.lockb',
+    message: 'bun.lockb is a binary lockfile. The format is unsupported, so reachability stays unknown.',
+    remediation: 'Commit bun.lock (text) or package-lock.json so the installed tree can be audited.',
+  };
+}
+
 function noLockFinding(): Finding {
   return {
     id: makeFindingId('DEPS-NOLOCK-001', 'package.json', 'no-lockfile'),
@@ -181,7 +198,8 @@ export const depsModule: ScanModule & {
 
     if (lockFile === undefined) {
       if (!ctx.files.includes('package.json')) return [];
-      const findings: Finding[] = [noLockFinding()];
+      const bunBinary = process.env.FULLSHIELD_EXPERIMENTAL_LOCKFILES === '1' && ctx.files.includes('bun.lockb');
+      const findings: Finding[] = [bunBinary ? bunLockbFinding() : noLockFinding()];
       let manifest: Record<string, unknown> = {};
       try {
         manifest = JSON.parse(manifestRaw ?? '{}') as Record<string, unknown>;
@@ -244,6 +262,7 @@ export const depsModule: ScanModule & {
     }
     const reachCtx = await reachabilityCtx(ctx.cwd, ctx.files, graph);
     let reached = applyReachability(findings, reachCtx, symbols);
+    reached = await applyObservedReach(ctx.cwd, reached);
     if (experimentalVex()) {
       reached = attachOverrideProposals(reached, graph, lockFile, manifestRaw);
       reached.push(...scanInstalledPackages(ctx.cwd, packages));
@@ -274,13 +293,23 @@ export const depsModule: ScanModule & {
       });
     }
     reached = await withWorkspaceAdvisories(ctx.cwd, manifestRaw, osvOpts, reached);
+    const shapeSources: { file: string; text: string }[] = [];
+    for (const rel of ctx.files) {
+      if (!/\.[cm]?[jt]sx?$/.test(rel)) continue;
+      try {
+        shapeSources.push({ file: rel, text: await readFile(join(ctx.cwd, rel), 'utf8') });
+      } catch {
+        continue;
+      }
+    }
+    reached = [...reached, ...dependencyShapeFindings(manifestRaw, packages, shapeSources)];
     if (process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY === '1') {
       reached.push(...campaignFindings([...reachCtx.sources.entries()].map(([file, text]) => ({ file, text }))));
       for (const name of [...direct].sort()) {
         const locked = packages.find((pkg) => pkg.name === name)?.version;
         if (locked === undefined) continue;
-        const latest = await readPlaceholderLatest(join(cacheDir, 'registry', `${name.replaceAll('/', '__')}.json`));
-        const placeholder = securityPlaceholderFinding(name, locked, latest);
+        const record = await registryRecord(name, locked, { cacheDir, offline: ctx.config.deps.offline });
+        const placeholder = securityPlaceholderFinding(name, locked, record.latest);
         if (placeholder !== undefined) reached.push(placeholder);
       }
     }
@@ -323,13 +352,26 @@ async function expandWorkspace(cwd: string, pattern: string): Promise<string[]> 
   }
 }
 
+function pnpmWorkspacePatterns(cwd: string): string[] {
+  try {
+    return readFileSync(join(cwd, 'pnpm-workspace.yaml'), 'utf8')
+      .split('\n')
+      .map((line) => line.trim().replace(/^-+\s*/, '').replace(/^['"]|['"]$/g, ''))
+      .filter((line) => line.length > 0 && !line.startsWith('#') && line !== 'packages:');
+  } catch {
+    return [];
+  }
+}
+
 async function workspaceAdvisoryFindings(
   cwd: string,
   manifestRaw: string,
   osvOpts: { cacheDir: string; offline: boolean },
 ): Promise<Finding[]> {
+  const fromManifest = workspacePatterns(manifestRaw);
+  const patterns = fromManifest.length > 0 ? fromManifest : pnpmWorkspacePatterns(cwd);
   const dirs = new Set<string>();
-  for (const pattern of workspacePatterns(manifestRaw)) {
+  for (const pattern of patterns) {
     for (const dir of await expandWorkspace(cwd, pattern)) dirs.add(dir);
   }
   const findings: Finding[] = [];
@@ -365,15 +407,6 @@ async function withWorkspaceAdvisories(
 ): Promise<Finding[]> {
   if (!workspacesEnabled() || manifestRaw === undefined) return findings;
   return [...findings, ...(await workspaceAdvisoryFindings(cwd, manifestRaw, osvOpts))];
-}
-
-async function readPlaceholderLatest(file: string): Promise<string | undefined> {
-  try {
-    const raw = JSON.parse(await readFile(file, 'utf8')) as { latest?: string };
-    return typeof raw.latest === 'string' ? raw.latest : undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 function graphFromManifest(manifest: Record<string, unknown>): LockfileGraph {

@@ -1,0 +1,13 @@
+{
+  "package": "helmet",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sanitizer",
+      "sinkClass": "xss",
+      "memberPath": "helmet()",
+      "argumentIndex": 0,
+      "reference": "https://helmetjs.github.io/"
+    }
+  ]
+}

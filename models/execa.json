@@ -1,0 +1,13 @@
+{
+  "package": "execa",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sink",
+      "sinkClass": "cmdi",
+      "memberPath": "execa(",
+      "argumentIndex": 0,
+      "reference": "https://github.com/sindresorhus/execa"
+    }
+  ]
+}

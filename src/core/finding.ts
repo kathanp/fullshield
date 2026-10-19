@@ -55,7 +55,7 @@ export interface Finding {
   /** Every retained dependency path for this package+advisory (shortest first). */
   dependencyPaths?: string[][];
   /** Deterministic (default) vs AI-added. AI findings never fail CI. */
-  source?: 'deterministic' | 'ai';
+  source?: 'deterministic' | 'ai' | 'semgrep' | 'osv-scanner' | 'npm-audit' | 'sarif' | 'user-rule';
   aiVerdict?: 'true-positive' | 'likely-false-positive' | 'needs-review';
   aiReasoning?: string;
   exploitScenario?: string;
@@ -66,6 +66,8 @@ export interface Finding {
   stillAtHead?: boolean;
   /** Read-only identity check (`scan --verify-secrets`). Never includes the secret. */
   verification?: 'live' | 'revoked' | 'unknown';
+  /** Runtime observation. Present only with FULLSHIELD_EXPERIMENTAL_OBSERVED_REACH=1. */
+  observedReach?: 'confirmed' | 'downgraded';
   /** Why the reachability class was chosen. Present only with FULLSHIELD_EXPERIMENTAL_REACH_EVIDENCE=1. */
   reachabilityEvidence?: {
     imports: Array<{ file: string; line: number; specifier: string }>;
@@ -73,6 +75,21 @@ export interface Finding {
     dependencyPath?: string[];
     reason: string;
   };
+  /** Phase 82. Set only with FULLSHIELD_EXPERIMENTAL_SECRET_CHECK=1. */
+  secretCheck?: 'checksum-failed' | 'placeholder';
+  /** Phase 82. Test, fixture, or example paths. */
+  context?: 'test';
+  /** Phase 84. 0–100. Present only with FULLSHIELD_EXPERIMENTAL_PRIORITY=1. */
+  priority?: number;
+  priorityFactors?: string[];
+  /** Phase 83. The other tool's original rule id. */
+  externalRuleId?: string;
+  /** Phase 83. Every tool that reported this row. */
+  sources?: string[];
+  /** Phase 80 / 81. Why a heuristic finding was moved to `suppressed`. */
+  suppressedBy?: string;
+  /** Phase 91. */
+  verified?: 'removes-finding' | 'does-not-remove' | 'introduces-finding';
 }
 
 export interface FindingSummary {

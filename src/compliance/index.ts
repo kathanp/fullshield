@@ -142,6 +142,10 @@ export const RULE_MAP: readonly RuleMapping[] = [
   ROW('HOST-SSH-001', 'A06:2021 Vulnerable Components', 'CWE-364', 'V14.2.1', 'PCI DSS 6.3.3'),
   ROW('HOST-SSH-002', 'A05:2021 Security Misconfiguration', 'CWE-693', 'V14.4.3', 'PCI DSS 2.2'),
   ROW('HOST-SSH-003', 'A07:2021 Identification Failures', 'CWE-307', 'V7.1.1', 'PCI DSS 10.2 / 11.5'),
+  ROW('DEPS-PHANTOM-001', 'A06:2021 Vulnerable Components', 'CWE-829', 'V14.2.1', 'PCI DSS 6.3.3'),
+  ROW('SUPPLY-CAP-001', 'A06:2021 Vulnerable Components', 'CWE-829', 'V14.2.1', 'PCI DSS 6.3.3'),
+  ROW('SUPPLY-PROV-001', 'A08:2021 Integrity Failures', 'CWE-494', 'V14.2.3', 'PCI DSS 6.3.3'),
+  ROW('DEPS-LOCKMISMATCH-001', 'A06:2021 Vulnerable Components', 'CWE-1104', 'V14.2.1', 'PCI DSS 6.3.3'),
 ];
 
 const byId = new Map(RULE_MAP.map((r) => [r.ruleId, r]));

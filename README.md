@@ -144,6 +144,7 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 
 | Command | Purpose |
 |---|---|
+| `routes` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_ROUTES=1` or `--experimental-routes`). Prints method, path, auth middleware, validation, and sink classes. It does not detect IDOR or missing ownership checks, and it makes no network call. |
 | `scan` | Run deps, secrets, sast, config. `--json`, `--sarif`, `--markdown`, `--html`, `--fail-on`, `--offline`, `--staged`, `--update-baseline`. `--ai explain` is **experimental** (off by default; explanation text only, never a verdict). `--pr-summary` is **experimental** (`FULLSHIELD_EXPERIMENTAL_POLICY=1`): deterministic Markdown of new findings versus baseline for GitHub/GitLab PR comments (no AI; links to rule docs). |
 | `diff` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_DIFF=1`). Compare two `scan --json` files. `--fail-on` applies to added findings only. |
 | `fullshield.policy.json` | **Experimental** policy-as-code (`FULLSHIELD_EXPERIMENTAL_POLICY=1`): `requiredModules`, per-rule `severityOverrides`, `failOn` per branch, and `exceptions` that require `owner`, `reason`, and ISO `expires`. Expired exceptions fail CI. Exceptions without owner or expiry are rejected. |

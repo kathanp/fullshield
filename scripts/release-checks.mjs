@@ -118,6 +118,18 @@ export function packBudgetErrors(pack) {
   for (const dep of pack.hardDeps) {
     if (!prev.has(dep)) errors.push(`new hard dependency ${dep}`);
   }
+  for (const file of pack.packedFiles ?? []) {
+    const path = typeof file === 'string' ? file : file?.path ?? '';
+    if (
+      path.includes('bench/review-cli') ||
+      path.includes('bench/holdout-run') ||
+      path.includes('scripts/precision-sample') ||
+      path.includes('scripts/precision-report') ||
+      path.includes('bench/precision')
+    ) {
+      errors.push(`dev tool packed: ${path}`);
+    }
+  }
   return errors;
 }
 

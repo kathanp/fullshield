@@ -2,7 +2,7 @@ export { contextFromRequest, currentRaspContext, enterRaspContext } from './cont
 export type { IncomingLike } from './context.js';
 export { decideSink, detectStructureChange, scoreCorpus, scoreCorpusByKind } from './decide.js';
 export type { CorpusKindScore } from './decide.js';
-export { hostIsBlocked, isPrivateOrMetadata, normalizeHost, setSsrfLookup, ssrfHostFromUser } from './ssrf.js';
+export { dnsPinBlocks, hostIsBlocked, isPrivateOrMetadata, normalizeHost, setDnsPinTtlMs, setSsrfLookup, ssrfHostFromUser } from './ssrf.js';
 export { clearRaspEvents, disableRasp, enableRasp, enableRaspFromEnv, getRaspEvents, isRaspEnabled, raspModeFor } from './enable.js';
 export { findingsToVpatches, patchForcesBlock, routeFromFinding, sinkFromRule } from './vpatch.js';
 export { emitVirtualPatches, loadVirtualPatches } from './vpatchIo.js';

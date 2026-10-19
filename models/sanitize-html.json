@@ -1,0 +1,13 @@
+{
+  "package": "sanitize-html",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sanitizer",
+      "sinkClass": "xss",
+      "memberPath": "sanitizeHtml(",
+      "argumentIndex": 0,
+      "reference": "https://github.com/apostrophecms/sanitize-html#readme"
+    }
+  ]
+}

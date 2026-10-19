@@ -1,0 +1,13 @@
+{
+  "package": "mysql2",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sink",
+      "sinkClass": "sqli",
+      "memberPath": "connection.query(",
+      "argumentIndex": 0,
+      "reference": "https://sidorares.github.io/node-mysql2/docs/documentation/promise-wrapper"
+    }
+  ]
+}

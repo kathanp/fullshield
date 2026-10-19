@@ -1,0 +1,11 @@
+{
+  "fetchedAt": "2026-10-18T00:00:00.000Z",
+  "vulns": [
+    {
+      "id": "GHSA-express-0001",
+      "summary": "fixture",
+      "database_specific": { "severity": "HIGH" },
+      "affected": [{ "package": { "ecosystem": "npm", "name": "express" }, "ranges": [{ "type": "SEMVER", "events": [{ "introduced": "0" }, { "fixed": "4.18.0" }] }] }]
+    }
+  ]
+}

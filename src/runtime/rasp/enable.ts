@@ -1,7 +1,7 @@
 import { decideSink } from './decide.js';
 import { installHooks, restoreHooks } from './hooks.js';
 import { clearCanaries } from './honey.js';
-import { setSsrfLookup } from './ssrf.js';
+import { setDnsPinTtlMs, setSsrfLookup } from './ssrf.js';
 import { clearThreats, configureThreat } from './threat.js';
 import { patchForcesBlock, type VirtualPatch } from './vpatch.js';
 import type { Decision, RaspEvent, RaspRequestContext, SinkKind } from './types.js';
@@ -80,6 +80,7 @@ export function disableRasp(): void {
   enabled = false;
   options = {};
   setSsrfLookup(undefined);
+  setDnsPinTtlMs(undefined);
   clearCanaries();
   clearThreats();
 }

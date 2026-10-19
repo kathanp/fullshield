@@ -1,0 +1,13 @@
+{
+  "package": "yup",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "validator",
+      "sinkClass": "nosqli",
+      "memberPath": "yup.number()",
+      "argumentIndex": 0,
+      "reference": "https://github.com/jquense/yup#number"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "package": "bcrypt",
+  "versionRange": ">=1.0.0",
+  "entries": [
+    {
+      "kind": "sink",
+      "sinkClass": "crypto",
+      "memberPath": "bcrypt.hash(",
+      "argumentIndex": 0,
+      "reference": "https://github.com/kelektiv/node.bcrypt.js#api"
+    }
+  ]
+}

@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { diffLockedPackages, lockAtRef, packagesFromLock, releaseAgeLabel } from '../../../src/deps-diff/index.js';
+import { advisoriesCleared, diffLockedPackages, lockAtRef, packagesFromLock, registryRecord, releaseAgeLabel } from '../../../src/deps-diff/index.js';
 
 const dirs: string[] = [];
 
@@ -60,5 +60,47 @@ describe('phase 62 lockfile diff', () => {
     expect(changes.find((change) => change.name === 'down')?.change).toBe('downgraded');
     expect(releaseAgeLabel(new Date(Date.now() - 3_600_000).toISOString(), Date.now())).toBe('new-release');
     expect(releaseAgeLabel(undefined, Date.now())).toBe('unknown');
+    expect(
+      advisoriesCleared(
+        [{ name: 'left', version: '1.0.0', id: 'GHSA-1', severity: 'high' }],
+        [{ name: 'left', version: '1.2.0', id: 'GHSA-2', severity: 'low' }],
+      ).map((row) => row.id),
+    ).toEqual(['GHSA-1']);
+  });
+
+  it('reads publish age from registry.npmjs.org and stays on the cache when offline', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'fullshield-registry-'));
+    dirs.push(dir);
+    const calls: string[] = [];
+    const record = await registryRecord('left-pad', '1.0.0', {
+      cacheDir: dir,
+      offline: false,
+      fetchImpl: async (input) => {
+        const url = String(input);
+        calls.push(url);
+        const host = new URL(url).hostname;
+        if (host !== 'registry.npmjs.org') throw new Error(`unexpected host ${host}`);
+        return new Response(
+          JSON.stringify({
+            'dist-tags': { latest: '1.0.0' },
+            time: { '1.0.0': new Date(Date.now() - 80 * 3_600_000).toISOString() },
+            versions: { '1.0.0': { scripts: {} } },
+          }),
+          { status: 200 },
+        );
+      },
+    });
+    expect(calls).toEqual(['https://registry.npmjs.org/left-pad']);
+    expect(record.latest).toBe('1.0.0');
+    expect(record.hasInstallScript).toBe(false);
+    expect(releaseAgeLabel(record.publishedAt, Date.now())).toBe('aged');
+    const offline = await registryRecord('missing', '1.0.0', {
+      cacheDir: dir,
+      offline: true,
+      fetchImpl: async () => {
+        throw new Error('offline must not fetch');
+      },
+    });
+    expect(offline.latest).toBeUndefined();
   });
 });

@@ -1,26 +1,29 @@
 name: False positive
-description: FullShield flagged something that is not a real issue
-title: '[fp] '
-labels: ['false-positive']
+description: A finding that is not a real issue
+title: "false positive: "
+labels: ["false-positive"]
 body:
   - type: input
     id: rule
     attributes:
       label: Rule ID
-      placeholder: SAST-SQLI-001
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: FullShield version
     validations:
       required: true
   - type: textarea
-    id: why
+    id: code
     attributes:
-      label: Why this is not a vulnerability
-      description: What sanitizer, framework guarantee, or context did we miss?
+      label: Minimal code
     validations:
       required: true
   - type: textarea
-    id: snippet
+    id: expected
     attributes:
-      label: Snippet (redacted)
-      description: Smallest code that reproduces the finding. No real secrets.
+      label: Expected
     validations:
       required: true
