@@ -13,6 +13,7 @@ interface ReturnedParam {
   params: string[];
   kind: 'sql' | 'nosql';
   line?: number;
+  ret: AstNode;
 }
 
 /** Functions that return a SQL string or a Mongo filter built from a parameter. */
@@ -29,9 +30,10 @@ export function crossFileReturnFindings(parsed: readonly ParsedSource[]): Findin
       if (ret === undefined) return;
       const kind = expressionKind(ret, new Set(params));
       if (kind === undefined) return;
-      returned.push({ file: entry.file, name, params, kind, line: node.loc?.start.line });
+      returned.push({ file: entry.file, name, params, kind, line: node.loc?.start.line, ret });
     });
   }
+  if (returned.length === 0) return [];
   const byExport = new Map<string, ReturnedParam>();
   for (const row of returned) byExport.set(`${row.file}#${row.name}`, row);
 
@@ -51,7 +53,7 @@ export function crossFileReturnFindings(parsed: readonly ParsedSource[]): Findin
         if (spec === undefined || !spec.includes('#')) continue;
         const helper = byExport.get(spec);
         if (helper === undefined || helper.kind !== want) continue;
-        const paramPos = helper.params.findIndex((name) => expressionMentions(returnedExpression(findFn(parsed, helper)), name));
+        const paramPos = helper.params.findIndex((name) => expressionMentions(helper.ret, name));
         const passed = arg.arguments[Math.max(0, paramPos)];
         if (passed === undefined || passed.type === 'SpreadElement' || !nodeIsTainted(passed, facts)) continue;
         const ruleId = want === 'sql' ? 'SAST-SQLI-001' : 'SAST-NOSQLI-001';
@@ -77,16 +79,6 @@ export function crossFileReturnFindings(parsed: readonly ParsedSource[]): Findin
     });
   }
   return findings;
-}
-
-function findFn(parsed: readonly ParsedSource[], helper: ReturnedParam): AstNode | undefined {
-  const entry = parsed.find((row) => row.file === helper.file);
-  if (entry === undefined) return undefined;
-  let found: AstNode | undefined;
-  walk(entry.ast, (node) => {
-    if (isFunctionNode(node) && functionName(node) === helper.name) found = node;
-  });
-  return found;
 }
 
 function functionName(node: AstNode): string | undefined {
