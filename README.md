@@ -76,6 +76,7 @@ Contributor quality gate: [docs/QUALITY.md](docs/QUALITY.md) (`npm run quality`)
 - Extra classes (ReDoS, deserialization, XXE, upload, cookie flags, CSRF, mass assignment, timing compare, hash cost, GraphQL limits, `trust proxy` + IP rate limit) run only with `FULLSHIELD_EXPERIMENTAL_CLASSES=1` or `scan --experimental-classes`. ReDoS is a same-file static quantifier check. CSRF looks for `csurf` or `sameSite: 'strict'|'lax'` in that file.
 - Git history, client-bundle, and live credential checks are **experimental** (`FULLSHIELD_EXPERIMENTAL_SECRETS_ADV=1`). Default `scan` is unchanged. `--verify-secrets` never runs without `--i-own-these-credentials`; AWS checks without a signing secret key report `unknown`.
 - Dependency capability profiles (`FULLSHIELD_EXPERIMENTAL_CAPABILITIES=1`) read installed files only. They do not run install scripts. `deps-diff` reports a new capability only when the previous package integrity is already cached. Source files over 1 MB are skipped. A comment or string that names an API can count as that capability.
+- Fix verification (`FULLSHIELD_EXPERIMENTAL_FIX_VERIFY=1`) re-scans the patched file and its direct importers. A line shift of an unchanged finding is not a new finding. A comment-only patch stays `does-not-remove`. A missing OSV cache entry for the planned version stays `does-not-remove` and is not treated as a cleared advisory. The check does not run project tests or `npm install`.
 
 Experimental RASP structure-change scoring on the vendored PayloadsAllTheThings corpus (not a claim that live attacks are blocked):
 
@@ -180,6 +181,7 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | `scan --experimental-mcpcfg` | **Experimental** MCP client/server config rules `MCP-001`–`MCP-005` (`FULLSHIELD_EXPERIMENTAL_MCPCFG=1`). Default `scan` emits no `MCP-*` IDs. |
 | `scan --include-home` | **Experimental** also scan MCP configs under the user home (`.cursor/mcp.json`, `.vscode/mcp.json`, `.mcp.json`, Claude Desktop). Requires `FULLSHIELD_EXPERIMENTAL_MCPCFG=1`. Never implied. |
 | `host --experimental-host` | **Experimental** Linux-only OpenSSH exposure check (`FULLSHIELD_EXPERIMENTAL_HOST=1`). Reports `HOST-SSH-001`..`003` (version, no `LoginGraceTime 0`, auth timeout attempts). Refuses without `--experimental-host`. Default `scan` is unchanged. Skips with an info message on macOS, Windows, containers without sshd, and PaaS. **What it does NOT do:** FullShield does not stop OS or SSH exploits. |
+| `fix --experimental-fix-verify` | **Experimental** fix verification (`FULLSHIELD_EXPERIMENTAL_FIX_VERIFY=1`). Each `fix` patch and each `explain` diff is applied in memory and re-scanned. `introduces-finding` is never written. `does-not-remove` needs `--force-unverified`. Dependency version checks read the OSV cache only. |
 
 Inline ignore (reason required): `// fullshield-ignore SAST-SQLI-001: reviewed`
 

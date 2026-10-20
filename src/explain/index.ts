@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { Finding } from '../core/finding.js';
+import { fixVerifyEnabled, verifyProposedChange } from '../fixer/verify.js';
 
 export class ExplainError extends Error {
   constructor(message: string) {
@@ -73,6 +74,7 @@ export async function explainFinding(options: {
   cwd: string;
   id: string;
   findings: readonly Finding[];
+  experimentalFixVerify?: boolean;
 }): Promise<string> {
   const finding = matchFinding(options.findings, options.id);
   let text = '';
@@ -83,5 +85,23 @@ export async function explainFinding(options: {
       text = '';
     }
   }
-  return renderExplain(finding, text);
+  let rendered = renderExplain(finding, text);
+  if (
+    fixVerifyEnabled(options.experimentalFixVerify) &&
+    finding.fix?.diff !== undefined &&
+    finding.fix.diff.length > 0 &&
+    finding.file !== undefined
+  ) {
+    const verdict = await verifyProposedChange({
+      cwd: options.cwd,
+      file: finding.file,
+      ruleId: finding.ruleId,
+      line: finding.line,
+      diff: finding.fix.diff,
+      base: text,
+      finding,
+    });
+    rendered = `${rendered}\nverified: ${verdict.status}`;
+  }
+  return rendered;
 }

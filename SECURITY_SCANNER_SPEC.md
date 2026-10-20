@@ -792,6 +792,7 @@ Worm and workflow-tampering indicators; transitive overrides written to `package
 - [  ] No deterministic detection of business-logic or authorization bugs.
 - [  ] Production reliance is Section 38. README and release notes keep that stance. Do not claim FullShield replaces Semgrep, npm audit, OSV-Scanner, or a secrets scanner.
 - [  ] `ingest` (Phase 83) reads local report files only. It does not run Semgrep, npm audit, or OSV-Scanner and does not fetch. It does not set `fullshieldPriority` (Phase 84; KEV/EPSS stay blocked on Phase 56). An npm audit file with no installed version uses `unknown` and will not match an OSV-Scanner row that has a version.
+- [  ] Phase 91 fix verification re-scans the patched file and its direct importers only. A missing OSV cache file for the planned version is `does-not-remove`. It does not run project tests or `npm install`.
 
 ---
 
