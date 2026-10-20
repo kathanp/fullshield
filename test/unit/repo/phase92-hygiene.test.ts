@@ -61,13 +61,17 @@ function parseYamlFile(path: string): unknown {
   return yaml.parse(readFileSync(path, 'utf8'));
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
 function labelsOf(data: unknown): string[] {
-  if (typeof data !== 'object' || data === null || !('body' in data) || !Array.isArray(data.body)) return [];
+  if (!isRecord(data) || !Array.isArray(data.body)) return [];
   const labels: string[] = [];
   for (const item of data.body) {
-    if (typeof item !== 'object' || item === null || !('attributes' in item)) continue;
+    if (!isRecord(item)) continue;
     const attributes = item.attributes;
-    if (typeof attributes !== 'object' || attributes === null || !('label' in attributes)) continue;
+    if (!isRecord(attributes)) continue;
     if (typeof attributes.label === 'string') labels.push(attributes.label);
   }
   return labels;

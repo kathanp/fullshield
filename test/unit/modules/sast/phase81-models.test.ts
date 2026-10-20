@@ -691,6 +691,28 @@ describe('phase 81 library model packs', () => {
     expect(hasRule(otherOn.findings, 'SAST-SQLI-001')).toBe(true);
   });
 
+  it('follows an assignment alias and ignores statements that have no left-hand side', async () => {
+    const source = withImport(
+      'express-validator',
+      [
+        'const { body } = imported;',
+        'function handler(req) {',
+        '  if (req.ready) return;',
+        '  let id;',
+        '  id = req.body.id;',
+        "  body('id').isInt();",
+        "  db.query('SELECT ' + id);",
+        '}',
+        '',
+      ].join('\n'),
+    );
+    const dir = await project('express-validator', '7.2.1', source);
+    process.env.FULLSHIELD_EXPERIMENTAL_MODELS = '1';
+    const result = await scan({ cwd: dir, modules: ['sast'] });
+    expect(hasRule(result.findings, 'SAST-SQLI-001')).toBe(false);
+    expect(result.suppressed?.some((row) => row.suppressedBy === 'model:express-validator')).toBe(true);
+  });
+
   it('skips an out-of-range pack with one info line and does not suppress', async () => {
     const dir = await project('express-validator', '5.0.0', sqlRoute(`body('id').isInt()`));
     process.env.FULLSHIELD_EXPERIMENTAL_MODELS = '1';

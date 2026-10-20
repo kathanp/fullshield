@@ -107,9 +107,9 @@ export interface ScanMetadata {
   durationMs: number;
   cwd: string;
   filesScanned: number;
-  modulesRequested: ModuleName[];
+  modulesRequested: readonly ModuleName[];
   /** Requested modules that are actually implemented and ran. */
-  modulesRun: ModuleName[];
+  modulesRun: readonly ModuleName[];
   /** Set when `scan --history` stops at the commit cap. Exact text: `scanned N of M commits`. */
   history?: string;
   /** Phase 48. Direct dependencies no project file imports. Absent when the list is empty. */

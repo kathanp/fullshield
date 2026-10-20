@@ -2,6 +2,8 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join, posix, resolve } from 'node:path';
 
+import { AST_NODE_TYPES } from '@typescript-eslint/typescript-estree';
+
 import { loadConfig } from '../core/config.js';
 import type { Finding } from '../core/finding.js';
 import { lineIndependentFingerprint } from '../core/fingerprint.js';
@@ -259,16 +261,16 @@ function importedFiles(file: string, ast: AstNode, files: ReadonlySet<string>): 
   };
   walk(ast, (node) => {
     if (
-      node.type === 'ImportDeclaration' ||
-      node.type === 'ExportAllDeclaration' ||
-      node.type === 'ExportNamedDeclaration'
+      node.type === AST_NODE_TYPES.ImportDeclaration ||
+      node.type === AST_NODE_TYPES.ExportAllDeclaration ||
+      node.type === AST_NODE_TYPES.ExportNamedDeclaration
     ) {
       add(node.source === null || node.source === undefined ? undefined : literalString(node.source));
       return;
     }
-    if (node.type === 'CallExpression' && node.callee.type === 'Identifier' && node.callee.name === 'require') {
+    if (node.type === AST_NODE_TYPES.CallExpression && node.callee.type === AST_NODE_TYPES.Identifier && node.callee.name === 'require') {
       const arg = node.arguments[0];
-      add(arg !== undefined && arg.type !== 'SpreadElement' ? literalString(arg) : undefined);
+      add(arg !== undefined && arg.type !== AST_NODE_TYPES.SpreadElement ? literalString(arg) : undefined);
     }
   });
   return out;

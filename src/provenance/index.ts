@@ -172,7 +172,7 @@ function publisherChanged(installed: VersionInfo, earlier: readonly VersionInfo[
 function evaluatePackage(
   name: string,
   version: string,
-  raw: unknown | undefined,
+  raw: unknown,
   opts: ProvenanceQuery,
 ): ProvenanceRow {
   const missing: ProvenanceRow = { name, version, data: 'unknown', signals: [] };

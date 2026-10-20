@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { precisionReviewText, reviewBlocked } from '../../../bench/review-cli.mjs';
 import { renderPrecisionReport } from '../../../scripts/precision-report.mjs';
-import { samplePerRule } from '../../../scripts/precision-sample.mjs';
+import { samplePerRule, type SampleFinding } from '../../../scripts/precision-sample.mjs';
 
 const root = process.cwd();
 const dirs: string[] = [];
@@ -22,8 +22,8 @@ function tempDir(): string {
   return dir;
 }
 
-function findings(): Array<Record<string, unknown>> {
-  const rows: Array<Record<string, unknown>> = [];
+function findings(): SampleFinding[] {
+  const rows: SampleFinding[] = [];
   for (let i = 0; i < 15; i += 1) {
     rows.push({
       id: `sqli-${String(i).padStart(2, '0')}`,
@@ -52,11 +52,12 @@ function findings(): Array<Record<string, unknown>> {
   return rows;
 }
 
-function runSample(extra: string[]): ReturnType<typeof spawnSync> {
-  return spawnSync(process.execPath, [join(root, 'scripts', 'precision-sample.mjs'), ...extra], {
+function runSample(extra: string[]): { status: number | null; stdout: string; stderr: string } {
+  const result = spawnSync(process.execPath, [join(root, 'scripts', 'precision-sample.mjs'), ...extra], {
     cwd: root,
     encoding: 'utf8',
   });
+  return { status: result.status, stdout: result.stdout, stderr: result.stderr };
 }
 
 describe('Phase 76 precision sampling', () => {

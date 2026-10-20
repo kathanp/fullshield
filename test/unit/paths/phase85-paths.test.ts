@@ -243,6 +243,20 @@ describe('phase 85 attack paths', () => {
     expect(found[0]?.steps[0]?.note).toContain('merge');
   });
 
+  it('does not record a secret that is only copied, not passed to a call', async () => {
+    const source = ["const TOKEN = 'super-secret-jwt-signing-key-fixture';", 'const copy = TOKEN;', 'if (copy) copy;', ''].join('\n');
+    const secret = finding({
+      id: 'secret',
+      ruleId: 'SECRET-GENERIC-001',
+      severity: 'high',
+      file: 'src/secret.js',
+      line: 1,
+      module: 'secrets',
+    });
+    const paths = await buildAttackPaths([secret], new Map([['src/secret.js', source]]));
+    expect(paths).toEqual([]);
+  });
+
   it('links a secret through the module graph', async () => {
     const secret = [
       "const JWT_SECRET = 'super-secret-jwt-signing-key-fixture';",

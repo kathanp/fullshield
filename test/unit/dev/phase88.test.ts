@@ -162,13 +162,16 @@ module.exports = { build };
     );
     let osvCalls = 0;
     fetchImpl = globalThis.fetch;
-    globalThis.fetch = (async (input: string | URL | Request) => {
-      if (String(input).includes('api.osv.dev')) osvCalls += 1;
-      return new Response(JSON.stringify({ results: [{ vulns: [] }] }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      });
-    }) as typeof fetch;
+    globalThis.fetch = (input: string | URL | Request) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url.includes('api.osv.dev')) osvCalls += 1;
+      return Promise.resolve(
+        new Response(JSON.stringify({ results: [{ vulns: [] }] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
+    };
     process.env.FULLSHIELD_EXPERIMENTAL_DEV = '1';
     const session = await startDevLoop({ cwd: dir, out() {}, platform: 'linux', pollIntervalMs: 50 });
     sessions.push(session);

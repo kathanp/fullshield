@@ -192,7 +192,6 @@ describe('Phase 77 real-world precision gate', () => {
 
     const dir = tempDir();
     const registry = join(dir, 'realworld.json');
-    const snapshot = join(dir, 'snap.json');
     const outFile = join(dir, 'out.json');
     writeFileSync(registry, JSON.stringify({ repos: [{ name: 'fixture-app', path: fixtureRepo }] }));
     await runSnapshot(['--registry', registry, '--out', outFile, '--cache', join(dir, 'cache')], {

@@ -13,6 +13,7 @@ Phase 56 (EPSS / CISA) is not in this release. Default scan does not contact `ap
 - Library exports and command help text recorded in `api/fullshield.api.json`.
 - `Finding.source`: `deterministic`, `ai`, `user-rule`, `npm-audit`, `semgrep`, `osv-scanner`, or `sarif`. An ingest tool name that is not in that list is stored as `sarif`. The original tool name stays in `sources`.
 - `Finding.suppressedBy`: `types` or `model:<package>`.
+- `ScanResult.metadata.modulesRequested` and `modulesRun` are `readonly`. Callers do not mutate them.
 
 ## Experimental (not frozen)
 

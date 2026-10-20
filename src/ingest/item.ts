@@ -1,4 +1,4 @@
-import { makeFindingId, type Finding, type FindingSource, type ModuleName, type Severity, findingSource } from '../core/finding.js';
+import { makeFindingId, type Finding, type ModuleName, type Severity, findingSource } from '../core/finding.js';
 
 const REACH = new Set<string>([
   'reachable',
@@ -25,7 +25,7 @@ export interface ItemInput {
   severity: Severity;
   externalSeverity: string;
   message: string;
-  source: FindingSource | string;
+  source: string;
   file?: string;
   line?: number;
   cwe?: string;

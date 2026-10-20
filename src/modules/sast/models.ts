@@ -571,16 +571,27 @@ function coverNode(node: AstNode, sinkClass: string, marks: readonly ClearMark[]
 function aliasesBefore(fn: AstNode, line: number): Map<string, string> {
   const aliases = new Map<string, string>();
   walkFunction(fn, (node) => {
-    const init = node.type === 'VariableDeclarator' ? node.init : node.type === 'AssignmentExpression' ? node.right : undefined;
-    if (init === undefined || init === null) return;
+    const binding = aliasBinding(node);
+    if (binding === undefined) return;
     const at = node.loc?.start.line ?? 0;
     if (at >= line) return;
-    const field = requestField(init);
+    const field = requestField(binding.init);
     if (field?.field === undefined) return;
-    const names = node.type === 'VariableDeclarator' ? boundNames(node.id) : boundNames(node.left);
-    for (const name of names) aliases.set(name, `${field.bag}:${field.field}`);
+    for (const name of binding.names) aliases.set(name, `${field.bag}:${field.field}`);
   });
   return aliases;
+}
+
+/** Only a declarator or an assignment has a left-hand name. Other statements are skipped. */
+function aliasBinding(node: AstNode): { init: AstNode; names: string[] } | undefined {
+  if (node.type === 'VariableDeclarator') {
+    if (node.init === undefined || node.init === null) return undefined;
+    return { init: node.init, names: boundNames(node.id) };
+  }
+  if (node.type === 'AssignmentExpression') {
+    return { init: node.right, names: boundNames(node.left) };
+  }
+  return undefined;
 }
 
 function marksBefore(fn: AstNode, line: number, clearers: readonly ModelEntry[], route: readonly ClearMark[]): ClearMark[] {

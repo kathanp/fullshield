@@ -57,15 +57,15 @@ async function inspect(
   const hosts: string[] = [];
   const calls: string[] = [];
   const cacheDir = opts.cacheDir ?? (await tempDir());
-  const fetchImpl: ProvenanceQuery['fetchImpl'] = async (input, init) => {
+  const fetchImpl: ProvenanceQuery['fetchImpl'] = (input, init) => {
     const url = new URL(String(input));
     hosts.push(url.hostname);
     calls.push(url.toString());
     expect(init?.redirect).toBe('manual');
     const name = decodeURIComponent(url.pathname.slice(1));
     const body = packuments[name];
-    if (body === undefined) return jsonResponse({}, 404);
-    return jsonResponse(body);
+    if (body === undefined) return Promise.resolve(jsonResponse({}, 404));
+    return Promise.resolve(jsonResponse(body));
   };
   const result = await provenanceFindingsForScan(packages, 'package-lock.json', {
     cacheDir,
@@ -154,16 +154,16 @@ describe('phase 87 provenance signals', () => {
     const cacheDir = await tempDir();
     const hosts: string[] = [];
     let calls = 0;
-    const fetchImpl: ProvenanceQuery['fetchImpl'] = async (input, init) => {
+    const fetchImpl: ProvenanceQuery['fetchImpl'] = (input, init) => {
       calls += 1;
       const url = new URL(String(input));
       hosts.push(url.hostname);
       expect(url.protocol).toBe('https:');
       expect(init?.redirect).toBe('manual');
       if (url.pathname.includes('%40')) {
-        return jsonResponse(packument('@acme/widget', { '1.0.0': versionDoc('alice', true) }, { '1.0.0': AGED }));
+        return Promise.resolve(jsonResponse(packument('@acme/widget', { '1.0.0': versionDoc('alice', true) }, { '1.0.0': AGED })));
       }
-      return new Response(null, { status: 302, headers: { location: 'https://evil.example/packument' } });
+      return Promise.resolve(new Response(null, { status: 302, headers: { location: 'https://evil.example/packument' } }));
     };
     const result = await provenanceFindingsForScan(
       [
@@ -186,17 +186,18 @@ describe('phase 87 provenance signals', () => {
     const cacheDir = await tempDir();
     const slept: number[] = [];
     let calls = 0;
-    const retryFetch: ProvenanceQuery['fetchImpl'] = async () => {
+    const retryFetch: ProvenanceQuery['fetchImpl'] = () => {
       calls += 1;
-      if (calls === 1) return new Response('{}', { status: 429, headers: { 'retry-after': '2' } });
-      return jsonResponse(packument('left', { '1.0.0': versionDoc('alice', true) }, { '1.0.0': AGED }));
+      if (calls === 1) return Promise.resolve(new Response('{}', { status: 429, headers: { 'retry-after': '2' } }));
+      return Promise.resolve(jsonResponse(packument('left', { '1.0.0': versionDoc('alice', true) }, { '1.0.0': AGED })));
     };
     const retried = await provenanceFindingsForScan([{ name: 'left', version: '1.0.0' }], 'package-lock.json', {
       cacheDir,
       offline: false,
       fetchImpl: retryFetch,
-      sleep: async (ms) => {
+      sleep: (ms) => {
         slept.push(ms);
+        return Promise.resolve();
       },
       now: () => NOW,
     });
@@ -240,9 +241,9 @@ describe('phase 87 provenance signals', () => {
     const cacheDir = await tempDir();
     const body = packument('left', { '1.0.0': versionDoc('alice', true) }, { '1.0.0': AGED });
     let calls = 0;
-    const fetchImpl: ProvenanceQuery['fetchImpl'] = async () => {
+    const fetchImpl: ProvenanceQuery['fetchImpl'] = () => {
       calls += 1;
-      return jsonResponse(body);
+      return Promise.resolve(jsonResponse(body));
     };
     const opts = { cacheDir, offline: false, fetchImpl, now: () => NOW };
     await provenanceFindingsForScan([{ name: 'left', version: '1.0.0' }], 'package-lock.json', opts);
@@ -259,9 +260,7 @@ describe('phase 87 provenance signals', () => {
 
   it('returns unknown and no signal when offline with an empty cache', async () => {
     const cacheDir = await tempDir();
-    const fetchImpl: ProvenanceQuery['fetchImpl'] = async () => {
-      throw new Error('network disabled');
-    };
+    const fetchImpl: ProvenanceQuery['fetchImpl'] = () => Promise.reject(new Error('network disabled'));
     const result = await provenanceFindingsForScan([{ name: 'left', version: '1.0.0' }], 'package-lock.json', {
       cacheDir,
       offline: true,
@@ -309,9 +308,7 @@ describe('phase 87 provenance signals', () => {
     await mkdir(dirname(seeded), { recursive: true });
     await writeFile(seeded, JSON.stringify({ packument: body, latest: '2.0.0' }));
     const original = globalThis.fetch;
-    globalThis.fetch = (async () => {
-      throw new Error('network disabled');
-    }) as typeof fetch;
+    globalThis.fetch = () => Promise.reject(new Error('network disabled'));
     try {
       const off = await scan({ cwd: dir, modules: ['deps'], offline: true });
       expect(off.findings.some((finding) => finding.ruleId === 'SUPPLY-PROV-001')).toBe(false);

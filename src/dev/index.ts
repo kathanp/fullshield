@@ -373,8 +373,9 @@ export async function startDevLoop(options: DevOptions): Promise<DevSession> {
   });
   return {
     done,
-    async close() {
+    close(): Promise<void> {
       watcher.close();
+      return Promise.resolve();
     },
   };
 }

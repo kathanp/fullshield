@@ -1,3 +1,5 @@
+import type { TSESTree } from '@typescript-eslint/typescript-estree';
+
 import type { Finding } from '../core/finding.js';
 import { packageNameFromSpec } from '../modules/deps/evidence.js';
 import { calleeName, literalString, propName, walk } from '../modules/sast/ast.js';
@@ -315,15 +317,17 @@ function memberConsumers(file: string, ast: AstNode, objectName: string, prop: s
   return out;
 }
 
-function enclosingCall(node: AstNode): AstNode | undefined {
+function enclosingCall(node: AstNode): TSESTree.CallExpression | TSESTree.NewExpression | undefined {
   let current = parentOf(node);
   while (current !== undefined) {
-    if ((current.type === 'CallExpression' || current.type === 'NewExpression') && !insideCallee(node, current)) {
-      return current;
-    }
+    if (isCallOrNew(current) && !insideCallee(node, current)) return current;
     current = parentOf(current);
   }
   return undefined;
+}
+
+function isCallOrNew(node: AstNode): node is TSESTree.CallExpression | TSESTree.NewExpression {
+  return node.type === 'CallExpression' || node.type === 'NewExpression';
 }
 
 function insideCallee(node: AstNode, call: AstNode): boolean {

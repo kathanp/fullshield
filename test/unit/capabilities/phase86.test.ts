@@ -13,17 +13,19 @@ vi.mock('node:child_process', async () => {
   const actual = await vi.importActual<typeof import('node:child_process')>('node:child_process');
   const { promisify } = await import('node:util');
   const wrap = (name: string, fn: (...args: never[]) => unknown) => {
-    const wrapped = function (this: unknown, ...args: never[]) {
+    const wrapped = function (this: unknown, ...args: never[]): unknown {
       childCalls.push(name);
-      return Reflect.apply(fn, this, args);
+      const result: unknown = fn.apply(this, args);
+      return result;
     };
     Object.defineProperty(wrapped, 'length', { value: fn.length });
     const custom = (fn as unknown as { [promisify.custom]?: (...args: never[]) => unknown })[promisify.custom];
     if (custom !== undefined) {
       Object.defineProperty(wrapped, promisify.custom, {
-        value(this: unknown, ...args: never[]) {
+        value(this: unknown, ...args: never[]): unknown {
           childCalls.push(name);
-          return Reflect.apply(custom, this, args);
+          const result: unknown = custom.apply(this, args);
+          return result;
         },
       });
     }
@@ -31,13 +33,13 @@ vi.mock('node:child_process', async () => {
   };
   return {
     ...actual,
-    spawn: wrap('spawn', actual.spawn as (...args: never[]) => unknown),
-    spawnSync: wrap('spawnSync', actual.spawnSync as (...args: never[]) => unknown),
-    exec: wrap('exec', actual.exec as (...args: never[]) => unknown),
-    execSync: wrap('execSync', actual.execSync as (...args: never[]) => unknown),
-    execFile: wrap('execFile', actual.execFile as (...args: never[]) => unknown),
-    execFileSync: wrap('execFileSync', actual.execFileSync as (...args: never[]) => unknown),
-    fork: wrap('fork', actual.fork as (...args: never[]) => unknown),
+    spawn: wrap('spawn', actual.spawn),
+    spawnSync: wrap('spawnSync', actual.spawnSync),
+    exec: wrap('exec', actual.exec),
+    execSync: wrap('execSync', actual.execSync),
+    execFile: wrap('execFile', actual.execFile),
+    execFileSync: wrap('execFileSync', actual.execFileSync),
+    fork: wrap('fork', actual.fork),
   };
 });
 
@@ -114,10 +116,10 @@ function spyCjsChildProcess(): { calls: () => number; restore: () => void } {
     const original = cjs[name];
     if (original === undefined) continue;
     originals.set(name, original);
-    cjs[name] = ((...args: never[]) => {
+    cjs[name] = (...args: never[]) => {
       total += 1;
       return original(...args);
-    }) as (...args: never[]) => unknown;
+    };
   }
   return {
     calls: () => total,
