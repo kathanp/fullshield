@@ -1734,6 +1734,19 @@ s.listen(0, '127.0.0.1', () => {
     if (!existsSync(join(root, '.github', 'dependabot.yml'))) fail('phase 45 acceptance: dependabot.yml missing');
     console.log('  ✔ project workflows are pinned; CodeQL, Scorecard, and the SBOM release job exist');
   },
+  93: () => {
+    const summaryPath = join(root, 'bench', 'promotion', 'SUMMARY.md');
+    if (!existsSync(summaryPath)) fail('phase 93 acceptance: bench/promotion/SUMMARY.md missing');
+    const summary = readFileSync(summaryPath, 'utf8');
+    if (!summary.includes('unmet')) fail('phase 93 acceptance: summary must list unmet criteria');
+    if (/\|\s*promoted\s*\|/i.test(summary)) fail('phase 93 acceptance: a flag was marked promoted');
+    const refused = spawnSync(process.execPath, [join(root, 'scripts', 'promotion-batch2.mjs'), '--promote'], {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    if (refused.status === 0) fail('phase 93 acceptance: script must refuse to mark a flag stable');
+    console.log('  ✔ promotion evidence lists unmet criteria and refuses to mark a flag stable');
+  },
   94: () => {
     const doc = readFileSync(join(root, 'docs', 'QUALITY.md'), 'utf8');
     for (const id of ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10', 'Q11', 'Q12']) {
