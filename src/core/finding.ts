@@ -66,6 +66,13 @@ export interface Finding {
   stillAtHead?: boolean;
   /** Read-only identity check (`scan --verify-secrets`). Never includes the secret. */
   verification?: 'live' | 'revoked' | 'unknown';
+  /**
+   * Offline structure check. Present only with FULLSHIELD_EXPERIMENTAL_SECRET_CHECK=1.
+   * Never deletes the finding and never changes severity.
+   */
+  secretCheck?: 'checksum-failed' | 'placeholder';
+  /** Set to `test` for test, fixture, example, and sample paths. Flag-only. */
+  context?: 'test';
   /** Why the reachability class was chosen. Present only with FULLSHIELD_EXPERIMENTAL_REACH_EVIDENCE=1. */
   reachabilityEvidence?: {
     imports: Array<{ file: string; line: number; specifier: string }>;
