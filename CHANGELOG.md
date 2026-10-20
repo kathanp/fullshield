@@ -28,6 +28,10 @@ Phase 83 reads local Semgrep, npm audit, OSV-Scanner, and SARIF files and dedupe
 
 Phase 90 reads user-supplied Semgrep-style YAML behind `FULLSHIELD_EXPERIMENTAL_SEMGREP_RULES`. Default scan is unchanged. Results may differ from Semgrep.
 
+### Developer loop
+
+`fullshield dev` is off unless `FULLSHIELD_EXPERIMENTAL_DEV=1`. It prints findings that appeared or went away after a save. Default scan output is unchanged.
+
 ### Quality gate
 
 Phase 94 adds `npm run quality` (Q1–Q12) for contributors. Default scan findings are unchanged.

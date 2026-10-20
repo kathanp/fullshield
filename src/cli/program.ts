@@ -57,6 +57,7 @@ import { runHostCheck } from '../host/index.js';
 import { runDoctor } from './commands/doctor.js';
 import { formatCliError } from './errors.js';
 import { runIngestCommand } from '../ingest/command.js';
+import { DEV_FLAG, DevError, devEnabled, startDevLoop } from '../dev/index.js';
 
 export interface ProgramIO {
   out(text: string): void;
@@ -145,6 +146,17 @@ function parseAiMode(value: string | true | undefined): 'explain' | undefined {
     );
   }
   throw new Error(`invalid --ai mode "${value}" (valid: explain)`);
+}
+
+function pollIntervalOption(raw: string | undefined): number | undefined {
+  if (raw === undefined || raw.length === 0) {
+    return undefined;
+  }
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return undefined;
+  }
+  return Math.floor(parsed);
 }
 
 function parseFailOn(value: string): Severity {
@@ -1230,6 +1242,28 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .action(async (files: string[], opts: { json?: boolean; sarif?: string; experimentalIngest?: boolean }) => {
       try {
         await runIngestCommand(files, opts, io);
+      } catch (error) {
+        io.err(formatCliError(error));
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('dev')
+    .description('Watch the project and print new or resolved findings (FULLSHIELD_EXPERIMENTAL_DEV=1)')
+    .argument('[path]', 'project directory', '.')
+    .option('--poll-interval <ms>', 'poll interval when recursive fs.watch is unavailable')
+    .action(async (path: string, opts: { pollInterval?: string }) => {
+      try {
+        if (!devEnabled()) {
+          throw new DevError(`dev requires ${DEV_FLAG}=1`);
+        }
+        const session = await startDevLoop({
+          cwd: resolve(path),
+          out: (line) => io.out(line),
+          pollIntervalMs: pollIntervalOption(opts.pollInterval),
+        });
+        await session.done;
       } catch (error) {
         io.err(formatCliError(error));
         process.exitCode = 2;

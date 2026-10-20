@@ -1850,6 +1850,16 @@ s.listen(0, '127.0.0.1', () => {
     }
     console.log('  ✔ experimental SPDX 2.3 SBOM; schema is test-only');
   },
+  88: () => {
+    const program = readFileSync(join(root, 'src', 'cli', 'program.ts'), 'utf8');
+    if (!program.includes(".command('dev')")) fail('phase 88 acceptance: dev command missing');
+    const src = readFileSync(join(root, 'src', 'dev', 'index.ts'), 'utf8');
+    if (!src.includes('FULLSHIELD_EXPERIMENTAL_DEV')) fail('phase 88 acceptance: flag missing');
+    if (!src.includes('fs.watch') && !src.includes('watch(')) fail('phase 88 acceptance: fs.watch missing');
+    if (!src.includes('300')) fail('phase 88 acceptance: 300ms debounce missing');
+    if (!existsSync(join(root, 'test', 'unit', 'dev', 'phase88.test.ts'))) fail('phase 88 acceptance: test missing');
+    console.log('  ✔ fullshield dev is behind FULLSHIELD_EXPERIMENTAL_DEV');
+  },
   94: () => {
     const doc = readFileSync(join(root, 'docs', 'QUALITY.md'), 'utf8');
     for (const id of ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10', 'Q11', 'Q12']) {
