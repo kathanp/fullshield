@@ -254,6 +254,13 @@ function apiSnapshot() {
   }
   return {
     exports: exportsMap,
+    experimentalExports: [
+      './runtime/auto',
+      './runtime/hono',
+      './runtime/koa',
+      './runtime/rasp',
+      './runtime/register',
+    ],
     help: cliHelp(),
     errorCodes: [...documentedCodes()].sort(),
     ruleIds: ruleIds(),

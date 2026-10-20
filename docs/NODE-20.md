@@ -1,8 +1,8 @@
 # Node 20
 
-Node 20 reached end of life in April 2026. The package enforces Node >= 22.13 in `package.json` `engines`, in `doctor`, and in CI (Node 22 and 24). The published 0.3.0 tarball still says `engines` `>=20.11`. This tree keeps the Phase 46 floor. History storage may still say it needs `node:sqlite`. That API is inside the floor.
+Node 20 reached end of life in April 2026. The package enforces Node >= 22.13 in `package.json` `engines`, in `doctor`, and in CI (Node 22 and 24). The published 0.3.0 tarball still says `engines` `>=20.11`. 0.4.0 and 1.0.0 enforce the Phase 46 floor. History storage may still say it needs `node:sqlite`. That API is inside the floor.
 
-Checked against the source tree on 2026-10-16. This is a compatibility note, not a claim that the CI matrix has already gone green.
+Checked against the source tree on 2026-10-16. CI runs Node 22 and 24 on pull requests to `main`. Whether the six required checks are enforced is a GitHub setting; see `branch-protection.md`.
 
 ## APIs that need Node 22.13
 

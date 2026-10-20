@@ -261,8 +261,9 @@ lines.push(
   '- Line attribution: a file-level (no-line) finding plus a later comment/line number on the same file is **not** counted as a recall gain.',
 );
 lines.push(
-  '- Precision: self-triaged, unverified. `realIssue / (realIssue + falsePositive)` on unmatched findings listed in `bench/<app>/triage.json`. `unsure` is excluded from the denominator and counted separately per app.',
+  '- Precision: not measured. `bench/<app>/triage.json` is self-triaged by the tool\'s author and is not used for any rate. Human sampling: `bench/precision/` (Phase 76).',
 );
+lines.push('- Precision is not sampled until a human labels findings.');
 lines.push(
   '- Holdout apps are scored the same way. A seen holdout was used to find engine gaps or to re-score after an authorized rule change.',
 );
@@ -300,18 +301,18 @@ for (const r of results) {
   lines.push(`- Unmatched findings (triaged): ${r.unmatched}`);
   lines.push(`- In-scope true positives / in-scope truth: ${r.tp}/${r.inScope}`);
   lines.push(
-    `- Precision: self-triaged, unverified (${r.triage.realIssue} realIssue / ${r.triage.falsePositive} falsePositive; ${r.triage.unsure} unsure)`,
+    '- Precision: not measured. `bench/<app>/triage.json` is self-triaged by the tool\'s author and is not used for any rate. Human sampling: `bench/precision/` (Phase 76).',
   );
   lines.push('');
-  lines.push('| class | in-scope truth | TP | triaged FP | in-scope misses |');
-  lines.push('|---|---:|---:|---:|---:|');
+  lines.push('| class | in-scope truth | TP | in-scope misses |');
+  lines.push('|---|---:|---:|---:|');
   for (const c of BENCH_CLASSES) {
     const t = r.truthByClass[c];
     const tpC = r.tpByClass[c];
     const fpC = r.fpByClass[c];
     const mC = r.missByClass[c];
     if (t === 0 && tpC === 0 && fpC === 0 && mC === 0) continue;
-    lines.push(`| ${c} | ${t} | ${tpC} | ${fpC} | ${mC} |`);
+    lines.push(`| ${c} | ${t} | ${tpC} | ${mC} |`);
   }
   lines.push('');
 }

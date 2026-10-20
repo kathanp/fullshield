@@ -1,6 +1,6 @@
 # Contributing
 
-The source of truth is `SECURITY_SCANNER_SPEC.md`. Phases 1–49 are built, plus phases 53, 54, 60, 61, 62, 63, 64, 65, 66, 70, and 74 behind experimental flags where the spec says so. The package enforces Node >= 22.13. The next build in the run order is Phase 55. Do not mark ground truth `"reviewed": true`.
+The source of truth is `SECURITY_SCANNER_SPEC.md`. The current version is in `package.json`. The public contract is `docs/stability.md`. Experimental flags stay off unless set. The package enforces Node >= 22.13. Do not mark ground truth `"reviewed": true`.
 
 ## Rules
 
@@ -27,4 +27,4 @@ npm run verify
 
 ## Secrets in fixtures
 
-Build fake credentials by concatenation at runtime (`'AKIA' + '…'`). Never commit a realistic-looking key as a single literal. See spec §14.
+Build fake credentials by concatenation at runtime (`'AKIA' + '…'`). Never commit a realistic-looking key as a single literal. See spec §13.

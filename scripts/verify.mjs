@@ -117,6 +117,17 @@ function listFilesRecursive(dir, out = []) {
 runNpm('typecheck');
 runNpm('lint');
 runNpm('build');
+{
+  const docVersion = spawnSync(process.execPath, [join(root, 'scripts', 'doc-version-check.mjs')], {
+    cwd: root,
+    encoding: 'utf8',
+  });
+  if (docVersion.stdout) process.stdout.write(docVersion.stdout);
+  if (docVersion.status !== 0) {
+    if (docVersion.stderr) process.stderr.write(docVersion.stderr);
+    process.exit(docVersion.status ?? 1);
+  }
+}
 runNpm('test:coverage');
 runNpm('quality');
 
@@ -1089,15 +1100,15 @@ s.listen(0, '127.0.0.1', () => {
     if (!/seen holdout/i.test(md)) {
       fail('phase 26c acceptance: BENCHMARK.md must label goof as seen holdout');
     }
-    if (!/self-triaged, unverified/i.test(md)) {
-      fail('phase 26c acceptance: BENCHMARK.md must mark precision as self-triaged, unverified');
+    if (!/Precision: not measured/i.test(md)) {
+      fail('phase 26c acceptance: BENCHMARK.md must say precision is not measured');
     }
     if (!/Line attribution/i.test(md) && !/line-attribution/i.test(md)) {
       fail('phase 26 acceptance: BENCHMARK.md must explain helmet line-attribution is not a recall gain');
     }
     if (!/Known misses/i.test(md)) fail('phase 26 acceptance: BENCHMARK.md missing Known misses table');
-    if (!/in-scope/i.test(md) || !/unsure/i.test(md)) {
-      fail('phase 26 acceptance: BENCHMARK.md must report in-scope recall and unsure triage count');
+    if (!/in-scope/i.test(md)) {
+      fail('phase 26 acceptance: BENCHMARK.md must report in-scope recall');
     }
     const readme = readFileSync(join(root, 'README.md'), 'utf8');
     if (!readme.includes('BENCHMARK.md')) fail('phase 26 acceptance: README must link BENCHMARK.md');

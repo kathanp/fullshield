@@ -1,3 +1,5 @@
+> **NOT CITABLE.** In this run, Semgrep contributed zero class matches that FullShield missed on every app, and reported 5–18 findings per app. That pattern suggests the Semgrep rulesets did not load fully or the mapping dropped hits. Raw Semgrep `check_id`s have not been reviewed. Do not link or quote this file until the run is repeated with the raw output attached and a human reviews the mapping.
+
 # Comparison
 
 Human review of the mapping is required before this file is linked from the README.

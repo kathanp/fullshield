@@ -1,22 +1,69 @@
 # Public contract
 
-This is the surface a 1.0.0 tag freezes. Breaking a row here costs a 2.0. Experimental flags, commands, and fields are labeled below and are not part of that promise.
+This is the surface the 1.x line freezes. Breaking a row in "Stable" requires 2.0.0.
+Anything in "Experimental" or "Internal" may change in any minor release.
 
-Phase 56 (EPSS / CISA) is not in this release. Default scan does not contact `api.first.org` or `www.cisa.gov`.
+1.0.1 corrected this file. 1.0.0 listed some values in Stable that only experimental
+flags produce. Those rows moved to Experimental. No stable behavior changed.
+See CHANGELOG 1.0.1.
+
+Phase 56 (EPSS / CISA) is not in this release. Default scan does not contact
+`api.first.org` or `www.cisa.gov`.
 
 ## Stable
 
-- CLI: `scan`, `fix`, `init`, `sbom --format cyclonedx`, and the flags named in `fullshield --help` without the word experimental.
-- Config keys accepted by `fullshield.config.json`: `modules`, `failOn`, `ignore`, `defaultExcludes`, `excludes`, `baseline`, `notify`, `deps`, `ai`, `sast`. Unknown keys are rejected.
-- Exit codes: `0` finished and under `--fail-on`, `1` a finding is at or above `--fail-on`, `2` the command failed (`FS-E`).
-- Error codes `FS-E000` through `FS-E016`. Each code has one meaning in [errors.md](errors.md). `FS-E013` through `FS-E016` are only raised by experimental commands, and the numbers will not be reused.
-- Library exports and command help text recorded in `api/fullshield.api.json`.
-- `Finding.source`: `deterministic`, `ai`, `user-rule`, `npm-audit`, `semgrep`, `osv-scanner`, or `sarif`. An ingest tool name that is not in that list is stored as `sarif`. The original tool name stays in `sources`.
-- `Finding.suppressedBy`: `types` or `model:<package>`.
-- `ScanResult.metadata.modulesRequested` and `modulesRun` are `readonly`. Callers do not mutate them.
+### Commands
+- `scan`, `fix`, `init`, `sbom --format cyclonedx`, `watch`, `edge`, `notify`, `doctor`.
+- The flags each command prints in `--help` that are not labeled experimental.
+
+### Exit codes (scan)
+- `0` finished, nothing at or above `--fail-on`.
+- `1` a finding is at or above `--fail-on`.
+- `2` the command failed (`FS-E` code printed).
+
+### Error codes
+- `FS-E000` through `FS-E004`. Each has one meaning in [errors.md](errors.md).
+- Code numbers are never reused, including the experimental and internal codes below.
+
+### Config keys (`fullshield.config.json`)
+- `modules`, `failOn`, `ignore`, `defaultExcludes`, `excludes`, `baseline`, `notify`.
+- `sast.maxFileBytes`.
+- `deps.offline`, `deps.cacheDir`.
+- Unknown keys are rejected.
+
+### JSON output (`scan --json`)
+- Finding fields: `id`, `ruleId`, `module`, `title`, `severity`, `confidence`,
+  `file`, `line`, `message`, `remediation`, `references`, `trace`.
+- `severity`: `info`, `low`, `medium`, `high`, `critical`.
+- `reachability`: `reachable`, `imported-not-called`, `reachable-via-dependency`,
+  `not-imported`, `reachability-unknown`, `symbol-reachable`, `symbol-not-called`.
+- `source`: `deterministic` only. That is the only `Finding.source` value `src/` assigns
+  on a built-in finding (`src/ai/injection.ts`).
+- `metadata.modulesRequested` and `metadata.modulesRun` are `readonly`.
+- Rule IDs listed as stable in `rules/README.md`. A stable rule ID is never renamed
+  or removed in 1.x.
+
+### Library
+- Exports in `api/fullshield.api.json` not marked `experimental`.
 
 ## Experimental (not frozen)
 
-Anything gated by `FULLSHIELD_EXPERIMENTAL_*` or `--experimental-*`. Exit code `3` exists only while the time-budget flag is on. Config keys `types` and `semgrepRules` are read only for those flags.
+- Anything gated by `FULLSHIELD_EXPERIMENTAL_*` or `--experimental-*`.
+- Exit code `3` (time-budget flag only).
+- `FS-E005`–`FS-E009` and `FS-E012`–`FS-E016`: raised only by experimental
+  commands or flags.
+- `Finding.source` values `ai`, `user-rule`, `npm-audit`, `semgrep`, `osv-scanner`,
+  `sarif` (produced by `--ai`, user Semgrep-style rules, and `ingest`).
+- `Finding.suppressedBy` (`types`, `model:<package>`) and `suppressed[]`.
+- `Finding.priority`, `priorityFactors`, `reachabilityEvidence`, `paths[]`,
+  `metadata.incomplete`, `metadata.incompleteModules`, `metadata.skipped`.
+- Config keys `ai`, `types`, `semgrepRules`, `sast.sources`, `sast.sanitizers`,
+  `deps.capabilityPolicy`.
 
-The flag list in `api/fullshield.api.json` is a record of what this commit implements. It is not a promise that each flag stays.
+## Internal (not part of any contract)
+
+- `FS-E010`, `FS-E011`: contributor tooling (`npm run verify`, `quality`, mutation).
+- Everything under `bench/`, `scripts/`, `quality/`, `reports/`.
+
+The flag list in `api/fullshield.api.json` records what this commit implements.
+It is not a promise that each flag stays.

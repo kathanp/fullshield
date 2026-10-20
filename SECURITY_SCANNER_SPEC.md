@@ -2,10 +2,10 @@
 
 > Package: `fullshield` on npm (owner `kathan2404`). Repo: https://github.com/kathanp/fullshield (public, MIT).
 > Language: TypeScript (strict). Runtime: Node.js ≥ 22.13. Distribution: one npm package (CLI + library + runtime middleware).
-> Live on npm: `0.1.0`, `0.1.1` (both with provenance), `0.1.3` (**published WITHOUT provenance — must never happen again**). Placeholders `0.0.0-stage`, `0.0.1` deprecated. `0.1.2` was never published.
+> Live on npm: `1.0.0` is latest. `0.1.3` was **published WITHOUT provenance — must never happen again**. Placeholders `0.0.0-stage`, `0.0.1` deprecated. `0.1.2` was never published.
 > This file is the only spec. The 2026-10-14 draft (`SECURITY_SCANNER_SPEC (1).md`) is deleted. Its design lives here; Section 33 lists the few requirements that draft stated and this file had shortened. Later text wins where the draft disagreed.
-> [X] Complete: phases 1–49, 53–55, 57–64, 66–74. Phase 65 is coded; the 5-second nest/undici target is still unmet. Phases 50, 51, 52, and 75 have fixture tests and still need a bench snapshot diff before merge (R10). Skip Phase 56 until R15 is amended. Experimental phases stay off unless their flag is set. Phases 36–45 are reference, not a queue.
-> **Current queue is Section 43 (Finish-All Run)**; Section 42 adds the quality gate (R24, Phase 94) and the definition of done for every remaining phase. Section 40.5 report-file rules still apply. Earlier queue: Section 40 (2026-10-19, lanes A/B/C). Section 36 is the 2026-10-18 record. Leadership phases 76–93 are in Section 39. Advanced phases 60–75 are in Section 37; Phase 47 has an addendum (47.1) there that is part of its acceptance. Section 38 is the production-reliance stance (not a queue). Section 41 lists human-only work. Phases 76–93 are not started.
+> [X] Complete: phases 1–55 and 57–94. Phase 56 is not in 1.0.0 (blocked on R15). Phase 65 is coded; the 5-second nest/undici target is still unmet. Experimental phases stay off unless their flag is set. Phases 36–45 are reference, not a queue.
+> **Current queue is Section 43 (Finish-All Run)**; Section 42 adds the quality gate (R24, Phase 94) and the definition of done for every remaining phase. Section 40.5 report-file rules still apply. Earlier queue: Section 40 (2026-10-19, lanes A/B/C). Section 36 is the 2026-10-18 record. Leadership phases 76–93 are in Section 39 and are in this tree behind their flags. Advanced phases 60–75 are in Section 37; Phase 47 has an addendum (47.1) there that is part of its acceptance. Section 38 is the production-reliance stance (not a queue). Section 41 lists human-only work. Phase 56 is not in this release.
 
 ---
 
@@ -41,6 +41,7 @@ Breaking any rule below = stop work and report to the human. Do not "fix forward
 ### 0.5 Versioning
 - [ X ] **R16.** 0.x semver: **patch** = bug fixes only, no new features, no stable-output change. **minor** = any new feature (even experimental), new rule ID, new command/flag/export, or stable-output change. Enforced by `scripts/semver-check.mjs` (Phase 36).
 - [ X ] **R17.** Never reuse, decrease, or delete a version. Published versions are permanent. Fix forward only.
+- [ X ] **R16a.** 1.x semver: **patch** = bug fixes and documentation corrections, including a correction to `docs/stability.md` that moves a row out of Stable when that row was only ever produced by an experimental flag. No new feature, rule ID, command, flag, or export, and no default-scan output change. **minor** = new feature, rule ID, command, flag, or export, or a default-scan output change that adds findings. **major** = removing or changing anything that is Stable in `docs/stability.md` and was produced without a flag. `scripts/semver-check.mjs` applies R16 below 1.0.0 and R16a from 1.0.0 on.
 
 ### 0.6 Workflow
 - [ X ] **R18.** All work on `next` (or `phase-N` worktrees off `next`). `main` only via PR from `next`, full CI matrix green, human approval.
@@ -299,7 +300,7 @@ interface SastRule {
   create(ctx: RuleContext): Partial<Record<AstNodeType, (node: any) => void>>;
 }
 ```
-Taint: sources `req.body/query/params/headers/cookies`, destructured request params, `process.argv` (+ framework sources behind flags). Propagation: assignment, concat, template literals, method-call receivers, function params and returns (same file and cross-file via `require`/`import`, depth 5). A value returned from a helper in another file is still missed until Phase 51. Sanitizers are sink-specific: parameterized query APIs (SQL), zod/joi/yup `.parse` result only, `validator.*` only for the check that function actually performs, `path.resolve` + `startsWith(base)` (path), `encodeURIComponent` (URL/redirect only), HTML escape/DOMPurify (XSS only). `JSON.parse`/generic `parse` never clear taint. A schema that only checks "this is a string" does not clear SQL concatenation. Parameterized queries are never flagged. Phase 53 may add class-validator on the same rule: the schema clears a finding only for the class that schema constrains.
+Taint: sources `req.body/query/params/headers/cookies`, destructured request params, `process.argv` (+ framework sources behind flags). Propagation: assignment, concat, template literals, method-call receivers, function params and returns (same file and cross-file via `require`/`import`, depth 5). Phase 51 follows a SQL string or Mongo filter returned from a helper in another file. Sanitizers are sink-specific: parameterized query APIs (SQL), zod/joi/yup `.parse` result only, `validator.*` only for the check that function actually performs, `path.resolve` + `startsWith(base)` (path), `encodeURIComponent` (URL/redirect only), HTML escape/DOMPurify (XSS only). `JSON.parse`/generic `parse` never clear taint. A schema that only checks "this is a string" does not clear SQL concatenation. Parameterized queries are never flagged. Phase 53 may add class-validator on the same rule: the schema clears a finding only for the class that schema constrains.
 
 ---
 
@@ -775,16 +776,16 @@ Worm and workflow-tampering indicators; transitive overrides written to `package
 ---
 
 ## 28. Known Limitations (mirror in README; update every release)
-- [  ] Public alpha (0.x); APIs may change.
+- [ X ] 1.0.0 freezes the stable contract in `docs/stability.md`. Experimental flags are not part of that promise.
 - [  ] Phase 87 provenance signals are informational (`SUPPLY-PROV-001`, medium). They never mean a package is malicious. Offline or cache-miss data stays unknown.
-- [ X ] The package enforces Node ≥ 22.13 in `engines`, `doctor`, and CI (Node 22 and 24). Node 20 reached end of life in April 2026. The README says 0.4.0 and does not claim a reviewed recall number. History storage may still say it needs `node:sqlite`. That API is inside the floor. Branch protection job names are a human GitHub setting after the new jobs report once.
+- [ X ] The package enforces Node ≥ 22.13 in `engines`, `doctor`, and CI (Node 22 and 24). Node 20 reached end of life in April 2026. The README says 1.0.0 and does not claim a reviewed recall number. History storage may still say it needs `node:sqlite`. That API is inside the floor. Branch protection job names are a human GitHub setting after the new jobs report once.
 - [  ] Ground truth is unreviewed (`"reviewed": false` on every bench app). Cursor does not flip that flag. A human reviews answer keys. Blank label, reviewer, and note cells stay blank.
 - [ X ] Default console prints the Phase 47 shown rows only (human decision 2026-10-18). JSON stays the full list. D4 accepts the 2026-10-18 grouped-row recount: NodeGoat 36, goof 63, juice-shop 49, dvna 14, vulnerable-node 41. There is no row-count threshold. Ground truth stays unreviewed.
 - [  ] Platforms: Linux, macOS, Windows on Node ≥ 22.13.
 - [  ] Benchmark recall figures are on **unreviewed** ground truth; tuning-app figures are `seen` (rules were fixed against them). Current untouched-app figure: none (all apps used). Do not cite a recall percentage until Phase 37 + review.
 - [  ] RASP corpus results are on self-authored/vendored corpora.
-- [  ] NoSQL: a filter object or array built from request input and passed into find/update is reported, including a helper in the same file and a nested function that closes over the filter. A filter returned from another file is still missed (Phase 51).
-- [  ] Template engines: Swig `{{ }}` in `.html` is still missed. Phase 50 flags that pattern only after the app sets a raw engine such as Swig. Handlebars `{{ }}` stays unflagged. JSON-context XSS, `url.includes` allowlist bypass, and the DVNA calc vs `err.stack` pattern stay missed.
+- [  ] NoSQL: a filter object or array built from request input and passed into find/update is reported, including a helper in the same file, a nested function that closes over the filter, and a SQL string or Mongo filter returned from another file (Phase 51). Nested closures and some dynamic dispatch are still missed.
+- [  ] Template engines: Swig `{{ name }}` is `SAST-XSS-001` when the view engine is Swig and the name is tainted. `{{csrftoken}}` and unrendered templates are not findings. Handlebars `{{ }}` stays unflagged. JSON-context XSS, `url.includes` allowlist bypass, and the DVNA calc vs `err.stack` pattern stay missed.
 - [  ] Reachability is import-level + any-call; symbol-level only after Phase 39.
 - [  ] All features from Phase 27 onward, RASP, AI, and Frontier are experimental.
 - [  ] Capability profiles (Phase 86, `FULLSHIELD_EXPERIMENTAL_CAPABILITIES`) read installed files only and do not run install scripts. `deps-diff` reports a new capability only when the previous integrity is already cached. Files over 1 MB are skipped. Comments and strings that mention an API can match.
@@ -899,12 +900,12 @@ Acceptance: workflows green; reproducibility passes or differences documented; S
 
 | Item | State |
 |---|---|
-| Repo `package.json` | 0.4.0. The human set this release on 2026-10-18. README says 0.4.0. |
-| `engines` | `>=22.13` in package.json, doctor, and CI (Node 22 and 24). Not pushed. Branch protection still needs a human after the new jobs report. |
-| Built | phases 1–46 in this working tree. Phase 47 console implements D3. D4 accepts the grouped-row table and removes the 40-row stop. Nothing pushed. |
-| Today's queue | Section 40 (2026-10-19): Lane A 75/50/51/52 diffs → 78 → 65 re-measure; Lane B 76, 77, 92, 93; Lane C 82, 81, 80, 84, 83, 86, 87, 85, 79, 88, 91, 89, 90. Section 36 (2026-10-18) is the record: 46–49, 53–55, 57–64, 66–74 done. |
-| Phases 76–93 | specified 2026-10-19, not started |
-| Precision | not measured; Phase 76 builds the sampler, labels are human-only |
+| Repo `package.json` | 1.0.1 (docs-only: stability.md correction). 1.0.0 tagged 2026-10-20 before the main matrix was confirmed; 1.0.1 is tagged only after all six required checks pass on `main`. |
+| `engines` | `>=22.13` in package.json, doctor, and CI (Node 22 and 24). Branch protection still needs a human after the new jobs report. |
+| Built | Phases 1–55 and 57–94 are in this tree. Phase 56 is not (R15). Phase 65 is coded; the 5-second nest and undici target is unmet. |
+| Today's queue | 1.0.1 docs release (Section 44). No new phases. |
+| Phases 76–93 | in this tree, behind their experimental flags |
+| Precision | Phase 76 writes null labels. No reviewed precision rate is published. |
 | Phase 56 | blocked on R15 amendment (EPSS/KEV hosts) |
 | Ground truth reviewed | none (all `reviewed: false`). Human only |
 | Untouched holdouts in reserve | 3 (verademo-javascript, serverless-goat, mongection), not scanned |
@@ -1158,7 +1159,7 @@ That file is deleted. This section is the record. Do not rebuild the same-functi
 
 ### Already done (do not rebuild)
 
-Phases 1–6 in `docs/STABILIZATION-PLAN.md` are already in `0.3.0`: `docs/NOISE-REPORT.md`, dependency grouping, SAST sink-line dedupe, default excludes, `SAST-SKIP-001`, streaming parse, `bench/review/*.csv` with blank labels, Node 20, and `COMPARISON.md` plus `bench/class-map.json`. Those counts are unreviewed. They are not a precision or recall claim. Node 20 support is removed by Phase 46.
+Phases 1–6 in `docs/history/STABILIZATION-PLAN.md` are already in `0.3.0`: `docs/NOISE-REPORT.md`, dependency grouping, SAST sink-line dedupe, default excludes, `SAST-SKIP-001`, streaming parse, `bench/review/*.csv` with blank labels, Node 20, and `COMPARISON.md` plus `bench/class-map.json`. Those counts are unreviewed. They are not a precision or recall claim. Node 20 support is removed by Phase 46.
 
 ### What is still weak
 
@@ -1798,7 +1799,7 @@ All tools are `devDependencies` only (R13 covers runtime deps; nothing here ship
 | Q12 | Pack: `npm pack --dry-run` file list matches `quality/pack-files.txt`; no `test/`, `bench/`, `reports/`, `scripts/` (except shipped ones), `.map`; `pack-budget` passes | tarball | an unexpected file |
 
 Also in Phase 94:
-- [  ] `docs/QUALITY.md`: one page listing Q1–Q12, what each enforces, and today's numbers. Linked from README.
+- [ X ] `docs/QUALITY.md`: one page listing Q1–Q12, what each enforces, and today's numbers. Linked from README.
 - [  ] `quality/baseline.json` is generated once in this phase from `next`, committed, and is human-owned afterwards (Cursor may lower counts, never raise them).
 - [  ] No refactor of existing code in this phase. Existing violations are recorded in the baseline, not fixed. Behavior must not change: default-scan-diff EMPTY.
 
@@ -1821,7 +1822,7 @@ A phase that cannot meet 1–8 is `parked` with the failing item named. "Coded" 
 
 ## 43. Finish-All Run (supersedes the Section 40.2 order; Section 40.5 report rules still apply)
 
-**R25. One queue only.** This section is the only work queue. `docs/RUN-PROMPT.md`, `PROGRESS.md`, `docs/RUN-LOG.md`, `.cursor/rules/*`, `AGENTS.md`, and any other file may record history but may not define a queue, batches, or a stop point. Any batch list or "stop after this batch" text in those files is void. At Stage 0, replace the body of `docs/RUN-PROMPT.md` with one line: `Superseded. The only queue is SECURITY_SCANNER_SPEC.md Section 43.` and remove any stop/batch instructions from `.cursor/rules/*` and `AGENTS.md` if present (commit `docs: retire old run prompt (R25)`). Phases already marked [X] in this spec are never redone.
+**R25. One queue only.** This section is the only work queue. `docs/history/RUN-PROMPT.md`, `PROGRESS.md`, `docs/history/RUN-LOG.md`, `.cursor/rules/*`, `AGENTS.md`, and any other file may record history but may not define a queue, batches, or a stop point. Any batch list or "stop after this batch" text in those files is void. At Stage 0, replace the body of `docs/history/RUN-PROMPT.md` with one line: `Superseded. The only queue is SECURITY_SCANNER_SPEC.md Section 43.` and remove any stop/batch instructions from `.cursor/rules/*` and `AGENTS.md` if present (commit `docs: retire old run prompt (R25)`). Phases already marked [X] in this spec are never redone.
 
 Report file: keep appending to `reports/2026-10-19.md`; after midnight local time start `reports/2026-10-20.md` with the same summary table carried over.
 
@@ -1840,3 +1841,19 @@ Parallelism: Stage 4 and 5 items may be built in parallel worktrees (R21) after 
 
 ### 43.1 Phase 56 under the R15 amendment (only if approved)
 If approved, R15 additionally allows, **only** with `--exploit-intel` or `FULLSHIELD_EXPERIMENTAL_EXPLOIT_INTEL=1`: `GET https://api.first.org/data/v1/epss` (query by CVE, batch ≤ 100) and `GET https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json`. Default scan never contacts them (test asserts). Cache 24 h next to the OSV cache; `--offline` uses cache only; missing data leaves fields unset. Hosts are added to `src/net/hosts.ts` (Q8) and README "Network" section in the same commit. Then build Phase 56 exactly as Section 32 specifies.
+
+---
+
+## 44. 1.0.1 Docs Release (2026-10-20)
+
+Docs-only. No change under `src/`, `rules/*.md` detection text, `test/fixtures/`, or `bench/*/ground-truth.json`. `default-scan-diff` must be EMPTY. `semver-check` must say `patch` under R16a.
+
+1. Replace `docs/stability.md` (contract correction).
+2. CHANGELOG `1.0.1` entry.
+3. Rewrite `CAPABILITIES.md`; no hand-written counts.
+4. Fix stale lines in `docs/errors.md`, `docs/QUALITY.md`, `docs/priority.md`, `docs/NOISE-REPORT.md`, `CONTRIBUTING.md`.
+5. Move history docs to `docs/history/`: `ADVANCED-SPEC.md`, `PARKED.md`, `RUN-LOG.md`, `RUN-PROMPT.md`, `STABILIZATION-PLAN.md`. Update every link to them.
+6. Regenerate `docs/demo.md`, `BENCHMARK.md` from real runs at 1.0.1. Banner `COMPARISON.md` as not citable.
+7. Mark experimental exports in `api/fullshield.api.json` (Q5 snapshot) without changing any export.
+8. Dev-only: `scripts/doc-version-check.mjs` fails when a doc names a FullShield version as current that is not `package.json` `version`. Wired into `npm run verify`. Not packed.
+9. PR `next` → `main`. Six required checks green. Human sets branch protection. Human tags `v1.0.1`.

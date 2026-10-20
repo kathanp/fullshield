@@ -1,6 +1,6 @@
 # CLI errors
 
-Current codes only. A command that is not built yet has no row here.
+Current codes only. Which codes are stable is in [stability.md](stability.md). `FS-E010` and `FS-E011` are contributor tooling and not part of the user contract.
 
 FullShield prints `fullshield: FS-E### <message>`. The message is the same text the command already used. A stack trace is included only when you pass `--debug`.
 
@@ -33,4 +33,12 @@ FullShield prints `fullshield: FS-E### <message>`. The message is the same text 
 | 2 | The command failed. See the `FS-E` code above. |
 | 3 | `FULLSHIELD_EXPERIMENTAL_BUDGET` is on, `--max-time` was reached, and nothing that was scanned is at or above `--fail-on`. Exit code 3 is not a clean scan. |
 
-With the budget flag off, `--max-time` does not change output or exit codes. A finding at or above `--fail-on` still exits 1 when the scan stopped early. Deps, secrets, and config still run to completion. SAST finishes the current file and stops taint expansion. JSON then has `metadata.incomplete: true` and `metadata.incompleteModules`. The console prints one yellow line: `Scan stopped at budget. N files not taint-checked.`
+### `--max-time`
+
+With `FULLSHIELD_EXPERIMENTAL_BUDGET` off, `--max-time` has no effect on output or exit codes.
+
+With the flag on and the budget reached: deps, secrets, and config still run to
+completion. SAST finishes the current file and stops taint expansion. JSON has
+`metadata.incomplete: true` and `metadata.incompleteModules`. The console prints one
+yellow line: `Scan stopped at budget. N files not taint-checked.` A finding at or above
+`--fail-on` still exits 1. Otherwise the scan exits 3, which is not a clean scan.

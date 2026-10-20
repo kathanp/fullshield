@@ -1,6 +1,6 @@
 # FullShield
 
-**v1.0.0.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
+**v1.0.1.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
 
 **Headline: dependency reachability.** A lockfile CVE is not the same as an unused package. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (lockfile path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), `not-imported` (−2, only when no such path exists), or `reachability-unknown` (severity kept) when the lockfile format has no parsed dependency edges. DevDependency-only vulns are `info` with a `dev-only` note unless production sources import the package. Pair it with `fullshield sbom --format cyclonedx`.
 
@@ -89,7 +89,7 @@ These fixtures are self-authored. Numeric SQL (`WHERE id = ` + input), ORM raw-q
 
 In-scope public-bench patterns we still do not claim (one line each):
 
-- Swig `{{firstName}}` in `.html` — XSS only if autoescape is off in another file; we flag `autoescape: false`, not the template line.
+- Swig `{{ name }}` is `SAST-XSS-001` only when the view engine is Swig and that name is tainted from `req` or a database read. `{{csrftoken}}` and unrendered templates are not findings. Handlebars `{{ }}` stays unflagged. `autoescape: false` is still a finding.
 - Juice Shop track-order XSS — server returns `res.json`; we do not treat JSON fields as HTML sinks.
 - Juice Shop `url.includes(allowedUrl)` — weak allowlist helper is not a redirect sink; we flag `res.redirect(tainted)`.
 - Juice Shop `{ _id: req.body.id }` — flagged as `SAST-NOSQLI-001` (medium) unless coerced (`String()`/`Number()`/`Boolean()`), schema-validated, or mongo-sanitize is applied. Same for goof `User.find({ password: req.body.password })`.
@@ -137,7 +137,7 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 
 **Experimental CI reports (off by default):** `FULLSHIELD_EXPERIMENTAL_CI_REPORTS=1` or `scan --experimental-ci-reports`, then `--github-annotations`, `--junit`, and `--gitlab`. Default console and `--json` output stay the same. Critical and high become GitHub `error` commands and JUnit failures. Medium is a GitHub warning and a JUnit failure. Low and info are GitHub notices and JUnit skips. GitLab severities are info, minor, major, critical, and blocker.
 
-**Experimental scan diff (off by default):** `FULLSHIELD_EXPERIMENTAL_DIFF=1` or `fullshield diff --experimental-diff <before.json> <after.json>`. Compares two `scan --json` files. The match ignores the line number. It does not scan and does not decide which findings are real. Added findings at or above `--fail-on` (default high) exit 1. Baseline `suppressions` need an owner, a reason, and an expiry. The spec is [`docs/ADVANCED-SPEC.md`](docs/ADVANCED-SPEC.md).
+**Experimental scan diff (off by default):** `FULLSHIELD_EXPERIMENTAL_DIFF=1` or `fullshield diff --experimental-diff <before.json> <after.json>`. Compares two `scan --json` files. The match ignores the line number. It does not scan and does not decide which findings are real. Added findings at or above `--fail-on` (default high) exit 1. Baseline `suppressions` need an owner, a reason, and an expiry. The spec is [`docs/history/ADVANCED-SPEC.md`](docs/history/ADVANCED-SPEC.md).
 
 **Experimental ingest (off by default):** `FULLSHIELD_EXPERIMENTAL_INGEST=1` or `fullshield ingest --experimental-ingest <file...>`. Reads local SARIF 2.1.0, OSV-Scanner JSON, `npm audit --json`, and Semgrep JSON. It does not run those tools and does not fetch. Severity stays the tool's severity (`moderate` and Semgrep `WARNING` are stored as medium; the original token is `externalSeverity`). `fullshieldPriority` is not set.
 

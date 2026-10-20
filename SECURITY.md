@@ -18,8 +18,8 @@ Out of scope: findings in `test/fixtures/**` (intentionally vulnerable), third-p
 
 | Version | Status |
 |---|---|
-| 0.1.x | Supported. 0.1.3 is the current npm release. |
-| 0.0.x | Deprecated placeholders. Use >= 0.1.0. |
+| 1.0.x | Supported. 1.0.1 is the version in this tree. 1.0.0 is the current npm release until 1.0.1 is published. |
+| < 1.0.0 | Not the current release. Use >= 1.0.0. |
 
 The package enforces Node >= 22.13 (`package.json` `engines` and `doctor`). A minor release is required for a new rule, command, flag, export, or stable-output change.
 

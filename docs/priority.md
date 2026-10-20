@@ -79,7 +79,7 @@ An explicit `sinkClass` wins. Otherwise the rule id is mapped. Secret findings w
 
 ### agreeing sources
 
-Phase 83. Until ingest attaches `sources[]`, a FullShield finding counts as one source.
+Phase 83. `ingest` attaches `sources[]` to merged findings. A finding from `scan` alone has one source.
 
 | count | points |
 | --- | --- |

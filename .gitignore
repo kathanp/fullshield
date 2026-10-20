@@ -8,7 +8,6 @@ bench/.cache/
 .fullshield-mutation.vitest.config.ts
 dist/
 coverage/
-CAPABILITIES.md
 # Local spec drafts (the published source of truth is SECURITY_SCANNER_SPEC.md)
 SECURITY_SCANNER_SPEC (*).md
 .fullshield/

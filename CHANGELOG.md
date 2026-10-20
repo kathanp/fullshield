@@ -2,6 +2,61 @@
 
 All notable changes to FullShield are documented here.
 
+## 1.0.1 — 2026-10-20
+
+Documentation-only release. Scanner behavior, default `scan --json` output, and exit
+codes are unchanged. `default-scan-diff` against 1.0.0 is empty.
+
+### Contract correction (docs/stability.md)
+
+1.0.0's stability.md listed values in Stable that only experimental flags produce.
+That was a documentation error. This release moves them to Experimental.
+
+Moved from Stable to Experimental:
+- `Finding.source` values `ai`, `user-rule`, `npm-audit`, `semgrep`, `osv-scanner`, `sarif`.
+- `Finding.suppressedBy` (`types`, `model:<package>`).
+- Error codes `FS-E005`–`FS-E009`, `FS-E012`–`FS-E016`.
+- Config keys `ai`, `sast.sources`, `sast.sanitizers`.
+
+Moved to Internal: `FS-E010`, `FS-E011` (contributor tooling only).
+
+Added to Stable (shipped and documented as stable since 0.1.0 or 0.2.0): `watch`, `edge`,
+`notify`, `doctor`, and the core `scan --json` finding fields.
+
+If you depended on a moved value, it still works in 1.0.1. It may change in a later minor.
+
+### Documentation
+
+- `CAPABILITIES.md` rewritten. The 1.0.0 file described 0.1.1 and carried finding
+  counts that no longer match. It now links to generated files instead of copying numbers.
+- `docs/demo.md` and `BENCHMARK.md` regenerated from runs at 1.0.1.
+- `COMPARISON.md` is marked not citable until the Semgrep run is re-checked.
+- History notes moved to `docs/history/`.
+- Corrected stale lines in `errors.md`, `QUALITY.md`, `priority.md`, `NOISE-REPORT.md`,
+  and `CONTRIBUTING.md`.
+
+### 1.0.0 notes corrected
+
+- The 0.2.0 entry said 0.3.0 and 0.4.0 were not tagged. That was true when written.
+  Both were tagged later.
+- 1.0.0 said Phases 52 and 78 were "merged locally". Both are in the `v1.0.0` commit
+  `d654c8b6f155bec88b2327a62402f0b35feb277d`, which contains `5a0d006` (phase 52) and
+  `4966d8b` (phase 78).
+- Phase 77 is in 1.0.0 as `scripts/realworld-diff.mjs`. It is a dev gate and has no scan flag.
+- Phase 81 is in 1.0.0 behind `FULLSHIELD_EXPERIMENTAL_MODELS`.
+- Phase 82 is in 1.0.0 behind `FULLSHIELD_EXPERIMENTAL_SECRET_CHECK`.
+- Phase 84 is in 1.0.0 behind `FULLSHIELD_EXPERIMENTAL_PRIORITY`.
+- Phase 89 is in 1.0.0 behind `FULLSHIELD_EXPERIMENTAL_SPDX`.
+- Phase 92 is in 1.0.0 as issue forms, companion-tool docs, and required check names. It has no scan flag.
+- The Phase 75 and Phase 51 default-scan diffs were empty on every bench app. That shows
+  no regression. It does not show either change finds anything on those apps.
+
+### Release check
+
+1.0.0 was tagged before the six-job matrix was confirmed green on `main`.
+1.0.1 is tagged only after all six required checks in `docs/branch-protection.md` pass
+on `main`. The run link is filled in when that matrix is green.
+
 ## 1.0.0 — 2026-10-20
 
 1.0.0 freezes the stable CLI, config keys, exit codes, error codes `FS-E000`–`FS-E016`, and the library exports in `api/fullshield.api.json`. The promise is [docs/stability.md](docs/stability.md).
@@ -189,7 +244,7 @@ Off unless `FULLSHIELD_EXPERIMENTAL_DIFF=1` or `fullshield diff --experimental-d
 
 ## 0.2.0 — 2026-10-16
 
-Phases 36–45 ship in this version. `0.3.0` and `0.4.0` were not tagged.
+Phases 36–45 ship in this version. (At the time of writing, `0.3.0` and `0.4.0` were not yet tagged. Both were tagged later.)
 
 ### Phase 36 — provenance and semver
 

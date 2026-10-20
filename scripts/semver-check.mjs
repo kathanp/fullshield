@@ -9,7 +9,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { baselineTag, bumpKind, bumpSatisfies, requiredBump } from './release-checks.mjs';
+import { baselineTag, bumpKind, bumpSatisfies, parseVersion, requiredBump } from './release-checks.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -100,7 +100,9 @@ function main() {
   };
   const required = requiredBump(signals);
   const actual = bumpKind(fromPkg.version, toPkg.version);
+  const policy = parseVersion(fromPkg.version).major >= 1 ? 'R16a' : 'R16';
   console.log(`semver-check last tag ${tag} (${fromPkg.version}) -> ${toPkg.version}`);
+  console.log(`policy: ${policy}`);
   console.log(`required: ${required}`);
   console.log(`actual: ${actual}`);
   for (const [name, values] of Object.entries(signals)) {
