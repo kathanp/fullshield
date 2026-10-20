@@ -226,15 +226,19 @@ function experimentalFlags() {
   return [...flags].sort();
 }
 
+function lf(text) {
+  return text.replace(/\r\n/g, '\n');
+}
+
 function cliHelp() {
   const cli = join(root, 'dist', 'cli', 'index.js');
   if (!existsSync(cli)) return null;
   const top = spawnSync(process.execPath, [cli, '--help'], { cwd: root, encoding: 'utf8' });
-  const help = { '': top.stdout };
+  const help = { '': lf(top.stdout) };
   const names = [...top.stdout.matchAll(/^\s{2}([a-z][\w-]*)(?:\s|\|)/gm)].map((match) => match[1]);
   for (const name of [...new Set(names)]) {
     const sub = spawnSync(process.execPath, [cli, name, '--help'], { cwd: root, encoding: 'utf8' });
-    help[name] = sub.stdout;
+    help[name] = lf(sub.stdout);
   }
   return help;
 }
@@ -246,7 +250,7 @@ function apiSnapshot() {
     const types = value && typeof value === 'object' ? value.types : undefined;
     if (typeof types !== 'string') continue;
     const path = join(root, types);
-    exportsMap[key] = existsSync(path) ? stripComments(readFileSync(path, 'utf8')) : '';
+    exportsMap[key] = existsSync(path) ? stripComments(lf(readFileSync(path, 'utf8'))) : '';
   }
   return {
     exports: exportsMap,
@@ -300,7 +304,7 @@ function packFiles() {
   if (result.status !== 0) throw new Error(result.stderr || 'npm pack failed');
   const parsed = parseFirstJson(result.stdout, 'npm pack');
   const entry = Array.isArray(parsed) ? parsed[0] : Object.values(parsed)[0];
-  return (entry.files ?? []).map((file) => file.path).sort();
+  return (entry.files ?? []).map((file) => file.path.split(sep).join('/')).sort();
 }
 
 function row(id, scope, ok, count, baseline) {
@@ -401,7 +405,7 @@ function main() {
   if (!fixture) {
     const snapPath = join(root, 'api', 'fullshield.api.json');
     const currentApi = apiSnapshot();
-    const committed = existsSync(snapPath) ? readFileSync(snapPath, 'utf8') : '';
+    const committed = existsSync(snapPath) ? lf(readFileSync(snapPath, 'utf8')) : '';
     const apiText = sortedJson(currentApi);
     rows.push(row('Q5', 'public API', writeBaseline || apiText === committed, writeBaseline ? 0 : Number(apiText !== committed), 0));
     rows.push(row('Q9', 'new file coverage', q9Miss.length === 0, q9Miss.length, 0));
@@ -421,7 +425,7 @@ function main() {
     rows.push(row('Q11', 'determinism', q11Ok, q11Ok ? 0 : 1, 0));
     const packed = packFiles();
     const packPath = join(root, 'quality', 'pack-files.txt');
-    const expectedPack = existsSync(packPath) ? readFileSync(packPath, 'utf8').trim().split('\n').filter(Boolean) : [];
+    const expectedPack = existsSync(packPath) ? lf(readFileSync(packPath, 'utf8')).trim().split('\n').filter(Boolean) : [];
     const forbidden = packed.filter((file) => file.endsWith('.map') || /^(test|bench|reports)\//.test(file) || (file.startsWith('scripts/') && !expectedPack.includes(file)));
     const packBudget = spawnSync(process.execPath, [join(scriptRoot, 'scripts', 'pack-budget.mjs')], { cwd: root, encoding: 'utf8' });
     const packSame = writeBaseline || (packed.join('\n') === expectedPack.join('\n') && forbidden.length === 0 && packBudget.status === 0);
