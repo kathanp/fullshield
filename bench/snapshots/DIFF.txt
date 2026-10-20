@@ -1,6 +1,6 @@
   scanned vulnerable-app: 35
   scanned clean-app: 0
-  scanned nodegoat: 270
+  scanned nodegoat: 268
   scanned juice-shop: 105
   scanned dvna: 23
   scanned goof: 271
@@ -11,7 +11,6 @@ DRIFT nodegoat
 + SAST-XSS-001	app/views/contributions.html	65	high
 + SAST-XSS-001	app/views/contributions.html	73	high
 + SAST-XSS-001	app/views/contributions.html	81	high
-+ SAST-XSS-001	app/views/contributions.html	91	high
 + SAST-XSS-001	app/views/profile.html	41	high
 + SAST-XSS-001	app/views/profile.html	45	high
 + SAST-XSS-001	app/views/profile.html	49	high
@@ -20,7 +19,6 @@ DRIFT nodegoat
 + SAST-XSS-001	app/views/profile.html	61	high
 + SAST-XSS-001	app/views/profile.html	66	high
 + SAST-XSS-001	app/views/profile.html	70	high
-+ SAST-XSS-001	app/views/profile.html	73	high
 + SAST-XSS-001	app/views/profile.html	78	high
 IDENTICAL juice-shop
 IDENTICAL dvna
