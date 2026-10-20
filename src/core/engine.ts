@@ -32,6 +32,8 @@ import {
 import { applyPriority } from '../priority/score.js';
 import type { AttackPath } from '../paths/types.js';
 import { packageVersion } from './version.js';
+import { modelsEnabled } from '../modules/sast/experimental.js';
+import { applyModelSuppressions } from '../modules/sast/models.js';
 import {
   POLICY_FILE_NAME,
   applyPolicy,
@@ -112,6 +114,8 @@ export interface ScanMetadata {
   history?: string;
   /** Phase 48. Direct dependencies no project file imports. Absent when the list is empty. */
   unusedDirect?: { packages: string[]; advisories: number };
+  /** Phase 81. One line per model pack skipped because the installed version is out of range. */
+  info?: string[];
   /** Phase 78. Present only when FULLSHIELD_EXPERIMENTAL_PERF2=1. Not findings. */
   skipped?: {
     total: number;
@@ -156,8 +160,8 @@ export interface ScanResult {
   /** Set when a baseline suppression is missing fields or has expired. */
   suppressionErrors?: string[];
   /**
-   * Phase 80. Findings removed from `findings` because the receiver type is not a sink.
-   * Present only when FULLSHIELD_EXPERIMENTAL_TYPES=1 and the checker ran.
+   * Phase 80 and Phase 81. Findings removed from `findings`.
+   * Present when the type checker ran or a model pack suppressed a finding.
    */
   suppressed?: Finding[];
   /** Phase 80. Missing `typescript` (FS-E012) or the types.maxFiles fallback. Printed by the CLI. */
@@ -410,6 +414,15 @@ export async function runScan(
     aiMode === 'explain' ||
     aiMode === 'logic' ||
     config.ai.enabled;
+  let modelSuppressed: Finding[] | undefined;
+  let modelInfo: string[] | undefined;
+  if (modelsEnabled()) {
+    const applied = await applyModelSuppressions(cwd, findings);
+    findings = sortFindings(applied.findings);
+    if (applied.suppressed.length > 0) modelSuppressed = applied.suppressed;
+    if (applied.info.length > 0) modelInfo = applied.info;
+  }
+
   if (aiEnabled) {
     const client = createAiClient({
       enabled: true,
@@ -458,11 +471,14 @@ export async function runScan(
       ...(depsModule.unusedDirect !== undefined ? { unusedDirect: depsModule.unusedDirect } : {}),
       ...(depsModule.upgradePlan !== undefined ? { upgradePlan: depsModule.upgradePlan } : {}),
       ...(budgetSnapshot() ?? {}),
+      ...(modelInfo !== undefined ? { info: modelInfo } : {}),
     },
     config,
     policy: policyResult,
     ...(suppressionErrors.length > 0 ? { suppressionErrors } : {}),
-    ...(typeSuppressed !== undefined ? { suppressed: typeSuppressed } : {}),
+    ...(typeSuppressed !== undefined || modelSuppressed !== undefined
+      ? { suppressed: [...(modelSuppressed ?? []), ...(typeSuppressed ?? [])] }
+      : {}),
     ...(typesNotice !== undefined ? { typesNotice } : {}),
     ...(attackPaths !== undefined ? { paths: attackPaths } : {}),
   };

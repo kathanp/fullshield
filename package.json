@@ -75,7 +75,8 @@
     "LICENSE",
     "CHANGELOG.md",
     "templates",
-    "rules"
+    "rules",
+    "models"
   ],
   "publishConfig": {
     "access": "public"

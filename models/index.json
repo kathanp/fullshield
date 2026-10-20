@@ -1,0 +1,356 @@
+{
+  "fullshieldVersion": "0.4.0",
+  "entries": [
+    {
+      "package": "express",
+      "versionRange": "^4.0.0 || ^5.0.0",
+      "kind": "source",
+      "sinkClass": "sqli",
+      "memberPath": "req.get",
+      "argumentIndex": 0,
+      "reference": "https://expressjs.com/en/4x/api.html#req.get"
+    },
+    {
+      "package": "express",
+      "versionRange": "^4.0.0 || ^5.0.0",
+      "kind": "source",
+      "sinkClass": "sqli",
+      "memberPath": "req.body",
+      "argumentIndex": 0,
+      "reference": "https://expressjs.com/en/4x/api.html#req.body"
+    },
+    {
+      "package": "express",
+      "versionRange": "^4.0.0 || ^5.0.0",
+      "kind": "source",
+      "sinkClass": "sqli",
+      "memberPath": "req.query",
+      "argumentIndex": 0,
+      "reference": "https://expressjs.com/en/4x/api.html#req.query"
+    },
+    {
+      "package": "express",
+      "versionRange": "^4.0.0 || ^5.0.0",
+      "kind": "source",
+      "sinkClass": "sqli",
+      "memberPath": "req.params",
+      "argumentIndex": 0,
+      "reference": "https://expressjs.com/en/4x/api.html#req.params"
+    },
+    {
+      "package": "express-validator",
+      "versionRange": ">=6.0.0 <8.0.0",
+      "kind": "validator",
+      "sinkClass": "sqli",
+      "memberPath": "body().isInt",
+      "argumentIndex": 0,
+      "reference": "https://express-validator.github.io/docs/api/validation-chain/"
+    },
+    {
+      "package": "express-validator",
+      "versionRange": ">=6.0.0 <8.0.0",
+      "kind": "validator",
+      "sinkClass": "sqli",
+      "memberPath": "query().isInt",
+      "argumentIndex": 0,
+      "reference": "https://express-validator.github.io/docs/api/validation-chain/"
+    },
+    {
+      "package": "express-validator",
+      "versionRange": ">=6.0.0 <8.0.0",
+      "kind": "validator",
+      "sinkClass": "sqli",
+      "memberPath": "param().isInt",
+      "argumentIndex": 0,
+      "reference": "https://express-validator.github.io/docs/api/validation-chain/"
+    },
+    {
+      "package": "joi",
+      "versionRange": ">=17.0.0 <18.0.0",
+      "kind": "validator",
+      "sinkClass": "sqli",
+      "memberPath": "Joi.number().validate",
+      "argumentIndex": 0,
+      "reference": "https://joi.dev/api/?v=17.13.3#number"
+    },
+    {
+      "package": "yup",
+      "versionRange": ">=0.32.0 <2.0.0",
+      "kind": "validator",
+      "sinkClass": "sqli",
+      "memberPath": "yup.number().validate",
+      "argumentIndex": 0,
+      "reference": "https://github.com/jquense/yup#number"
+    },
+    {
+      "package": "zod",
+      "versionRange": ">=3.0.0 <5.0.0",
+      "kind": "validator",
+      "sinkClass": "sqli",
+      "memberPath": "z.number().parse",
+      "argumentIndex": 0,
+      "reference": "https://zod.dev/api"
+    },
+    {
+      "package": "validator",
+      "versionRange": ">=13.0.0 <14.0.0",
+      "kind": "validator",
+      "sinkClass": "sqli",
+      "memberPath": "validator.isInt",
+      "argumentIndex": 0,
+      "reference": "https://github.com/validatorjs/validator.js#validators"
+    },
+    {
+      "package": "dompurify",
+      "versionRange": ">=2.0.0 <4.0.0",
+      "kind": "sanitizer",
+      "sinkClass": "xss",
+      "memberPath": "DOMPurify.sanitize",
+      "argumentIndex": 0,
+      "reference": "https://github.com/cure53/DOMPurify#how-do-i-use-it"
+    },
+    {
+      "package": "sanitize-html",
+      "versionRange": ">=2.0.0 <3.0.0",
+      "kind": "sanitizer",
+      "sinkClass": "xss",
+      "memberPath": "sanitizeHtml",
+      "argumentIndex": 0,
+      "reference": "https://github.com/apostrophecms/sanitize-html#readme"
+    },
+    {
+      "package": "helmet",
+      "versionRange": ">=4.0.0 <8.0.0",
+      "kind": "sanitizer",
+      "sinkClass": "xss",
+      "memberPath": "helmet",
+      "argumentIndex": 0,
+      "reference": "https://helmetjs.github.io/"
+    },
+    {
+      "package": "pg",
+      "versionRange": ">=8.0.0 <9.0.0",
+      "kind": "sink",
+      "sinkClass": "sqli",
+      "memberPath": "query",
+      "argumentIndex": 0,
+      "reference": "https://node-postgres.com/apis/client"
+    },
+    {
+      "package": "mysql2",
+      "versionRange": ">=3.0.0 <4.0.0",
+      "kind": "sink",
+      "sinkClass": "sqli",
+      "memberPath": "query",
+      "argumentIndex": 0,
+      "reference": "https://sidorares.github.io/node-mysql2/docs"
+    },
+    {
+      "package": "sqlite3",
+      "versionRange": ">=5.0.0 <6.0.0",
+      "kind": "sink",
+      "sinkClass": "sqli",
+      "memberPath": "run",
+      "argumentIndex": 0,
+      "reference": "https://github.com/TryGhost/node-sqlite3/wiki/API"
+    },
+    {
+      "package": "better-sqlite3",
+      "versionRange": ">=9.0.0 <12.0.0",
+      "kind": "sink",
+      "sinkClass": "sqli",
+      "memberPath": "prepare",
+      "argumentIndex": 0,
+      "reference": "https://github.com/WiseLibs/better-sqlite3/blob/master/docs/api.md"
+    },
+    {
+      "package": "knex",
+      "versionRange": ">=2.0.0 <4.0.0",
+      "kind": "sink",
+      "sinkClass": "sqli",
+      "memberPath": "raw",
+      "argumentIndex": 0,
+      "reference": "https://knexjs.org/guide/raw.html"
+    },
+    {
+      "package": "sequelize",
+      "versionRange": ">=6.0.0 <7.0.0",
+      "kind": "sink",
+      "sinkClass": "sqli",
+      "memberPath": "query",
+      "argumentIndex": 0,
+      "reference": "https://sequelize.org/docs/v6/core-concepts/raw-queries/"
+    },
+    {
+      "package": "typeorm",
+      "versionRange": ">=0.3.0 <0.4.0",
+      "kind": "sink",
+      "sinkClass": "sqli",
+      "memberPath": "query",
+      "argumentIndex": 0,
+      "reference": "https://typeorm.io/docs/query-builder/select-query-builder/"
+    },
+    {
+      "package": "prisma",
+      "versionRange": ">=5.0.0 <7.0.0",
+      "kind": "sink",
+      "sinkClass": "sqli",
+      "memberPath": "$queryRawUnsafe",
+      "argumentIndex": 0,
+      "reference": "https://www.prisma.io/docs/orm/prisma-client/using-raw-sql/raw-queries"
+    },
+    {
+      "package": "mongoose",
+      "versionRange": ">=6.0.0 <9.0.0",
+      "kind": "sink",
+      "sinkClass": "nosqli",
+      "memberPath": "find",
+      "argumentIndex": 0,
+      "reference": "https://mongoosejs.com/docs/api/model.html#Model.find()"
+    },
+    {
+      "package": "mongodb",
+      "versionRange": ">=4.0.0 <7.0.0",
+      "kind": "sink",
+      "sinkClass": "nosqli",
+      "memberPath": "find",
+      "argumentIndex": 0,
+      "reference": "https://www.mongodb.com/docs/drivers/node/current/fundamentals/crud/read-operations/query-document/"
+    },
+    {
+      "package": "child_process",
+      "versionRange": ">=18.0.0",
+      "kind": "sink",
+      "sinkClass": "cmdi",
+      "memberPath": "exec",
+      "argumentIndex": 0,
+      "reference": "https://nodejs.org/api/child_process.html#child_processexeccommand-options-callback"
+    },
+    {
+      "package": "execa",
+      "versionRange": ">=8.0.0 <9.0.0",
+      "kind": "sink",
+      "sinkClass": "cmdi",
+      "memberPath": "execa",
+      "argumentIndex": 0,
+      "reference": "https://github.com/sindresorhus/execa#execafile-arguments-options"
+    },
+    {
+      "package": "axios",
+      "versionRange": ">=1.0.0 <2.0.0",
+      "kind": "sink",
+      "sinkClass": "ssrf",
+      "memberPath": "axios.get",
+      "argumentIndex": 0,
+      "reference": "https://axios-http.com/docs/api_intro"
+    },
+    {
+      "package": "node-fetch",
+      "versionRange": ">=3.0.0 <4.0.0",
+      "kind": "sink",
+      "sinkClass": "ssrf",
+      "memberPath": "fetch",
+      "argumentIndex": 0,
+      "reference": "https://github.com/node-fetch/node-fetch#fetchurl-options"
+    },
+    {
+      "package": "undici",
+      "versionRange": ">=6.0.0 <8.0.0",
+      "kind": "sink",
+      "sinkClass": "ssrf",
+      "memberPath": "undici.request",
+      "argumentIndex": 0,
+      "reference": "https://undici.nodejs.org/#/docs/api/Client"
+    },
+    {
+      "package": "got",
+      "versionRange": ">=14.0.0 <15.0.0",
+      "kind": "sink",
+      "sinkClass": "ssrf",
+      "memberPath": "got",
+      "argumentIndex": 0,
+      "reference": "https://github.com/sindresorhus/got#goturl-options"
+    },
+    {
+      "package": "fs",
+      "versionRange": ">=18.0.0",
+      "kind": "sink",
+      "sinkClass": "path",
+      "memberPath": "readFile",
+      "argumentIndex": 0,
+      "reference": "https://nodejs.org/api/fs.html#fsreadfilepath-options-callback"
+    },
+    {
+      "package": "fs-extra",
+      "versionRange": ">=11.0.0 <12.0.0",
+      "kind": "sink",
+      "sinkClass": "path",
+      "memberPath": "readFile",
+      "argumentIndex": 0,
+      "reference": "https://github.com/jprichardson/node-fs-extra"
+    },
+    {
+      "package": "path",
+      "versionRange": ">=18.0.0",
+      "kind": "sanitizer",
+      "sinkClass": "path",
+      "memberPath": "path.basename",
+      "argumentIndex": 0,
+      "reference": "https://nodejs.org/api/path.html#pathbasenamepath-suffix"
+    },
+    {
+      "package": "ejs",
+      "versionRange": ">=3.0.0 <4.0.0",
+      "kind": "sink",
+      "sinkClass": "xss",
+      "memberPath": "ejs.render",
+      "argumentIndex": 0,
+      "reference": "https://ejs.co/#docs"
+    },
+    {
+      "package": "pug",
+      "versionRange": ">=3.0.0 <4.0.0",
+      "kind": "sink",
+      "sinkClass": "xss",
+      "memberPath": "pug.render",
+      "argumentIndex": 0,
+      "reference": "https://pugjs.org/api/reference.html"
+    },
+    {
+      "package": "handlebars",
+      "versionRange": ">=4.0.0 <5.0.0",
+      "kind": "sink",
+      "sinkClass": "xss",
+      "memberPath": "Handlebars.compile",
+      "argumentIndex": 0,
+      "reference": "https://handlebarsjs.com/api-reference/compilation.html"
+    },
+    {
+      "package": "nunjucks",
+      "versionRange": ">=3.0.0 <4.0.0",
+      "kind": "sink",
+      "sinkClass": "xss",
+      "memberPath": "nunjucks.renderString",
+      "argumentIndex": 0,
+      "reference": "https://mozilla.github.io/nunjucks/api.html#renderstring"
+    },
+    {
+      "package": "jsonwebtoken",
+      "versionRange": ">=9.0.0 <10.0.0",
+      "kind": "sink",
+      "sinkClass": "jwt",
+      "memberPath": "jwt.verify",
+      "argumentIndex": 0,
+      "reference": "https://github.com/auth0/node-jsonwebtoken#jwtverifytoken-secretorpublickey-options-callback"
+    },
+    {
+      "package": "bcrypt",
+      "versionRange": ">=5.0.0 <6.0.0",
+      "kind": "sanitizer",
+      "sinkClass": "crypto",
+      "memberPath": "bcrypt.hash",
+      "argumentIndex": 0,
+      "reference": "https://github.com/kelektiv/node.bcrypt.js#hash-info"
+    }
+  ]
+}

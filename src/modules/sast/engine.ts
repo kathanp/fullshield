@@ -4,6 +4,8 @@ import { join } from 'node:path';
 import type { ScanModule } from '../../core/engine.js';
 import { makeFindingId, type Finding } from '../../core/finding.js';
 import { assignedNameOf, walk } from './ast.js';
+import { modelsEnabled } from './experimental.js';
+import { modelSinkFindings, resolveModelPacks, setActiveModels } from './models.js';
 import { collectRequires, runInterproc, type ParsedSource } from './interproc.js';
 import { crossFileReturnFindings } from './returns.js';
 import { cachedReturners, setTaintSummaryConfig, taintSummariesEnabled } from './summaries.js';
@@ -140,6 +142,7 @@ export function findingsFromAst(
     });
   }
   findings.push(...scanPromptInjection(filename, source));
+  findings.push(...modelSinkFindings(filename, source, ast, (node) => nodeIsTainted(node, facts), findings));
   return findings;
 }
 
@@ -491,6 +494,7 @@ export const sastModule: ScanModule = {
     }
     setTaintSummaryConfig(taintSummariesEnabled() ? ctx.config : undefined);
     clearTaintWalk();
+    setActiveModels(modelsEnabled() ? resolveModelPacks(ctx.cwd).active : undefined);
     try {
     const viewEngine = await projectViewEngine(ctx);
     const candidates = ctx.files.filter(
@@ -570,6 +574,7 @@ export const sastModule: ScanModule = {
       setCustomTaint(undefined);
       setTaintSummaryConfig(undefined);
       setAuthProject(undefined);
+      setActiveModels(undefined);
     }
   },
 };

@@ -58,6 +58,7 @@ export function setTaintSummaryConfig(config: ResolvedConfig | undefined): void 
         gaps: sastGapsEnabled(),
         classes: classesEnabled(),
         custom: process.env.FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS === '1',
+        ...(process.env.FULLSHIELD_EXPERIMENTAL_MODELS === '1' ? { models: true } : {}),
       }),
     )
     .digest('hex');

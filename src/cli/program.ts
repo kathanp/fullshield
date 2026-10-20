@@ -108,6 +108,7 @@ interface ScanCliOptions {
   experimentalCustomSanitizers?: boolean;
   experimentalValidation?: boolean;
   experimentalTypes?: boolean;
+  experimentalModels?: boolean;
   taintSummaries?: boolean;
   experimentalMcpcfg?: boolean;
   includeHome?: boolean;
@@ -275,6 +276,10 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       '--experimental-types',
       'experimental: suppress non-sink receivers with the TypeScript checker (FULLSHIELD_EXPERIMENTAL_TYPES=1)',
     )
+    .option(
+      '--experimental-models',
+      'experimental: library model packs (FULLSHIELD_EXPERIMENTAL_MODELS=1)',
+    )
     .option('--taint-summaries', 'cache per-function taint summaries (FULLSHIELD_TAINT_SUMMARIES=1)')
     .option(
       '--experimental-paths',
@@ -355,6 +360,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
         if (opts.experimentalTypes === true) {
           process.env[TYPES_FLAG] = '1';
+        }
+        if (opts.experimentalModels === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_MODELS = '1';
         }
         if (opts.taintSummaries === true) {
           process.env.FULLSHIELD_TAINT_SUMMARIES = '1';
@@ -450,6 +458,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           io.err(`wrote virtual patches ${out}`);
         }
 
+        for (const line of result.metadata.info ?? []) io.err(line);
         if (opts.prSummary === true) {
           io.out(renderPrSummary(result.findings));
         } else {

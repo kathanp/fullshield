@@ -90,10 +90,11 @@ export interface Finding {
   /** Set to `test` for test, fixture, example, and sample paths. Flag-only. */
   context?: 'test';
   /**
-   * Set on copies listed in `ScanResult.suppressed` when Phase 80 drops a receiver.
+   * Set on copies listed in `ScanResult.suppressed`.
+   * Phase 80 uses `types`. Phase 81 uses `model:<pack>`.
    * Absent on findings that are still reported.
    */
-  suppressedBy?: 'types';
+  suppressedBy?: string;
   /** Why the reachability class was chosen. Present only with FULLSHIELD_EXPERIMENTAL_REACH_EVIDENCE=1. */
   reachabilityEvidence?: {
     imports: Array<{ file: string; line: number; specifier: string }>;
