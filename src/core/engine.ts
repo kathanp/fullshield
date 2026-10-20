@@ -164,7 +164,7 @@ export interface ScanResult {
    * Present when the type checker ran or a model pack suppressed a finding.
    */
   suppressed?: Finding[];
-  /** Phase 80. Missing `typescript` (FS-E012) or the types.maxFiles fallback. Printed by the CLI. */
+  /** Phase 80. Missing `typescript` (FS-E013) or the types.maxFiles fallback. Printed by the CLI. */
   typesNotice?: string;
   /** Phase 85. Present only when scan paths were requested and FULLSHIELD_EXPERIMENTAL_PATHS=1. */
   paths?: AttackPath[];

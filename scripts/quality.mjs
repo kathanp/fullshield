@@ -20,6 +20,7 @@ function argValue(flag, fallback) {
 const root = argValue('--root', scriptRoot);
 const fixture = process.argv.includes('--fixture');
 const writeBaseline = process.argv.includes('--write-baseline');
+const writeApi = process.argv.includes('--write-api');
 const baseRef = argValue('--base', 'next');
 
 function parseFirstJson(text, label) {
@@ -307,6 +308,13 @@ function row(id, scope, ok, count, baseline) {
 }
 
 function main() {
+  if (writeApi) {
+    const snapPath = join(root, 'api', 'fullshield.api.json');
+    mkdirSync(dirname(snapPath), { recursive: true });
+    writeFileSync(snapPath, sortedJson(apiSnapshot()));
+    console.log(`wrote ${snapPath}`);
+    return;
+  }
   const baselinePath = join(root, 'quality', 'baseline.json');
   const baseline = readJson(baselinePath, {
     q2: {},

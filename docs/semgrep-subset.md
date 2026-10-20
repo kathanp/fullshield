@@ -34,6 +34,6 @@ Findings use `ruleId: CUSTOM-<id>` and `source: user-rule`.
 
 ## Rejected
 
-Any other key, language, or pattern form fails the whole file with `FS-E012`. The message names the construct and the rule id. No rule from that file is applied.
+Any other key, language, or pattern form fails the whole file with `FS-E016`. The message names the construct and the rule id. No rule from that file is applied.
 
 Not supported, among other things: `pattern-regex`, `metavariable-regex`, `pattern-where`, `pattern-not-inside`, `focus-metavariable`, languages other than `javascript` and `typescript`, and `...` outside a call or `new` argument list.

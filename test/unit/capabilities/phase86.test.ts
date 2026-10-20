@@ -257,7 +257,7 @@ describe('phase 86 capability profile', () => {
     const dir = stageApp();
     const refused = await runCli(['deps', '--capabilities', dir]);
     expect(refused.code).toBe(2);
-    expect(refused.err).toContain('FS-E012');
+    expect(refused.err).toContain('FS-E014');
     expect(refused.err).toContain('FULLSHIELD_EXPERIMENTAL_CAPABILITIES');
 
     process.env.FULLSHIELD_EXPERIMENTAL_CAPABILITIES = '1';

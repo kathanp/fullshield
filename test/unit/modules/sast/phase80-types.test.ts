@@ -72,7 +72,7 @@ describe('phase 80 type-aware receivers', () => {
     expect(result.findings).toEqual([]);
   });
 
-  it('prints FS-E012 and keeps heuristic findings when typescript cannot be loaded', async () => {
+  it('prints FS-E013 and keeps heuristic findings when typescript cannot be loaded', async () => {
     const off = await scan({ cwd: app, modules: ['sast'] });
     typeScriptLoader.load = () => {
       const error = new Error("Cannot find package 'typescript'");
@@ -83,7 +83,7 @@ describe('phase 80 type-aware receivers', () => {
     const on = await scan({ cwd: app, modules: ['sast'] });
     expect(keys(on.findings)).toEqual(keys(off.findings));
     expect(on.suppressed).toBeUndefined();
-    expect(on.typesNotice).toMatch(/FS-E012/);
+    expect(on.typesNotice).toMatch(/FS-E013/);
     expect(on.typesNotice).toMatch(/npm i -D typescript/);
     const json = JSON.parse(renderJsonReport(on)) as Record<string, unknown>;
     expect(json).not.toHaveProperty('suppressed');

@@ -1,4 +1,4 @@
-import { sortFindings, type Finding } from '../core/finding.js';
+import { sortFindings, type Finding, findingSource } from '../core/finding.js';
 import type { IngestItem } from './item.js';
 
 interface Row {
@@ -50,7 +50,7 @@ function sameCode(row: Row, item: IngestItem): boolean {
 function mergeInto(target: Finding, incoming: Finding): void {
   target.sources = union(target.sources, incoming.sources);
   const primary = target.sources[0];
-  if (primary !== undefined) {target.source = primary;}
+  if (primary !== undefined) {target.source = findingSource(primary);}
   preferRule(target, incoming);
   target.externalRuleIds = union(target.externalRuleIds, incoming.externalRuleIds);
   const other = target.externalRuleIds.find((id) => id !== target.ruleId);

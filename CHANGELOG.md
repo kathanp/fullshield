@@ -54,7 +54,7 @@ Phase 78 cold-scan work stays behind `FULLSHIELD_EXPERIMENTAL_PERF2`. Merged loc
 
 ### Phase 80 — type-aware receivers
 
-`FULLSHIELD_EXPERIMENTAL_TYPES=1` or `scan --experimental-types` loads the optional `typescript` peer and suppresses sink calls whose receiver resolves to a non-sink type (`Array`, `Map`, a user class). Mongoose models and `any` stay. Suppressed findings are listed in JSON `suppressed[]` with `suppressedBy: "types"`. The flag off leaves scan JSON unchanged. A missing `typescript` install prints FS-E012 and keeps the heuristics.
+`FULLSHIELD_EXPERIMENTAL_TYPES=1` or `scan --experimental-types` loads the optional `typescript` peer and suppresses sink calls whose receiver resolves to a non-sink type (`Array`, `Map`, a user class). Mongoose models and `any` stay. Suppressed findings are listed in JSON `suppressed[]` with `suppressedBy: "types"`. The flag off leaves scan JSON unchanged. A missing `typescript` install prints FS-E013 and keeps the heuristics.
 
 Phase 79 time budget stays behind `FULLSHIELD_EXPERIMENTAL_BUDGET`. `scan --max-time` stops SAST taint, still finishes deps, secrets, and config, and exits 3 when nothing scanned meets `--fail-on`. That exit is not a clean scan. A finding at or above `--fail-on` still exits 1. The flag off leaves output and exit codes unchanged.
 

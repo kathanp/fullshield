@@ -10,7 +10,7 @@ npx fullshield scan --json --fail-on high
 npx fullshield scan --sarif fullshield.sarif
 ```
 
-This is a `0.x` release. APIs may change. Do not treat it as a penetration test.
+This is a `0.x` release until the 1.0.0 commit. The contract that tag will freeze is [docs/stability.md](docs/stability.md). Do not treat a scan as a penetration test.
 
 **Supported runtime is Node.js >= 22.13.** `package.json` `engines` and `doctor` enforce that floor. `node:sqlite` runs without `--experimental-sqlite` from 22.13.0 (the module is still experimental and is loaded only by history/confirm, not by `--import` register).
 

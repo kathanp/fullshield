@@ -91,7 +91,7 @@ describe('phase 90 user semgrep rules', () => {
     const message = error instanceof Error ? error.message : '';
     expect(message).toMatch(/unsupported construct "pattern-where"/);
     expect(message).toMatch(/rule "bad-where"/);
-    expect(formatCliError(error)).toMatch(/FS-E012/);
+    expect(formatCliError(error)).toMatch(/FS-E016/);
     expect(() => guardSemgrepCli('rejected/bad-mixed.yml', false)).toThrow(/FULLSHIELD_EXPERIMENTAL_SEMGREP_RULES/);
   });
 

@@ -8,6 +8,25 @@ export type ModuleName = (typeof MODULE_NAMES)[number];
 
 export type Confidence = 'low' | 'medium' | 'high';
 
+/** Built-in `Finding.source` tags. Any other ingest tool name is stored as `sarif`. */
+export const FINDING_SOURCES = [
+  'deterministic',
+  'ai',
+  'user-rule',
+  'npm-audit',
+  'semgrep',
+  'osv-scanner',
+  'sarif',
+] as const;
+export type FindingSource = (typeof FINDING_SOURCES)[number];
+
+/** Why a finding was moved to `ScanResult.suppressed`. */
+export type SuppressedBy = 'types' | `model:${string}`;
+
+export function findingSource(value: string): FindingSource {
+  return (FINDING_SOURCES as readonly string[]).includes(value) ? (value as FindingSource) : 'sarif';
+}
+
 export interface FixProposal {
   kind: 'dependency-bump' | 'code-patch' | 'config-add' | 'dependency-override';
   /** Only safe fixes apply without --unsafe. */
@@ -54,8 +73,8 @@ export interface Finding {
   dependencyPath?: string[];
   /** Every retained dependency path for this package+advisory (shortest first). */
   dependencyPaths?: string[][];
-  /** Deterministic, AI, an ingest tool name, or `user-rule` (Phase 90). */
-  source?: string;
+  /** Built-in tag. An unknown ingest tool name is stored as `sarif`; the original name stays in `sources`. */
+  source?: FindingSource;
   /** Every tool that agreed on an ingested row. Ingest only. */
   sources?: string[];
   /** Original rule id from an external tool. Ingest only. */
@@ -91,10 +110,10 @@ export interface Finding {
   context?: 'test';
   /**
    * Set on copies listed in `ScanResult.suppressed`.
-   * Phase 80 uses `types`. Phase 81 uses `model:<pack>`.
+   * `types` is the TypeScript receiver check. `model:<package>` is a library model pack.
    * Absent on findings that are still reported.
    */
-  suppressedBy?: string;
+  suppressedBy?: SuppressedBy;
   /** Why the reachability class was chosen. Present only with FULLSHIELD_EXPERIMENTAL_REACH_EVIDENCE=1. */
   reachabilityEvidence?: {
     imports: Array<{ file: string; line: number; specifier: string }>;

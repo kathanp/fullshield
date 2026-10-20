@@ -1,4 +1,4 @@
-import { makeFindingId, type Finding, type ModuleName, type Severity } from '../core/finding.js';
+import { makeFindingId, type Finding, type FindingSource, type ModuleName, type Severity, findingSource } from '../core/finding.js';
 
 const REACH = new Set<string>([
   'reachable',
@@ -25,7 +25,7 @@ export interface ItemInput {
   severity: Severity;
   externalSeverity: string;
   message: string;
-  source: string;
+  source: FindingSource | string;
   file?: string;
   line?: number;
   cwe?: string;
@@ -48,7 +48,7 @@ export function makeItem(input: ItemInput): IngestItem {
     confidence: 'medium',
     message: input.message,
     remediation: 'Review the original tool report. FullShield did not rescore this finding.',
-    source: input.source,
+    source: findingSource(input.source),
     sources: [input.source],
     externalRuleId: ids.find((id) => id !== ruleId) ?? ids[0] ?? ruleId,
     externalRuleIds: ids.length > 0 ? ids : [ruleId],

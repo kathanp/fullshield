@@ -127,7 +127,7 @@ describe('Phase 79 time budget', () => {
   it('documents exit 3 as an incomplete scan, not a clean one', () => {
     const text = readFileSync(join(process.cwd(), 'docs', 'errors.md'), 'utf8');
     expect(text).toContain('FULLSHIELD_EXPERIMENTAL_BUDGET');
-    expect(text).toContain('FS-E012');
+    expect(text).toContain('FS-E015');
     expect(text).toMatch(/exit code 3/i);
     expect(text).toMatch(/not a clean scan/i);
   });
@@ -314,7 +314,7 @@ describe('Phase 79 time budget', () => {
   it('rejects a non-positive --max-time only when the budget flag is on', async () => {
     const root = tempApp({ 'src/a.js': 'const a = 1;\n' });
     const bad = await runCli(['scan', root, '--max-time', '0', '--experimental-budget', '--modules', 'sast']);
-    expect(bad.err).toContain('FS-E012');
+    expect(bad.err).toContain('FS-E015');
     expect(bad.err).toContain('invalid --max-time');
     expect(process.exitCode).toBe(2);
 

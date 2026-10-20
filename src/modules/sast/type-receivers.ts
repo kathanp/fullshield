@@ -84,7 +84,7 @@ export const typeScriptLoader = {
 };
 
 const MISSING_TYPESCRIPT_NOTICE =
-  'fullshield: FS-E012 optional peer typescript is not installed. Install with: npm i -D typescript';
+  'fullshield: FS-E013 optional peer typescript is not installed. Install with: npm i -D typescript';
 
 export interface TypeSuppression {
   findings: Finding[];
