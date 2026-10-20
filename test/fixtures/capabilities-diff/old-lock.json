@@ -1,0 +1,23 @@
+{
+  "name": "capabilities-diff",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "capabilities-diff",
+      "version": "1.0.0",
+      "dependencies": {
+        "left": "1.0.0",
+        "helper": "1.0.0"
+      }
+    },
+    "node_modules/left": {
+      "version": "1.0.0",
+      "integrity": "sha512-oldleft"
+    },
+    "node_modules/helper": {
+      "version": "1.0.0",
+      "integrity": "sha512-oldhelper"
+    }
+  }
+}

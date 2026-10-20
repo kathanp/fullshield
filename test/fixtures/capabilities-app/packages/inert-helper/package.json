@@ -1,0 +1,7 @@
+{
+  "name": "inert-helper",
+  "version": "1.0.0",
+  "scripts": {
+    "postinstall": "echo inert"
+  }
+}

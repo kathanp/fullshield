@@ -1,0 +1,7 @@
+{
+  "name": "helper",
+  "version": "1.0.1",
+  "scripts": {
+    "postinstall": "echo inert"
+  }
+}

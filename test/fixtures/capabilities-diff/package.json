@@ -1,0 +1,9 @@
+{
+  "name": "capabilities-diff",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "left": "1.0.1",
+    "helper": "1.0.1"
+  }
+}

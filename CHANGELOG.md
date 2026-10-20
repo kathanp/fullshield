@@ -4,6 +4,10 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+### Phase 86 — dependency capability profile (experimental)
+
+`FULLSHIELD_EXPERIMENTAL_CAPABILITIES=1` adds `fullshield deps --capabilities`, capability notes on `deps-diff`, and `SUPPLY-CAP-001` when `deps.capabilityPolicy` denies a statically read capability. Default scan does not emit `SUPPLY-CAP-001`. Package files are not executed and packages are not installed.
+
 ### Quality gate
 
 Phase 94 adds `npm run quality` (Q1–Q12) for contributors. Default scan findings are unchanged.

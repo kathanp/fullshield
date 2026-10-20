@@ -33,6 +33,14 @@ import { addedFails, diffScans, parseScanDocument, renderDiffText } from '../dif
 import { CI_REPORTS_FLAG, DIFF_FLAG, diffEnabled } from '../modules/sast/experimental.js';
 import { POLICY_FLAG, renderPrSummary } from '../policy/index.js';
 import { diffLockedPackages, lockAtRef, packagesFromLock, releaseAgeLabel } from '../deps-diff/index.js';
+import {
+  assertCapabilitiesEnabled,
+  capabilitiesEnabled,
+  formatCapabilityReport,
+  introducedCapabilities,
+  profileProject,
+} from '../capabilities/index.js';
+import { loadConfig } from '../core/config.js';
 import { explainFinding } from '../explain/index.js';
 import { queryOsv } from '../modules/deps/osv.js';
 import { osvSeverity } from '../modules/deps/semver.js';
@@ -94,6 +102,7 @@ interface ScanCliOptions {
   experimentalMcpcfg?: boolean;
   includeHome?: boolean;
   prSummary?: boolean;
+  experimentalCapabilities?: boolean;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -242,6 +251,10 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       '--pr-summary',
       'experimental: deterministic Markdown of new findings versus baseline (FULLSHIELD_EXPERIMENTAL_POLICY=1)',
     )
+    .option(
+      '--experimental-capabilities',
+      'experimental: dependency capability profile (FULLSHIELD_EXPERIMENTAL_CAPABILITIES=1)',
+    )
     .action(async (path: string, opts: ScanCliOptions) => {
       try {
         const failOnOverride = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;
@@ -270,6 +283,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
         if (opts.experimentalSupply === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY = '1';
+        }
+        if (opts.experimentalCapabilities === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_CAPABILITIES = '1';
         }
         if (opts.experimentalWorkspaces === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_WORKSPACES = '1';
@@ -799,12 +815,50 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
             installScripts,
           });
         }
-        const report = { changes, introduced, ages };
+        const report: {
+          changes: typeof changes;
+          introduced: typeof introduced;
+          ages: typeof ages;
+          newCapabilities?: ReturnType<typeof introducedCapabilities>;
+        } = { changes, introduced, ages };
+        if (capabilitiesEnabled()) {
+          report.newCapabilities = introducedCapabilities({
+            beforeText: previous.text,
+            afterText: currentText,
+            cwd,
+            cacheDir: join(cwd, 'osv-cache'),
+          });
+        }
         io.out(JSON.stringify(report, null, 2));
         if (opts.failOn !== undefined) {
           const threshold = parseFailOn(opts.failOn);
           if (introduced.some((item) => meetsThreshold(item.severity, threshold))) process.exitCode = 1;
         }
+      } catch (error) {
+        io.err(formatCliError(error));
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('deps')
+    .description('Dependency capability profile (requires FULLSHIELD_EXPERIMENTAL_CAPABILITIES=1)')
+    .argument('[path]', 'project directory', '.')
+    .option('--capabilities', 'print each direct dependency capability and who introduces it')
+    .option('--json', 'print JSON')
+    .action(async (path: string, opts: { capabilities?: boolean; json?: boolean }) => {
+      try {
+        if (opts.capabilities !== true) {
+          io.out('pass --capabilities');
+          return;
+        }
+        assertCapabilitiesEnabled('deps --capabilities');
+        const cwd = resolve(path);
+        const config = await loadConfig(cwd);
+        const cacheDir =
+          config.deps.cacheDir !== undefined ? resolve(cwd, config.deps.cacheDir) : join(cwd, 'osv-cache');
+        const rows = profileProject(cwd, cacheDir, config.deps.capabilityPolicy);
+        io.out(opts.json === true ? JSON.stringify({ dependencies: rows }, null, 2) : formatCapabilityReport(rows));
       } catch (error) {
         io.err(formatCliError(error));
         process.exitCode = 2;

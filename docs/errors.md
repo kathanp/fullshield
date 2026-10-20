@@ -17,4 +17,5 @@ FullShield prints `fullshield: FS-E### <message>`. The message is the same text 
 | FS-E009 | `sast.sources` or `sast.sanitizers` without the experimental flag | Set `FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS=1`. `clears` takes B4 class names. |
 | FS-E010 | A second `npm run verify` starts in a worktree that already has one | Wait for the verify recorded in `.fullshield-verify.lock` to finish. |
 | FS-E011 | `src/` or `test/` changed during verify, quality, or mutation | The run is discarded. Restore the files. Mutation edits a temp copy only. |
+| FS-E012 | `deps --capabilities` without `FULLSHIELD_EXPERIMENTAL_CAPABILITIES=1` | Set the flag. The command only reads installed files. |
 | FS-E000 | Any other command error | Read the message. Re-run with `--debug` if you need the stack. |

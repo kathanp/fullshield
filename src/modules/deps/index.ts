@@ -22,6 +22,7 @@ import { experimentalVex } from '../../supply/experimental.js';
 import { licenseEnabled } from '../sast/experimental.js';
 import { scanCopyleftLicenses } from './license.js';
 import { attachOverrideProposals, scanInstalledPackages } from './phase31.js';
+import { capabilitiesEnabled, capabilityFindings } from '../../capabilities/index.js';
 
 const LOCKFILE_NAMES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'] as const;
 
@@ -287,6 +288,16 @@ export const depsModule: ScanModule & {
       }
     }
     reached = [...reached, ...dependencyShapeFindings(manifestRaw, packages, shapeSources)];
+    if (capabilitiesEnabled()) {
+      reached.push(
+        ...capabilityFindings({
+          cwd: ctx.cwd,
+          lockText: contents,
+          cacheDir,
+          policy: ctx.config.deps.capabilityPolicy,
+        }),
+      );
+    }
     if (process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY === '1') {
       reached.push(...campaignFindings([...reachCtx.sources.entries()].map(([file, text]) => ({ file, text }))));
       for (const name of [...direct].sort()) {
