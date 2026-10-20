@@ -4,6 +4,10 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+### Precision sampling (dev tooling)
+
+Phase 76 adds `scripts/precision-sample.mjs` and `scripts/precision-report.mjs`. Neither script nor `bench/precision/` is in the npm package. The sampler writes `label`, `reviewer`, and `note` as null. Default scan findings are unchanged.
+
 ### Quality gate
 
 Phase 94 adds `npm run quality` (Q1–Q12) for contributors. Default scan findings are unchanged.
