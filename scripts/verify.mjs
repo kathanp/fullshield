@@ -1802,6 +1802,36 @@ s.listen(0, '127.0.0.1', () => {
     }
     console.log('  ✔ precision sampler leaves labels blank and is not packed');
   },
+  77: () => {
+    for (const rel of [
+      'scripts/realworld-lib.mjs',
+      'scripts/realworld-snapshot.mjs',
+      'scripts/realworld-diff.mjs',
+      'test/unit/release/phase77-realworld-gate.test.ts',
+      'test/fixtures/phase77/repo/src/added.js',
+      'test/fixtures/phase77/repo/src/literal.js',
+    ]) {
+      if (!existsSync(join(root, rel))) fail(`phase 77 acceptance: missing ${rel}`);
+    }
+    const diff = readFileSync(join(root, 'scripts/realworld-diff.mjs'), 'utf8');
+    if (!diff.includes('readApprovedKeys')) {
+      fail('phase 77 acceptance: diff script must read the approval list');
+    }
+    if (diff.includes('writeFileSync') || diff.includes('appendFile')) {
+      fail('phase 77 acceptance: diff script must not write the approval list');
+    }
+    const snapshot = readFileSync(join(root, 'scripts/realworld-snapshot.mjs'), 'utf8');
+    if (snapshot.includes('realworld-approved.txt')) {
+      fail('phase 77 acceptance: snapshot script must not touch the approval list');
+    }
+    const ci = readFileSync(join(root, '.github/workflows/ci.yml'), 'utf8');
+    if (!ci.includes('realworld-precision:')) fail('phase 77 acceptance: CI job missing');
+    if (!ci.includes('timeout-minutes: 30')) fail('phase 77 acceptance: CI timeout missing');
+    if (!ci.includes("hashFiles('bench/realworld.json')")) {
+      fail('phase 77 acceptance: CI cache must be keyed by the pin file');
+    }
+    console.log('  ✔ realworld diff reads approvals; next-only CI job is present');
+  },
   94: () => {
     const doc = readFileSync(join(root, 'docs', 'QUALITY.md'), 'utf8');
     for (const id of ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10', 'Q11', 'Q12']) {
