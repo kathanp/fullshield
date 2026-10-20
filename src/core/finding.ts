@@ -54,7 +54,7 @@ export interface Finding {
   dependencyPath?: string[];
   /** Every retained dependency path for this package+advisory (shortest first). */
   dependencyPaths?: string[][];
-  /** Deterministic, AI, or an ingest tool name (`FULLSHIELD_EXPERIMENTAL_INGEST`). */
+  /** Deterministic, AI, an ingest tool name, or `user-rule` (Phase 90). */
   source?: string;
   /** Every tool that agreed on an ingested row. Ingest only. */
   sources?: string[];

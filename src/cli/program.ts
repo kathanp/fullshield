@@ -33,6 +33,7 @@ import { renderMarkdownReport } from '../reporters/markdown.js';
 import { renderSarifReport } from '../reporters/sarif.js';
 import { addedFails, diffScans, parseScanDocument, renderDiffText } from '../diff/index.js';
 import { CI_REPORTS_FLAG, DIFF_FLAG, TYPES_FLAG, diffEnabled } from '../modules/sast/experimental.js';
+import { guardSemgrepCli, SEMGREP_RULES_FLAG } from '../modules/sast/semgrep/flag.js';
 import { POLICY_FLAG, renderPrSummary } from '../policy/index.js';
 import { diffLockedPackages, lockAtRef, packagesFromLock, releaseAgeLabel } from '../deps-diff/index.js';
 import { registryCachePath, releaseFactsFromCache } from '../provenance/index.js';
@@ -117,6 +118,8 @@ interface ScanCliOptions {
   experimentalPaths?: boolean;
   maxTime?: string;
   experimentalBudget?: boolean;
+  experimentalSemgrepRules?: boolean;
+  semgrepRules?: string;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -287,6 +290,14 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       `experimental: deterministic priority score (${PRIORITY_FLAG}=1)`,
     )
     .option(
+      '--experimental-semgrep-rules',
+      'experimental: user-supplied Semgrep-style rules (FULLSHIELD_EXPERIMENTAL_SEMGREP_RULES=1)',
+    )
+    .option(
+      '--semgrep-rules <file>',
+      'experimental: YAML rules file (requires FULLSHIELD_EXPERIMENTAL_SEMGREP_RULES=1)',
+    )
+    .option(
       '--include-home',
       'experimental: also scan MCP configs in the home directory (requires FULLSHIELD_EXPERIMENTAL_MCPCFG=1)',
     )
@@ -365,6 +376,10 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
         const maxTimeSeconds =
           budgetEnabled() && opts.maxTime !== undefined ? parseMaxTime(opts.maxTime) : undefined;
+        if (opts.experimentalSemgrepRules === true) {
+          process.env[SEMGREP_RULES_FLAG] = '1';
+        }
+        guardSemgrepCli(opts.semgrepRules, process.env[SEMGREP_RULES_FLAG] === '1');
         if (opts.prSummary === true && process.env[POLICY_FLAG] !== '1') {
           throw new Error(`--pr-summary requires ${POLICY_FLAG}=1`);
         }
@@ -398,6 +413,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           experimentalPolicy: process.env[POLICY_FLAG] === '1',
           paths: opts.paths === true,
           ...(maxTimeSeconds !== undefined ? { maxTimeSeconds } : {}),
+          semgrepRules: opts.semgrepRules,
         });
 
         if (opts.sarif !== undefined) {

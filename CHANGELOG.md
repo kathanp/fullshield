@@ -24,6 +24,10 @@ Phase 83 reads local Semgrep, npm audit, OSV-Scanner, and SARIF files and dedupe
 
 `FULLSHIELD_EXPERIMENTAL_FIX_VERIFY=1` (or `fix --experimental-fix-verify`) re-scans each proposed fix and each `explain` diff in memory. A patch is `removes-finding`, `does-not-remove`, or `introduces-finding`. A patch that introduces a finding is never written. `does-not-remove` needs `--force-unverified`. Dependency overrides and bumps are checked against the OSV cache only. Default scan output is unchanged.
 
+### Experimental
+
+Phase 90 reads user-supplied Semgrep-style YAML behind `FULLSHIELD_EXPERIMENTAL_SEMGREP_RULES`. Default scan is unchanged. Results may differ from Semgrep.
+
 ### Quality gate
 
 Phase 94 adds `npm run quality` (Q1–Q12) for contributors. Default scan findings are unchanged.

@@ -95,6 +95,8 @@ export interface ScanOptions {
    * `FULLSHIELD_EXPERIMENTAL_BUDGET=1`.
    */
   maxTimeSeconds?: number;
+  /** Phase 90. Overrides `semgrepRules` in config. The file is parsed only when the flag is on. */
+  semgrepRules?: string;
 }
 
 export interface ScanMetadata {
@@ -240,6 +242,9 @@ export async function runScan(
   }
 
   let config = await loadConfig(cwd, options.configPath);
+  if (options.semgrepRules !== undefined && options.semgrepRules.length > 0) {
+    config = { ...config, semgrepRules: options.semgrepRules };
+  }
   if (options.offline === true) {
     config = { ...config, deps: { ...config.deps, offline: true } };
   }

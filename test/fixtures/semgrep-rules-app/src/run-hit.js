@@ -1,0 +1,2 @@
+run(userCmd);
+runSync(userCmd);
