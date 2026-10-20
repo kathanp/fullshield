@@ -1734,6 +1734,20 @@ s.listen(0, '127.0.0.1', () => {
     if (!existsSync(join(root, '.github', 'dependabot.yml'))) fail('phase 45 acceptance: dependabot.yml missing');
     console.log('  ✔ project workflows are pinned; CodeQL, Scorecard, and the SBOM release job exist');
   },
+  76: () => {
+    for (const rel of ['scripts/precision-sample.mjs', 'scripts/precision-report.mjs', 'bench/review-cli.mjs']) {
+      if (!existsSync(join(root, rel))) fail(`phase 76 acceptance: missing ${rel}`);
+    }
+    const packed = readFileSync(join(root, 'quality', 'pack-files.txt'), 'utf8');
+    for (const needle of ['scripts/precision-sample.mjs', 'scripts/precision-report.mjs', 'bench/precision']) {
+      if (packed.includes(needle)) fail(`phase 76 acceptance: ${needle} is listed in the npm pack`);
+    }
+    const files = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).files ?? [];
+    if (files.some((name) => name === 'bench' || name === 'scripts' || String(name).startsWith('bench/') || String(name).startsWith('scripts/'))) {
+      fail('phase 76 acceptance: package files include bench or scripts');
+    }
+    console.log('  ✔ precision sampler leaves labels blank and is not packed');
+  },
   94: () => {
     const doc = readFileSync(join(root, 'docs', 'QUALITY.md'), 'utf8');
     for (const id of ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10', 'Q11', 'Q12']) {
