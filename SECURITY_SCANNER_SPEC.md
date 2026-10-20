@@ -787,6 +787,7 @@ Worm and workflow-tampering indicators; transitive overrides written to `package
 - [  ] Template engines: Swig `{{ }}` in `.html` is still missed. Phase 50 flags that pattern only after the app sets a raw engine such as Swig. Handlebars `{{ }}` stays unflagged. JSON-context XSS, `url.includes` allowlist bypass, and the DVNA calc vs `err.stack` pattern stay missed.
 - [  ] Reachability is import-level + any-call; symbol-level only after Phase 39.
 - [  ] All features from Phase 27 onward, RASP, AI, and Frontier are experimental.
+- [  ] Capability profiles (Phase 86, `FULLSHIELD_EXPERIMENTAL_CAPABILITIES`) read installed files only and do not run install scripts. `deps-diff` reports a new capability only when the previous integrity is already cached. Files over 1 MB are skipped. Comments and strings that mention an API can match.
 - [  ] FullShield does not stop attacks by itself: `--fail-on` and runtime monitor/block are the prevention mechanisms.
 - [  ] No deterministic detection of business-logic or authorization bugs.
 - [  ] Production reliance is Section 38. README and release notes keep that stance. Do not claim FullShield replaces Semgrep, npm audit, OSV-Scanner, or a secrets scanner.

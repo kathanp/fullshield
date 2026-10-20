@@ -54,6 +54,11 @@ const KNOWN: Array<{ test: RegExp; code: string; hint: string }> = [
     code: 'FS-E012',
     hint: 'Install the optional peer: npm i -D typescript',
   },
+  {
+    test: /FULLSHIELD_EXPERIMENTAL_CAPABILITIES/,
+    code: 'FS-E012',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_CAPABILITIES=1 before deps --capabilities or a capability deny policy.',
+  },
 ];
 
 const DOCS = 'https://github.com/kathanp/fullshield/blob/main/docs/errors.md';

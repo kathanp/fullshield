@@ -16,6 +16,10 @@ Phase 87 adds informational `SUPPLY-PROV-001` when `FULLSHIELD_EXPERIMENTAL_PROV
 
 Phase 83 reads local Semgrep, npm audit, OSV-Scanner, and SARIF files and dedupes them when `FULLSHIELD_EXPERIMENTAL_INGEST=1`. It does not run those tools, does not fetch, and does not change their severity. Default scan is unchanged. `fullshieldPriority` is not set.
 
+### Phase 86 — dependency capability profile (experimental)
+
+`FULLSHIELD_EXPERIMENTAL_CAPABILITIES=1` adds `fullshield deps --capabilities`, capability notes on `deps-diff`, and `SUPPLY-CAP-001` when `deps.capabilityPolicy` denies a statically read capability. Default scan does not emit `SUPPLY-CAP-001`. Package files are not executed and packages are not installed.
+
 ### Quality gate
 
 Phase 94 adds `npm run quality` (Q1–Q12) for contributors. Default scan findings are unchanged.

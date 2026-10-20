@@ -1,0 +1,16 @@
+{
+  "modules": ["deps"],
+  "deps": {
+    "offline": true,
+    "cacheDir": "osv-cache",
+    "capabilityPolicy": {
+      "deny": {
+        "child_process": ["direct-helper"],
+        "install_script": ["inert-*"]
+      },
+      "warn": {
+        "net": ["*"]
+      }
+    }
+  }
+}
