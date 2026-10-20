@@ -2,7 +2,13 @@
 
 All notable changes to FullShield are documented here.
 
-## Unreleased
+## 1.0.0 — 2026-10-20
+
+1.0.0 freezes the stable CLI, config keys, exit codes, error codes `FS-E000`–`FS-E016`, and the library exports in `api/fullshield.api.json`. The promise is [docs/stability.md](docs/stability.md).
+
+Experimental features stay behind `FULLSHIELD_EXPERIMENTAL_*` and are not part of that promise. Phase 56 (EPSS / CISA) is not in this release.
+
+Reviewed recall on untouched apps is not in this release. The stored Next.js cold scan remains 71.7 seconds.
 
 ### Precision sampling (dev tooling)
 
