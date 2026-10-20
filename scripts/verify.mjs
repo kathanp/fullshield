@@ -1734,6 +1734,47 @@ s.listen(0, '127.0.0.1', () => {
     if (!existsSync(join(root, '.github', 'dependabot.yml'))) fail('phase 45 acceptance: dependabot.yml missing');
     console.log('  ✔ project workflows are pinned; CodeQL, Scorecard, and the SBOM release job exist');
   },
+  92: () => {
+    const dir = join(root, '.github', 'ISSUE_TEMPLATE');
+    for (const name of ['false-positive.yml', 'false-negative.yml', 'bug.yml', 'config.yml']) {
+      if (!existsSync(join(dir, name))) fail(`phase 92 acceptance: ${name} missing`);
+    }
+    const config = readFileSync(join(dir, 'config.yml'), 'utf8');
+    if (!config.includes('blank_issues_enabled: false')) fail('phase 92 acceptance: blank issues still on');
+    if (!config.includes('SECURITY.md')) fail('phase 92 acceptance: config.yml does not point at SECURITY.md');
+    const tools = readFileSync(join(root, 'docs', 'use-with-other-tools.md'), 'utf8');
+    for (const needle of [
+      'semgrep scan --json',
+      'osv-scanner scan',
+      '--format json',
+      'npm audit --json',
+      'gitleaks git --report-format sarif',
+      'fullshield ingest',
+    ]) {
+      if (!tools.includes(needle)) fail(`phase 92 acceptance: use-with-other-tools.md missing ${needle}`);
+    }
+    if (/\b(more|less) accurate\b/i.test(tools)) fail('phase 92 acceptance: accuracy claim about another tool');
+    const protection = readFileSync(join(root, 'docs', 'branch-protection.md'), 'utf8');
+    for (const name of [
+      'verify (ubuntu-24.04, node 22)',
+      'verify (ubuntu-24.04, node 24)',
+      'verify (macos-latest, node 22)',
+      'verify (macos-latest, node 24)',
+      'verify (windows-latest, node 22)',
+      'verify (windows-latest, node 24)',
+    ]) {
+      if (!protection.includes(name)) fail(`phase 92 acceptance: branch-protection.md missing ${name}`);
+    }
+    const spec = readFileSync(join(root, 'SECURITY_SCANNER_SPEC.md'), 'utf8');
+    if (
+      !spec.includes(
+        '[ X ] Issue templates for bug, false positive, missed attack, and new rule (Section 15).',
+      )
+    ) {
+      fail('phase 92 acceptance: Section 33 issue-templates item still open');
+    }
+    console.log('  ✔ issue forms, companion-tool docs, and the six required check names are present');
+  },
   93: () => {
     const summaryPath = join(root, 'bench', 'promotion', 'SUMMARY.md');
     if (!existsSync(summaryPath)) fail('phase 93 acceptance: bench/promotion/SUMMARY.md missing');
