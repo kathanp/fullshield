@@ -158,7 +158,7 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | `fix` | Dry-run patches (unsafe suggestions included). `--apply` writes only `safe: true` patches on a clean git tree. `--unsafe` is required for `helmet()` insertion and secret → `process.env` replacement. `--force` skips files with uncommitted changes. `--ai` is **experimental**: drafts a verified, reviewable diff for findings without a rule-based fix (never auto-merged). |
 | `init` | Config + GitHub/GitLab CI + pre-commit hook |
 | `notify` | Slack / generic webhook / SMTP summary of the last scan |
-| `sbom` | CycloneDX 1.5 JSON (`--format cyclonedx`, `--out file`) |
+| `sbom` | CycloneDX 1.5 JSON (`--format cyclonedx`, `--out file`). Experimental SPDX 2.3 (`FULLSHIELD_EXPERIMENTAL_SPDX=1` or `--experimental-spdx`, `--format spdx`, `--sbom-timestamp`, `--cyclonedx-out`). Licenses are copied from package data only. |
 | `watch` | Rescan dependencies; alert (webhook / exit 1) only on **new** OSV hits vs last scan. `init` writes a daily GitHub Action. |
 | `edge` | GET/HEAD posture check on a URL you pass: CDN/WAF, HTTPS redirect, security headers, `/.env` / `/.git` exposure. No crawl, no payloads. |
 | `install` | **Experimental** install-guard (`FULLSHIELD_EXPERIMENTAL_SUPPLY=1`). Static analysis only; never runs package scripts. Registry reads are `registry.npmjs.org` only. |
