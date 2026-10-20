@@ -49,6 +49,11 @@ const KNOWN: Array<{ test: RegExp; code: string; hint: string }> = [
     code: 'FS-E012',
     hint: 'Set FULLSHIELD_EXPERIMENTAL_INGEST=1 or pass --experimental-ingest. A bad file is named with the first schema error; other files are still ingested.',
   },
+  {
+    test: /optional peer typescript is not installed/,
+    code: 'FS-E012',
+    hint: 'Install the optional peer: npm i -D typescript',
+  },
 ];
 
 const DOCS = 'https://github.com/kathanp/fullshield/blob/main/docs/errors.md';

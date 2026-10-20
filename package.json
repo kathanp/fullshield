@@ -38,6 +38,7 @@
     "fastify": "*",
     "hono": "*",
     "koa": "*",
+    "typescript": ">=5.0.0",
     "zod": "^4.6.7"
   },
   "peerDependenciesMeta": {
@@ -57,6 +58,9 @@
       "optional": true
     },
     "zod": {
+      "optional": true
+    },
+    "typescript": {
       "optional": true
     }
   },

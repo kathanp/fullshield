@@ -34,6 +34,10 @@ Phase 65 taint summaries are already on this branch. The 5-second nest and undic
 
 Phase 78 cold-scan work stays behind `FULLSHIELD_EXPERIMENTAL_PERF2`. Merged locally. The quiet-machine speed comparison is not done, so the flag is not claimed to be faster.
 
+### Phase 80 — type-aware receivers
+
+`FULLSHIELD_EXPERIMENTAL_TYPES=1` or `scan --experimental-types` loads the optional `typescript` peer and suppresses sink calls whose receiver resolves to a non-sink type (`Array`, `Map`, a user class). Mongoose models and `any` stay. Suppressed findings are listed in JSON `suppressed[]` with `suppressedBy: "types"`. The flag off leaves scan JSON unchanged. A missing `typescript` install prints FS-E012 and keeps the heuristics.
+
 ## 0.4.0 — 2026-10-18
 
 Phase 46 still enforces Node >= 22.13 in `engines`, `doctor`, and CI. Phase 47 still owns the console view.

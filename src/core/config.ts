@@ -49,6 +49,11 @@ export interface SastConfig {
   sanitizers?: SastSanitizerConfig[];
 }
 
+/** Phase 80. The TypeScript program is not built above `maxFiles`. */
+export interface TypesConfig {
+  maxFiles: number;
+}
+
 export interface ResolvedConfig {
   modules: ModuleName[];
   failOn: Severity;
@@ -62,6 +67,7 @@ export interface ResolvedConfig {
   deps: DepsConfig;
   ai: AiConfig;
   sast: SastConfig;
+  types: TypesConfig;
 }
 
 export const DEFAULT_CONFIG: ResolvedConfig = {
@@ -74,6 +80,7 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
   deps: { offline: false },
   ai: { enabled: false, maxCostUsd: 1, maxFindings: 50 },
   sast: { maxFileBytes: 1024 * 1024 },
+  types: { maxFiles: 5000 },
 };
 
 export class ConfigError extends Error {}
@@ -89,6 +96,7 @@ const KNOWN_KEYS = new Set([
   'deps',
   'ai',
   'sast',
+  'types',
 ]);
 
 const SAST_CLASSES = new Set([
@@ -290,6 +298,20 @@ function validate(raw: unknown, source: string): Partial<ResolvedConfig> {
       sast.sanitizers = parseSastSanitizers(rawSast.sanitizers, source);
     }
     out.sast = sast;
+  }
+  if (record.types !== undefined) {
+    if (typeof record.types !== 'object' || record.types === null || Array.isArray(record.types)) {
+      throw new ConfigError(`${source}: "types" must be an object`);
+    }
+    const rawTypes = record.types as Record<string, unknown>;
+    const types: TypesConfig = { maxFiles: DEFAULT_CONFIG.types.maxFiles };
+    if (rawTypes.maxFiles !== undefined) {
+      if (typeof rawTypes.maxFiles !== 'number' || !Number.isInteger(rawTypes.maxFiles) || rawTypes.maxFiles < 1) {
+        throw new ConfigError(`${source}: "types.maxFiles" must be a positive integer`);
+      }
+      types.maxFiles = rawTypes.maxFiles;
+    }
+    out.types = types;
   }
   return out;
 }

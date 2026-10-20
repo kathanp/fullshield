@@ -23,6 +23,13 @@ export function taintV2Enabled(): boolean {
   return process.env.FULLSHIELD_EXPERIMENTAL_TAINT_V2 === '1';
 }
 
+/** Phase 80 receiver types. Off unless FULLSHIELD_EXPERIMENTAL_TYPES=1. */
+export const TYPES_FLAG = 'FULLSHIELD_EXPERIMENTAL_TYPES';
+
+export function typesEnabled(): boolean {
+  return process.env[TYPES_FLAG] === '1';
+}
+
 /** GitHub annotations, JUnit, and GitLab Code Quality. Off unless this is `1`. */
 export const CI_REPORTS_FLAG = 'FULLSHIELD_EXPERIMENTAL_CI_REPORTS';
 

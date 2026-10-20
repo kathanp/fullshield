@@ -18,4 +18,5 @@ FullShield prints `fullshield: FS-E### <message>`. The message is the same text 
 | FS-E010 | A second `npm run verify` starts in a worktree that already has one | Wait for the verify recorded in `.fullshield-verify.lock` to finish. |
 | FS-E011 | `src/` or `test/` changed during verify, quality, or mutation | The run is discarded. Restore the files. Mutation edits a temp copy only. |
 | FS-E012 | `ingest` without its flag, or a local report that is not valid JSON for a supported schema | Set `FULLSHIELD_EXPERIMENTAL_INGEST=1` or pass `--experimental-ingest`. The message names the file and the first schema error. Other files are still ingested. |
+| FS-E012 | `FULLSHIELD_EXPERIMENTAL_TYPES=1` and the optional `typescript` peer is not installed | Install it with `npm i -D typescript`. The scan keeps the existing receiver heuristics. |
 | FS-E000 | Any other command error | Read the message. Re-run with `--debug` if you need the stack. |
