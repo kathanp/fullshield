@@ -22,6 +22,7 @@ import {
 } from '../core/finding.js';
 import { createAiClient, isLiveAi } from '../ai/provider.js';
 import { runAiFix } from '../ai/fixLoop.js';
+import { PRIORITY_FLAG } from '../priority/score.js';
 import { packageVersion } from '../core/version.js';
 import { renderGithubAnnotations, renderGitlabCodeQuality, renderJunitReport } from '../reporters/ci.js';
 import { renderConsoleReport } from '../reporters/console.js';
@@ -94,6 +95,7 @@ interface ScanCliOptions {
   experimentalMcpcfg?: boolean;
   includeHome?: boolean;
   prSummary?: boolean;
+  experimentalPriority?: boolean;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -235,6 +237,10 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       'experimental: MCP client/server config rules (FULLSHIELD_EXPERIMENTAL_MCPCFG=1)',
     )
     .option(
+      '--experimental-priority',
+      `experimental: deterministic priority score (${PRIORITY_FLAG}=1)`,
+    )
+    .option(
       '--include-home',
       'experimental: also scan MCP configs in the home directory (requires FULLSHIELD_EXPERIMENTAL_MCPCFG=1)',
     )
@@ -288,6 +294,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
         if (opts.experimentalMcpcfg === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_MCPCFG = '1';
+        }
+        if (opts.experimentalPriority === true) {
+          process.env[PRIORITY_FLAG] = '1';
         }
         if (opts.prSummary === true && process.env[POLICY_FLAG] !== '1') {
           throw new Error(`--pr-summary requires ${POLICY_FLAG}=1`);

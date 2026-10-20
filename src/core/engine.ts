@@ -27,6 +27,7 @@ import {
   type ModuleName,
   type Severity,
 } from './finding.js';
+import { applyPriority } from '../priority/score.js';
 import { packageVersion } from './version.js';
 import {
   POLICY_FILE_NAME,
@@ -381,6 +382,7 @@ export async function runScan(
       findings = sortFindings([...findings, ...(await runLogicHunt(cwd, files, client))]);
     }
   }
+  findings = applyPriority(findings);
   return {
     findings,
     summary: summarize(findings),
