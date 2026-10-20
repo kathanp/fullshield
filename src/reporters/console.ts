@@ -2,6 +2,7 @@ import pc from 'picocolors';
 
 import type { ScanResult } from '../core/engine.js';
 import { SEVERITIES, type Finding, type Severity } from '../core/finding.js';
+import { compareByPriority, priorityEnabled } from '../priority/score.js';
 import { redactScan } from './redact.js';
 
 const SEVERITY_COLOR: Record<Severity, (text: string) => string> = {
@@ -209,6 +210,15 @@ function dependencyRows(findings: readonly Finding[]): ConsoleRow[] {
     const probeA = a.findings[0];
     const probeB = b.findings[0];
     if (probeA === undefined || probeB === undefined) return 0;
+    if (priorityEnabled()) {
+      return (
+        rowPriority(b) - rowPriority(a) ||
+        SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] ||
+        (a.file ?? '').localeCompare(b.file ?? '') ||
+        (a.line ?? 0) - (b.line ?? 0) ||
+        a.ruleId.localeCompare(b.ruleId)
+      );
+    }
     const maliciousA = a.ruleId === 'DEPS-MALICIOUS-001' ? 0 : 1;
     const maliciousB = b.ruleId === 'DEPS-MALICIOUS-001' ? 0 : 1;
     return (
@@ -221,6 +231,15 @@ function dependencyRows(findings: readonly Finding[]): ConsoleRow[] {
     );
   });
   return rows;
+}
+
+function rowPriority(row: ConsoleRow): number {
+  let best = 0;
+  for (const finding of row.findings) {
+    const score = finding.priority ?? 0;
+    if (score > best) best = score;
+  }
+  return best;
 }
 
 function renderRow(row: ConsoleRow): string[] {
@@ -295,7 +314,7 @@ export function renderConsoleReport(input: ScanResult, options: ConsoleReportOpt
   const showAll = options.all === true;
   const folded = findings.filter((finding) => !isActionable(finding));
   const rows = showAll
-    ? [...findings].sort(compareActionable).map((finding) => ({
+    ? [...findings].sort(priorityEnabled() ? compareByPriority : compareActionable).map((finding) => ({
         findings: [finding],
         severity: finding.severity,
         reachability: finding.reachability,

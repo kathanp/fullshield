@@ -84,6 +84,15 @@ export {
 } from './vex/index.js';
 export { experimentalVex } from './supply/experimental.js';
 export {
+  PRIORITY_FLAG,
+  applyPriority,
+  compareByPriority,
+  priorityEnabled,
+  scoreFinding,
+  scorePriority,
+} from './priority/score.js';
+export type { PriorityFactor, PriorityInput, PriorityScore, RouteExposure } from './priority/score.js';
+export {
   analyzeWorkflowTampering,
   analyzeWormIndicators,
   provenanceCoverage,

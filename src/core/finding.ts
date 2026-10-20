@@ -66,6 +66,12 @@ export interface Finding {
   stillAtHead?: boolean;
   /** Read-only identity check (`scan --verify-secrets`). Never includes the secret. */
   verification?: 'live' | 'revoked' | 'unknown';
+  /** Phase 83 tool names that agreed on this finding. Absent until ingest sets it. */
+  sources?: string[];
+  /** 0–100. Present only with FULLSHIELD_EXPERIMENTAL_PRIORITY=1. Severity is never changed. */
+  priority?: number;
+  /** Why `priority` was chosen. Same flag as `priority`. */
+  priorityFactors?: Array<{ name: string; points: number; detail: string }>;
   /** Why the reachability class was chosen. Present only with FULLSHIELD_EXPERIMENTAL_REACH_EVIDENCE=1. */
   reachabilityEvidence?: {
     imports: Array<{ file: string; line: number; specifier: string }>;
