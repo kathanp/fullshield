@@ -1,4 +1,5 @@
 node_modules/
+bench/.cache/
 .quality-tmp-*/
 .fullshield-verify.lock
 .fullshield-dist-*/
