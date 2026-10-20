@@ -14,6 +14,8 @@ Phase 75 router-level auth inheritance. Default-scan diff against `bench/snapsho
 
 Phase 51 follows a SQL string or Mongo filter returned from another file. Default-scan diff against `bench/snapshots/HEAD.json` (0.4.0) was empty on vulnerable-app, clean-app, and every bench app. Merged (D9).
 
+Phase 50 flags Swig `{{ }}` when the view engine is Swig, including consolidate. NodeGoat gains 12 `SAST-XSS-001` keys on profile and contributions fields. `{{csrftoken}}` is not reported. Merged (D15).
+
 ## 0.4.0 — 2026-10-18
 
 Phase 46 still enforces Node >= 22.13 in `engines`, `doctor`, and CI. Phase 47 still owns the console view.

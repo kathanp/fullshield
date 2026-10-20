@@ -32,6 +32,7 @@ import { redirectRule } from './rules/redirect.js';
 import { sqliRule } from './rules/sqli.js';
 import { ssrfRule } from './rules/ssrf.js';
 import { TEMPLATE_EXT, xssRule } from './rules/xss.js';
+import { lineHasTracedSwig, mergeSwigViews, swigNamesForFile, taintedSwigViews, type SwigViewTaint } from './swig-render.js';
 import { phase29Rules, sourceHasCsrfGuard } from './rules/phase29.js';
 import type { AstNode, RuleContext, SastRule } from './types.js';
 import { scanPromptInjection } from '../../ai/injection.js';
@@ -125,7 +126,39 @@ export function findingsFromAst(
   return findings;
 }
 
-function findingsFromTemplate(filename: string, source: string): Finding[] {
+function declaredViewEngine(source: string): string | undefined {
+  // consolidate.swig / cons.swig registered for another extension, as NodeGoat does:
+  // app.engine(".html", consolidate.swig); app.set("view engine", "html");
+  if (/\.engine\(\s*['"]\.?[A-Za-z0-9_-]+['"]\s*,\s*[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*\.swig\b/.test(source)) {
+    return 'swig';
+  }
+  if (/\.engine\(\s*['"]\.?swig['"]/.test(source)) return 'swig';
+  const set = /set\(\s*['"]view engine['"]\s*,\s*['"]\.?([A-Za-z0-9_-]+)['"]\s*\)/.exec(source);
+  if (set?.[1]?.toLowerCase() === 'swig') return 'swig';
+  const named = /\.engine\(\s*['"]\.?([A-Za-z0-9_-]+)['"]/.exec(source);
+  const name = named?.[1]?.toLowerCase();
+  if (name === 'swig') return 'swig';
+  if (set?.[1] !== undefined && set[1].toLowerCase() !== 'html') return set[1].toLowerCase();
+  if (name !== undefined && name !== 'html') return name;
+  return undefined;
+}
+
+async function projectViewEngine(ctx: Parameters<ScanModule['run']>[0]): Promise<string | undefined> {
+  for (const rel of ctx.files) {
+    if (!SOURCE_EXT.test(rel)) continue;
+    const source = await readScanSource(ctx.cwd, rel);
+    const engine = source === undefined ? undefined : declaredViewEngine(source);
+    if (engine !== undefined) return engine;
+  }
+  return undefined;
+}
+
+function findingsFromTemplate(
+  filename: string,
+  source: string,
+  engine?: string,
+  swigViews?: ReadonlyMap<string, SwigViewTaint>,
+): Finding[] {
   const findings: Finding[] = [];
   const ctx: RuleContext = {
     filename,
@@ -161,6 +194,22 @@ function findingsFromTemplate(filename: string, source: string): Finding[] {
     projectCsrfProtected: false,
   };
   xssRule.create(ctx);
+  if (engine === 'swig' && swigViews !== undefined) {
+    const traced = swigNamesForFile(filename, swigViews);
+    source.split(/\r?\n/).forEach((line, index) => {
+      if (traced === undefined || !lineHasTracedSwig(line, traced)) return;
+      ctx.report({
+        node: {
+          type: 'Literal',
+          value: '',
+          raw: "''",
+          loc: { start: { line: index + 1, column: 0 }, end: { line: index + 1, column: 0 } },
+          range: [0, 0],
+        } as AstNode,
+        message: 'Swig {{ }} is unescaped and can produce XSS.',
+      });
+    });
+  }
   return findings;
 }
 
@@ -302,15 +351,18 @@ function extraReturners(
 
 async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<Finding[]> {
   const maxBytes = ctx.config.sast.maxFileBytes;
+  const viewEngine = await projectViewEngine(ctx);
   const findings: Finding[] = [];
   const returning = new Map<string, Set<string>>();
   const parseable: string[] = [];
   const fileSet = new Set<string>();
+  const templates: { rel: string; source: string }[] = [];
+  const swigViews = new Map<string, SwigViewTaint>();
   let projectCsrf = false;
 
   for (const rel of ctx.files) {
     const isSource = SOURCE_EXT.test(rel);
-    const isTemplate = TEMPLATE_EXT.test(rel);
+    const isTemplate = TEMPLATE_EXT.test(rel) || (viewEngine === 'swig' && /\.(swig|html)$/.test(rel));
     if (!isSource && !isTemplate) continue;
     const source = await readScanSource(ctx.cwd, rel);
     if (source === undefined) continue;
@@ -321,11 +373,12 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
     }
     if (sourceHasCsrfGuard(source)) projectCsrf = true;
     if (isTemplate) {
-      findings.push(...findingsFromTemplate(rel, source));
+      templates.push({ rel, source });
       continue;
     }
     const ast = await parseCode(source);
     if (ast === undefined) continue;
+    if (viewEngine === 'swig') mergeSwigViews(swigViews, taintedSwigViews([{ ast }]));
     returning.set(rel, taintSummariesEnabled() ? cachedReturners(source, ast) : functionsThatReturnTaint(ast));
     parseable.push(rel);
     fileSet.add(rel);
@@ -355,6 +408,9 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
     findings.push(...crossFileReturnFindings(parsed));
     releaseParsed(parsed);
   }
+  for (const template of templates) {
+    findings.push(...findingsFromTemplate(template.rel, template.source, viewEngine, swigViews));
+  }
   return dedupeSastSinks(findings);
 }
 
@@ -375,12 +431,16 @@ export const sastModule: ScanModule = {
     }
     setTaintSummaryConfig(taintSummariesEnabled() ? ctx.config : undefined);
     try {
-    const candidates = ctx.files.filter((rel) => SOURCE_EXT.test(rel) || TEMPLATE_EXT.test(rel));
+    const viewEngine = await projectViewEngine(ctx);
+    const candidates = ctx.files.filter(
+      (rel) => SOURCE_EXT.test(rel) || TEMPLATE_EXT.test(rel) || (viewEngine === 'swig' && /\.(swig|html)$/.test(rel)),
+    );
     if (candidates.length > sastStreamThreshold()) return await runSastStreaming(ctx);
 
     const maxBytes = ctx.config.sast.maxFileBytes;
     const findings: Finding[] = [];
     const parsed: ParsedSource[] = [];
+    const templates: { rel: string; source: string }[] = [];
     for (const rel of candidates) {
       const source = await readScanSource(ctx.cwd, rel);
       if (source === undefined) continue;
@@ -389,8 +449,8 @@ export const sastModule: ScanModule = {
         findings.push(skipFinding(rel, `Skipped ${rel}: ${why}.`));
         continue;
       }
-      if (TEMPLATE_EXT.test(rel)) {
-        findings.push(...findingsFromTemplate(rel, source));
+      if (TEMPLATE_EXT.test(rel) || (viewEngine === 'swig' && /\.(swig|html)$/.test(rel))) {
+        templates.push({ rel, source });
         continue;
       }
       const ast = await parseCode(source);
@@ -420,6 +480,10 @@ export const sastModule: ScanModule = {
     }
     findings.push(...runInterproc(parsed));
     findings.push(...crossFileReturnFindings(parsed));
+    const swigViews = viewEngine === 'swig' ? taintedSwigViews(parsed) : undefined;
+    for (const template of templates) {
+      findings.push(...findingsFromTemplate(template.rel, template.source, viewEngine, swigViews));
+    }
     const out = dedupeSastSinks(findings);
     releaseParsed(parsed);
     return out;
