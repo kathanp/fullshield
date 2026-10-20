@@ -4,6 +4,10 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+### Fix verification
+
+`FULLSHIELD_EXPERIMENTAL_FIX_VERIFY=1` (or `fix --experimental-fix-verify`) re-scans each proposed fix and each `explain` diff in memory. A patch is `removes-finding`, `does-not-remove`, or `introduces-finding`. A patch that introduces a finding is never written. `does-not-remove` needs `--force-unverified`. Dependency overrides and bumps are checked against the OSV cache only. Default scan output is unchanged.
+
 ### Quality gate
 
 Phase 94 adds `npm run quality` (Q1–Q12) for contributors. Default scan findings are unchanged.

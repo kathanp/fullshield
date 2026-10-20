@@ -789,6 +789,7 @@ Worm and workflow-tampering indicators; transitive overrides written to `package
 - [  ] FullShield does not stop attacks by itself: `--fail-on` and runtime monitor/block are the prevention mechanisms.
 - [  ] No deterministic detection of business-logic or authorization bugs.
 - [  ] Production reliance is Section 38. README and release notes keep that stance. Do not claim FullShield replaces Semgrep, npm audit, OSV-Scanner, or a secrets scanner.
+- [  ] Phase 91 fix verification re-scans the patched file and its direct importers only. A missing OSV cache file for the planned version is `does-not-remove`. It does not run project tests or `npm install`.
 
 ---
 

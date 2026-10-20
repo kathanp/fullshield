@@ -397,6 +397,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option('--unsafe', 'include major-version bumps and code patches marked unsafe')
     .option('--no-branch', 'do not create a fullshield/fixes-* branch')
     .option('--modules <modules>', 'comma-separated subset of modules to scan')
+    .option('--experimental-fix-verify', 're-scan each patch in memory (FULLSHIELD_EXPERIMENTAL_FIX_VERIFY=1)')
+    .option('--force-unverified', 'write a patch that does not remove its finding')
+    .option('--yes', 'does not write a patch that introduces a finding')
     .option('--ai', 'draft a verified patch for findings without a rule-based fix (reviewable diff only)')
     .action(async (path: string, opts: {
       apply?: boolean;
@@ -405,6 +408,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       branch?: boolean;
       modules?: string;
       ai?: boolean;
+      experimentalFixVerify?: boolean;
+      forceUnverified?: boolean;
+      yes?: boolean;
     }) => {
       try {
         const modules = opts.modules !== undefined ? parseModules(opts.modules) : undefined;
@@ -426,16 +432,21 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           force: opts.force === true,
           unsafe: opts.unsafe === true,
           noBranch: opts.branch === false,
+          experimentalFixVerify: opts.experimentalFixVerify === true,
+          forceUnverified: opts.forceUnverified === true,
+          yes: opts.yes === true,
         });
         if (result.patches.length === 0) {
           io.out('No safe fixes available.');
         } else {
           for (const patch of result.patches) {
-            io.out(`# ${patch.ruleId} ${patch.file}${patch.safe ? '' : ' (unsafe)'}`);
+            const verified = patch.verified !== undefined ? ` verified: ${patch.verified}` : '';
+            io.out(`# ${patch.ruleId} ${patch.file}${patch.safe ? '' : ' (unsafe)'}${verified}`);
             io.out(patch.diff);
             io.out('');
           }
         }
+        for (const warning of result.warnings ?? []) io.err(warning);
         if (result.reverted) {
           io.err('fullshield: project tests failed; fixes were reverted');
           process.exitCode = 1;
@@ -717,7 +728,8 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .description('Print one finding from a scan JSON file (requires FULLSHIELD_EXPERIMENTAL_EXPLAIN=1)')
     .argument('<id>', 'finding id or a prefix of at least 6 characters')
     .option('--from <file>', 'scan --json file')
-    .action(async (id: string, opts: { from?: string }) => {
+    .option('--experimental-fix-verify', 're-scan the suggested diff in memory (FULLSHIELD_EXPERIMENTAL_FIX_VERIFY=1)')
+    .action(async (id: string, opts: { from?: string; experimentalFixVerify?: boolean }) => {
       try {
         if (process.env.FULLSHIELD_EXPERIMENTAL_EXPLAIN !== '1') {
           throw new Error('explain requires FULLSHIELD_EXPERIMENTAL_EXPLAIN=1');
@@ -729,6 +741,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           cwd: process.cwd(),
           id,
           findings: raw.findings as Parameters<typeof explainFinding>[0]['findings'],
+          experimentalFixVerify: opts.experimentalFixVerify === true,
         });
         io.out(text);
       } catch (error) {

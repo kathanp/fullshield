@@ -12,6 +12,13 @@ import {
   type LockfileKind,
 } from './override.js';
 import { applyUnifiedDiff, proposeFix } from './patches.js';
+import {
+  allowPatchWrite,
+  fixVerifyEnabled,
+  verificationWarning,
+  verifyProposedChange,
+  type FixVerification,
+} from './verify.js';
 
 function detectLockKind(cwd: string): LockfileKind {
   if (existsSync(join(cwd, 'yarn.lock'))) return 'yarn';
@@ -26,6 +33,12 @@ export interface FixOptions {
   force?: boolean;
   unsafe?: boolean;
   noBranch?: boolean;
+  /** Re-scan each patch in memory. Also on when FULLSHIELD_EXPERIMENTAL_FIX_VERIFY=1. */
+  experimentalFixVerify?: boolean;
+  /** Write a patch whose rescan still reports the original finding. */
+  forceUnverified?: boolean;
+  /** Accepted by the CLI. It does not write a patch that introduces a finding. */
+  yes?: boolean;
 }
 
 export interface FixPatch {
@@ -33,6 +46,7 @@ export interface FixPatch {
   ruleId: string;
   safe: boolean;
   diff: string;
+  verified?: FixVerification;
 }
 
 export interface FixResult {
@@ -43,6 +57,35 @@ export interface FixResult {
   findings: Finding[];
   /** Set when an override was written to package.json. The lockfile is left unchanged. */
   notice?: string;
+  /** Set when a patch does not remove its finding or would introduce one. */
+  warnings?: string[];
+}
+
+async function gatePatch(
+  options: FixOptions,
+  cwd: string,
+  file: string,
+  ruleId: string,
+  line: number | undefined,
+  diff: string,
+  base: string,
+  finding: Finding | undefined,
+  warnings: string[],
+): Promise<{ verified?: FixVerification; write: boolean }> {
+  if (!fixVerifyEnabled(options.experimentalFixVerify)) return { write: true };
+  const verdict = await verifyProposedChange({ cwd, file, ruleId, line, diff, base, finding });
+  if (verdict.status !== 'removes-finding') {
+    const warning = verificationWarning(ruleId, file, verdict.status);
+    if (warning !== undefined) warnings.push(warning);
+  }
+  return {
+    verified: verdict.status,
+    write: allowPatchWrite(verdict.status, {
+      enabled: true,
+      forceUnverified: options.forceUnverified,
+      yes: options.yes,
+    }),
+  };
 }
 
 export async function runFix(options: FixOptions = {}): Promise<FixResult> {
@@ -52,8 +95,11 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
 
   const byFile = new Map<string, string>();
   const patches: FixPatch[] = [];
+  const warnings: string[] = [];
   let appliedOverride = false;
   const lockKind = detectLockKind(cwd);
+  const finish = (result: Omit<FixResult, 'warnings'>): FixResult =>
+    warnings.length > 0 ? { ...result, warnings } : result;
 
   for (const finding of result.findings) {
     if (finding.fix?.kind === 'dependency-override') {
@@ -66,13 +112,26 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
           continue;
         }
       }
+      const gate = await gatePatch(
+        options,
+        cwd,
+        'package.json',
+        finding.ruleId,
+        finding.line,
+        finding.fix.diff,
+        manifest,
+        finding,
+        warnings,
+      );
       patches.push({
         file: 'package.json',
         ruleId: finding.ruleId,
         safe: finding.fix.safe,
         diff: finding.fix.diff,
+        ...(gate.verified !== undefined ? { verified: gate.verified } : {}),
       });
       if (finding.fix.safe !== true && options.unsafe !== true) continue;
+      if (!gate.write) continue;
       const next = applyUnifiedDiff(manifest, finding.fix.diff);
       let merged = byFile.get('package.json') ?? manifest;
       for (const [name, version] of collectManifestOverrides(next)) {
@@ -103,8 +162,26 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
       source,
     );
     if (proposed === undefined) continue;
-    patches.push({ file: sourceFile, ruleId: finding.ruleId, safe: proposed.safe, diff: proposed.diff });
+    const gate = await gatePatch(
+      options,
+      cwd,
+      sourceFile,
+      finding.ruleId,
+      finding.line,
+      proposed.diff,
+      source,
+      finding,
+      warnings,
+    );
+    patches.push({
+      file: sourceFile,
+      ruleId: finding.ruleId,
+      safe: proposed.safe,
+      diff: proposed.diff,
+      ...(gate.verified !== undefined ? { verified: gate.verified } : {}),
+    });
     if (proposed.safe !== true && options.unsafe !== true) continue;
+    if (!gate.write) continue;
     const after = applyUnifiedDiff(source, proposed.diff);
     byFile.set(sourceFile, after);
   }
@@ -123,8 +200,25 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
       const next = removeDirectDependencies(manifest, unused);
       const diff = dependencyRemovalDiff(manifest, unused);
       if (diff.length > 0) {
-        patches.push({ file: 'package.json', ruleId: 'DEPS-VULN-001', safe: false, diff });
-        if (options.unsafe === true) {
+        const gate = await gatePatch(
+          options,
+          cwd,
+          'package.json',
+          'DEPS-VULN-001',
+          undefined,
+          diff,
+          manifest,
+          undefined,
+          warnings,
+        );
+        patches.push({
+          file: 'package.json',
+          ruleId: 'DEPS-VULN-001',
+          safe: false,
+          diff,
+          ...(gate.verified !== undefined ? { verified: gate.verified } : {}),
+        });
+        if (options.unsafe === true && gate.write) {
           byFile.set('package.json', next);
           appliedOverride = true;
         }
@@ -135,7 +229,7 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
   const notice = appliedOverride ? 'run npm install' : undefined;
 
   if (options.apply !== true) {
-    return { applied: false, reverted: false, patches, findings: result.findings, notice };
+    return finish({ applied: false, reverted: false, patches, findings: result.findings, notice });
   }
 
   if (!(await isGitRepo(cwd)) && options.force !== true) {
@@ -171,10 +265,10 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
   const testFailed = runProjectTests(cwd);
   if (testFailed) {
     await restoreSnapshots(cwd, snapshots);
-    return { applied: false, reverted: true, branch, patches, findings: result.findings };
+    return finish({ applied: false, reverted: true, branch, patches, findings: result.findings });
   }
 
-  return { applied: true, reverted: false, branch, patches, findings: result.findings, notice };
+  return finish({ applied: true, reverted: false, branch, patches, findings: result.findings, notice });
 }
 
 async function restoreSnapshots(cwd: string, snapshots: Map<string, Buffer | null>): Promise<void> {
