@@ -1673,9 +1673,9 @@ Acceptance: YAML templates validate against GitHub's issue-form schema (vendored
 ### Phase 93 — Promotion evidence batch 2 (process, no promotion)
 Run the Phase 73 report for: `_VALIDATION` (53), `_WORKSPACES` (54), `_OBSERVED_REACH` (55), `_CUSTOM_RULES` (57), `_ROUTES` (58), `_EXPLAIN` (60), `_REACH_EVIDENCE` (61), `_DEPS_DIFF` (62), `_LOCKFILES` (63), `_CUSTOM_SANITIZERS` (64), `_SBOM_REACH` (66), `_SARIF_V2` (74), and every flag from Phases 78–91 that is merged.
 
-- [  ] One `bench/promotion/<flag>.md` per flag, same columns as Phase 73.
-- [  ] `bench/promotion/SUMMARY.md`: flag | criteria met | criteria unmet | default-scan-diff if promoted (EMPTY / count).
-- [  ] Cursor promotes nothing (R1, R11).
+- [x] One `bench/promotion/<flag>.md` per flag, same columns as Phase 73.
+- [x] `bench/promotion/SUMMARY.md`: flag | criteria met | criteria unmet | default-scan-diff if promoted (EMPTY / count).
+- [x] Cursor promotes nothing (R1, R11).
 
 ---
 
