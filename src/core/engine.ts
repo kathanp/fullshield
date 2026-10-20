@@ -5,6 +5,7 @@ import { performance } from 'node:perf_hooks';
 import { configModule } from '../modules/config/index.js';
 import { depsModule } from '../modules/deps/index.js';
 import { scanMcpConfig } from '../modules/mcp/index.js';
+import { typesEnabled } from '../modules/sast/experimental.js';
 import { sastModule } from '../modules/sast/index.js';
 import { secretsModule } from '../modules/secrets/index.js';
 import { secretsAdvEnabled } from '../modules/secrets/experimental.js';
@@ -133,6 +134,13 @@ export interface ScanResult {
   policy?: PolicyScanResult;
   /** Set when a baseline suppression is missing fields or has expired. */
   suppressionErrors?: string[];
+  /**
+   * Phase 80. Findings removed from `findings` because the receiver type is not a sink.
+   * Present only when FULLSHIELD_EXPERIMENTAL_TYPES=1 and the checker ran.
+   */
+  suppressed?: Finding[];
+  /** Phase 80. Missing `typescript` (FS-E012) or the types.maxFiles fallback. Printed by the CLI. */
+  typesNotice?: string;
 }
 
 /**
@@ -381,6 +389,16 @@ export async function runScan(
       findings = sortFindings([...findings, ...(await runLogicHunt(cwd, files, client))]);
     }
   }
+
+  let typeSuppressed: Finding[] | undefined;
+  let typesNotice: string | undefined;
+  if (typesEnabled()) {
+    const { applyTypeSuppression } = await import('../modules/sast/type-receivers.js');
+    const applied = await applyTypeSuppression(findings, cwd, config.types);
+    findings = applied.findings;
+    typeSuppressed = applied.suppressed;
+    typesNotice = applied.notice;
+  }
   return {
     findings,
     summary: summarize(findings),
@@ -400,6 +418,8 @@ export async function runScan(
     config,
     policy: policyResult,
     ...(suppressionErrors.length > 0 ? { suppressionErrors } : {}),
+    ...(typeSuppressed !== undefined ? { suppressed: typeSuppressed } : {}),
+    ...(typesNotice !== undefined ? { typesNotice } : {}),
   };
 }
 

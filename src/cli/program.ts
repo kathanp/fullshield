@@ -30,7 +30,7 @@ import { renderJsonReport } from '../reporters/json.js';
 import { renderMarkdownReport } from '../reporters/markdown.js';
 import { renderSarifReport } from '../reporters/sarif.js';
 import { addedFails, diffScans, parseScanDocument, renderDiffText } from '../diff/index.js';
-import { CI_REPORTS_FLAG, DIFF_FLAG, diffEnabled } from '../modules/sast/experimental.js';
+import { CI_REPORTS_FLAG, DIFF_FLAG, TYPES_FLAG, diffEnabled } from '../modules/sast/experimental.js';
 import { POLICY_FLAG, renderPrSummary } from '../policy/index.js';
 import { diffLockedPackages, lockAtRef, packagesFromLock, releaseAgeLabel } from '../deps-diff/index.js';
 import { explainFinding } from '../explain/index.js';
@@ -90,6 +90,7 @@ interface ScanCliOptions {
   experimentalSarifV2?: boolean;
   experimentalCustomSanitizers?: boolean;
   experimentalValidation?: boolean;
+  experimentalTypes?: boolean;
   taintSummaries?: boolean;
   experimentalMcpcfg?: boolean;
   includeHome?: boolean;
@@ -229,6 +230,10 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       '--experimental-validation',
       'experimental: route schema validation inference (FULLSHIELD_EXPERIMENTAL_VALIDATION=1)',
     )
+    .option(
+      '--experimental-types',
+      'experimental: suppress non-sink receivers with the TypeScript checker (FULLSHIELD_EXPERIMENTAL_TYPES=1)',
+    )
     .option('--taint-summaries', 'cache per-function taint summaries (FULLSHIELD_TAINT_SUMMARIES=1)')
     .option(
       '--experimental-mcpcfg',
@@ -282,6 +287,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
         if (opts.experimentalValidation === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_VALIDATION = '1';
+        }
+        if (opts.experimentalTypes === true) {
+          process.env[TYPES_FLAG] = '1';
         }
         if (opts.taintSummaries === true) {
           process.env.FULLSHIELD_TAINT_SUMMARIES = '1';
@@ -371,6 +379,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
             io.err(`fullshield: ${message}`);
           }
           process.exitCode = 1;
+        }
+        if (result.typesNotice !== undefined) {
+          io.err(result.typesNotice);
         }
         if (result.suppressionErrors !== undefined && result.suppressionErrors.length > 0) {
           for (const message of result.suppressionErrors) {
