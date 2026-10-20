@@ -19,6 +19,7 @@ import { walkFiles } from './fileWalker.js';
 import { partitionPerf2, perf2Enabled } from './perf2.js';
 import { beginSharedAst, endSharedAst, preparseProject } from './shared-ast.js';
 import { listStagedFiles } from './git.js';
+import { budgetEnabled, armBudget, budgetSnapshot, clearBudget } from './budget.js';
 import { applyInlineSuppressions } from './suppression.js';
 import {
   sortFindings,
@@ -89,6 +90,11 @@ export interface ScanOptions {
   policyBranch?: string;
   /** Phase 85: join existing findings into attack paths. Requires FULLSHIELD_EXPERIMENTAL_PATHS=1. */
   paths?: boolean;
+  /**
+   * Phase 79. Seconds for `--max-time`. Applied only when
+   * `FULLSHIELD_EXPERIMENTAL_BUDGET=1`.
+   */
+  maxTimeSeconds?: number;
 }
 
 export interface ScanMetadata {
@@ -113,6 +119,15 @@ export interface ScanMetadata {
     sourceMap: number;
     generated: number;
   };
+  /**
+   * Phase 79. Set only when `FULLSHIELD_EXPERIMENTAL_BUDGET` stops the scan early.
+   * An incomplete scan is not a clean result.
+   */
+  incomplete?: true;
+  /** Modules that did not finish. Deps, secrets, and config still run to completion. */
+  incompleteModules?: ModuleName[];
+  /** Source files that did not get a SAST taint pass. */
+  filesNotTaintChecked?: number;
   /** Phase 49. Direct version bumps taken from OSV `fixed` versions. Absent when there is nothing to say. */
   upgradePlan?: {
     bumps: Array<{ name: string; from: string; to: string; safe: boolean; findings: number }>;
@@ -207,6 +222,16 @@ export async function runScan(
   const t0 = performance.now();
   depsModule.unusedDirect = undefined;
   depsModule.upgradePlan = undefined;
+
+  try {
+  if (
+    budgetEnabled() &&
+    options.maxTimeSeconds !== undefined &&
+    Number.isFinite(options.maxTimeSeconds) &&
+    options.maxTimeSeconds > 0
+  ) {
+    armBudget(options.maxTimeSeconds);
+  }
 
   const cwd = resolve(options.cwd ?? process.cwd());
   const stats = await stat(cwd).catch(() => null);
@@ -427,6 +452,7 @@ export async function runScan(
       ...(skipped !== undefined ? { skipped } : {}),
       ...(depsModule.unusedDirect !== undefined ? { unusedDirect: depsModule.unusedDirect } : {}),
       ...(depsModule.upgradePlan !== undefined ? { upgradePlan: depsModule.upgradePlan } : {}),
+      ...(budgetSnapshot() ?? {}),
     },
     config,
     policy: policyResult,
@@ -435,6 +461,9 @@ export async function runScan(
     ...(typesNotice !== undefined ? { typesNotice } : {}),
     ...(attackPaths !== undefined ? { paths: attackPaths } : {}),
   };
+  } finally {
+    clearBudget();
+  }
 }
 
 /** Public library API: scan with the built-in modules. */

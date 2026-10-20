@@ -37,6 +37,7 @@ import { lineHasTracedSwig, mergeSwigViews, swigNamesForFile, taintedSwigViews, 
 import { phase29Rules, sourceHasCsrfGuard } from './rules/phase29.js';
 import type { AstNode, RuleContext, SastRule } from './types.js';
 import { scanPromptInjection } from '../../ai/injection.js';
+import { budgetArmed, budgetExpired, markTaintStopped } from '../../core/budget.js';
 import { parsePoolEnabled, parseWithPool } from '../../core/parse-pool.js';
 import { perf2Enabled } from '../../core/perf2.js';
 import { sharedAstActive, sharedParse } from '../../core/shared-ast.js';
@@ -59,6 +60,13 @@ export const sastRules: readonly SastRule[] = [
 ];
 
 const SOURCE_EXT = /\.[cm]?[jt]sx?$/;
+
+/** Finish nothing further: the current file already returned. Deps, secrets, and config are not stopped here. */
+function haltTaint(remaining: number): boolean {
+  if (!budgetArmed() || !budgetExpired()) return false;
+  markTaintStopped('sast', remaining);
+  return true;
+}
 
 export async function parseSource(code: string): Promise<AstNode> {
   const { parse } = await import('@typescript-eslint/typescript-estree');
@@ -358,6 +366,7 @@ function extraReturners(
 }
 
 async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<Finding[]> {
+  if (haltTaint(ctx.files.filter((rel) => SOURCE_EXT.test(rel)).length)) {return [];}
   const maxBytes = ctx.config.sast.maxFileBytes;
   const viewEngine = await projectViewEngine(ctx);
   const findings: Finding[] = [];
@@ -407,7 +416,14 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
     }
   }
 
-  for (const rel of parseable) {
+  let taintStopped = false;
+  for (let index = 0; index < parseable.length; index += 1) {
+    if (haltTaint(parseable.length - index)) {
+      taintStopped = true;
+      break;
+    }
+    const rel = parseable[index];
+    if (rel === undefined) {continue;}
     const source = await readScanSource(ctx.cwd, rel);
     if (source === undefined) {continue;}
     const ast = await parseCode(source, rel);
@@ -421,20 +437,23 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
     );
   }
 
-  const batch = sastBatchSize();
-  for (let i = 0; i < parseable.length; i += batch) {
-    const parsed: ParsedSource[] = [];
-    for (const rel of parseable.slice(i, i + batch)) {
-      if (streamedWalk !== undefined && !streamedWalk.has(rel)) continue;
-      const source = await readScanSource(ctx.cwd, rel);
-      if (source === undefined) {continue;}
-      const ast = await parseCode(source, rel);
-      if (ast === undefined) {continue;}
-      parsed.push({ file: rel, source, ast });
+  if (!taintStopped && haltTaint(0)) {taintStopped = true;}
+  if (!taintStopped) {
+    const batch = sastBatchSize();
+    for (let i = 0; i < parseable.length; i += batch) {
+      const parsed: ParsedSource[] = [];
+      for (const rel of parseable.slice(i, i + batch)) {
+        if (streamedWalk !== undefined && !streamedWalk.has(rel)) continue;
+        const source = await readScanSource(ctx.cwd, rel);
+        if (source === undefined) {continue;}
+        const ast = await parseCode(source, rel);
+        if (ast === undefined) {continue;}
+        parsed.push({ file: rel, source, ast });
+      }
+      findings.push(...runInterproc(parsed));
+      findings.push(...crossFileReturnFindings(parsed));
+      releaseParsed(parsed);
     }
-    findings.push(...runInterproc(parsed));
-    findings.push(...crossFileReturnFindings(parsed));
-    releaseParsed(parsed);
   }
   for (const template of templates) {
     findings.push(...findingsFromTemplate(template.rel, template.source, viewEngine, swigViews));
@@ -465,6 +484,7 @@ export const sastModule: ScanModule = {
       (rel) => SOURCE_EXT.test(rel) || TEMPLATE_EXT.test(rel) || (viewEngine === 'swig' && /\.(swig|html)$/.test(rel)),
     );
     if (candidates.length > sastStreamThreshold()) {return await runSastStreaming(ctx);}
+    if (haltTaint(candidates.filter((rel) => SOURCE_EXT.test(rel)).length)) {return [];}
 
     const maxBytes = ctx.config.sast.maxFileBytes;
     const findings: Finding[] = [];
@@ -498,7 +518,14 @@ export const sastModule: ScanModule = {
       );
     }
     setAuthProject(new Map(parsed.map((entry) => [entry.file, entry.ast])));
-    for (const entry of parsed) {
+    let taintStopped = false;
+    for (let index = 0; index < parsed.length; index += 1) {
+      if (haltTaint(parsed.length - index)) {
+        taintStopped = true;
+        break;
+      }
+      const entry = parsed[index];
+      if (entry === undefined) {continue;}
       const skip = walked !== undefined && !walked.has(entry.file);
       findings.push(
         ...findingsFromAst(
@@ -511,9 +538,12 @@ export const sastModule: ScanModule = {
         ),
       );
     }
-    const interprocInput = walked === undefined ? parsed : parsed.filter((entry) => walked.has(entry.file));
-    findings.push(...runInterproc(interprocInput));
-    findings.push(...crossFileReturnFindings(interprocInput));
+    if (!taintStopped && haltTaint(0)) {taintStopped = true;}
+    if (!taintStopped) {
+      const interprocInput = walked === undefined ? parsed : parsed.filter((entry) => walked.has(entry.file));
+      findings.push(...runInterproc(interprocInput));
+      findings.push(...crossFileReturnFindings(interprocInput));
+    }
     const swigViews = viewEngine === 'swig' ? taintedSwigViews(parsed) : undefined;
     for (const template of templates) {
       findings.push(...findingsFromTemplate(template.rel, template.source, viewEngine, swigViews));

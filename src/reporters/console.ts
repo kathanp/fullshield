@@ -365,9 +365,16 @@ export function renderConsoleReport(input: ScanResult, options: ConsoleReportOpt
     if (result.paths.length > 5) lines.push(`${result.paths.length - 5} more paths — use --json`);
     lines.push('');
   }
-  if (summary.total === 0) {
+  if (metadata.incomplete === true) {
+    lines.push(
+      pc.yellow(
+        `Scan stopped at budget. ${metadata.filesNotTaintChecked ?? 0} files not taint-checked.`,
+      ),
+    );
+  }
+  if (summary.total === 0 && metadata.incomplete !== true) {
     lines.push(pc.green('✔ No findings.'));
-  } else {
+  } else if (summary.total > 0) {
     const bySeverityDesc = [...SEVERITIES].reverse();
     const counts = bySeverityDesc
       .filter((s) => summary.bySeverity[s] > 0)

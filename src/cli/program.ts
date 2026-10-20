@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path';
 
 import { Command } from 'commander';
 
+import { budgetEnabled } from '../core/budget.js';
 import { scan } from '../core/engine.js';
 import { readLastScanIds, writeLastScan } from '../core/lastScan.js';
 import { diffNewFindings } from '../core/watch.js';
@@ -57,6 +58,8 @@ import { runIngestCommand } from '../ingest/command.js';
 export interface ProgramIO {
   out(text: string): void;
   err(text: string): void;
+  /** Defaults to the built-in scan. Tests pass a scan that includes a slow rule. */
+  scan?(options: Parameters<typeof scan>[0]): ReturnType<typeof scan>;
 }
 
 const defaultIO: ProgramIO = {
@@ -110,6 +113,8 @@ interface ScanCliOptions {
   experimentalCapabilities?: boolean;
   paths?: boolean;
   experimentalPaths?: boolean;
+  maxTime?: string;
+  experimentalBudget?: boolean;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -143,6 +148,14 @@ function parseFailOn(value: string): Severity {
   return value;
 }
 
+function parseMaxTime(value: string): number {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    throw new Error(`invalid --max-time "${value}" (expected a positive number of seconds)`);
+  }
+  return seconds;
+}
+
 export function createProgram(io: ProgramIO = defaultIO): Command {
   const program = new Command();
   program
@@ -158,6 +171,14 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option('--json', 'machine-readable JSON output')
     .option('--all', 'print every finding in the console, with no 20-row cap')
     .option('--fail-on <severity>', 'exit 1 if any finding is at or above this severity')
+    .option(
+      '--max-time <seconds>',
+      'experimental: stop at this many seconds (FULLSHIELD_EXPERIMENTAL_BUDGET=1). An incomplete scan is not clean',
+    )
+    .option(
+      '--experimental-budget',
+      'experimental: time budget and partial results (FULLSHIELD_EXPERIMENTAL_BUDGET=1)',
+    )
     .option('--modules <modules>', 'comma-separated subset of modules to run')
     .option('--staged', 'scan only files staged in git (pre-commit mode)')
     .option('--offline', 'use the OSV cache only (no network)')
@@ -337,6 +358,11 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         if (opts.experimentalPriority === true) {
           process.env[PRIORITY_FLAG] = '1';
         }
+        if (opts.experimentalBudget === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_BUDGET = '1';
+        }
+        const maxTimeSeconds =
+          budgetEnabled() && opts.maxTime !== undefined ? parseMaxTime(opts.maxTime) : undefined;
         if (opts.prSummary === true && process.env[POLICY_FLAG] !== '1') {
           throw new Error(`--pr-summary requires ${POLICY_FLAG}=1`);
         }
@@ -351,7 +377,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           );
         }
 
-        const result = await scan({
+        const result = await (io.scan ?? scan)({
           cwd: resolve(path),
           modules,
           includeHome: opts.includeHome === true,
@@ -369,6 +395,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           iOwnTheseCredentials: opts.iOwnTheseCredentials === true,
           experimentalPolicy: process.env[POLICY_FLAG] === '1',
           paths: opts.paths === true,
+          ...(maxTimeSeconds !== undefined ? { maxTimeSeconds } : {}),
         });
 
         if (opts.sarif !== undefined) {
@@ -433,6 +460,8 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         const failOn = failOnOverride ?? result.policy?.failOn ?? result.config.failOn;
         if (result.findings.some((f) => failsCi(f, failOn))) {
           process.exitCode = 1;
+        } else if (process.exitCode !== 1 && result.metadata.incomplete === true) {
+          process.exitCode = 3;
         }
       } catch (error) {
         io.err(formatCliError(error));
