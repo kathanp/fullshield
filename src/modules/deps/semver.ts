@@ -19,6 +19,34 @@ export function sameMajor(a: string, b: string): boolean {
   return parseSemver(a)[0] === parseSemver(b)[0];
 }
 
+/** True, false, or undefined when the range is not one this helper understands. Never guesses a version. */
+export function rangeSatisfies(range: string, version: string): boolean | undefined {
+  const parts = range.split('||').map((part) => part.trim()).filter((part) => part.length > 0);
+  if (parts.length === 0) return undefined;
+  if (parts.length > 1) {
+    const answered = parts.map((part) => rangeSatisfies(part, version));
+    if (answered.some((item) => item === undefined)) return undefined;
+    return answered.some((item) => item === true);
+  }
+  const one = parts[0] ?? '';
+  if (one === '*' || one === 'x') return true;
+  const match = /^(>=|<=|>|<|\^|~)?v?(\d+\.\d+\.\d+)(?:[-+].*)?$/.exec(one);
+  if (match === null || match[2] === undefined) return undefined;
+  const op = match[1] ?? '=';
+  const base = match[2];
+  const cmp = compareSemver(version, base);
+  if (op === '=') return cmp === 0;
+  if (op === '>') return cmp > 0;
+  if (op === '>=') return cmp >= 0;
+  if (op === '<') return cmp < 0;
+  if (op === '<=') return cmp <= 0;
+  const [major, minor] = parseSemver(base);
+  const [vMajor, vMinor] = parseSemver(version);
+  if (op === '^') return vMajor === major && cmp >= 0;
+  if (op === '~') return vMajor === major && vMinor === minor && cmp >= 0;
+  return undefined;
+}
+
 interface OsvRange {
   events?: Array<{ introduced?: string; fixed?: string; last_affected?: string }>;
 }

@@ -9,6 +9,7 @@ import { parseLockfileGraph, type LockedPackage, type LockfileGraph } from './lo
 import { isMaliciousAdvisory, queryOsv, type OsvVuln } from './osv.js';
 import { exactPinsFromManifest, lineOfManifestDep } from './pins.js';
 import { collectImportSites, evidenceForFinding } from './evidence.js';
+import { dependencyShapeFindings } from './phantom.js';
 import { applyReachability, indexPackageUsage, isProductionSource, unusedDirectPlan } from './reachability.js';
 import { chooseUpgradePlan, type UpgradeAdvisory } from './upgrade-plan.js';
 import { campaignFindings, securityPlaceholderFinding } from '../../supply/campaign.js';
@@ -274,6 +275,16 @@ export const depsModule: ScanModule & {
       });
     }
     reached = await withWorkspaceAdvisories(ctx.cwd, manifestRaw, osvOpts, reached);
+    const shapeSources: { file: string; text: string }[] = [];
+    for (const rel of ctx.files) {
+      if (!/\.[cm]?[jt]sx?$/.test(rel)) continue;
+      try {
+        shapeSources.push({ file: rel, text: await readFile(join(ctx.cwd, rel), 'utf8') });
+      } catch {
+        continue;
+      }
+    }
+    reached = [...reached, ...dependencyShapeFindings(manifestRaw, packages, shapeSources)];
     if (process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY === '1') {
       reached.push(...campaignFindings([...reachCtx.sources.entries()].map(([file, text]) => ({ file, text }))));
       for (const name of [...direct].sort()) {

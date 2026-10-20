@@ -258,6 +258,26 @@ const EXTRA_TARGETS = [
     },
   },
   {
+    name: 'DEPS-PHANTOM-001',
+    file: join(root, 'src', 'modules', 'deps', 'phantom.ts'),
+    apply: (src) => {
+      if (!src.includes("ruleId: 'DEPS-PHANTOM-001'")) {
+        throw new Error('DEPS-PHANTOM-001 site missing');
+      }
+      return src.replace("ruleId: 'DEPS-PHANTOM-001'", "ruleId: 'DEPS-PHANTOM-OFF'");
+    },
+  },
+  {
+    name: 'DEPS-LOCKMISMATCH-001',
+    file: join(root, 'src', 'modules', 'deps', 'phantom.ts'),
+    apply: (src) => {
+      if (!src.includes("ruleId: 'DEPS-LOCKMISMATCH-001'")) {
+        throw new Error('DEPS-LOCKMISMATCH-001 site missing');
+      }
+      return src.replace("ruleId: 'DEPS-LOCKMISMATCH-001'", "ruleId: 'DEPS-LOCKMISMATCH-OFF'");
+    },
+  },
+  {
     name: 'MCP-001',
     file: join(root, 'src', 'modules', 'mcp', 'index.ts'),
     apply: (src) => {

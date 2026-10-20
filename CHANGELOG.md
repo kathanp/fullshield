@@ -16,6 +16,8 @@ Phase 51 follows a SQL string or Mongo filter returned from another file. Defaul
 
 Phase 50 flags Swig `{{ }}` when the view engine is Swig, including consolidate. NodeGoat gains 12 `SAST-XSS-001` keys on profile and contributions fields. `{{csrftoken}}` is not reported. Merged (D15).
 
+Phase 52 adds `DEPS-PHANTOM-001` and `DEPS-LOCKMISMATCH-001` with import or manifest line numbers. Test, script, and seed imports declared in devDependencies are low severity. clean-app declares cors, express-rate-limit, and jsonwebtoken. Merged locally (D16).
+
 ## 0.4.0 — 2026-10-18
 
 Phase 46 still enforces Node >= 22.13 in `engines`, `doctor`, and CI. Phase 47 still owns the console view.
