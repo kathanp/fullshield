@@ -18,6 +18,13 @@ export function mcpCfgEnabled(): boolean {
   return process.env.FULLSHIELD_EXPERIMENTAL_MCPCFG === '1';
 }
 
+/** Phase 81 library model packs. Off unless FULLSHIELD_EXPERIMENTAL_MODELS=1. */
+export const MODELS_FLAG = 'FULLSHIELD_EXPERIMENTAL_MODELS';
+
+export function modelsEnabled(): boolean {
+  return process.env[MODELS_FLAG] === '1';
+}
+
 /** Phase 40 extra taint propagation. Off unless FULLSHIELD_EXPERIMENTAL_TAINT_V2=1. */
 export function taintV2Enabled(): boolean {
   return process.env.FULLSHIELD_EXPERIMENTAL_TAINT_V2 === '1';

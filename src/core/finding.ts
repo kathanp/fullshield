@@ -66,6 +66,8 @@ export interface Finding {
   stillAtHead?: boolean;
   /** Read-only identity check (`scan --verify-secrets`). Never includes the secret. */
   verification?: 'live' | 'revoked' | 'unknown';
+  /** Set when a model pack moved this finding out of `findings`. Phase 81. */
+  suppressedBy?: string;
   /** Why the reachability class was chosen. Present only with FULLSHIELD_EXPERIMENTAL_REACH_EVIDENCE=1. */
   reachabilityEvidence?: {
     imports: Array<{ file: string; line: number; specifier: string }>;

@@ -90,6 +90,7 @@ interface ScanCliOptions {
   experimentalSarifV2?: boolean;
   experimentalCustomSanitizers?: boolean;
   experimentalValidation?: boolean;
+  experimentalModels?: boolean;
   taintSummaries?: boolean;
   experimentalMcpcfg?: boolean;
   includeHome?: boolean;
@@ -229,6 +230,10 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       '--experimental-validation',
       'experimental: route schema validation inference (FULLSHIELD_EXPERIMENTAL_VALIDATION=1)',
     )
+    .option(
+      '--experimental-models',
+      'experimental: library model packs (FULLSHIELD_EXPERIMENTAL_MODELS=1)',
+    )
     .option('--taint-summaries', 'cache per-function taint summaries (FULLSHIELD_TAINT_SUMMARIES=1)')
     .option(
       '--experimental-mcpcfg',
@@ -282,6 +287,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
         if (opts.experimentalValidation === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_VALIDATION = '1';
+        }
+        if (opts.experimentalModels === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_MODELS = '1';
         }
         if (opts.taintSummaries === true) {
           process.env.FULLSHIELD_TAINT_SUMMARIES = '1';
@@ -356,6 +364,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           io.err(`wrote virtual patches ${out}`);
         }
 
+        for (const line of result.metadata.info ?? []) io.err(line);
         if (opts.prSummary === true) {
           io.out(renderPrSummary(result.findings));
         } else {

@@ -20,6 +20,7 @@ import {
   nestInputDecorator,
 } from './frameworks.js';
 import { frameworksEnabled, taintV2Enabled } from './experimental.js';
+import { modelSourceNode } from './models.js';
 import { isMcpArgsTaintSource, isMcpToolHandler } from './mcp.js';
 import type { AstNode } from './types.js';
 
@@ -142,6 +143,7 @@ function exprIsTainted(
   returners: ReadonlySet<string> = NO_RETURNERS,
 ): boolean {
   if (node === undefined) return false;
+  if (modelSourceNode(node)) return true;
   if (isTaintSource(node) || isFrameworkMemberTaint(node) || isFrameworkTaintCall(node) || isMcpArgsTaintSource(node)) {
     return true;
   }

@@ -28,6 +28,8 @@ import {
   type Severity,
 } from './finding.js';
 import { packageVersion } from './version.js';
+import { modelsEnabled } from '../modules/sast/experimental.js';
+import { applyModelSuppressions } from '../modules/sast/models.js';
 import {
   POLICY_FILE_NAME,
   applyPolicy,
@@ -99,6 +101,8 @@ export interface ScanMetadata {
   history?: string;
   /** Phase 48. Direct dependencies no project file imports. Absent when the list is empty. */
   unusedDirect?: { packages: string[]; advisories: number };
+  /** Phase 81. One line per model pack skipped because the installed version is out of range. */
+  info?: string[];
   /** Phase 78. Present only when FULLSHIELD_EXPERIMENTAL_PERF2=1. Not findings. */
   skipped?: {
     total: number;
@@ -133,6 +137,8 @@ export interface ScanResult {
   policy?: PolicyScanResult;
   /** Set when a baseline suppression is missing fields or has expired. */
   suppressionErrors?: string[];
+  /** Phase 81. Findings removed by a library model pack. Absent when the flag is off. */
+  suppressed?: Finding[];
 }
 
 /**
@@ -366,6 +372,15 @@ export async function runScan(
     aiMode === 'explain' ||
     aiMode === 'logic' ||
     config.ai.enabled;
+  let modelSuppressed: Finding[] | undefined;
+  let modelInfo: string[] | undefined;
+  if (modelsEnabled()) {
+    const applied = await applyModelSuppressions(cwd, findings);
+    findings = sortFindings(applied.findings);
+    if (applied.suppressed.length > 0) modelSuppressed = applied.suppressed;
+    if (applied.info.length > 0) modelInfo = applied.info;
+  }
+
   if (aiEnabled) {
     const client = createAiClient({
       enabled: true,
@@ -396,10 +411,12 @@ export async function runScan(
       ...(skipped !== undefined ? { skipped } : {}),
       ...(depsModule.unusedDirect !== undefined ? { unusedDirect: depsModule.unusedDirect } : {}),
       ...(depsModule.upgradePlan !== undefined ? { upgradePlan: depsModule.upgradePlan } : {}),
+      ...(modelInfo !== undefined ? { info: modelInfo } : {}),
     },
     config,
     policy: policyResult,
     ...(suppressionErrors.length > 0 ? { suppressionErrors } : {}),
+    ...(modelSuppressed !== undefined ? { suppressed: modelSuppressed } : {}),
   };
 }
 
