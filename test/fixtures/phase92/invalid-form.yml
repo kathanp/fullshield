@@ -1,0 +1,5 @@
+description: missing the required name
+body:
+  - type: not-a-type
+    attributes:
+      label: Broken

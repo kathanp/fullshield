@@ -1,0 +1,35 @@
+name: False negative
+description: A vulnerability FullShield did not report
+title: '[fn] '
+labels: ['false-negative']
+body:
+  - type: input
+    id: rule
+    attributes:
+      label: Rule ID
+      description: The rule you expected, if you know it.
+      placeholder: SAST-SQLI-001
+    validations:
+      required: true
+  - type: textarea
+    id: code
+    attributes:
+      label: Minimal code
+      description: Smallest code that should have been reported. No real secrets.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `fullshield --version`.
+      placeholder: 0.4.0
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+      description: The finding you expected FullShield to report.
+    validations:
+      required: true

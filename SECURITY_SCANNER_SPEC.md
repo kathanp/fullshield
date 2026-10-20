@@ -1089,7 +1089,7 @@ That draft was deleted. These items were in it and were only shortened here. The
 - [ X ] Optional Redis store for the in-memory threat block list, as an optional peer (Section 19.6).
 - [ X ] Optional batch `ai summarize` for anomaly events, off the request path (Section 18.4).
 - [ X ] `CONTRIBUTING.md` rule-authoring guide (Section 15). A demo GIF, if one is added, comes from a real run. Do not draw frames that did not happen.
-- [  ] Issue templates for bug, false positive, missed attack, and new rule (Section 15).
+- [ X ] Issue templates for bug, false positive, missed attack, and new rule (Section 15).
 
 The draft's older wording is not carried, because this file already replaced it:
 
@@ -1663,10 +1663,10 @@ Every proposed fix proves it removes its finding and adds none. Never executes p
 Acceptance: fixture fix that works → `removes-finding`; a deliberately wrong fixture patch → `does-not-remove`; a patch that adds `eval` → `introduces-finding` and is not written.
 
 ### Phase 92 — Repository hygiene (docs and templates)
-- [  ] `.github/ISSUE_TEMPLATE/false-positive.yml` (rule ID, minimal code, version, expected), `false-negative.yml`, `bug.yml`, `config.yml` (blank issues off, link to SECURITY.md for vulnerabilities).
-- [  ] `docs/use-with-other-tools.md`: concrete commands to run Semgrep, OSV-Scanner, npm audit, Gitleaks next to FullShield and then `fullshield ingest` (Phase 83). No claims about other tools' accuracy.
-- [  ] `docs/branch-protection.md`: the exact required check names from the 6-job matrix, for the human to set (R1). Cursor does not change repo settings.
-- [  ] Closes the Section 33 issue-templates item.
+- [ X ] `.github/ISSUE_TEMPLATE/false-positive.yml` (rule ID, minimal code, version, expected), `false-negative.yml`, `bug.yml`, `config.yml` (blank issues off, link to SECURITY.md for vulnerabilities).
+- [ X ] `docs/use-with-other-tools.md`: concrete commands to run Semgrep, OSV-Scanner, npm audit, Gitleaks next to FullShield and then `fullshield ingest` (Phase 83). No claims about other tools' accuracy.
+- [ X ] `docs/branch-protection.md`: the exact required check names from the 6-job matrix, for the human to set (R1). Cursor does not change repo settings.
+- [ X ] Closes the Section 33 issue-templates item.
 
 Acceptance: YAML templates validate against GitHub's issue-form schema (vendored, test-only); doc links resolve (link-check test on local paths).
 

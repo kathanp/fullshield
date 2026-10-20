@@ -6,12 +6,20 @@ body:
   - type: markdown
     attributes:
       value: |
-        For a **wrong finding**, use the False positive template. For a **missed vuln**, use New rule.
+        For a wrong finding, use the False positive template. For a missed vulnerability, use the False negative template. For a vulnerability in FullShield itself, follow SECURITY.md and do not open a public issue.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `fullshield --version`.
+      placeholder: 0.4.0
+    validations:
+      required: true
   - type: textarea
     id: what
     attributes:
       label: What happened
-      description: Command, expected vs actual, and FullShield version (`fullshield --version`).
+      description: Command, and what you expected versus what happened.
     validations:
       required: true
   - type: textarea
