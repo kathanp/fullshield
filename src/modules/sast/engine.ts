@@ -69,7 +69,7 @@ export async function parseSource(code: string): Promise<AstNode> {
 }
 
 function snippetOf(source: string, node: AstNode): string {
-  if (node.range === undefined) return '';
+  if (node.range === undefined) {return '';}
   return source.slice(node.range[0], node.range[1]).replace(/\s+/g, ' ').trim().slice(0, 120);
 }
 
@@ -132,23 +132,23 @@ function declaredViewEngine(source: string): string | undefined {
   if (/\.engine\(\s*['"]\.?[A-Za-z0-9_-]+['"]\s*,\s*[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*\.swig\b/.test(source)) {
     return 'swig';
   }
-  if (/\.engine\(\s*['"]\.?swig['"]/.test(source)) return 'swig';
+  if (/\.engine\(\s*['"]\.?swig['"]/.test(source)) {return 'swig';}
   const set = /set\(\s*['"]view engine['"]\s*,\s*['"]\.?([A-Za-z0-9_-]+)['"]\s*\)/.exec(source);
-  if (set?.[1]?.toLowerCase() === 'swig') return 'swig';
+  if (set?.[1]?.toLowerCase() === 'swig') {return 'swig';}
   const named = /\.engine\(\s*['"]\.?([A-Za-z0-9_-]+)['"]/.exec(source);
   const name = named?.[1]?.toLowerCase();
-  if (name === 'swig') return 'swig';
-  if (set?.[1] !== undefined && set[1].toLowerCase() !== 'html') return set[1].toLowerCase();
-  if (name !== undefined && name !== 'html') return name;
+  if (name === 'swig') {return 'swig';}
+  if (set?.[1] !== undefined && set[1].toLowerCase() !== 'html') {return set[1].toLowerCase();}
+  if (name !== undefined && name !== 'html') {return name;}
   return undefined;
 }
 
 async function projectViewEngine(ctx: Parameters<ScanModule['run']>[0]): Promise<string | undefined> {
   for (const rel of ctx.files) {
-    if (!SOURCE_EXT.test(rel)) continue;
+    if (!SOURCE_EXT.test(rel)) {continue;}
     const source = await readScanSource(ctx.cwd, rel);
     const engine = source === undefined ? undefined : declaredViewEngine(source);
-    if (engine !== undefined) return engine;
+    if (engine !== undefined) {return engine;}
   }
   return undefined;
 }
@@ -197,7 +197,7 @@ function findingsFromTemplate(
   if (engine === 'swig' && swigViews !== undefined) {
     const traced = swigNamesForFile(filename, swigViews);
     source.split(/\r?\n/).forEach((line, index) => {
-      if (traced === undefined || !lineHasTracedSwig(line, traced)) return;
+      if (traced === undefined || !lineHasTracedSwig(line, traced)) {return;}
       ctx.report({
         node: {
           type: 'Literal',
@@ -215,7 +215,7 @@ function findingsFromTemplate(
 
 /** Parse and scan a single source string (used by unit tests). */
 export async function runSastOnText(filename: string, source: string): Promise<Finding[]> {
-  if (TEMPLATE_EXT.test(filename)) return findingsFromTemplate(filename, source);
+  if (TEMPLATE_EXT.test(filename)) {return findingsFromTemplate(filename, source);}
   const ast = await parseSource(source);
   return findingsFromAst(filename, source, ast);
 }
@@ -250,7 +250,7 @@ export function sastStreamThreshold(): number {
   const raw = process.env.FULLSHIELD_SAST_STREAM_AT;
   if (raw !== undefined && raw !== '') {
     const parsed = Number(raw);
-    if (Number.isFinite(parsed) && parsed >= 1) return Math.floor(parsed);
+    if (Number.isFinite(parsed) && parsed >= 1) {return Math.floor(parsed);}
   }
   return 4000;
 }
@@ -259,7 +259,7 @@ function sastBatchSize(): number {
   const raw = process.env.FULLSHIELD_SAST_BATCH;
   if (raw !== undefined && raw !== '') {
     const parsed = Number(raw);
-    if (Number.isFinite(parsed) && parsed >= 1) return Math.floor(parsed);
+    if (Number.isFinite(parsed) && parsed >= 1) {return Math.floor(parsed);}
   }
   return 150;
 }
@@ -280,9 +280,9 @@ function skipFinding(rel: string, message: string): Finding {
 }
 
 function skipReason(source: string, maxBytes: number): string | undefined {
-  if (source.includes('\u0000')) return 'it contains NUL bytes';
+  if (source.includes('\u0000')) {return 'it contains NUL bytes';}
   const bytes = Buffer.byteLength(source);
-  if (bytes > maxBytes) return `${bytes} bytes exceeds the SAST parse limit of ${maxBytes} bytes`;
+  if (bytes > maxBytes) {return `${bytes} bytes exceeds the SAST parse limit of ${maxBytes} bytes`;}
   return undefined;
 }
 
@@ -295,7 +295,7 @@ async function readScanSource(cwd: string, rel: string): Promise<string | undefi
 }
 
 function cloneAst(value: unknown): AstNode | undefined {
-  if (value === null || typeof value !== 'object') return undefined;
+  if (value === null || typeof value !== 'object') {return undefined;}
   try {
     return structuredClone(value) as AstNode;
   } catch {
@@ -312,12 +312,12 @@ async function parseInProcess(source: string): Promise<AstNode | undefined> {
 }
 
 async function parseCode(source: string): Promise<AstNode | undefined> {
-  if (!parsePoolEnabled()) return parseInProcess(source);
+  if (!parsePoolEnabled()) {return parseInProcess(source);}
   try {
     // The pool caches one object and later walks mutate parent links on it.
     // Hand the scanner a copy so the next scan cannot see a broken tree.
     const cloned = cloneAst((await parseWithPool([source]))[0]);
-    if (cloned !== undefined) return cloned;
+    if (cloned !== undefined) {return cloned;}
   } catch {
     // A dead worker used to become "no AST" and the file vanished from taint.
   }
@@ -344,7 +344,7 @@ function extraReturners(
     const hash = spec.indexOf('#');
     const file = hash >= 0 ? spec.slice(0, hash) : spec;
     const exp = hash >= 0 ? spec.slice(hash + 1) : local;
-    if (returning.get(file)?.has(exp)) extra.add(local);
+    if (returning.get(file)?.has(exp)) {extra.add(local);}
   }
   return extra;
 }
@@ -363,22 +363,22 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
   for (const rel of ctx.files) {
     const isSource = SOURCE_EXT.test(rel);
     const isTemplate = TEMPLATE_EXT.test(rel) || (viewEngine === 'swig' && /\.(swig|html)$/.test(rel));
-    if (!isSource && !isTemplate) continue;
+    if (!isSource && !isTemplate) {continue;}
     const source = await readScanSource(ctx.cwd, rel);
-    if (source === undefined) continue;
+    if (source === undefined) {continue;}
     const why = skipReason(source, maxBytes);
     if (why !== undefined) {
       findings.push(skipFinding(rel, `Skipped ${rel}: ${why}.`));
       continue;
     }
-    if (sourceHasCsrfGuard(source)) projectCsrf = true;
+    if (sourceHasCsrfGuard(source)) {projectCsrf = true;}
     if (isTemplate) {
       templates.push({ rel, source });
       continue;
     }
     const ast = await parseCode(source);
-    if (ast === undefined) continue;
-    if (viewEngine === 'swig') mergeSwigViews(swigViews, taintedSwigViews([{ ast }]));
+    if (ast === undefined) {continue;}
+    if (viewEngine === 'swig') {mergeSwigViews(swigViews, taintedSwigViews([{ ast }]));}
     returning.set(rel, taintSummariesEnabled() ? cachedReturners(source, ast) : functionsThatReturnTaint(ast));
     parseable.push(rel);
     fileSet.add(rel);
@@ -386,9 +386,9 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
 
   for (const rel of parseable) {
     const source = await readScanSource(ctx.cwd, rel);
-    if (source === undefined) continue;
+    if (source === undefined) {continue;}
     const ast = await parseCode(source);
-    if (ast === undefined) continue;
+    if (ast === undefined) {continue;}
     findings.push(
       ...findingsFromAst(rel, source, ast, extraReturners(rel, ast, fileSet, returning), projectCsrf),
     );
@@ -399,9 +399,9 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
     const parsed: ParsedSource[] = [];
     for (const rel of parseable.slice(i, i + batch)) {
       const source = await readScanSource(ctx.cwd, rel);
-      if (source === undefined) continue;
+      if (source === undefined) {continue;}
       const ast = await parseCode(source);
-      if (ast === undefined) continue;
+      if (ast === undefined) {continue;}
       parsed.push({ file: rel, source, ast });
     }
     findings.push(...runInterproc(parsed));
@@ -422,7 +422,7 @@ export const sastModule: ScanModule = {
       const sanitizers = new Map<string, Set<string>>();
       for (const row of ctx.config.sast.sanitizers ?? []) {
         const classes = sanitizers.get(row.callee) ?? new Set<string>();
-        for (const name of row.clears) classes.add(name);
+        for (const name of row.clears) {classes.add(name);}
         sanitizers.set(row.callee, classes);
       }
       setCustomTaint({ sources, sanitizers });
@@ -435,7 +435,7 @@ export const sastModule: ScanModule = {
     const candidates = ctx.files.filter(
       (rel) => SOURCE_EXT.test(rel) || TEMPLATE_EXT.test(rel) || (viewEngine === 'swig' && /\.(swig|html)$/.test(rel)),
     );
-    if (candidates.length > sastStreamThreshold()) return await runSastStreaming(ctx);
+    if (candidates.length > sastStreamThreshold()) {return await runSastStreaming(ctx);}
 
     const maxBytes = ctx.config.sast.maxFileBytes;
     const findings: Finding[] = [];
@@ -443,7 +443,7 @@ export const sastModule: ScanModule = {
     const templates: { rel: string; source: string }[] = [];
     for (const rel of candidates) {
       const source = await readScanSource(ctx.cwd, rel);
-      if (source === undefined) continue;
+      if (source === undefined) {continue;}
       const why = skipReason(source, maxBytes);
       if (why !== undefined) {
         findings.push(skipFinding(rel, `Skipped ${rel}: ${why}.`));
@@ -454,7 +454,7 @@ export const sastModule: ScanModule = {
         continue;
       }
       const ast = await parseCode(source);
-      if (ast === undefined) continue;
+      if (ast === undefined) {continue;}
       parsed.push({ file: rel, source, ast });
     }
     const files = new Set(parsed.map((p) => p.file));
