@@ -8,6 +8,8 @@ All notable changes to FullShield are documented here.
 
 Phase 94 adds `npm run quality` (Q1–Q12) for contributors. Default scan findings are unchanged.
 
+Phase 85 adds `scan --paths` behind `FULLSHIELD_EXPERIMENTAL_PATHS`. A path lists findings that already exist. It does not add a finding or change severity. Default scan JSON is unchanged when the flag is off.
+
 ### New/changed stable findings — may change CI results; use --update-baseline
 
 Phase 75 router-level auth inheritance. Default-scan diff against `bench/snapshots/HEAD.json` (0.4.0) was empty on vulnerable-app, clean-app, and every bench app. Merged (D9).

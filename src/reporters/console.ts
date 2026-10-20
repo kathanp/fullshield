@@ -2,6 +2,7 @@ import pc from 'picocolors';
 
 import type { ScanResult } from '../core/engine.js';
 import { SEVERITIES, type Finding, type Severity } from '../core/finding.js';
+import type { AttackPath } from '../paths/types.js';
 import { redactScan } from './redact.js';
 
 const SEVERITY_COLOR: Record<Severity, (text: string) => string> = {
@@ -101,6 +102,15 @@ export function isActionable(finding: Finding): boolean {
     return finding.severity === 'high' || finding.severity === 'critical' || finding.confidence === 'high';
   }
   return false;
+}
+
+function formatPath(path: AttackPath): string {
+  const entry = path.entry === undefined ? '(no route)' : `${path.entry.method} ${path.entry.path} auth=${path.entry.auth}`;
+  const where =
+    path.sink.file !== undefined
+      ? `${path.sink.file}${path.sink.line !== undefined ? `:${path.sink.line}` : ''}`
+      : '(project)';
+  return `  ${entry} → [${path.sink.ruleId}] ${where}`;
 }
 
 function reachRank(finding: Finding): number {
@@ -330,6 +340,12 @@ export function renderConsoleReport(input: ScanResult, options: ConsoleReportOpt
   }
 
   lines.push('');
+  if (result.paths !== undefined && result.paths.length > 0) {
+    lines.push(pc.bold('Attack paths'));
+    for (const path of result.paths.slice(0, 5)) lines.push(formatPath(path));
+    if (result.paths.length > 5) lines.push(`${result.paths.length - 5} more paths — use --json`);
+    lines.push('');
+  }
   if (summary.total === 0) {
     lines.push(pc.green('✔ No findings.'));
   } else {

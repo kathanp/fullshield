@@ -27,6 +27,7 @@ import {
   type ModuleName,
   type Severity,
 } from './finding.js';
+import type { AttackPath } from '../paths/types.js';
 import { packageVersion } from './version.js';
 import {
   POLICY_FILE_NAME,
@@ -84,6 +85,8 @@ export interface ScanOptions {
   experimentalPolicy?: boolean;
   /** Override git/CI branch when applying `failOn` per branch. */
   policyBranch?: string;
+  /** Phase 85: join existing findings into attack paths. Requires FULLSHIELD_EXPERIMENTAL_PATHS=1. */
+  paths?: boolean;
 }
 
 export interface ScanMetadata {
@@ -133,6 +136,8 @@ export interface ScanResult {
   policy?: PolicyScanResult;
   /** Set when a baseline suppression is missing fields or has expired. */
   suppressionErrors?: string[];
+  /** Phase 85. Present only when scan paths were requested and FULLSHIELD_EXPERIMENTAL_PATHS=1. */
+  paths?: AttackPath[];
 }
 
 /**
@@ -381,6 +386,13 @@ export async function runScan(
       findings = sortFindings([...findings, ...(await runLogicHunt(cwd, files, client))]);
     }
   }
+
+  let attackPaths: AttackPath[] | undefined;
+  if (options.paths === true && process.env.FULLSHIELD_EXPERIMENTAL_PATHS === '1') {
+    const { buildAttackPathsFromFiles } = await import('../paths/index.js');
+    attackPaths = await buildAttackPathsFromFiles(findings, cwd, files);
+  }
+
   return {
     findings,
     summary: summarize(findings),
@@ -400,6 +412,7 @@ export async function runScan(
     config,
     policy: policyResult,
     ...(suppressionErrors.length > 0 ? { suppressionErrors } : {}),
+    ...(attackPaths !== undefined ? { paths: attackPaths } : {}),
   };
 }
 
