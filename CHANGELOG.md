@@ -8,6 +8,10 @@ All notable changes to FullShield are documented here.
 
 Phase 76 adds `scripts/precision-sample.mjs` and `scripts/precision-report.mjs`. Neither script nor `bench/precision/` is in the npm package. The sampler writes `label`, `reviewer`, and `note` as null. Default scan findings are unchanged.
 
+### Provenance signals
+
+Phase 87 adds informational `SUPPLY-PROV-001` when `FULLSHIELD_EXPERIMENTAL_PROVENANCE=1`. Severity is medium. The signal is not a malicious-package claim. Default scan keys are unchanged with the flag off.
+
 ### Quality gate
 
 Phase 94 adds `npm run quality` (Q1–Q12) for contributors. Default scan findings are unchanged.

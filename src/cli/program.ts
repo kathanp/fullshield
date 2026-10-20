@@ -34,6 +34,7 @@ import { addedFails, diffScans, parseScanDocument, renderDiffText } from '../dif
 import { CI_REPORTS_FLAG, DIFF_FLAG, diffEnabled } from '../modules/sast/experimental.js';
 import { POLICY_FLAG, renderPrSummary } from '../policy/index.js';
 import { diffLockedPackages, lockAtRef, packagesFromLock, releaseAgeLabel } from '../deps-diff/index.js';
+import { registryCachePath, releaseFactsFromCache } from '../provenance/index.js';
 import { explainFinding } from '../explain/index.js';
 import { queryOsv } from '../modules/deps/osv.js';
 import { osvSeverity } from '../modules/deps/semver.js';
@@ -791,13 +792,11 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           let published: string | undefined;
           let installScripts: 'yes' | 'no' | 'unknown' = 'unknown';
           try {
-            const raw = JSON.parse(await readFile(join(cwd, 'osv-cache', 'registry', `${change.name}.json`), 'utf8')) as {
-              time?: string;
-              hasInstallScript?: boolean;
-            };
-            published = raw.time;
-            if (raw.hasInstallScript === true) installScripts = 'yes';
-            if (raw.hasInstallScript === false) installScripts = 'no';
+            const raw: unknown = JSON.parse(await readFile(registryCachePath(join(cwd, 'osv-cache'), change.name), 'utf8'));
+            const facts = releaseFactsFromCache(raw, change.newVersion);
+            published = facts.publishedAt;
+            if (facts.hasInstallScript === true) installScripts = 'yes';
+            if (facts.hasInstallScript === false) installScripts = 'no';
           } catch {
             published = undefined;
           }

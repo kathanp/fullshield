@@ -22,6 +22,7 @@ import { experimentalVex } from '../../supply/experimental.js';
 import { licenseEnabled } from '../sast/experimental.js';
 import { scanCopyleftLicenses } from './license.js';
 import { attachOverrideProposals, scanInstalledPackages } from './phase31.js';
+import { provenanceEnabled, provenanceFindingsForScan } from '../../provenance/index.js';
 
 const LOCKFILE_NAMES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'] as const;
 
@@ -296,6 +297,13 @@ export const depsModule: ScanModule & {
         const placeholder = securityPlaceholderFinding(name, locked, latest);
         if (placeholder !== undefined) reached.push(placeholder);
       }
+    }
+    if (provenanceEnabled()) {
+      const provenance = await provenanceFindingsForScan(packages, lockFile, {
+        cacheDir,
+        offline: ctx.config.deps.offline,
+      });
+      reached.push(...provenance.findings);
     }
     return reached;
   },

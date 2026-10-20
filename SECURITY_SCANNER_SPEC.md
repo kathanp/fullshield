@@ -776,6 +776,7 @@ Worm and workflow-tampering indicators; transitive overrides written to `package
 
 ## 28. Known Limitations (mirror in README; update every release)
 - [  ] Public alpha (0.x); APIs may change.
+- [  ] Phase 87 provenance signals are informational (`SUPPLY-PROV-001`, medium). They never mean a package is malicious. Offline or cache-miss data stays unknown.
 - [ X ] The package enforces Node ≥ 22.13 in `engines`, `doctor`, and CI (Node 22 and 24). Node 20 reached end of life in April 2026. The README says 0.4.0 and does not claim a reviewed recall number. History storage may still say it needs `node:sqlite`. That API is inside the floor. Branch protection job names are a human GitHub setting after the new jobs report once.
 - [  ] Ground truth is unreviewed (`"reviewed": false` on every bench app). Cursor does not flip that flag. A human reviews answer keys. Blank label, reviewer, and note cells stay blank.
 - [ X ] Default console prints the Phase 47 shown rows only (human decision 2026-10-18). JSON stays the full list. D4 accepts the 2026-10-18 grouped-row recount: NodeGoat 36, goof 63, juice-shop 49, dvna 14, vulnerable-node 41. There is no row-count threshold. Ground truth stays unreviewed.
@@ -1619,10 +1620,10 @@ Acceptance: fixture `node_modules` with an inert package that has a `postinstall
 ### Phase 87 — Provenance and maintainer change signals [`FULLSHIELD_EXPERIMENTAL_PROVENANCE`]
 Uses `registry.npmjs.org` only (R15 allowed). Cache-first; `--offline` uses cache only; missing data stays `unknown`, never guessed.
 
-- [  ] For each installed version: whether the registry lists a provenance attestation (`dist.attestations`), and the publishing user for that version.
-- [  ] Signals (informational, `SUPPLY-PROV-001` experimental): (a) **provenance regression** — earlier versions of the same package had provenance and the installed version does not; (b) **publisher change** — the installed version was published by a user who published none of the previous N (default 10) versions; (c) **new-release** — reuse Phase 62's age check.
-- [  ] Never claims a package is malicious from these signals. Severity `medium` at most; `DEPS-MALICIOUS-001` still only from OSV `MAL-` advisories.
-- [  ] Request concurrency ≤ 8, respects `Retry-After`, one request per package (packument), shared with Phase 62's registry cache.
+- [x] For each installed version: whether the registry lists a provenance attestation (`dist.attestations`), and the publishing user for that version.
+- [x] Signals (informational, `SUPPLY-PROV-001` experimental): (a) **provenance regression** — earlier versions of the same package had provenance and the installed version does not; (b) **publisher change** — the installed version was published by a user who published none of the previous N (default 10) versions; (c) **new-release** — reuse Phase 62's age check.
+- [x] Never claims a package is malicious from these signals. Severity `medium` at most; `DEPS-MALICIOUS-001` still only from OSV `MAL-` advisories.
+- [x] Request concurrency ≤ 8, respects `Retry-After`, one request per package (packument), shared with Phase 62's registry cache.
 
 Acceptance: mocked registry fixtures for each signal; a test asserts only `registry.npmjs.org` is contacted; `--offline` with an empty cache produces `unknown`, not a signal.
 
