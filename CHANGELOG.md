@@ -4,6 +4,10 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+### Experimental ingest
+
+Phase 83 reads local Semgrep, npm audit, OSV-Scanner, and SARIF files and dedupes them when `FULLSHIELD_EXPERIMENTAL_INGEST=1`. It does not run those tools, does not fetch, and does not change their severity. Default scan is unchanged. `fullshieldPriority` is not set.
+
 ### Quality gate
 
 Phase 94 adds `npm run quality` (Q1–Q12) for contributors. Default scan findings are unchanged.

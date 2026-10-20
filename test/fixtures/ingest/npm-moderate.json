@@ -1,0 +1,45 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "debug": {
+      "name": "debug",
+      "severity": "moderate",
+      "version": "2.6.0",
+      "isDirect": true,
+      "via": [
+        {
+          "source": 2,
+          "name": "debug",
+          "dependency": "debug",
+          "title": "Moderate fixture",
+          "url": "https://github.com/advisories/GHSA-fx00-0000-0002",
+          "severity": "moderate",
+          "range": "<2.6.9",
+          "cves": ["CVE-2024-00002"]
+        }
+      ],
+      "effects": [],
+      "range": "<2.6.9",
+      "nodes": ["node_modules/debug"],
+      "fixAvailable": false
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 1,
+      "high": 0,
+      "critical": 0,
+      "total": 1
+    },
+    "dependencies": {
+      "prod": 1,
+      "dev": 0,
+      "optional": 0,
+      "peer": 0,
+      "peerOptional": 0,
+      "total": 1
+    }
+  }
+}

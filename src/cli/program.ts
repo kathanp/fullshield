@@ -42,6 +42,7 @@ import { runEdge } from '../modules/edge/index.js';
 import { runHostCheck } from '../host/index.js';
 import { runDoctor } from './commands/doctor.js';
 import { formatCliError } from './errors.js';
+import { runIngestCommand } from '../ingest/command.js';
 
 export interface ProgramIO {
   out(text: string): void;
@@ -1054,6 +1055,22 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
       },
     );
+
+  program
+    .command('ingest')
+    .description('Ingest local SARIF, npm audit, OSV-Scanner, and Semgrep JSON (FULLSHIELD_EXPERIMENTAL_INGEST=1)')
+    .argument('<files...>', 'local report files')
+    .option('--json', 'print JSON')
+    .option('--sarif <file>', 'write SARIF 2.1.0 with one run per source tool plus FullShield')
+    .option('--experimental-ingest', 'enable ingest (FULLSHIELD_EXPERIMENTAL_INGEST=1)')
+    .action(async (files: string[], opts: { json?: boolean; sarif?: string; experimentalIngest?: boolean }) => {
+      try {
+        await runIngestCommand(files, opts, io);
+      } catch (error) {
+        io.err(formatCliError(error));
+        process.exitCode = 2;
+      }
+    });
 
   program
     .command('doctor')

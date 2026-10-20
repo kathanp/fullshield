@@ -1,0 +1,24 @@
+{
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": { "driver": { "name": "ToolC" } },
+      "results": [
+        {
+          "ruleId": "RULE-C",
+          "level": "note",
+          "message": { "text": "fingerprint c" },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "src/fp.js" },
+                "region": { "startLine": 40 }
+              }
+            }
+          ],
+          "partialFingerprints": { "fixture/v1": "other-token" }
+        }
+      ]
+    }
+  ]
+}

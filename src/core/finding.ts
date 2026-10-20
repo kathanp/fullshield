@@ -54,8 +54,20 @@ export interface Finding {
   dependencyPath?: string[];
   /** Every retained dependency path for this package+advisory (shortest first). */
   dependencyPaths?: string[][];
-  /** Deterministic (default) vs AI-added. AI findings never fail CI. */
-  source?: 'deterministic' | 'ai';
+  /** Deterministic, AI, or an ingest tool name (`FULLSHIELD_EXPERIMENTAL_INGEST`). */
+  source?: string;
+  /** Every tool that agreed on an ingested row. Ingest only. */
+  sources?: string[];
+  /** Original rule id from an external tool. Ingest only. */
+  externalRuleId?: string;
+  /** Every original rule or advisory id on an ingested row. */
+  externalRuleIds?: string[];
+  /** Severity token from the external tool, unchanged. Ingest only. */
+  externalSeverity?: string;
+  /** Sink class copied from a report that already has one. Ingest only. */
+  sinkClass?: string;
+  /** Route exposure copied from a report that already has it. Ingest only. */
+  routeExposure?: 'unauthenticated' | 'authenticated' | 'unknown';
   aiVerdict?: 'true-positive' | 'likely-false-positive' | 'needs-review';
   aiReasoning?: string;
   exploitScenario?: string;

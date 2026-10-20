@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "FullShield",
+          "rules": [{ "id": "SAST-SQLI-001", "shortDescription": { "text": "SQL injection" } }]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "SAST-SQLI-001",
+          "level": "error",
+          "message": { "text": "SQL injection" },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "src/db.js" },
+                "region": { "startLine": 14 }
+              }
+            }
+          ],
+          "taxa": [{ "id": "CWE-89" }],
+          "properties": {
+            "reachability": "reachable",
+            "sinkClass": "sql",
+            "routeExposure": "unauthenticated"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -88,3 +88,5 @@ export {
   analyzeWormIndicators,
   provenanceCoverage,
 } from './supply/index.js';
+export { INGEST_FLAG, IngestError, ingestEnabled, ingestLocalFiles } from './ingest/index.js';
+export type { IngestLoad } from './ingest/index.js';
