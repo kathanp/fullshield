@@ -22,6 +22,8 @@ Phase 65 taint summaries are already on this branch. The 5-second nest and undic
 
 Phase 78 cold-scan work stays behind `FULLSHIELD_EXPERIMENTAL_PERF2`. Merged locally. The quiet-machine speed comparison is not done, so the flag is not claimed to be faster.
 
+Phase 79 time budget stays behind `FULLSHIELD_EXPERIMENTAL_BUDGET`. `scan --max-time` stops SAST taint, still finishes deps, secrets, and config, and exits 3 when nothing scanned meets `--fail-on`. That exit is not a clean scan. A finding at or above `--fail-on` still exits 1. The flag off leaves output and exit codes unchanged.
+
 ## 0.4.0 — 2026-10-18
 
 Phase 46 still enforces Node >= 22.13 in `engines`, `doctor`, and CI. Phase 47 still owns the console view.

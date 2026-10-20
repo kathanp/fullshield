@@ -5,6 +5,11 @@ const KNOWN: Array<{ test: RegExp; code: string; hint: string }> = [
     hint: 'Use one of critical, high, medium, low, info.',
   },
   {
+    test: /invalid --max-time/,
+    code: 'FS-E012',
+    hint: 'Pass a positive number of seconds. Set FULLSHIELD_EXPERIMENTAL_BUDGET=1 or pass --experimental-budget.',
+  },
+  {
     test: /unknown module/,
     code: 'FS-E002',
     hint: 'Pass a comma-separated list from `fullshield scan --help`.',

@@ -7,6 +7,7 @@ FullShield prints `fullshield: FS-E### <message>`. The message is the same text 
 | Code | When | What to do |
 |---|---|---|
 | FS-E001 | `--fail-on` is not a severity | Use `critical`, `high`, `medium`, `low`, or `info`. |
+| FS-E012 | `--max-time` is not a positive number of seconds while the budget flag is on | Pass a positive number of seconds. Set `FULLSHIELD_EXPERIMENTAL_BUDGET=1` or pass `--experimental-budget`. |
 | FS-E002 | `--modules` names an unknown module | See `fullshield scan --help`. |
 | FS-E003 | The scan path is not a directory | Pass the project directory. |
 | FS-E004 | `--config` cannot be read | Check the path. |
@@ -18,3 +19,14 @@ FullShield prints `fullshield: FS-E### <message>`. The message is the same text 
 | FS-E010 | A second `npm run verify` starts in a worktree that already has one | Wait for the verify recorded in `.fullshield-verify.lock` to finish. |
 | FS-E011 | `src/` or `test/` changed during verify, quality, or mutation | The run is discarded. Restore the files. Mutation edits a temp copy only. |
 | FS-E000 | Any other command error | Read the message. Re-run with `--debug` if you need the stack. |
+
+## Scan exit codes
+
+| Code | When |
+|---|---|
+| 0 | The scan finished, and nothing is at or above `--fail-on`. |
+| 1 | A finding is at or above `--fail-on`. |
+| 2 | The command failed. See the `FS-E` code above. |
+| 3 | `FULLSHIELD_EXPERIMENTAL_BUDGET` is on, `--max-time` was reached, and nothing that was scanned is at or above `--fail-on`. Exit code 3 is not a clean scan. |
+
+With the budget flag off, `--max-time` does not change output or exit codes. A finding at or above `--fail-on` still exits 1 when the scan stopped early. Deps, secrets, and config still run to completion. SAST finishes the current file and stops taint expansion. JSON then has `metadata.incomplete: true` and `metadata.incompleteModules`. The console prints one yellow line: `Scan stopped at budget. N files not taint-checked.`
