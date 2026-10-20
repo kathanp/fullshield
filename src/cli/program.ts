@@ -38,6 +38,8 @@ import { queryOsv } from '../modules/deps/osv.js';
 import { osvSeverity } from '../modules/deps/semver.js';
 import { buildSbom } from '../sbom/index.js';
 import { validateCycloneDx15 } from '../sbom/cyclonedx.js';
+import { experimentalSpdxEnabled } from '../sbom/spdx-flag.js';
+import { runSpdxCli } from '../sbom/spdx-command.js';
 import { runEdge } from '../modules/edge/index.js';
 import { runHostCheck } from '../host/index.js';
 import { runDoctor } from './commands/doctor.js';
@@ -509,14 +511,22 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
 
   program
     .command('sbom')
-    .description('Write a CycloneDX 1.5 SBOM for the project')
+    .description('Write a CycloneDX 1.5 SBOM, or experimental SPDX 2.3 when enabled')
     .argument('[path]', 'project directory', '.')
     .option('--format <format>', 'sbom format', 'cyclonedx')
     .option('--out <file>', 'write to this file instead of stdout')
-    .action(async (path: string, opts: { format?: string; out?: string }) => {
+    .option('--sbom-timestamp <timestamp>', 'SPDX created time; else SOURCE_DATE_EPOCH')
+    .option('--cyclonedx-out <file>', 'with SPDX, also write CycloneDX and reference it')
+    .option('--experimental-spdx', 'enable experimental SPDX 2.3 (FULLSHIELD_EXPERIMENTAL_SPDX=1)')
+    .action(async (path: string, opts: { format?: string; out?: string; sbomTimestamp?: string; cyclonedxOut?: string; experimentalSpdx?: boolean }) => {
       try {
-        if (opts.format !== undefined && opts.format !== 'cyclonedx') {
+        const spdxOn = experimentalSpdxEnabled(opts.experimentalSpdx === true);
+        if (opts.format !== undefined && opts.format !== 'cyclonedx' && !(opts.format === 'spdx' && spdxOn)) {
           throw new Error(`unsupported SBOM format "${opts.format}" (valid: cyclonedx)`);
+        }
+        if (opts.format === 'spdx') {
+          await runSpdxCli(resolve(path), opts, io);
+          return;
         }
         const doc = await buildSbom(resolve(path), {
           includeReach: process.env.FULLSHIELD_EXPERIMENTAL_SBOM_REACH === '1',

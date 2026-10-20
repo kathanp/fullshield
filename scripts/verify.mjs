@@ -1734,6 +1734,24 @@ s.listen(0, '127.0.0.1', () => {
     if (!existsSync(join(root, '.github', 'dependabot.yml'))) fail('phase 45 acceptance: dependabot.yml missing');
     console.log('  ✔ project workflows are pinned; CodeQL, Scorecard, and the SBOM release job exist');
   },
+  89: () => {
+    const flagFile = readFileSync(join(root, 'src', 'sbom', 'spdx-flag.ts'), 'utf8');
+    if (!flagFile.includes('FULLSHIELD_EXPERIMENTAL_SPDX')) fail('phase 89 acceptance: SPDX flag missing');
+    const program = readFileSync(join(root, 'src', 'cli', 'program.ts'), 'utf8');
+    if (!program.includes('--sbom-timestamp')) fail('phase 89 acceptance: --sbom-timestamp missing');
+    if (!program.includes('--format spdx') && !program.includes("opts.format === 'spdx'")) {
+      fail('phase 89 acceptance: sbom --format spdx missing');
+    }
+    if (!existsSync(join(root, 'test', 'schemas', 'spdx-2.3.schema.json'))) {
+      fail('phase 89 acceptance: vendored SPDX schema missing');
+    }
+    const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+    const files = Array.isArray(pkg.files) ? pkg.files.join('\n') : '';
+    if (files.includes('test/schemas') || files.includes('spdx-2.3')) {
+      fail('phase 89 acceptance: SPDX schema must not be shipped');
+    }
+    console.log('  ✔ experimental SPDX 2.3 SBOM; schema is test-only');
+  },
   94: () => {
     const doc = readFileSync(join(root, 'docs', 'QUALITY.md'), 'utf8');
     for (const id of ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10', 'Q11', 'Q12']) {
