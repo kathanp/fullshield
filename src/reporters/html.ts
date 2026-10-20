@@ -1,5 +1,6 @@
 import type { ScanResult } from '../core/engine.js';
 import { SEVERITIES, type Finding } from '../core/finding.js';
+import type { AttackPath } from '../paths/types.js';
 import { redactScan } from './redact.js';
 
 function esc(value: string): string {
@@ -8,6 +9,24 @@ function esc(value: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+function renderPaths(paths: readonly AttackPath[]): string {
+  if (paths.length === 0) return '<section id="paths"><h2>Paths</h2><p>No attack paths.</p></section>';
+  const items = paths
+    .map((path) => {
+      const entry =
+        path.entry === undefined
+          ? '(no route)'
+          : `${path.entry.method} ${path.entry.path} auth: ${path.entry.auth}`;
+      const steps = path.steps
+        .map((step) => `${step.file}${step.line !== undefined ? `:${step.line}` : ''} ${step.note}`)
+        .join(' → ');
+      const tail = steps.length > 0 ? ` → ${esc(steps)}` : '';
+      return `<li>${esc(entry)} → ${esc(path.sink.ruleId)}${tail}</li>`;
+    })
+    .join('\n');
+  return `<section id="paths"><h2>Paths</h2><ol>\n${items}\n</ol></section>`;
 }
 
 function location(finding: Finding): string {
@@ -39,6 +58,15 @@ export function renderHtmlReport(input: ScanResult): string {
   if (sections.length === 0) {
     sections.push('<p>No findings.</p>');
   }
+  const findingsBody = sections.join('\n');
+  const body =
+    result.paths === undefined
+      ? findingsBody
+      : `<nav class="tabs"><a href="#findings">Findings</a> <a href="#paths">Paths</a></nav>
+<section id="findings">
+${findingsBody}
+</section>
+${renderPaths(result.paths)}`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -57,7 +85,7 @@ export function renderHtmlReport(input: ScanResult): string {
   <p>Scanned ${result.metadata.filesScanned} files in ${result.metadata.durationMs}ms
      with FullShield v${esc(result.metadata.version)}.
      <strong>${result.summary.total} finding(s).</strong></p>
-  ${sections.join('\n')}
+  ${body}
 </body>
 </html>
 `;

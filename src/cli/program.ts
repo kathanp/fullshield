@@ -108,6 +108,8 @@ interface ScanCliOptions {
   prSummary?: boolean;
   experimentalPriority?: boolean;
   experimentalCapabilities?: boolean;
+  paths?: boolean;
+  experimentalPaths?: boolean;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -249,6 +251,11 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     )
     .option('--taint-summaries', 'cache per-function taint summaries (FULLSHIELD_TAINT_SUMMARIES=1)')
     .option(
+      '--experimental-paths',
+      'experimental: attack paths from existing findings (FULLSHIELD_EXPERIMENTAL_PATHS=1)',
+    )
+    .option('--paths', 'add a paths section (requires FULLSHIELD_EXPERIMENTAL_PATHS=1)')
+    .option(
       '--experimental-mcpcfg',
       'experimental: MCP client/server config rules (FULLSHIELD_EXPERIMENTAL_MCPCFG=1)',
     )
@@ -318,6 +325,12 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         if (opts.taintSummaries === true) {
           process.env.FULLSHIELD_TAINT_SUMMARIES = '1';
         }
+        if (opts.experimentalPaths === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_PATHS = '1';
+        }
+        if (opts.paths === true && process.env.FULLSHIELD_EXPERIMENTAL_PATHS !== '1') {
+          throw new Error('--paths requires FULLSHIELD_EXPERIMENTAL_PATHS=1');
+        }
         if (opts.experimentalMcpcfg === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_MCPCFG = '1';
         }
@@ -355,6 +368,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           verifySecrets: opts.verifySecrets === true,
           iOwnTheseCredentials: opts.iOwnTheseCredentials === true,
           experimentalPolicy: process.env[POLICY_FLAG] === '1',
+          paths: opts.paths === true,
         });
 
         if (opts.sarif !== undefined) {
