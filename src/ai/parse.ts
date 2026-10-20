@@ -29,14 +29,14 @@ export function extractJson(text: string): unknown {
   const candidate = fenced?.[1]?.trim() ?? trimmed;
   const start = candidate.indexOf('{');
   const end = candidate.lastIndexOf('}');
-  if (start === -1 || end <= start) throw new SyntaxError('no JSON object in model output');
+  if (start === -1 || end <= start) {throw new SyntaxError('no JSON object in model output');}
   return JSON.parse(candidate.slice(start, end + 1)) as unknown;
 }
 
 export function asTriage(value: unknown): LiveTriage | undefined {
-  if (typeof value !== 'object' || value === null) return undefined;
+  if (typeof value !== 'object' || value === null) {return undefined;}
   const rec = value as Record<string, unknown>;
-  if (typeof rec.verdict !== 'string' || !VERDICTS.has(rec.verdict as TriageVerdict)) return undefined;
+  if (typeof rec.verdict !== 'string' || !VERDICTS.has(rec.verdict as TriageVerdict)) {return undefined;}
   return {
     verdict: rec.verdict as TriageVerdict,
     reasoning: typeof rec.reasoning === 'string' ? rec.reasoning : '',
@@ -45,23 +45,23 @@ export function asTriage(value: unknown): LiveTriage | undefined {
 }
 
 export function asExplanation(value: unknown): string | undefined {
-  if (typeof value === 'string' && value.trim().length > 0) return value;
-  if (typeof value !== 'object' || value === null) return undefined;
+  if (typeof value === 'string' && value.trim().length > 0) {return value;}
+  if (typeof value !== 'object' || value === null) {return undefined;}
   const rec = value as Record<string, unknown>;
-  if (typeof rec.explanation === 'string' && rec.explanation.trim().length > 0) return rec.explanation;
+  if (typeof rec.explanation === 'string' && rec.explanation.trim().length > 0) {return rec.explanation;}
   return undefined;
 }
 
 export function asLogicFindings(value: unknown): LiveLogicFinding[] | undefined {
-  if (typeof value !== 'object' || value === null) return undefined;
+  if (typeof value !== 'object' || value === null) {return undefined;}
   const rec = value as Record<string, unknown>;
   const raw = rec.findings;
-  if (!Array.isArray(raw)) return undefined;
+  if (!Array.isArray(raw)) {return undefined;}
   const out: LiveLogicFinding[] = [];
   for (const item of raw) {
-    if (typeof item !== 'object' || item === null) continue;
+    if (typeof item !== 'object' || item === null) {continue;}
     const row = item as Record<string, unknown>;
-    if (typeof row.ruleId !== 'string' || typeof row.message !== 'string') continue;
+    if (typeof row.ruleId !== 'string' || typeof row.message !== 'string') {continue;}
     out.push({
       ruleId: row.ruleId,
       title: typeof row.title === 'string' ? row.title : row.ruleId,
@@ -75,10 +75,10 @@ export function asLogicFindings(value: unknown): LiveLogicFinding[] | undefined 
 }
 
 export function asFix(value: unknown): LiveFix | undefined {
-  if (typeof value !== 'object' || value === null) return undefined;
+  if (typeof value !== 'object' || value === null) {return undefined;}
   const rec = value as Record<string, unknown>;
-  if (typeof rec.file !== 'string' || typeof rec.after !== 'string') return undefined;
-  if (rec.file.length === 0) return undefined;
+  if (typeof rec.file !== 'string' || typeof rec.after !== 'string') {return undefined;}
+  if (rec.file.length === 0) {return undefined;}
   return { file: rec.file, after: rec.after };
 }
 

@@ -31,15 +31,15 @@ const SQL_ORM_IMPORT = /(?:from|require\s*\(\s*)['"](?:sequelize|@prisma\/client
 const MONGO_IMPORT = /(?:from|require\s*\(\s*)['"](?:mongodb|mongoose)['"]/;
 
 function objectKey(prop: { type: string; key?: AstNode }): string | undefined {
-  if (prop.type !== 'Property' || prop.key === undefined) return undefined;
+  if (prop.type !== 'Property' || prop.key === undefined) {return undefined;}
   const key = prop.key;
-  if (key.type === 'Identifier') return key.name;
-  if (key.type === 'Literal') return String(key.value);
+  if (key.type === 'Identifier') {return key.name;}
+  if (key.type === 'Literal') {return String(key.value);}
   return literalString(key);
 }
 
 function objectHasKey(node: AstNode, name: string): boolean {
-  if (node.type !== 'ObjectExpression') return false;
+  if (node.type !== 'ObjectExpression') {return false;}
   return node.properties.some((prop) => objectKey(prop) === name);
 }
 
@@ -53,40 +53,40 @@ function isCollectionName(name: string): boolean {
 
 /** True only for MongoDB / mongoose receivers. Never Sequelize, Prisma, TypeORM, Knex, Drizzle, or unknown. */
 function isMongoReceiver(node: AstNode, source: string): boolean {
-  if (node.type !== 'CallExpression' || node.callee.type !== 'MemberExpression') return false;
+  if (node.type !== 'CallExpression' || node.callee.type !== 'MemberExpression') {return false;}
   const fileHasMongo = MONGO_IMPORT.test(source);
   const fileHasSqlOrm = SQL_ORM_IMPORT.test(source) && !fileHasMongo;
-  if (fileHasSqlOrm) return false;
+  if (fileHasSqlOrm) {return false;}
 
   const obj = node.callee.object;
   if (obj.type === 'Identifier') {
-    if (isCollectionName(obj.name)) return true;
+    if (isCollectionName(obj.name)) {return true;}
     if (isPascalModel(obj.name)) {
-      if (/extends\s+BaseEntity\b/.test(source)) return false;
+      if (/extends\s+BaseEntity\b/.test(source)) {return false;}
       return !fileHasSqlOrm;
     }
     return fileHasMongo;
   }
   if (obj.type === 'MemberExpression') {
     const prop = propName(obj);
-    if (prop !== undefined && (prop === 'collection' || isCollectionName(prop))) return true;
-    if (prop !== undefined && isPascalModel(prop)) return fileHasMongo;
-    if (obj.object.type === 'Identifier' && obj.object.name === 'mongoose') return true;
+    if (prop !== undefined && (prop === 'collection' || isCollectionName(prop))) {return true;}
+    if (prop !== undefined && isPascalModel(prop)) {return fileHasMongo;}
+    if (obj.object.type === 'Identifier' && obj.object.name === 'mongoose') {return true;}
   }
   return fileHasMongo;
 }
 
 function objectHasTaintedWhere(node: AstNode, isTainted: (n: AstNode) => boolean): boolean {
-  if (node.type !== 'ObjectExpression') return false;
+  if (node.type !== 'ObjectExpression') {return false;}
   for (const prop of node.properties) {
-    if (prop.type !== 'Property') continue;
+    if (prop.type !== 'Property') {continue;}
     const key =
       prop.key.type === 'Identifier'
         ? prop.key.name
         : prop.key.type === 'Literal'
           ? String(prop.key.value)
           : literalString(prop.key);
-    if (key === '$where' && isTainted(prop.value)) return true;
+    if (key === '$where' && isTainted(prop.value)) {return true;}
   }
   return false;
 }
@@ -99,7 +99,7 @@ function fileHasMongoSanitizeMiddleware(source: string): boolean {
 }
 
 function isSanitizeWrap(node: AstNode, source: string): boolean {
-  if (node.type !== 'CallExpression') return false;
+  if (node.type !== 'CallExpression') {return false;}
   const name = calleeName(node);
   return name === 'sanitize' && /(?:express-)?mongo-sanitize/.test(source);
 }
@@ -112,7 +112,7 @@ function isNosqlSafeValue(
   if (isNosqlSanitized(node) || isCoercionCall(node) || isSchemaValidatorCall(node) || isMongoSanitizeCall(node)) {
     return true;
   }
-  if (isValidatedRouteField(node)) return true;
+  if (isValidatedRouteField(node)) {return true;}
   return isSanitizeWrap(node, source);
 }
 
@@ -124,13 +124,13 @@ function objectHasUnsafeTaintedValue(
   if (node.type === 'ArrayExpression') {
     return node.elements.some((el) => el !== null && el.type !== 'SpreadElement' && objectHasUnsafeTaintedValue(el, isTainted, isSafe));
   }
-  if (node.type !== 'ObjectExpression') return false;
+  if (node.type !== 'ObjectExpression') {return false;}
   for (const prop of node.properties) {
-    if (prop.type !== 'Property') continue;
+    if (prop.type !== 'Property') {continue;}
     const value = prop.value;
-    if (isSafe(value)) continue;
-    if (isTainted(value)) return true;
-    if (objectHasUnsafeTaintedValue(value, isTainted, isSafe)) return true;
+    if (isSafe(value)) {continue;}
+    if (isTainted(value)) {return true;}
+    if (objectHasUnsafeTaintedValue(value, isTainted, isSafe)) {return true;}
   }
   return false;
 }
@@ -148,10 +148,10 @@ export const nosqliRule: SastRule = {
     const isSafe = (n: AstNode) => isNosqlSafeValue(n, ctx.source, (x) => ctx.isNosqlSanitized(x));
     return {
       CallExpression(node) {
-        if (node.type !== 'CallExpression') return;
+        if (node.type !== 'CallExpression') {return;}
         const name = calleeName(node);
         if (name === '$where') {
-          if (!MONGO_IMPORT.test(ctx.source) && !isMongoReceiver(node, ctx.source)) return;
+          if (!MONGO_IMPORT.test(ctx.source) && !isMongoReceiver(node, ctx.source)) {return;}
           const expr = node.arguments[0];
           if (expr !== undefined && expr.type !== 'SpreadElement' && ctx.isTainted(expr)) {
             ctx.report({
@@ -161,12 +161,12 @@ export const nosqliRule: SastRule = {
           }
           return;
         }
-        if (name !== undefined && SQL_ONLY_METHODS.has(name)) return;
-        if (name === undefined || !MONGO_SINKS.has(name)) return;
-        if (!isMongoReceiver(node, ctx.source)) return;
+        if (name !== undefined && SQL_ONLY_METHODS.has(name)) {return;}
+        if (name === undefined || !MONGO_SINKS.has(name)) {return;}
+        if (!isMongoReceiver(node, ctx.source)) {return;}
         const filter = node.arguments[0];
-        if (filter === undefined || filter.type === 'SpreadElement') return;
-        if (objectHasKey(filter, 'where')) return;
+        if (filter === undefined || filter.type === 'SpreadElement') {return;}
+        if (objectHasKey(filter, 'where')) {return;}
         if (ctx.isRequestObject(filter)) {
           ctx.report({
             node,
@@ -181,7 +181,7 @@ export const nosqliRule: SastRule = {
           });
           return;
         }
-        if (middleware) return;
+        if (middleware) {return;}
         if (ctx.holdsBuiltFilter(filter)) {
           ctx.report({
             node,

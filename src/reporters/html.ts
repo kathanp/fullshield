@@ -12,7 +12,7 @@ function esc(value: string): string {
 }
 
 function renderPaths(paths: readonly AttackPath[]): string {
-  if (paths.length === 0) return '<section id="paths"><h2>Paths</h2><p>No attack paths.</p></section>';
+  if (paths.length === 0) {return '<section id="paths"><h2>Paths</h2><p>No attack paths.</p></section>';}
   const items = paths
     .map((path) => {
       const entry =
@@ -30,7 +30,7 @@ function renderPaths(paths: readonly AttackPath[]): string {
 }
 
 function location(finding: Finding): string {
-  if (finding.file === undefined) return '(project)';
+  if (finding.file === undefined) {return '(project)';}
   return finding.line !== undefined ? `${finding.file}:${finding.line}` : finding.file;
 }
 
@@ -41,7 +41,7 @@ export function renderHtmlReport(input: ScanResult): string {
   const bySeverityDesc = [...SEVERITIES].reverse();
   for (const severity of bySeverityDesc) {
     const group = result.findings.filter((f) => f.severity === severity);
-    if (group.length === 0) continue;
+    if (group.length === 0) {continue;}
     const items = group
       .map(
         (f) => `<article class="finding ${esc(severity)}">

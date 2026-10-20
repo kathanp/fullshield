@@ -95,16 +95,16 @@ export interface TypeSuppression {
 
 function isMissingTypescript(error: unknown): boolean {
   const code = (error as { code?: string }).code;
-  if (code === 'ERR_MODULE_NOT_FOUND' || code === 'MODULE_NOT_FOUND') return true;
+  if (code === 'ERR_MODULE_NOT_FOUND' || code === 'MODULE_NOT_FOUND') {return true;}
   const message = error instanceof Error ? error.message : String(error);
   return /cannot find (package|module) ['"]typescript['"]/i.test(message);
 }
 
 function projectConfig(cwd: string): string | undefined {
   const tsconfig = join(cwd, 'tsconfig.json');
-  if (existsSync(tsconfig)) return tsconfig;
+  if (existsSync(tsconfig)) {return tsconfig;}
   const jsconfig = join(cwd, 'jsconfig.json');
-  if (existsSync(jsconfig)) return jsconfig;
+  if (existsSync(jsconfig)) {return jsconfig;}
   return undefined;
 }
 
@@ -118,10 +118,10 @@ function listInferredFiles(cwd: string): string[] {
       return;
     }
     for (const entry of entries) {
-      if (entry.isSymbolicLink()) continue;
+      if (entry.isSymbolicLink()) {continue;}
       const abs = join(dir, entry.name);
       if (entry.isDirectory()) {
-        if (!SKIP_DIRS.has(entry.name)) walk(abs);
+        if (!SKIP_DIRS.has(entry.name)) {walk(abs);}
       } else if (entry.isFile() && /\.[cm]?[jt]sx?$/.test(entry.name)) {
         out.push(abs);
       }
@@ -139,7 +139,7 @@ function capNotice(count: number, maxFiles: number): string {
 function ambientModuleName(ts: TS, node: import('typescript').Node | undefined): string | undefined {
   let current = node;
   while (current !== undefined) {
-    if (ts.isModuleDeclaration(current) && ts.isStringLiteral(current.name)) return current.name.text;
+    if (ts.isModuleDeclaration(current) && ts.isStringLiteral(current.name)) {return current.name.text;}
     current = current.parent;
   }
   return undefined;
@@ -148,10 +148,10 @@ function ambientModuleName(ts: TS, node: import('typescript').Node | undefined):
 function packageFromFile(fileName: string): string | undefined {
   const file = fileName.replace(/\\/g, '/');
   const packed = file.match(/node_modules\/((?:@[^/]+\/)?[^/]+)\//);
-  if (packed === null) return undefined;
+  if (packed === null) {return undefined;}
   if (packed[1] === '@types/node') {
     const native = file.match(/\/(fs|child_process|http|https)(?:\/|$)/);
-    if (native !== null) return native[1];
+    if (native !== null) {return native[1];}
   }
   return packed[1];
 }
@@ -159,40 +159,40 @@ function packageFromFile(fileName: string): string | undefined {
 function moduleOf(ts: TS, symbol: import('typescript').Symbol): string | undefined {
   for (const decl of symbol.declarations ?? []) {
     const named = ambientModuleName(ts, decl);
-    if (named !== undefined) return named;
+    if (named !== undefined) {return named;}
     const fromFile = packageFromFile(decl.getSourceFile().fileName);
-    if (fromFile !== undefined) return fromFile;
+    if (fromFile !== undefined) {return fromFile;}
   }
   return undefined;
 }
 
 function isSinkSymbol(ts: TS, checker: import('typescript').TypeChecker, symbol: import('typescript').Symbol | undefined): boolean {
-  if (symbol === undefined) return false;
+  if (symbol === undefined) {return false;}
   let current = symbol;
   if ((current.flags & ts.SymbolFlags.Alias) !== 0) {
     current = checker.getAliasedSymbol(current);
   }
   const name = current.getName();
   const moduleName = moduleOf(ts, current);
-  if (moduleName === undefined) return false;
+  if (moduleName === undefined) {return false;}
   const names = SINK_TYPES[moduleName];
-  if (names === undefined) return false;
+  if (names === undefined) {return false;}
   return names.length === 0 || names.includes(name);
 }
 
 function symbolsOf(type: import('typescript').Type): import('typescript').Symbol[] {
   const out: import('typescript').Symbol[] = [];
-  if (type.aliasSymbol !== undefined) out.push(type.aliasSymbol);
-  if (type.symbol !== undefined) out.push(type.symbol);
+  if (type.aliasSymbol !== undefined) {out.push(type.aliasSymbol);}
+  if (type.symbol !== undefined) {out.push(type.symbol);}
   const target = (type as { target?: import('typescript').Type }).target;
-  if (target?.aliasSymbol !== undefined) out.push(target.aliasSymbol);
-  if (target?.symbol !== undefined) out.push(target.symbol);
+  if (target?.aliasSymbol !== undefined) {out.push(target.aliasSymbol);}
+  if (target?.symbol !== undefined) {out.push(target.symbol);}
   return out;
 }
 
 function isAnyOrError(ts: TS, type: import('typescript').Type): boolean {
   const intrinsic = (type as { intrinsicName?: string }).intrinsicName;
-  if (intrinsic === 'error' || intrinsic === 'any') return true;
+  if (intrinsic === 'error' || intrinsic === 'any') {return true;}
   return (type.flags & ts.TypeFlags.Any) !== 0;
 }
 
@@ -202,26 +202,26 @@ function classify(
   type: import('typescript').Type,
   seen: Set<import('typescript').Type>,
 ): Verdict {
-  if (seen.has(type)) return 'non-sink';
+  if (seen.has(type)) {return 'non-sink';}
   seen.add(type);
-  if (isAnyOrError(ts, type)) return 'any';
-  if ((type.flags & ts.TypeFlags.TypeParameter) !== 0) return 'any';
+  if (isAnyOrError(ts, type)) {return 'any';}
+  if ((type.flags & ts.TypeFlags.TypeParameter) !== 0) {return 'any';}
   if (type.isUnion() || type.isIntersection()) {
     const parts = type.types.filter(
       (part) => (part.flags & (ts.TypeFlags.Null | ts.TypeFlags.Undefined | ts.TypeFlags.Void)) === 0,
     );
-    if (parts.length === 0) return 'any';
+    if (parts.length === 0) {return 'any';}
     let sink = false;
     let any = false;
     let nonSink = false;
     for (const part of parts) {
       const verdict = classify(ts, checker, part, seen);
-      if (verdict === 'sink') sink = true;
-      else if (verdict === 'any') any = true;
-      else nonSink = true;
+      if (verdict === 'sink') {sink = true;}
+      else if (verdict === 'any') {any = true;}
+      else {nonSink = true;}
     }
-    if (sink) return 'sink';
-    if (any) return 'any';
+    if (sink) {return 'sink';}
+    if (any) {return 'any';}
     return nonSink ? 'non-sink' : 'any';
   }
   const primitive =
@@ -234,13 +234,13 @@ function classify(
     ts.TypeFlags.NumberLiteral |
     ts.TypeFlags.BooleanLiteral |
     ts.TypeFlags.Never;
-  if ((type.flags & primitive) !== 0) return 'non-sink';
+  if ((type.flags & primitive) !== 0) {return 'non-sink';}
 
   for (const symbol of symbolsOf(type)) {
-    if (isSinkSymbol(ts, checker, symbol)) return 'sink';
+    if (isSinkSymbol(ts, checker, symbol)) {return 'sink';}
   }
   for (const symbol of symbolsOf(type)) {
-    if (NON_SINK_GLOBALS.has(symbol.getName())) return 'non-sink';
+    if (NON_SINK_GLOBALS.has(symbol.getName())) {return 'non-sink';}
   }
   const bases = type.getBaseTypes?.() ?? [];
   if (bases.length > 0) {
@@ -248,13 +248,13 @@ function classify(
     let any = false;
     for (const base of bases) {
       const verdict = classify(ts, checker, base, seen);
-      if (verdict === 'sink') sink = true;
-      else if (verdict === 'any') any = true;
+      if (verdict === 'sink') {sink = true;}
+      else if (verdict === 'any') {any = true;}
     }
-    if (sink) return 'sink';
-    if (any) return 'any';
+    if (sink) {return 'sink';}
+    if (any) {return 'any';}
   }
-  if (symbolsOf(type).length > 0 || (type.flags & ts.TypeFlags.Object) !== 0) return 'non-sink';
+  if (symbolsOf(type).length > 0 || (type.flags & ts.TypeFlags.Object) !== 0) {return 'non-sink';}
   return 'any';
 }
 
@@ -274,8 +274,8 @@ function unwrap(ts: TS, expr: import('typescript').Expression): import('typescri
 
 function receiverOf(ts: TS, call: import('typescript').CallExpression): import('typescript').Expression | undefined {
   const expr = unwrap(ts, call.expression);
-  if (ts.isPropertyAccessExpression(expr) || ts.isElementAccessExpression(expr)) return unwrap(ts, expr.expression);
-  if (ts.isIdentifier(expr)) return expr;
+  if (ts.isPropertyAccessExpression(expr) || ts.isElementAccessExpression(expr)) {return unwrap(ts, expr.expression);}
+  if (ts.isIdentifier(expr)) {return expr;}
   return undefined;
 }
 
@@ -284,7 +284,7 @@ function callsOnLine(ts: TS, sourceFile: import('typescript').SourceFile, line: 
   const visit = (node: import('typescript').Node): void => {
     if (ts.isCallExpression(node)) {
       const pos = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
-      if (pos.line + 1 === line) found.push(node);
+      if (pos.line + 1 === line) {found.push(node);}
     }
     ts.forEachChild(node, visit);
   };
@@ -294,7 +294,7 @@ function callsOnLine(ts: TS, sourceFile: import('typescript').SourceFile, line: 
 
 function sourceFileFor(program: import('typescript').Program, abs: string): import('typescript').SourceFile | undefined {
   const direct = program.getSourceFile(abs);
-  if (direct !== undefined) return direct;
+  if (direct !== undefined) {return direct;}
   const norm = abs.replace(/\\/g, '/');
   return program.getSourceFiles().find((file) => file.fileName.replace(/\\/g, '/') === norm);
 }
@@ -306,28 +306,28 @@ function verdictFor(
   cwd: string,
   finding: Finding,
 ): Verdict {
-  if (finding.file === undefined || finding.line === undefined) return 'any';
+  if (finding.file === undefined || finding.line === undefined) {return 'any';}
   const sourceFile = sourceFileFor(program, resolve(cwd, finding.file));
-  if (sourceFile === undefined) return 'any';
+  if (sourceFile === undefined) {return 'any';}
   const calls = callsOnLine(ts, sourceFile, finding.line);
-  if (calls.length === 0) return 'any';
+  if (calls.length === 0) {return 'any';}
   const snippet = finding.snippet ?? '';
   const ranked = [...calls].sort((a, b) => {
     const score = (call: import('typescript').CallExpression): number => {
       const text = call.getText(sourceFile).replace(/\s+/g, ' ').trim().slice(0, 120);
-      if (snippet.length > 0 && (text === snippet || snippet.startsWith(text) || text.startsWith(snippet))) return 0;
+      if (snippet.length > 0 && (text === snippet || snippet.startsWith(text) || text.startsWith(snippet))) {return 0;}
       if (finding.column !== undefined) {
         const pos = sourceFile.getLineAndCharacterOfPosition(call.getStart(sourceFile));
-        if (pos.character === finding.column) return 1;
+        if (pos.character === finding.column) {return 1;}
       }
       return 2;
     };
     return score(a) - score(b);
   });
   const call = ranked[0];
-  if (call === undefined) return 'any';
+  if (call === undefined) {return 'any';}
   const receiver = receiverOf(ts, call);
-  if (receiver === undefined) return 'any';
+  if (receiver === undefined) {return 'any';}
   return classify(ts, checker, checker.getTypeAtLocation(receiver), new Set());
 }
 
@@ -382,7 +382,7 @@ export async function applyTypeSuppression(
   }
 
   const roots = programRoots(ts, cwd);
-  if ('notice' in roots) return { findings: [...findings], notice: roots.notice };
+  if ('notice' in roots) {return { findings: [...findings], notice: roots.notice };}
   if (roots.files.length > types.maxFiles) {
     return { findings: [...findings], notice: capNotice(roots.files.length, types.maxFiles) };
   }
@@ -397,8 +397,8 @@ export async function applyTypeSuppression(
       continue;
     }
     const verdict = verdictFor(ts, program, checker, cwd, finding);
-    if (verdict === 'non-sink') dropped.push({ ...finding, suppressedBy: 'types' });
-    else kept.push(finding);
+    if (verdict === 'non-sink') {dropped.push({ ...finding, suppressedBy: 'types' });}
+    else {kept.push(finding);}
   }
   return { findings: sortFindings(kept), suppressed: sortFindings(dropped) };
 }

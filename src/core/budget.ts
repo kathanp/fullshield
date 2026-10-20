@@ -47,9 +47,9 @@ export function budgetExpired(): boolean {
 
 /** Record that SAST stopped taint. A later smaller count does not replace a larger one. */
 export function markTaintStopped(module: ModuleName, filesNotTaintChecked: number): void {
-  if (active === undefined) return;
+  if (active === undefined) {return;}
   active.incomplete = true;
-  if (!active.modules.includes(module)) active.modules.push(module);
+  if (!active.modules.includes(module)) {active.modules.push(module);}
   if (filesNotTaintChecked > active.filesNotTaintChecked) {
     active.filesNotTaintChecked = filesNotTaintChecked;
   }
@@ -58,7 +58,7 @@ export function markTaintStopped(module: ModuleName, filesNotTaintChecked: numbe
 export function budgetSnapshot():
   | { incomplete: true; incompleteModules: ModuleName[]; filesNotTaintChecked: number }
   | undefined {
-  if (active === undefined || !active.incomplete) return undefined;
+  if (active === undefined || !active.incomplete) {return undefined;}
   return {
     incomplete: true,
     incompleteModules: [...active.modules],

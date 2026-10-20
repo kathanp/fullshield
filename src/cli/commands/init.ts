@@ -16,7 +16,7 @@ async function packageRoot(): Promise<string> {
   for (let i = 0; i < 8; i += 1) {
     try {
       const raw = JSON.parse(await readFile(join(dir, 'package.json'), 'utf8')) as { name?: string };
-      if (raw.name === 'fullshield') return dir;
+      if (raw.name === 'fullshield') {return dir;}
     } catch {
       // keep walking up
     }

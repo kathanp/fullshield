@@ -67,7 +67,7 @@ const SOURCE_EXT = /\.[cm]?[jt]sx?$/;
 
 /** Finish nothing further: the current file already returned. Deps, secrets, and config are not stopped here. */
 function haltTaint(remaining: number): boolean {
-  if (!budgetArmed() || !budgetExpired()) return false;
+  if (!budgetArmed() || !budgetExpired()) {return false;}
   markTaintStopped('sast', remaining);
   return true;
 }
@@ -404,19 +404,19 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
     if (viewEngine === 'swig') {mergeSwigViews(swigViews, taintedSwigViews([{ ast }]));}
     parseable.push(rel);
     fileSet.add(rel);
-    if (perf2Enabled()) lazyEntries.push({ file: rel, source });
-    else returning.set(rel, taintSummariesEnabled() ? cachedReturners(source, ast) : functionsThatReturnTaint(ast));
+    if (perf2Enabled()) {lazyEntries.push({ file: rel, source });}
+    else {returning.set(rel, taintSummariesEnabled() ? cachedReturners(source, ast) : functionsThatReturnTaint(ast));}
   }
 
   const streamedWalk = perf2Enabled() ? lazyTaintFiles(lazyEntries) : undefined;
 
   if (streamedWalk !== undefined) {
     for (const rel of parseable) {
-      if (!streamedWalk.has(rel)) continue;
+      if (!streamedWalk.has(rel)) {continue;}
       const source = await readScanSource(ctx.cwd, rel);
-      if (source === undefined) continue;
+      if (source === undefined) {continue;}
       const ast = await parseCode(source, rel);
-      if (ast === undefined) continue;
+      if (ast === undefined) {continue;}
       returning.set(rel, taintSummariesEnabled() ? cachedReturners(source, ast) : functionsThatReturnTaint(ast));
     }
   }
@@ -448,7 +448,7 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
     for (let i = 0; i < parseable.length; i += batch) {
       const parsed: ParsedSource[] = [];
       for (const rel of parseable.slice(i, i + batch)) {
-        if (streamedWalk !== undefined && !streamedWalk.has(rel)) continue;
+        if (streamedWalk !== undefined && !streamedWalk.has(rel)) {continue;}
         const source = await readScanSource(ctx.cwd, rel);
         if (source === undefined) {continue;}
         const ast = await parseCode(source, rel);
@@ -467,7 +467,7 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
 }
 
 async function withUserSemgrep(ctx: Parameters<ScanModule['run']>[0], findings: Finding[]): Promise<Finding[]> {
-  if (!semgrepRulesEnabled() || ctx.config.semgrepRules === undefined) return findings;
+  if (!semgrepRulesEnabled() || ctx.config.semgrepRules === undefined) {return findings;}
   const extra = await scanUserSemgrepRules({
     cwd: ctx.cwd,
     files: ctx.files,
@@ -530,7 +530,7 @@ export const sastModule: ScanModule = {
     const projectCsrf = parsed.some((p) => sourceHasCsrfGuard(p.source));
     const returning = new Map<string, Set<string>>();
     for (const entry of parsed) {
-      if (walked !== undefined && !walked.has(entry.file)) continue;
+      if (walked !== undefined && !walked.has(entry.file)) {continue;}
       returning.set(
         entry.file,
         taintSummariesEnabled() ? cachedReturners(entry.source, entry.ast) : functionsThatReturnTaint(entry.ast),

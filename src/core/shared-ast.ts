@@ -40,7 +40,7 @@ function cacheKey(file: string, source: string): string {
 }
 
 function cloneAst(ast: AstNode | undefined): AstNode | undefined {
-  if (ast === undefined) return undefined;
+  if (ast === undefined) {return undefined;}
   try {
     return structuredClone(ast);
   } catch {
@@ -52,7 +52,7 @@ async function parseFresh(source: string): Promise<AstNode | undefined> {
   if (parsePoolEnabled()) {
     try {
       const ast = (await parseWithPool([source]))[0];
-      if (ast !== undefined && ast !== null && typeof ast === 'object') return ast as AstNode;
+      if (ast !== undefined && ast !== null && typeof ast === 'object') {return ast as AstNode;}
     } catch {
       // The in-process parser is the same fallback the SAST engine uses.
     }
@@ -74,12 +74,12 @@ async function parseFresh(source: string): Promise<AstNode | undefined> {
 
 /** Parse this file once per scan. Later callers get a clone of that AST. */
 export async function sharedParse(file: string, source: string): Promise<AstNode | undefined> {
-  if (session === undefined) return cloneAst(await parseFresh(source));
+  if (session === undefined) {return cloneAst(await parseFresh(source));}
   const key = cacheKey(file, source);
   const hit = session.cache.get(key);
-  if (hit !== undefined) return cloneAst(hit.ast);
+  if (hit !== undefined) {return cloneAst(hit.ast);}
   const inflight = session.pending.get(key);
-  if (inflight !== undefined) return cloneAst(await inflight);
+  if (inflight !== undefined) {return cloneAst(await inflight);}
   const current = session;
   const work = parseFresh(source).then((fresh) => {
     const ast = cloneAst(fresh);
@@ -95,14 +95,14 @@ export async function sharedParse(file: string, source: string): Promise<AstNode
 /** Fill the scan cache before modules run. Targets the parser rows from the step 1 profile. */
 export async function preparseProject(cwd: string, files: readonly string[], maxBytes: number): Promise<void> {
   for (const rel of files) {
-    if (!SOURCE_EXT.test(rel)) continue;
+    if (!SOURCE_EXT.test(rel)) {continue;}
     let source: string;
     try {
       source = await readFile(join(cwd, rel), 'utf8');
     } catch {
       continue;
     }
-    if (source.includes('\u0000') || Buffer.byteLength(source) > maxBytes) continue;
+    if (source.includes('\u0000') || Buffer.byteLength(source) > maxBytes) {continue;}
     await sharedParse(rel, source);
   }
 }

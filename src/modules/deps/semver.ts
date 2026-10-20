@@ -22,28 +22,28 @@ export function sameMajor(a: string, b: string): boolean {
 /** True, false, or undefined when the range is not one this helper understands. Never guesses a version. */
 export function rangeSatisfies(range: string, version: string): boolean | undefined {
   const parts = range.split('||').map((part) => part.trim()).filter((part) => part.length > 0);
-  if (parts.length === 0) return undefined;
+  if (parts.length === 0) {return undefined;}
   if (parts.length > 1) {
     const answered = parts.map((part) => rangeSatisfies(part, version));
-    if (answered.some((item) => item === undefined)) return undefined;
+    if (answered.some((item) => item === undefined)) {return undefined;}
     return answered.some((item) => item === true);
   }
   const one = parts[0] ?? '';
-  if (one === '*' || one === 'x') return true;
+  if (one === '*' || one === 'x') {return true;}
   const match = /^(>=|<=|>|<|\^|~)?v?(\d+\.\d+\.\d+)(?:[-+].*)?$/.exec(one);
-  if (match === null || match[2] === undefined) return undefined;
+  if (match === null || match[2] === undefined) {return undefined;}
   const op = match[1] ?? '=';
   const base = match[2];
   const cmp = compareSemver(version, base);
-  if (op === '=') return cmp === 0;
-  if (op === '>') return cmp > 0;
-  if (op === '>=') return cmp >= 0;
-  if (op === '<') return cmp < 0;
-  if (op === '<=') return cmp <= 0;
+  if (op === '=') {return cmp === 0;}
+  if (op === '>') {return cmp > 0;}
+  if (op === '>=') {return cmp >= 0;}
+  if (op === '<') {return cmp < 0;}
+  if (op === '<=') {return cmp <= 0;}
   const [major, minor] = parseSemver(base);
   const [vMajor, vMinor] = parseSemver(version);
-  if (op === '^') return vMajor === major && cmp >= 0;
-  if (op === '~') return vMajor === major && vMinor === minor && cmp >= 0;
+  if (op === '^') {return vMajor === major && cmp >= 0;}
+  if (op === '~') {return vMajor === major && vMinor === minor && cmp >= 0;}
   return undefined;
 }
 
@@ -61,7 +61,7 @@ export function minFixedVersion(affected: readonly OsvAffected[]): string | unde
   for (const entry of affected) {
     for (const range of entry.ranges ?? []) {
       for (const event of range.events ?? []) {
-        if (event.fixed === undefined) continue;
+        if (event.fixed === undefined) {continue;}
         if (best === undefined || compareSemver(event.fixed, best) > 0) {
           best = event.fixed;
         }
@@ -78,24 +78,24 @@ export interface OsvSeverityInput {
 
 function fromCvssScore(score: string): Severity | undefined {
   const n = Number.parseFloat(score.split('/')[0] ?? score);
-  if (!Number.isFinite(n)) return undefined;
-  if (n >= 9) return 'critical';
-  if (n >= 7) return 'high';
-  if (n >= 4) return 'medium';
+  if (!Number.isFinite(n)) {return undefined;}
+  if (n >= 9) {return 'critical';}
+  if (n >= 7) {return 'high';}
+  if (n >= 4) {return 'medium';}
   return 'low';
 }
 
 /** Map OSV severity metadata onto a Finding severity. Unknown → high. */
 export function osvSeverity(vuln: OsvSeverityInput): Severity {
   const raw = vuln.database_specific?.severity?.toUpperCase();
-  if (raw === 'CRITICAL') return 'critical';
-  if (raw === 'HIGH') return 'high';
-  if (raw === 'MODERATE' || raw === 'MEDIUM') return 'medium';
-  if (raw === 'LOW') return 'low';
+  if (raw === 'CRITICAL') {return 'critical';}
+  if (raw === 'HIGH') {return 'high';}
+  if (raw === 'MODERATE' || raw === 'MEDIUM') {return 'medium';}
+  if (raw === 'LOW') {return 'low';}
   for (const entry of vuln.severity ?? []) {
     if (entry.score !== undefined) {
       const mapped = fromCvssScore(entry.score);
-      if (mapped !== undefined) return mapped;
+      if (mapped !== undefined) {return mapped;}
     }
   }
   return 'high';

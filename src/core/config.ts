@@ -124,8 +124,8 @@ const SAST_CLASSES = new Set([
 ]);
 
 function parseSastSources(value: unknown, source: string): SastSourceConfig[] | undefined {
-  if (value === undefined) return undefined;
-  if (!Array.isArray(value)) throw new ConfigError(`${source}: "sast.sources" must be an array`);
+  if (value === undefined) {return undefined;}
+  if (!Array.isArray(value)) {throw new ConfigError(`${source}: "sast.sources" must be an array`);}
   return value.map((item) => {
     if (typeof item !== 'object' || item === null) {
       throw new ConfigError(`${source}: "sast.sources" entries must be objects`);
@@ -142,8 +142,8 @@ function parseSastSources(value: unknown, source: string): SastSourceConfig[] | 
 }
 
 function parseSastSanitizers(value: unknown, source: string): SastSanitizerConfig[] | undefined {
-  if (value === undefined) return undefined;
-  if (!Array.isArray(value)) throw new ConfigError(`${source}: "sast.sanitizers" must be an array`);
+  if (value === undefined) {return undefined;}
+  if (!Array.isArray(value)) {throw new ConfigError(`${source}: "sast.sanitizers" must be an array`);}
   return value.map((item) => {
     if (typeof item !== 'object' || item === null) {
       throw new ConfigError(`${source}: "sast.sanitizers" entries must be objects`);
@@ -164,13 +164,13 @@ function parseCapabilityGlobs(
   source: string,
   label: string,
 ): Partial<Record<CapabilityName, readonly string[]>> {
-  if (value === undefined) return {};
+  if (value === undefined) {return {};}
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     throw new ConfigError(`${source}: "${label}" must be an object`);
   }
   const out: Partial<Record<CapabilityName, readonly string[]>> = {};
   for (const [key, globs] of Object.entries(value)) {
-    if (!isCapabilityName(key)) throw new ConfigError(`${source}: unknown capability "${key}"`);
+    if (!isCapabilityName(key)) {throw new ConfigError(`${source}: unknown capability "${key}"`);}
     if (!Array.isArray(globs) || globs.some((item) => typeof item !== 'string' || item.length === 0)) {
       throw new ConfigError(`${source}: "${label}.${key}" must be an array of package globs`);
     }

@@ -86,10 +86,10 @@ export function validateOpenVex(doc: unknown): string[] {
   if (typeof root['@context'] !== 'string' || !String(root['@context']).includes('openvex')) {
     errors.push('@context must be an OpenVEX context URI');
   }
-  if (typeof root['@id'] !== 'string' || root['@id'].length === 0) errors.push('@id is required');
-  if (typeof root.author !== 'string' || root.author.length === 0) errors.push('author is required');
-  if (typeof root.timestamp !== 'string' || root.timestamp.length === 0) errors.push('timestamp is required');
-  if (typeof root.version !== 'number') errors.push('version must be a number');
+  if (typeof root['@id'] !== 'string' || root['@id'].length === 0) {errors.push('@id is required');}
+  if (typeof root.author !== 'string' || root.author.length === 0) {errors.push('author is required');}
+  if (typeof root.timestamp !== 'string' || root.timestamp.length === 0) {errors.push('timestamp is required');}
+  if (typeof root.version !== 'number') {errors.push('version must be a number');}
   if (!Array.isArray(root.statements)) {
     errors.push('statements must be an array');
     return errors;
@@ -152,7 +152,7 @@ export function buildCycloneDxVex(
 
 export function validateCycloneDxVex(doc: unknown): string[] {
   const errors = validateCycloneDx15(doc);
-  if (typeof doc !== 'object' || doc === null || Array.isArray(doc)) return errors;
+  if (typeof doc !== 'object' || doc === null || Array.isArray(doc)) {return errors;}
   const root = doc as Record<string, unknown>;
   if (!Array.isArray(root.vulnerabilities)) {
     errors.push('vulnerabilities must be an array');
@@ -187,6 +187,6 @@ export function buildVex(
   format: VexFormat,
   meta: { name: string; version: string } = { name: 'app', version: '0.0.0' },
 ): Record<string, unknown> {
-  if (format === 'cyclonedx') return buildCycloneDxVex(meta, findings);
+  if (format === 'cyclonedx') {return buildCycloneDxVex(meta, findings);}
   return buildOpenVex(findings);
 }

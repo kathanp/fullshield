@@ -41,16 +41,16 @@ async function gitOk(cwd: string, args: string[]): Promise<string> {
 }
 
 async function readBlob(cwd: string, hash: string): Promise<string | undefined> {
-  if (ZERO_HASH.test(hash)) return undefined;
+  if (ZERO_HASH.test(hash)) {return undefined;}
   try {
     const sizeRaw = await gitOk(cwd, ['cat-file', '-s', hash]);
     const size = Number(sizeRaw.trim());
-    if (!Number.isFinite(size) || size <= 0 || size > MAX_BLOB) return undefined;
+    if (!Number.isFinite(size) || size <= 0 || size > MAX_BLOB) {return undefined;}
     const { stdout } = await execFileAsync('git', ['-C', cwd, 'cat-file', 'blob', hash], {
       encoding: 'utf8',
       maxBuffer: MAX_BLOB + 16_384,
     });
-    if (stdout.includes('\u0000')) return undefined;
+    if (stdout.includes('\u0000')) {return undefined;}
     return stdout;
   } catch {
     return undefined;
@@ -75,9 +75,9 @@ interface BlobChange {
 
 /** Stop history scans after this many commits. `FULLSHIELD_HISTORY_MAX` overrides it (1–5000). */
 export function historyCommitLimit(raw = process.env.FULLSHIELD_HISTORY_MAX): number {
-  if (raw === undefined || raw.trim() === '') return 500;
+  if (raw === undefined || raw.trim() === '') {return 500;}
   const parsed = Number(raw);
-  if (!Number.isInteger(parsed) || parsed < 1) return 500;
+  if (!Number.isInteger(parsed) || parsed < 1) {return 500;}
   return Math.min(parsed, 5000);
 }
 
@@ -126,7 +126,7 @@ async function streamLogChanges(cwd: string, maxCommits: number): Promise<BlobCh
     if (match?.[3] !== undefined && match[4] !== undefined && match[6] !== undefined) {
       const newHash = match[4];
       const status = match[5] ?? '';
-      if (status.startsWith('D') || ZERO_HASH.test(newHash) || current.length === 0) continue;
+      if (status.startsWith('D') || ZERO_HASH.test(newHash) || current.length === 0) {continue;}
       const pathField = match[6];
       const path = pathField.includes('\t') ? (pathField.split('\t').pop() ?? pathField) : pathField;
       changes.push({ commit: current, hash: newHash, path });
@@ -157,13 +157,13 @@ async function headSecretKeys(cwd: string): Promise<Set<string>> {
   const seen = new Map<string, SecretHit[]>();
   for (const line of ls.split('\n')) {
     const match = /^(\d{6}) blob ([0-9a-f]{40})\t(.+)$/.exec(line);
-    if (match?.[2] === undefined || match[3] === undefined) continue;
+    if (match?.[2] === undefined || match[3] === undefined) {continue;}
     const hash = match[2];
     const path = match[3];
     let hits = seen.get(hash);
     if (hits === undefined) {
       const text = await readBlob(cwd, hash);
-      if (text === undefined) continue;
+      if (text === undefined) {continue;}
       hits = scanTextForSecretHits(path, text);
       seen.set(hash, hits);
     }

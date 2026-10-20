@@ -18,10 +18,10 @@ const IMPORT_RE =
   /(?:require\(\s*['"]([^'"]+)['"]\s*\)|from\s+['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\))/g;
 
 export function packageNameFromSpec(spec: string): string | undefined {
-  if (spec.startsWith('.') || spec.startsWith('/') || spec.startsWith('node:')) return undefined;
+  if (spec.startsWith('.') || spec.startsWith('/') || spec.startsWith('node:')) {return undefined;}
   if (spec.startsWith('@')) {
     const slash = spec.indexOf('/');
-    if (slash < 0) return undefined;
+    if (slash < 0) {return undefined;}
     const rest = spec.slice(slash + 1);
     const cut = rest.indexOf('/');
     return cut === -1 ? spec : spec.slice(0, slash + 1 + cut);
@@ -43,9 +43,9 @@ export function collectImportSites(sources: ReadonlyMap<string, string>): Map<st
       let match: RegExpExecArray | null;
       while ((match = IMPORT_RE.exec(line)) !== null) {
         const spec = match[1] ?? match[2] ?? match[3];
-        if (spec === undefined) continue;
+        if (spec === undefined) {continue;}
         const pkg = packageNameFromSpec(spec);
-        if (pkg === undefined) continue;
+        if (pkg === undefined) {continue;}
         const list = byPkg.get(pkg) ?? [];
         list.push({ file, line: i + 1, specifier: spec, pkg });
         byPkg.set(pkg, list);
@@ -65,11 +65,11 @@ export function evidenceForFinding(
   productionFiles: readonly string[],
   edgesKnown: boolean,
 ): ReachabilityEvidence | undefined {
-  if (finding.ruleId !== 'DEPS-VULN-001' && finding.ruleId !== 'DEPS-MALICIOUS-001') return undefined;
+  if (finding.ruleId !== 'DEPS-VULN-001' && finding.ruleId !== 'DEPS-MALICIOUS-001') {return undefined;}
   const snippet = finding.snippet ?? '';
   const at = snippet.startsWith('@') ? snippet.indexOf('@', 1) : snippet.indexOf('@');
   const pkg = at <= 0 ? snippet : snippet.slice(0, at);
-  if (pkg.length === 0) return undefined;
+  if (pkg.length === 0) {return undefined;}
   const imports = (sites.get(pkg) ?? []).map((site) => ({
     file: site.file,
     line: site.line,

@@ -22,7 +22,7 @@ function hostnameOf(raw: string): { host: string; href: string; rawHost: string 
   const url = new URL(href);
   const m = href.match(/^https?:\/\/([^/?#]+)/i);
   let authority = m?.[1] ?? url.hostname;
-  if (authority.includes('@')) authority = authority.slice(authority.lastIndexOf('@') + 1);
+  if (authority.includes('@')) {authority = authority.slice(authority.lastIndexOf('@') + 1);}
   let rawHost: string;
   if (authority.startsWith('[')) {
     const end = authority.indexOf(']');
@@ -39,7 +39,7 @@ function isLiteralLocal(host: string): boolean {
 
 function isRegisteredContainer(host: string): boolean {
   for (const c of containers.values()) {
-    if (c.host === host || c.ip === host) return true;
+    if (c.host === host || c.ip === host) {return true;}
   }
   return false;
 }
@@ -59,8 +59,8 @@ export function assertLocalTarget(raw: string, opts: AssertLocalOptions = {}): v
   } catch {
     throw new Error(`confirm: refused target ${raw}`);
   }
-  if (isLiteralLocal(rawHost) && isLiteralLocal(host)) return;
-  if (isRegisteredContainer(host) || isRegisteredContainer(rawHost)) return;
+  if (isLiteralLocal(rawHost) && isLiteralLocal(host)) {return;}
+  if (isRegisteredContainer(host) || isRegisteredContainer(rawHost)) {return;}
   if (opts.lookup) {
     const ips = opts.lookup(host);
     throw new Error(`confirm: refused target ${raw} (resolved ${ips.join(',')})`);
@@ -72,9 +72,9 @@ export function buildCanary(kind: 'sql' | 'shell' | 'path' | 'idor', token: stri
   if (DESTRUCTIVE.test(token)) {
     throw new Error('confirm: canary must be harmless (no DROP/DELETE/rm/dd)');
   }
-  if (kind === 'sql') return `1 UNION SELECT 0,'${token}'`;
-  if (kind === 'shell') return `; echo ${token}`;
-  if (kind === 'path') return '../canary.txt';
+  if (kind === 'sql') {return `1 UNION SELECT 0,'${token}'`;}
+  if (kind === 'shell') {return `; echo ${token}`;}
+  if (kind === 'path') {return '../canary.txt';}
   return token;
 }
 

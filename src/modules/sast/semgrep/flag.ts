@@ -10,6 +10,6 @@ export function semgrepRulesEnabled(env: NodeJS.ProcessEnv = process.env): boole
  * `enabled` is passed in so the caller can set the env flag first.
  */
 export function guardSemgrepCli(rulesPath: string | undefined, enabled: boolean): void {
-  if (rulesPath === undefined || rulesPath.length === 0 || enabled) return;
+  if (rulesPath === undefined || rulesPath.length === 0 || enabled) {return;}
   throw new Error(`semgrep rules require ${SEMGREP_RULES_FLAG}=1`);
 }

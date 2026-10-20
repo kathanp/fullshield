@@ -19,17 +19,17 @@ export function perf2Enabled(): boolean {
 function pathReason(rel: string): 'generated' | 'declaration' | 'sourceMap' | undefined {
   const norm = rel.split('\\').join('/');
   const parts = norm.split('/');
-  if (parts.slice(0, -1).some((part) => GENERATED.has(part))) return 'generated';
-  if (norm.endsWith('.d.ts')) return 'declaration';
-  if (norm.endsWith('.map')) return 'sourceMap';
+  if (parts.slice(0, -1).some((part) => GENERATED.has(part))) {return 'generated';}
+  if (norm.endsWith('.d.ts')) {return 'declaration';}
+  if (norm.endsWith('.map')) {return 'sourceMap';}
   return undefined;
 }
 
 function isMinified(text: string): boolean {
   const lines = text.split(/\r?\n/);
-  if (lines.some((line) => line.length > 50_000)) return true;
+  if (lines.some((line) => line.length > 50_000)) {return true;}
   const nonEmpty = lines.filter((line) => line.length > 0);
-  if (nonEmpty.length === 0) return false;
+  if (nonEmpty.length === 0) {return false;}
   const avg = nonEmpty.reduce((sum, line) => sum + line.length, 0) / nonEmpty.length;
   return avg > 500;
 }

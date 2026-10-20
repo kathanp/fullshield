@@ -72,7 +72,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function ruleIdOf(value: unknown): string {
-  if (!isRecord(value)) return '(unknown)';
+  if (!isRecord(value)) {return '(unknown)';}
   return typeof value.id === 'string' && value.id.length > 0 ? value.id : '(unknown)';
 }
 
@@ -89,7 +89,7 @@ function rewritePattern(source: string, ruleId: string): string {
         i += 1;
         continue;
       }
-      if (ch === quote) quote = null;
+      if (ch === quote) {quote = null;}
       continue;
     }
     if (ch === '"' || ch === "'" || ch === '`') {
@@ -109,13 +109,13 @@ function rewritePattern(source: string, ruleId: string): string {
     }
     if (ch === '$' && /[A-Za-z_]/.test(source[i + 1] ?? '')) {
       let j = i + 1;
-      while (/[A-Za-z0-9_]/.test(source[j] ?? '')) j += 1;
+      while (/[A-Za-z0-9_]/.test(source[j] ?? '')) {j += 1;}
       out += `__fs_m_${source.slice(i + 1, j)}`;
       i = j - 1;
       continue;
     }
     if (ch === '.' && source[i + 1] === '.' && source[i + 2] === '.') {
-      if (openers[openers.length - 1] !== '(') throw unsupportedConstruct('...', ruleId);
+      if (openers[openers.length - 1] !== '(') {throw unsupportedConstruct('...', ruleId);}
       out += ELLIPSIS;
       i += 2;
       continue;
@@ -135,11 +135,11 @@ function assertPattern(root: AstNode, ruleId: string): void {
     if (node.type === 'Identifier' && node.name === ELLIPSIS) {
       const parent = parentOf(node);
       const args = parent?.type === 'CallExpression' || parent?.type === 'NewExpression' ? parent.arguments : undefined;
-      if (args === undefined || !args.includes(node)) throw unsupportedConstruct('...', ruleId);
+      if (args === undefined || !args.includes(node)) {throw unsupportedConstruct('...', ruleId);}
       return;
     }
-    if (node.type === 'Identifier' && META.test(node.name)) return;
-    if (!PATTERN_TYPES.has(node.type)) throw unsupportedConstruct(node.type, ruleId);
+    if (node.type === 'Identifier' && META.test(node.name)) {return;}
+    if (!PATTERN_TYPES.has(node.type)) {throw unsupportedConstruct(node.type, ruleId);}
     if (node.type === 'TemplateLiteral' && node.expressions.length > 0) {
       throw unsupportedConstruct('template', ruleId);
     }
@@ -147,7 +147,7 @@ function assertPattern(root: AstNode, ruleId: string): void {
 }
 
 export function compilePattern(source: string, ruleId: string): AstNode {
-  if (source.trim().length === 0) throw unsupportedConstruct('pattern', ruleId);
+  if (source.trim().length === 0) {throw unsupportedConstruct('pattern', ruleId);}
   const rewritten = rewritePattern(source, ruleId);
   let ast: AstNode;
   try {
@@ -162,31 +162,31 @@ export function compilePattern(source: string, ruleId: string): AstNode {
   } catch {
     throw unsupportedConstruct('pattern', ruleId);
   }
-  if (ast.type !== 'Program' || ast.body.length !== 1) throw unsupportedConstruct('pattern', ruleId);
+  if (ast.type !== 'Program' || ast.body.length !== 1) {throw unsupportedConstruct('pattern', ruleId);}
   const stmt = ast.body[0];
-  if (stmt === undefined) throw unsupportedConstruct('pattern', ruleId);
+  if (stmt === undefined) {throw unsupportedConstruct('pattern', ruleId);}
   const root = stmt.type === 'ExpressionStatement' ? stmt.expression : stmt;
   assertPattern(root, ruleId);
   return root;
 }
 
 function compilePatternList(value: unknown, field: string, ruleId: string): AstNode[] {
-  if (!Array.isArray(value) || value.length === 0) throw unsupportedConstruct(field, ruleId);
+  if (!Array.isArray(value) || value.length === 0) {throw unsupportedConstruct(field, ruleId);}
   return value.map((item) => {
-    if (!isRecord(item)) throw unsupportedConstruct(field, ruleId);
+    if (!isRecord(item)) {throw unsupportedConstruct(field, ruleId);}
     for (const key of Object.keys(item)) {
-      if (key !== 'pattern') throw unsupportedConstruct(key, ruleId);
+      if (key !== 'pattern') {throw unsupportedConstruct(key, ruleId);}
     }
-    if (typeof item.pattern !== 'string') throw unsupportedConstruct(field, ruleId);
+    if (typeof item.pattern !== 'string') {throw unsupportedConstruct(field, ruleId);}
     return compilePattern(item.pattern, ruleId);
   });
 }
 
 function compileRule(value: unknown): CompiledSemgrepRule {
   const ruleId = ruleIdOf(value);
-  if (!isRecord(value)) throw unsupportedConstruct('rule', ruleId);
+  if (!isRecord(value)) {throw unsupportedConstruct('rule', ruleId);}
   for (const key of Object.keys(value)) {
-    if (!RULE_KEYS.has(key)) throw unsupportedConstruct(key, ruleId);
+    if (!RULE_KEYS.has(key)) {throw unsupportedConstruct(key, ruleId);}
   }
   if (typeof value.id !== 'string' || !/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(value.id)) {
     throw unsupportedConstruct('id', ruleId);
@@ -210,22 +210,22 @@ function compileRule(value: unknown): CompiledSemgrepRule {
     throw unsupportedConstruct(typeof language === 'string' ? language : 'languages', ruleId);
   }
   const mode = value.mode;
-  if (mode !== undefined && mode !== 'taint') throw unsupportedConstruct('mode', ruleId);
+  if (mode !== undefined && mode !== 'taint') {throw unsupportedConstruct('mode', ruleId);}
   const taint = mode === 'taint';
   if (taint) {
     for (const field of ['pattern', 'pattern-either', 'pattern-not', 'pattern-inside'] as const) {
-      if (value[field] !== undefined) throw unsupportedConstruct(field, ruleId);
+      if (value[field] !== undefined) {throw unsupportedConstruct(field, ruleId);}
     }
   } else {
     for (const field of ['pattern-sources', 'pattern-sinks', 'pattern-sanitizers'] as const) {
-      if (value[field] !== undefined) throw unsupportedConstruct(field, ruleId);
+      if (value[field] !== undefined) {throw unsupportedConstruct(field, ruleId);}
     }
   }
   const pattern = typeof value.pattern === 'string' ? compilePattern(value.pattern, ruleId) : undefined;
-  if (value.pattern !== undefined && pattern === undefined) throw unsupportedConstruct('pattern', ruleId);
+  if (value.pattern !== undefined && pattern === undefined) {throw unsupportedConstruct('pattern', ruleId);}
   const patternEither = value['pattern-either'] !== undefined ? compilePatternList(value['pattern-either'], 'pattern-either', ruleId) : [];
   const patternNot = typeof value['pattern-not'] === 'string' ? [compilePattern(value['pattern-not'], ruleId)] : [];
-  if (value['pattern-not'] !== undefined && patternNot.length === 0) throw unsupportedConstruct('pattern-not', ruleId);
+  if (value['pattern-not'] !== undefined && patternNot.length === 0) {throw unsupportedConstruct('pattern-not', ruleId);}
   const patternInside = typeof value['pattern-inside'] === 'string' ? [compilePattern(value['pattern-inside'], ruleId)] : [];
   if (value['pattern-inside'] !== undefined && patternInside.length === 0) {
     throw unsupportedConstruct('pattern-inside', ruleId);
@@ -236,7 +236,7 @@ function compileRule(value: unknown): CompiledSemgrepRule {
     taint && value['pattern-sanitizers'] !== undefined
       ? compilePatternList(value['pattern-sanitizers'], 'pattern-sanitizers', ruleId)
       : [];
-  if (!taint && pattern === undefined && patternEither.length === 0) throw unsupportedConstruct('pattern', ruleId);
+  if (!taint && pattern === undefined && patternEither.length === 0) {throw unsupportedConstruct('pattern', ruleId);}
   return {
     id: value.id,
     severity: SEVERITY_MAP[value.severity] ?? 'high',
@@ -255,11 +255,11 @@ function compileRule(value: unknown): CompiledSemgrepRule {
 
 /** Compile a parsed YAML document. Any bad rule rejects the whole document. */
 export function compileSemgrepDocument(doc: unknown): CompiledSemgrepRule[] {
-  if (!isRecord(doc)) throw unsupportedConstruct('rules', '(unknown)');
+  if (!isRecord(doc)) {throw unsupportedConstruct('rules', '(unknown)');}
   for (const key of Object.keys(doc)) {
-    if (key !== 'rules') throw unsupportedConstruct(key, '(unknown)');
+    if (key !== 'rules') {throw unsupportedConstruct(key, '(unknown)');}
   }
-  if (!Array.isArray(doc.rules)) throw unsupportedConstruct('rules', '(unknown)');
+  if (!Array.isArray(doc.rules)) {throw unsupportedConstruct('rules', '(unknown)');}
   const errors: string[] = [];
   const compiled: CompiledSemgrepRule[] = [];
   for (const rule of doc.rules) {
@@ -269,6 +269,6 @@ export function compileSemgrepDocument(doc: unknown): CompiledSemgrepRule[] {
       errors.push(error instanceof Error ? error.message : String(error));
     }
   }
-  if (errors.length > 0) throw new Error(errors.join('\n'));
+  if (errors.length > 0) {throw new Error(errors.join('\n'));}
   return compiled;
 }

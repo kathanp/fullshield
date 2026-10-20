@@ -29,8 +29,8 @@ export function nodeOk(version: string): boolean {
   for (let i = 0; i < MIN_NODE.length; i += 1) {
     const got = parts[i] ?? 0;
     const need = MIN_NODE[i] ?? 0;
-    if (got > need) return true;
-    if (got < need) return false;
+    if (got > need) {return true;}
+    if (got < need) {return false;}
   }
   return true;
 }

@@ -14,17 +14,17 @@ const popularSet = new Set(POPULAR_PACKAGES);
 const topSet = new Set(TOP_PACKAGES);
 
 function levenshteinAtMost1(a: string, b: string): number | undefined {
-  if (a === b) return 0;
+  if (a === b) {return 0;}
   const la = a.length;
   const lb = b.length;
-  if (Math.abs(la - lb) > 1) return undefined;
+  if (Math.abs(la - lb) > 1) {return undefined;}
   // Equal length: at most one substitution.
   if (la === lb) {
     let diffs = 0;
     for (let i = 0; i < la; i += 1) {
       if (a[i] !== b[i]) {
         diffs += 1;
-        if (diffs > 1) return undefined;
+        if (diffs > 1) {return undefined;}
       }
     }
     return diffs;
@@ -39,7 +39,7 @@ function levenshteinAtMost1(a: string, b: string): number | undefined {
       si += 1;
       continue;
     }
-    if (skipped) return undefined;
+    if (skipped) {return undefined;}
     skipped = true;
   }
   return 1;
@@ -61,15 +61,15 @@ export function findTyposquats(
 ): TyposquatHit[] {
   const hits: TyposquatHit[] = [];
   for (const pkg of packages) {
-    if (pkg.name.length < 4) continue;
-    if (popularSet.has(pkg.name)) continue;
-    if (topSet.has(pkg.name)) continue;
-    if (options.directNames !== undefined && !options.directNames.has(pkg.name)) continue;
+    if (pkg.name.length < 4) {continue;}
+    if (popularSet.has(pkg.name)) {continue;}
+    if (topSet.has(pkg.name)) {continue;}
+    if (options.directNames !== undefined && !options.directNames.has(pkg.name)) {continue;}
     let best: TyposquatHit | undefined;
     for (const popular of POPULAR_PACKAGES) {
-      if (hyphenless(pkg.name) === hyphenless(popular)) continue;
+      if (hyphenless(pkg.name) === hyphenless(popular)) {continue;}
       const distance = levenshteinAtMost1(pkg.name, popular);
-      if (distance !== 1) continue;
+      if (distance !== 1) {continue;}
       if (best === undefined || popular < best.lookalike) {
         best = {
           name: pkg.name,
@@ -80,7 +80,7 @@ export function findTyposquats(
         };
       }
     }
-    if (best !== undefined) hits.push(best);
+    if (best !== undefined) {hits.push(best);}
   }
   return hits;
 }

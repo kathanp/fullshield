@@ -20,7 +20,7 @@ async function parseYaml(text: string): Promise<unknown> {
  * `enabled` false returns before the file is read or parsed.
  */
 export async function loadUserSemgrepRules(file: string, enabled: boolean): Promise<CompiledSemgrepRule[]> {
-  if (!enabled) return [];
+  if (!enabled) {return [];}
   let text: string;
   try {
     text = await readFile(file, 'utf8');
@@ -32,7 +32,7 @@ export async function loadUserSemgrepRules(file: string, enabled: boolean): Prom
   try {
     doc = await parseYaml(text);
   } catch (error) {
-    if (error instanceof Error && error.message === INSTALL_YAML) throw error;
+    if (error instanceof Error && error.message === INSTALL_YAML) {throw error;}
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`cannot read semgrep rules ${file}: ${message}`);
   }

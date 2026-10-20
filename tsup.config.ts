@@ -38,4 +38,7 @@ export default defineConfig({
   clean: true,
   treeshake: true,
   splitting: false,
+  // Each entry bundles its own copy of the scanner. Minify keeps the npm
+  // package under the Phase 36 unpacked budget of 2.0 MB.
+  minify: true,
 });

@@ -23,7 +23,7 @@ function languageOf(file: string): 'javascript' | 'typescript' | undefined {
 }
 
 function snippetOf(source: string, node: AstNode): string {
-  if (node.range === undefined) return '';
+  if (node.range === undefined) {return '';}
   return source.slice(node.range[0], node.range[1]).replace(/\s+/g, ' ').trim().slice(0, 120);
 }
 
@@ -61,16 +61,16 @@ function applyRule(
 
 async function scanFile(file: string, cwd: string, rules: readonly CompiledSemgrepRule[], maxFileBytes: number): Promise<Finding[]> {
   const language = languageOf(file);
-  if (language === undefined) return [];
+  if (language === undefined) {return [];}
   const applicable = rules.filter((rule) => rule.languages.includes(language));
-  if (applicable.length === 0) return [];
+  if (applicable.length === 0) {return [];}
   let source: string;
   try {
     source = await readFile(resolve(cwd, file), 'utf8');
   } catch {
     return [];
   }
-  if (Buffer.byteLength(source) > maxFileBytes) return [];
+  if (Buffer.byteLength(source) > maxFileBytes) {return [];}
   let ast: AstNode;
   try {
     ast = parse(source, {
@@ -86,9 +86,9 @@ async function scanFile(file: string, cwd: string, rules: readonly CompiledSemgr
   }
   const needsTaint = applicable.some((rule) => rule.mode === 'taint');
   const facts = needsTaint ? analyzeFile(ast) : undefined;
-  if (!needsTaint) attachParents(ast);
+  if (!needsTaint) {attachParents(ast);}
   const findings: Finding[] = [];
-  for (const rule of applicable) findings.push(...applyRule(rule, file, source, ast, facts));
+  for (const rule of applicable) {findings.push(...applyRule(rule, file, source, ast, facts));}
   return findings;
 }
 
@@ -99,7 +99,7 @@ export async function scanUserSemgrepRules(options: {
   rulesPath: string | undefined;
   maxFileBytes: number;
 }): Promise<Finding[]> {
-  if (!semgrepRulesEnabled() || options.rulesPath === undefined || options.rulesPath.length === 0) return [];
+  if (!semgrepRulesEnabled() || options.rulesPath === undefined || options.rulesPath.length === 0) {return [];}
   const rules = await loadUserSemgrepRules(resolve(options.cwd, options.rulesPath), true);
   const findings: Finding[] = [];
   for (const file of options.files) {

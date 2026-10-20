@@ -18,7 +18,7 @@ export const configAstRuleIds = [
 function lineAt(source: string, index: number): number {
   let line = 1;
   for (let i = 0; i < index; i += 1) {
-    if (source[i] === '\n') line += 1;
+    if (source[i] === '\n') {line += 1;}
   }
   return line;
 }
@@ -27,11 +27,11 @@ function objectProp(
   node: AstNode,
   name: string,
 ): AstNode | undefined {
-  if (node.type !== 'ObjectExpression') return undefined;
+  if (node.type !== 'ObjectExpression') {return undefined;}
   for (const prop of node.properties) {
-    if (prop.type !== 'Property') continue;
+    if (prop.type !== 'Property') {continue;}
     const key = prop.key.type === 'Identifier' ? prop.key.name : literalString(prop.key);
-    if (key === name) return prop.value;
+    if (key === name) {return prop.value;}
   }
   return undefined;
 }
@@ -39,7 +39,7 @@ function objectProp(
 async function configAst(file: string, source: string): Promise<AstNode> {
   if (sharedAstActive()) {
     const shared = await sharedParse(file, source);
-    if (shared !== undefined) return shared;
+    if (shared !== undefined) {return shared;}
   }
   const { parse } = await import('@typescript-eslint/typescript-estree');
   return parse(source, {
@@ -63,7 +63,7 @@ export async function runConfigAstChecks(file: string, source: string): Promise<
   walk(ast, (node) => {
     if (node.type === 'CallExpression') {
       const name = calleeName(node);
-      if (name === 'helmet') usesHelmet = true;
+      if (name === 'helmet') {usesHelmet = true;}
       // `express()` constructs an app. `express.Router()` does not — helmet
       // belongs on the app, not on every file that imports the package.
       if (name === 'express' && node.callee.type === 'Identifier') {
@@ -223,7 +223,7 @@ export async function runConfigAstChecks(file: string, source: string): Promise<
     let ipRateLimit = false;
     let trustLine: number | undefined;
     walk(ast, (node) => {
-      if (node.type !== 'CallExpression') return;
+      if (node.type !== 'CallExpression') {return;}
       const name = calleeName(node);
       if (name === 'set' && literalString(node.arguments[0]) === 'trust proxy') {
         const value = node.arguments[1];
@@ -243,7 +243,7 @@ export async function runConfigAstChecks(file: string, source: string): Promise<
         const keyedByIp =
           keyGen === undefined ||
           (keyGen.type !== 'SpreadElement' && /ip/i.test(source.slice(keyGen.range?.[0] ?? 0, keyGen.range?.[1] ?? 0)));
-        if (keyedByIp) ipRateLimit = true;
+        if (keyedByIp) {ipRateLimit = true;}
       }
     });
     if (trustProxyTrue && ipRateLimit) {

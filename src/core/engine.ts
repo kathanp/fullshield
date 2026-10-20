@@ -199,7 +199,7 @@ async function collectModuleFindings(
     const collected: Finding[] = [];
     for (const name of modulesRun) {
       const module = available.get(name);
-      if (module !== undefined) collected.push(...(await module.run(ctx)));
+      if (module !== undefined) {collected.push(...(await module.run(ctx)));}
     }
     return collected;
   }
@@ -310,7 +310,7 @@ export async function runScan(
   try {
     collected = await collectModuleFindings(available, modulesRun, ctx);
   } finally {
-    if (perf2Enabled()) endSharedAst();
+    if (perf2Enabled()) {endSharedAst();}
   }
   if (process.env.FULLSHIELD_EXPERIMENTAL_MCPCFG === '1') {
     collected.push(
@@ -366,7 +366,7 @@ export async function runScan(
     const { scanTextForSecretHits } = await import('../modules/secrets/index.js');
     const secretById = new Map<string, string>();
     for (const hit of extraHits) {
-      if (hit.secret !== undefined) secretById.set(hit.finding.id, hit.secret);
+      if (hit.secret !== undefined) {secretById.set(hit.finding.id, hit.secret);}
     }
     for (const finding of findings) {
       if (finding.module !== 'secrets' || finding.file === undefined || secretById.has(finding.id)) {
@@ -381,7 +381,7 @@ export async function runScan(
         }
       }
       for (const hit of scanTextForSecretHits(finding.file, text)) {
-        if (hit.secret !== undefined) secretById.set(hit.finding.id, hit.secret);
+        if (hit.secret !== undefined) {secretById.set(hit.finding.id, hit.secret);}
       }
     }
     findings = sortFindings(
@@ -419,8 +419,8 @@ export async function runScan(
   if (modelsEnabled()) {
     const applied = await applyModelSuppressions(cwd, findings);
     findings = sortFindings(applied.findings);
-    if (applied.suppressed.length > 0) modelSuppressed = applied.suppressed;
-    if (applied.info.length > 0) modelInfo = applied.info;
+    if (applied.suppressed.length > 0) {modelSuppressed = applied.suppressed;}
+    if (applied.info.length > 0) {modelInfo = applied.info;}
   }
 
   if (aiEnabled) {

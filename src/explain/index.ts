@@ -17,11 +17,11 @@ export function matchFinding(findings: readonly Finding[], rawId: string): Findi
     throw new ExplainError(`id prefix must be at least 6 characters (FULLSHIELD_EXPERIMENTAL_EXPLAIN)`);
   }
   const exact = findings.find((finding) => finding.id === id);
-  if (exact !== undefined) return exact;
+  if (exact !== undefined) {return exact;}
   const matches = findings.filter((finding) => finding.id.startsWith(id));
   if (matches.length === 1) {
     const only = matches[0];
-    if (only !== undefined) return only;
+    if (only !== undefined) {return only;}
   }
   if (matches.length === 0) {
     const candidates = findings.slice(0, 5).map((finding) => finding.id);
@@ -35,7 +35,7 @@ export function matchFinding(findings: readonly Finding[], rawId: string): Findi
 }
 
 function contextLines(text: string, line: number | undefined): string[] {
-  if (line === undefined) return [];
+  if (line === undefined) {return [];}
   const rows = text.split(/\r?\n/);
   const start = Math.max(0, line - 3);
   const end = Math.min(rows.length, line + 2);
@@ -55,7 +55,7 @@ export function renderExplain(finding: Finding, fileText = ''): string {
     lines.push('context:');
     lines.push(...context.map((row) => `  ${row}`));
   }
-  if (finding.snippet !== undefined) lines.push(`snippet: ${finding.snippet}`);
+  if (finding.snippet !== undefined) {lines.push(`snippet: ${finding.snippet}`);}
   if (finding.trace !== undefined && finding.trace.length > 0) {
     lines.push(
       `trace: ${finding.trace.map((step) => `${step.file}${step.line !== undefined ? `:${step.line}` : ''} ${step.note}`).join(' → ')}`,
@@ -65,7 +65,7 @@ export function renderExplain(finding: Finding, fileText = ''): string {
     const path = finding.dependencyPath !== undefined ? ` (${finding.dependencyPath.join(' > ')})` : '';
     lines.push(`reachability: ${finding.reachability}${path}`);
   }
-  if (finding.fix !== undefined) lines.push(`fix: ${finding.fix.diff}`);
+  if (finding.fix !== undefined) {lines.push(`fix: ${finding.fix.diff}`);}
   lines.push(`docs: rules/${finding.ruleId}.md`);
   return lines.join('\n');
 }

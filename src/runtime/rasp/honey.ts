@@ -10,7 +10,7 @@ const ROUTE_WINDOW_MS = 60_000;
 const routeHits = new Map<string, { count: number; start: number }>();
 
 export function registerCanaries(values: readonly string[]): void {
-  for (const v of values) registered.add(v);
+  for (const v of values) {registered.add(v);}
 }
 
 export function clearCanaries(): void {
@@ -24,9 +24,9 @@ export function isHoneyRoute(path: string): boolean {
 }
 
 export function isHoneyCanary(text: string): boolean {
-  if (!text) return false;
+  if (!text) {return false;}
   for (const c of registered) {
-    if (c && text.includes(c)) return true;
+    if (c && text.includes(c)) {return true;}
   }
   return false;
 }

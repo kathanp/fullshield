@@ -21,7 +21,7 @@ export function shieldGuard(options: GuardOptions = {}) {
   return async function fullshieldHono(c: HonoLikeContext, next: () => Promise<void>): Promise<unknown> {
     const headers: Record<string, unknown> = {};
     const raw = c.req.raw?.headers;
-    if (raw && typeof raw === 'object') Object.assign(headers, raw);
+    if (raw && typeof raw === 'object') {Object.assign(headers, raw);}
     const result = inspect({
       method: c.req.method,
       url: c.req.url ?? c.req.path,
@@ -37,7 +37,7 @@ export function shieldGuard(options: GuardOptions = {}) {
       const orig = c.json.bind(c);
       c.json = (body: unknown, status?: number) => {
         const out = applyDlpWrite(dlp, body, { path: c.req.path ?? '/', ip: 'unknown' });
-        if (out.block) return orig({ error: 'internal error' }, 500);
+        if (out.block) {return orig({ error: 'internal error' }, 500);}
         return orig(out.body, status);
       };
     }

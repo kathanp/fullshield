@@ -71,7 +71,7 @@ function sqliteDb(file: string): HistoryDb {
       ).run(row.scannedAt, row.percent, row.withProvenance, row.total);
     },
     close() {
-      if (closed) return;
+      if (closed) {return;}
       closed = true;
       try {
         handle.close();
@@ -106,7 +106,7 @@ export function listProvenance(db: HistoryDb): ProvenanceRow[] {
 }
 
 export function assertDashboardHost(host: string | undefined): boolean {
-  if (host === undefined || host.length === 0) return false;
+  if (host === undefined || host.length === 0) {return false;}
   const h = host.split(':')[0]?.toLowerCase() ?? '';
   return h === 'localhost' || h === '127.0.0.1';
 }
@@ -170,7 +170,7 @@ export function createDashboardHandler(opts: {
 }
 
 export function startDashboard(opts: { dir: string; experimental?: boolean; port?: number }): Promise<{ close: () => Promise<void>; port: number }> {
-  if (!existsSync(opts.dir)) mkdirSync(opts.dir, { recursive: true });
+  if (!existsSync(opts.dir)) {mkdirSync(opts.dir, { recursive: true });}
   const db = openHistory(opts.dir);
   const handler = createDashboardHandler({ dbPath: opts.dir, experimental: opts.experimental, db });
   const server = createServer(handler);
@@ -188,8 +188,8 @@ export function startDashboard(opts: { dir: string; experimental?: boolean; port
               } catch {
                 // already closed
               }
-              if (err) rej(err);
-              else res();
+              if (err) {rej(err);}
+              else {res();}
             });
           }),
       });

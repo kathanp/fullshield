@@ -35,7 +35,7 @@ export function shieldGuard(options: GuardOptions = {}) {
       return;
     }
     await next();
-    if (dlp === undefined) return;
+    if (dlp === undefined) {return;}
     const out = applyDlpWrite(dlp, ctx.body, { path: ctx.path ?? ctx.url?.split('?')[0] ?? '/', ip: ctx.ip });
     if (out.block) {
       ctx.status = 500;

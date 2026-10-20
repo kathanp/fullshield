@@ -18,25 +18,25 @@ export interface VpatchFinding {
 
 export function sinkFromRule(ruleId: string): string | undefined {
   const id = ruleId.toUpperCase();
-  if (id.includes('SQLI') || id.includes('SQL-')) return 'sql';
-  if (id.includes('CMDI') || id.includes('SHELL')) return 'shell';
-  if (id.includes('PATH')) return 'path';
-  if (id.includes('NOSQL')) return 'nosql';
-  if (id.includes('SSRF')) return 'ssrf';
-  if (id.includes('PROTO')) return 'proto';
+  if (id.includes('SQLI') || id.includes('SQL-')) {return 'sql';}
+  if (id.includes('CMDI') || id.includes('SHELL')) {return 'shell';}
+  if (id.includes('PATH')) {return 'path';}
+  if (id.includes('NOSQL')) {return 'nosql';}
+  if (id.includes('SSRF')) {return 'ssrf';}
+  if (id.includes('PROTO')) {return 'proto';}
   return undefined;
 }
 
 export function routeFromFinding(f: VpatchFinding): string | undefined {
-  if (typeof f.route === 'string' && f.route.startsWith('/')) return f.route;
+  if (typeof f.route === 'string' && f.route.startsWith('/')) {return f.route;}
   const fromMsg = (f.message ?? '').match(/\/[A-Za-z0-9._/-]+/);
-  if (fromMsg) return fromMsg[0];
+  if (fromMsg) {return fromMsg[0];}
   if (f.file) {
     const lastSlash = Math.max(f.file.lastIndexOf('/'), f.file.lastIndexOf('\\'));
     const baseWithExt = lastSlash >= 0 ? f.file.slice(lastSlash + 1) : f.file;
     const dot = baseWithExt.lastIndexOf('.');
     const base = dot > 0 ? baseWithExt.slice(0, dot) : baseWithExt;
-    if (base && base !== 'index') return `/${base}`;
+    if (base && base !== 'index') {return `/${base}`;}
   }
   return undefined;
 }

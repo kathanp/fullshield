@@ -40,9 +40,9 @@ export async function buildAttackPathsFromFiles(
 ): Promise<AttackPath[]> {
   const sources = new Map<string, string>();
   for (const file of files) {
-    if (!SOURCE_EXT.test(file)) continue;
+    if (!SOURCE_EXT.test(file)) {continue;}
     const text = await readSource(join(cwd, file));
-    if (text !== undefined) sources.set(file, text);
+    if (text !== undefined) {sources.set(file, text);}
   }
   return buildAttackPaths(findings, sources);
 }
@@ -50,7 +50,7 @@ export async function buildAttackPathsFromFiles(
 async function readSource(file: string): Promise<string | undefined> {
   try {
     const text = await readFile(file, 'utf8');
-    if (text.length > MAX_BYTES || text.includes('\0')) return undefined;
+    if (text.length > MAX_BYTES || text.includes('\0')) {return undefined;}
     return text;
   } catch {
     return undefined;
@@ -62,7 +62,7 @@ async function parseSources(sources: ReadonlyMap<string, string>): Promise<Map<s
   const asts = new Map<string, AstNode>();
   for (const file of [...sources.keys()].sort()) {
     const text = sources.get(file);
-    if (text === undefined || !SOURCE_EXT.test(file)) continue;
+    if (text === undefined || !SOURCE_EXT.test(file)) {continue;}
     try {
       const ast = await parseSource(text);
       attachParents(ast);
@@ -80,7 +80,7 @@ function dedupePaths(paths: readonly AttackPath[]): AttackPath[] {
   for (const path of paths) {
     const steps = path.steps.map((step) => `${step.file}:${step.line ?? ''}`).join(',');
     const key = `${path.kind}|${path.entry?.method ?? ''}|${path.entry?.path ?? ''}|${path.sink.id}|${steps}`;
-    if (seen.has(key)) continue;
+    if (seen.has(key)) {continue;}
     seen.add(key);
     out.push(path);
   }
@@ -101,14 +101,14 @@ function comparePaths(
 ): number {
   if (anyPriority) {
     const delta = maxPriority(b, byId) - maxPriority(a, byId);
-    if (delta !== 0) return delta;
+    if (delta !== 0) {return delta;}
   }
   const severity = maxSeverity(b, byId) - maxSeverity(a, byId);
-  if (severity !== 0) return severity;
+  if (severity !== 0) {return severity;}
   const file = (a.sink.file ?? '').localeCompare(b.sink.file ?? '');
-  if (file !== 0) return file;
+  if (file !== 0) {return file;}
   const path = (a.entry?.path ?? '').localeCompare(b.entry?.path ?? '');
-  if (path !== 0) return path;
+  if (path !== 0) {return path;}
   return a.sink.ruleId.localeCompare(b.sink.ruleId) || a.sink.id.localeCompare(b.sink.id);
 }
 
@@ -117,7 +117,7 @@ function maxPriority(path: AttackPath, byId: ReadonlyMap<string, Finding>): numb
   for (const id of path.findingIds) {
     const finding = byId.get(id);
     const value = finding === undefined ? undefined : priorityOf(finding);
-    if (value !== undefined && value > best) best = value;
+    if (value !== undefined && value > best) {best = value;}
   }
   return best;
 }
@@ -126,7 +126,7 @@ function maxSeverity(path: AttackPath, byId: ReadonlyMap<string, Finding>): numb
   let best = severityRank(path.sink.severity);
   for (const id of path.findingIds) {
     const finding = byId.get(id);
-    if (finding !== undefined) best = Math.max(best, severityRank(finding.severity));
+    if (finding !== undefined) {best = Math.max(best, severityRank(finding.severity));}
   }
   return best;
 }

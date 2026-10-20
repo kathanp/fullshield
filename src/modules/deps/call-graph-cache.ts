@@ -92,7 +92,7 @@ function writeUsage(key: string, usage: Map<string, PackageUsage>): void {
 function cachedUsageInSource(source: string, configHash: string): Map<string, PackageUsage> {
   const key = usageKey(source, configHash);
   const cached = readUsage(key);
-  if (cached !== undefined) return cached;
+  if (cached !== undefined) {return cached;}
   const fresh = usageInSource(source);
   writeUsage(key, fresh);
   return fresh;

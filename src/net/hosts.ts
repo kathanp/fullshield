@@ -4,7 +4,7 @@ export const ALLOWED_HOSTS = ['api.osv.dev', 'registry.npmjs.org', 'localhost', 
 export function isAllowlistedHost(host: string): boolean {
   const normalized = host.trim().toLowerCase().replace(/\.$/, '');
   for (const allowed of ALLOWED_HOSTS) {
-    if (normalized === allowed) return true;
+    if (normalized === allowed) {return true;}
   }
   return false;
 }

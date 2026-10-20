@@ -41,7 +41,7 @@ async function readDirectDependencyNames(cwd: string): Promise<Set<string> | und
     for (const field of MANIFEST_FIELDS) {
       const block = pkg[field];
       if (block !== null && typeof block === 'object' && !Array.isArray(block)) {
-        for (const name of Object.keys(block)) names.add(name);
+        for (const name of Object.keys(block)) {names.add(name);}
       }
     }
     return names;
@@ -179,13 +179,13 @@ export const depsModule: ScanModule & {
       manifestRaw = undefined;
     }
     const depLoc = (name: string): { file: string; line?: number } | undefined => {
-      if (manifestRaw === undefined) return undefined;
+      if (manifestRaw === undefined) {return undefined;}
       const line = lineOfManifestDep(manifestRaw, name);
       return line === undefined ? undefined : { file: 'package.json', line };
     };
 
     if (lockFile === undefined) {
-      if (!ctx.files.includes('package.json')) return [];
+      if (!ctx.files.includes('package.json')) {return [];}
       const findings: Finding[] = [noLockFinding()];
       let manifest: Record<string, unknown> = {};
       try {
@@ -206,7 +206,7 @@ export const depsModule: ScanModule & {
             ? maliciousFinding('package.json', hit.pkg, vuln)
             : vulnFinding('package.json', hit.pkg, vuln, depLoc(hit.pkg.name));
           const names = affectedFunctionNames(vuln);
-          if (names.length > 0 && finding.ruleId === 'DEPS-VULN-001') symbols.set(finding.id, names);
+          if (names.length > 0 && finding.ruleId === 'DEPS-VULN-001') {symbols.set(finding.id, names);}
           findings.push(finding);
         }
       }
@@ -243,7 +243,7 @@ export const depsModule: ScanModule & {
           ? maliciousFinding(lockFile, hit.pkg, vuln)
           : vulnFinding(lockFile, hit.pkg, vuln, depLoc(hit.pkg.name));
         const names = affectedFunctionNames(vuln);
-        if (names.length > 0 && finding.ruleId === 'DEPS-VULN-001') symbols.set(finding.id, names);
+        if (names.length > 0 && finding.ruleId === 'DEPS-VULN-001') {symbols.set(finding.id, names);}
         findings.push(finding);
       }
     }
@@ -253,14 +253,14 @@ export const depsModule: ScanModule & {
       reached = attachOverrideProposals(reached, graph, lockFile, manifestRaw);
       reached.push(...scanInstalledPackages(ctx.cwd, packages));
     }
-    if (licenseEnabled()) reached.push(...(await scanCopyleftLicenses(ctx.cwd)));
+    if (licenseEnabled()) {reached.push(...(await scanCopyleftLicenses(ctx.cwd)));}
     depsModule.unusedDirect = unusedDirectPlan(reached, reachCtx);
     const direct = new Set([...graph.directProd, ...graph.directDev]);
     const advisories: UpgradeAdvisory[] = [];
     for (const hit of osvHits) {
-      if (!direct.has(hit.pkg.name)) continue;
+      if (!direct.has(hit.pkg.name)) {continue;}
       for (const vuln of hit.vulns) {
-        if (isMaliciousAdvisory(vuln)) continue;
+        if (isMaliciousAdvisory(vuln)) {continue;}
         advisories.push({
           name: hit.pkg.name,
           from: hit.pkg.version,
@@ -281,7 +281,7 @@ export const depsModule: ScanModule & {
     reached = await withWorkspaceAdvisories(ctx.cwd, manifestRaw, osvOpts, reached);
     const shapeSources: { file: string; text: string }[] = [];
     for (const rel of ctx.files) {
-      if (!/\.[cm]?[jt]sx?$/.test(rel)) continue;
+      if (!/\.[cm]?[jt]sx?$/.test(rel)) {continue;}
       try {
         shapeSources.push({ file: rel, text: await readFile(join(ctx.cwd, rel), 'utf8') });
       } catch {
@@ -303,10 +303,10 @@ export const depsModule: ScanModule & {
       reached.push(...campaignFindings([...reachCtx.sources.entries()].map(([file, text]) => ({ file, text }))));
       for (const name of [...direct].sort()) {
         const locked = packages.find((pkg) => pkg.name === name)?.version;
-        if (locked === undefined) continue;
+        if (locked === undefined) {continue;}
         const latest = await readPlaceholderLatest(join(cacheDir, 'registry', `${name.replaceAll('/', '__')}.json`));
         const placeholder = securityPlaceholderFinding(name, locked, latest);
-        if (placeholder !== undefined) reached.push(placeholder);
+        if (placeholder !== undefined) {reached.push(placeholder);}
       }
     }
     if (provenanceEnabled()) {
@@ -328,7 +328,7 @@ function workspacePatterns(manifestRaw: string): string[] {
   try {
     const manifest = JSON.parse(manifestRaw) as { workspaces?: unknown };
     const field = manifest.workspaces;
-    if (Array.isArray(field)) return field.filter((item): item is string => typeof item === 'string');
+    if (Array.isArray(field)) {return field.filter((item): item is string => typeof item === 'string');}
     if (field !== null && typeof field === 'object' && Array.isArray((field as { packages?: unknown }).packages)) {
       return (field as { packages: unknown[] }).packages.filter((item): item is string => typeof item === 'string');
     }
@@ -340,9 +340,9 @@ function workspacePatterns(manifestRaw: string): string[] {
 
 async function expandWorkspace(cwd: string, pattern: string): Promise<string[]> {
   const normalized = pattern.replace(/\\/g, '/').replace(/^\.\//, '');
-  if (!normalized.includes('*')) return [normalized];
+  if (!normalized.includes('*')) {return [normalized];}
   const slash = normalized.indexOf('/*');
-  if (slash < 0) return [];
+  if (slash < 0) {return [];}
   const parent = normalized.slice(0, slash);
   try {
     const entries = await readdir(join(cwd, parent), { withFileTypes: true });
@@ -362,13 +362,13 @@ async function workspaceAdvisoryFindings(
 ): Promise<Finding[]> {
   const dirs = new Set<string>();
   for (const pattern of workspacePatterns(manifestRaw)) {
-    for (const dir of await expandWorkspace(cwd, pattern)) dirs.add(dir);
+    for (const dir of await expandWorkspace(cwd, pattern)) {dirs.add(dir);}
   }
   const findings: Finding[] = [];
   for (const dir of [...dirs].sort()) {
-    if (dir === '' || dir === '.') continue;
+    if (dir === '' || dir === '.') {continue;}
     const lockName = LOCKFILE_NAMES.find((name) => existsSync(join(cwd, dir, name)));
-    if (lockName === undefined) continue;
+    if (lockName === undefined) {continue;}
     let text: string;
     try {
       text = await readFile(join(cwd, dir, lockName), 'utf8');
@@ -395,7 +395,7 @@ async function withWorkspaceAdvisories(
   osvOpts: { cacheDir: string; offline: boolean },
   findings: Finding[],
 ): Promise<Finding[]> {
-  if (!workspacesEnabled() || manifestRaw === undefined) return findings;
+  if (!workspacesEnabled() || manifestRaw === undefined) {return findings;}
   return [...findings, ...(await workspaceAdvisoryFindings(cwd, manifestRaw, osvOpts))];
 }
 
@@ -437,8 +437,8 @@ async function reachabilityCtx(
 }> {
   const prodSources = new Map<string, string>();
   for (const rel of files) {
-    if (!/\.[cm]?[jt]sx?$/.test(rel)) continue;
-    if (!isProductionSource(rel)) continue;
+    if (!/\.[cm]?[jt]sx?$/.test(rel)) {continue;}
+    if (!isProductionSource(rel)) {continue;}
     try {
       prodSources.set(rel, await readFile(join(cwd, rel), 'utf8'));
     } catch {

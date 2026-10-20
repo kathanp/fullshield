@@ -15,7 +15,7 @@ export const cryptoRule: SastRule = {
   create(ctx) {
     return {
       CallExpression(node) {
-        if (node.type !== 'CallExpression') return;
+        if (node.type !== 'CallExpression') {return;}
 
         if (
           node.callee.type === 'MemberExpression' &&
@@ -44,10 +44,10 @@ export const cryptoRule: SastRule = {
           }
           return;
         }
-        if (name !== 'createHash') return;
+        if (name !== 'createHash') {return;}
         const algo = literalString(node.arguments[0]);
-        if (algo === undefined || !WEAK_HASH.has(algo.toLowerCase())) return;
-        if (!ctx.functionHasPasswordName(node)) return;
+        if (algo === undefined || !WEAK_HASH.has(algo.toLowerCase())) {return;}
+        if (!ctx.functionHasPasswordName(node)) {return;}
         ctx.report({
           node,
           message: `Weak hash ${algo} is used near a password.`,

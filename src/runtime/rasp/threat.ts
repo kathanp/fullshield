@@ -17,7 +17,7 @@ let maxBlockMs = DEFAULT_MAX_BLOCK_MS;
 
 export function configureThreat(opts: { autoBlock?: boolean; maxBlockMs?: number } = {}): void {
   autoBlock = opts.autoBlock === true;
-  if (typeof opts.maxBlockMs === 'number' && opts.maxBlockMs > 0) maxBlockMs = opts.maxBlockMs;
+  if (typeof opts.maxBlockMs === 'number' && opts.maxBlockMs > 0) {maxBlockMs = opts.maxBlockMs;}
 }
 
 export function addThreat(ip: string, kind: ThreatKind, now = Date.now()): number {
@@ -41,8 +41,8 @@ export function clearThreats(): void {
 }
 
 export function decideResponse(score: number): ThreatAction {
-  if (score >= 10) return 'block';
-  if (score >= 5) return 'challenge';
+  if (score >= 10) {return 'block';}
+  if (score >= 5) {return 'challenge';}
   return 'log';
 }
 
@@ -52,9 +52,9 @@ export function decideResponse(score: number): ThreatAction {
  * which may be many users. Keep duration short (`maxBlockMs`).
  */
 export function isIpBlocked(ip: string, now = Date.now()): boolean {
-  if (!autoBlock) return false;
+  if (!autoBlock) {return false;}
   const until = blockUntil.get(ip);
-  if (until === undefined) return false;
+  if (until === undefined) {return false;}
   if (now >= until) {
     blockUntil.delete(ip);
     return false;

@@ -22,7 +22,7 @@ function runBodies(text: string): string[] {
   const lines = text.split(/\r?\n/);
   for (let i = 0; i < lines.length; i += 1) {
     const match = /^(\s*)(?:-\s+)?run:\s*(.*)$/.exec(lines[i] ?? '');
-    if (match === null) continue;
+    if (match === null) {continue;}
     const indent = match[1]?.length ?? 0;
     let body = match[2] ?? '';
     if (body === '|' || body === '>') {
@@ -34,7 +34,7 @@ function runBodies(text: string): string[] {
           continue;
         }
         const lead = line.match(/^\s*/)?.[0].length ?? 0;
-        if (lead <= indent) break;
+        if (lead <= indent) {break;}
         block.push(line);
       }
       body = block.join('\n');
@@ -45,11 +45,11 @@ function runBodies(text: string): string[] {
 }
 
 function walk(dir: string, out: string[] = []): string[] {
-  if (!existsSync(dir)) return out;
+  if (!existsSync(dir)) {return out;}
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (['node_modules', 'dist', '.git'].includes(entry.name)) continue;
+      if (['node_modules', 'dist', '.git'].includes(entry.name)) {continue;}
       walk(full, out);
     } else if (entry.isFile()) {
       out.push(full);
@@ -59,8 +59,8 @@ function walk(dir: string, out: string[] = []): string[] {
 }
 
 export function scanIac(dir: string, opts: { experimental?: boolean } = {}): Finding[] {
-  if (!opts.experimental && process.env.FULLSHIELD_EXPERIMENTAL_IAC !== '1') return [];
-  if (!existsSync(dir) || !statSync(dir).isDirectory()) return [];
+  if (!opts.experimental && process.env.FULLSHIELD_EXPERIMENTAL_IAC !== '1') {return [];}
+  if (!existsSync(dir) || !statSync(dir).isDirectory()) {return [];}
   const findings: Finding[] = [];
   for (const file of walk(dir)) {
     const rel = relative(dir, file).replaceAll('\\', '/');

@@ -22,9 +22,9 @@ export function validateCycloneDx15(doc: unknown): string[] {
     return ['CycloneDX document must be an object'];
   }
   const root = doc as Record<string, unknown>;
-  if (root.bomFormat !== 'CycloneDX') errors.push('bomFormat must be "CycloneDX"');
-  if (root.specVersion !== '1.5') errors.push('specVersion must be "1.5"');
-  if (!Array.isArray(root.components)) errors.push('components must be an array');
+  if (root.bomFormat !== 'CycloneDX') {errors.push('bomFormat must be "CycloneDX"');}
+  if (root.specVersion !== '1.5') {errors.push('specVersion must be "1.5"');}
+  if (!Array.isArray(root.components)) {errors.push('components must be an array');}
   return errors;
 }
 

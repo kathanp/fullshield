@@ -31,7 +31,7 @@ function attachExpressDlp(
   const origSend = res.send?.bind(res);
   let busy = false;
   const run = (body: unknown, write: (b: unknown) => unknown): unknown => {
-    if (busy) return write(body);
+    if (busy) {return write(body);}
     busy = true;
     try {
       const ct = res.getHeader?.('content-type');
@@ -44,8 +44,8 @@ function attachExpressDlp(
       busy = false;
     }
   };
-  if (origJson) res.json = (body: unknown) => run(body, origJson);
-  if (origSend) res.send = (body: unknown) => run(body, origSend);
+  if (origJson) {res.json = (body: unknown) => run(body, origJson);}
+  if (origSend) {res.send = (body: unknown) => run(body, origSend);}
 }
 
 /** Express middleware. Does not import the scanner. */
@@ -62,7 +62,7 @@ export function shieldGuard(options: GuardOptions = {}) {
       res.status(403).json({ error: 'blocked', ruleId: result.event?.ruleId });
       return;
     }
-    if (dlp !== undefined) attachExpressDlp(req, res, dlp);
+    if (dlp !== undefined) {attachExpressDlp(req, res, dlp);}
     next();
   };
 }

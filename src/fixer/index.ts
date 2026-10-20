@@ -21,8 +21,8 @@ import {
 } from './verify.js';
 
 function detectLockKind(cwd: string): LockfileKind {
-  if (existsSync(join(cwd, 'yarn.lock'))) return 'yarn';
-  if (existsSync(join(cwd, 'pnpm-lock.yaml'))) return 'pnpm';
+  if (existsSync(join(cwd, 'yarn.lock'))) {return 'yarn';}
+  if (existsSync(join(cwd, 'pnpm-lock.yaml'))) {return 'pnpm';}
   return 'npm';
 }
 
@@ -72,11 +72,11 @@ async function gatePatch(
   finding: Finding | undefined,
   warnings: string[],
 ): Promise<{ verified?: FixVerification; write: boolean }> {
-  if (!fixVerifyEnabled(options.experimentalFixVerify)) return { write: true };
+  if (!fixVerifyEnabled(options.experimentalFixVerify)) {return { write: true };}
   const verdict = await verifyProposedChange({ cwd, file, ruleId, line, diff, base, finding });
   if (verdict.status !== 'removes-finding') {
     const warning = verificationWarning(ruleId, file, verdict.status);
-    if (warning !== undefined) warnings.push(warning);
+    if (warning !== undefined) {warnings.push(warning);}
   }
   return {
     verified: verdict.status,
@@ -130,8 +130,8 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
         diff: finding.fix.diff,
         ...(gate.verified !== undefined ? { verified: gate.verified } : {}),
       });
-      if (finding.fix.safe !== true && options.unsafe !== true) continue;
-      if (!gate.write) continue;
+      if (finding.fix.safe !== true && options.unsafe !== true) {continue;}
+      if (!gate.write) {continue;}
       const next = applyUnifiedDiff(manifest, finding.fix.diff);
       let merged = byFile.get('package.json') ?? manifest;
       for (const [name, version] of collectManifestOverrides(next)) {
@@ -142,7 +142,7 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
       continue;
     }
     const file = finding.file;
-    if (file === undefined) continue;
+    if (file === undefined) {continue;}
     if (!byFile.has(file)) {
       try {
         byFile.set(file, await readFile(join(cwd, file), 'utf8'));
@@ -156,12 +156,12 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
     }
     const sourceFile = finding.ruleId === 'SECRET-ENVFILE-001' && file === '.env' ? '.gitignore' : file;
     const source = byFile.get(sourceFile) ?? byFile.get(file);
-    if (source === undefined) continue;
+    if (source === undefined) {continue;}
     const proposed = proposeFix(
       sourceFile === file ? finding : { ...finding, file: sourceFile },
       source,
     );
-    if (proposed === undefined) continue;
+    if (proposed === undefined) {continue;}
     const gate = await gatePatch(
       options,
       cwd,
@@ -180,8 +180,8 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
       diff: proposed.diff,
       ...(gate.verified !== undefined ? { verified: gate.verified } : {}),
     });
-    if (proposed.safe !== true && options.unsafe !== true) continue;
-    if (!gate.write) continue;
+    if (proposed.safe !== true && options.unsafe !== true) {continue;}
+    if (!gate.write) {continue;}
     const after = applyUnifiedDiff(source, proposed.diff);
     byFile.set(sourceFile, after);
   }
@@ -248,7 +248,7 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
   const snapshots = new Map<string, Buffer | null>();
 
   for (const [file, contents] of byFile) {
-    if (dirtyPaths.has(file)) continue;
+    if (dirtyPaths.has(file)) {continue;}
     const abs = join(cwd, file);
     let original: Buffer | null = null;
     try {
@@ -256,7 +256,7 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
     } catch {
       original = null;
     }
-    if (original !== null && original.toString('utf8') === contents) continue;
+    if (original !== null && original.toString('utf8') === contents) {continue;}
     snapshots.set(file, original);
     await mkdir(dirname(abs), { recursive: true });
     await writeFile(abs, contents, 'utf8');
@@ -285,7 +285,7 @@ async function restoreSnapshots(cwd: string, snapshots: Map<string, Buffer | nul
 function dependencyRemovalDiff(manifest: string, names: readonly string[]): string {
   const drop = names.map((name) => `"${name}"`);
   const removed = manifest.split('\n').filter((line) => drop.some((token) => line.includes(token)));
-  if (removed.length === 0) return '';
+  if (removed.length === 0) {return '';}
   return ['--- a/package.json', '+++ b/package.json', ...removed.map((line) => `-${line}`)].join('\n');
 }
 
@@ -296,11 +296,11 @@ function removeDirectDependencies(manifest: string, names: readonly string[]): s
   } catch {
     return manifest;
   }
-  if (parsed.dependencies === undefined || typeof parsed.dependencies !== 'object') return manifest;
+  if (parsed.dependencies === undefined || typeof parsed.dependencies !== 'object') {return manifest;}
   const drop = new Set(names);
   const next: Record<string, unknown> = {};
   for (const [name, version] of Object.entries(parsed.dependencies)) {
-    if (!drop.has(name)) next[name] = version;
+    if (!drop.has(name)) {next[name] = version;}
   }
   parsed.dependencies = next;
   const trailing = manifest.endsWith('\n') ? '\n' : '';
@@ -316,7 +316,7 @@ function runProjectTests(cwd: string): boolean {
   } catch {
     return false;
   }
-  if (typeof pkg.scripts?.test !== 'string' || pkg.scripts.test.length === 0) return false;
+  if (typeof pkg.scripts?.test !== 'string' || pkg.scripts.test.length === 0) {return false;}
   const result = spawnSync('npm', ['test'], { cwd, encoding: 'utf8', shell: process.platform === 'win32' });
   return result.status !== 0;
 }

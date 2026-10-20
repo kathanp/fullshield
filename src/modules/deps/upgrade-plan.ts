@@ -57,8 +57,8 @@ export function chooseUpgradePlan(advisories: readonly UpgradeAdvisory[]): Upgra
   const byName = new Map<string, UpgradeAdvisory[]>();
   for (const advisory of advisories) {
     const list = byName.get(advisory.name);
-    if (list === undefined) byName.set(advisory.name, [advisory]);
-    else list.push(advisory);
+    if (list === undefined) {byName.set(advisory.name, [advisory]);}
+    else {list.push(advisory);}
   }
   const unresolved: string[] = [];
   const candidates: Candidate[] = [];
@@ -74,7 +74,7 @@ export function chooseUpgradePlan(advisories: readonly UpgradeAdvisory[]): Upgra
         to = advisory.fixed;
       }
     }
-    if (to === undefined || compareSemver(to, from) <= 0) continue;
+    if (to === undefined || compareSemver(to, from) <= 0) {continue;}
     candidates.push({
       name,
       from,
@@ -84,7 +84,7 @@ export function chooseUpgradePlan(advisories: readonly UpgradeAdvisory[]): Upgra
   }
   unresolved.sort();
   const chosen = smallestMaxCover(candidates);
-  if (chosen.length === 0 && unresolved.length === 0) return undefined;
+  if (chosen.length === 0 && unresolved.length === 0) {return undefined;}
   const bumps: UpgradeBump[] = chosen.map((candidate) => ({
     name: candidate.name,
     from: candidate.from,
@@ -108,10 +108,10 @@ function smallestMaxCover(candidates: readonly Candidate[]): Candidate[] {
       return;
     }
     const next = candidates[index];
-    if (next === undefined) return;
+    if (next === undefined) {return;}
     walk(index + 1, picked, covered);
     const grown = new Set(covered);
-    for (const id of next.ids) grown.add(id);
+    for (const id of next.ids) {grown.add(id);}
     walk(index + 1, [...picked, next], grown);
   };
   walk(0, [], new Set());
@@ -119,7 +119,7 @@ function smallestMaxCover(candidates: readonly Candidate[]): Candidate[] {
 }
 
 function betterTie(picked: readonly Candidate[], best: readonly Candidate[]): boolean {
-  if (picked.length !== best.length) return picked.length < best.length;
+  if (picked.length !== best.length) {return picked.length < best.length;}
   const left = picked.map((item) => item.name).sort().join('\0');
   const right = best.map((item) => item.name).sort().join('\0');
   return left < right;

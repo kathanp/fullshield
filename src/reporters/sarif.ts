@@ -10,8 +10,8 @@ import { redactScan } from './redact.js';
 export const SCHEMA_URI = 'https://json.schemastore.org/sarif-2.1.0.json';
 
 function sarifLevel(severity: Severity): 'error' | 'warning' | 'note' {
-  if (severity === 'critical' || severity === 'high') return 'error';
-  if (severity === 'medium') return 'warning';
+  if (severity === 'critical' || severity === 'high') {return 'error';}
+  if (severity === 'medium') {return 'warning';}
   return 'note';
 }
 
@@ -25,12 +25,12 @@ function sarifV2(): boolean {
 
 function ruleMarkdown(ruleId: string): string | undefined {
   const path = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'rules', `${ruleId}.md`);
-  if (!existsSync(path)) return undefined;
+  if (!existsSync(path)) {return undefined;}
   return readFileSync(path, 'utf8').slice(0, 2048);
 }
 
 function relatedLocations(finding: Finding): unknown[] | undefined {
-  if (finding.dependencyPath === undefined || finding.dependencyPath.length === 0) return undefined;
+  if (finding.dependencyPath === undefined || finding.dependencyPath.length === 0) {return undefined;}
   return finding.dependencyPath.map((step) => ({
     message: { text: step },
     physicalLocation: {
@@ -73,8 +73,8 @@ export function renderSarifReport(input: ScanResult): string {
         },
         results: result.findings.map((finding: Finding) => {
           const region: { startLine?: number; startColumn?: number } = {};
-          if (finding.line !== undefined) region.startLine = finding.line;
-          if (finding.column !== undefined) region.startColumn = finding.column + 1;
+          if (finding.line !== undefined) {region.startLine = finding.line;}
+          if (finding.column !== undefined) {region.startColumn = finding.column + 1;}
           const location =
             finding.file !== undefined
               ? [
@@ -140,7 +140,7 @@ export function validateSarif21(doc: unknown): string[] {
     return ['SARIF document must be an object'];
   }
   const root = doc as Record<string, unknown>;
-  if (root.version !== '2.1.0') errors.push('version must be "2.1.0"');
+  if (root.version !== '2.1.0') {errors.push('version must be "2.1.0"');}
   if (!Array.isArray(root.runs)) {
     errors.push('runs must be an array');
     return errors;

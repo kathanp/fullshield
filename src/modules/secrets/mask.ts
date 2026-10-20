@@ -20,7 +20,7 @@ export function foldStringConcat(line: string): string {
 
 /** Shannon entropy in bits per character. */
 export function shannonEntropy(value: string): number {
-  if (value.length === 0) return 0;
+  if (value.length === 0) {return 0;}
   const counts = new Map<string, number>();
   for (const char of value) {
     counts.set(char, (counts.get(char) ?? 0) + 1);

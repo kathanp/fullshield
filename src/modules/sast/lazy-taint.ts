@@ -25,7 +25,7 @@ export function fileNeedsTaintWalk(source: string): boolean {
 const IMPORT_RE = /(?:require\(\s*|from\s*)['"](\.[^'"]+)['"]/g;
 
 function resolveSpec(fromFile: string, spec: string, files: ReadonlySet<string>): string | undefined {
-  if (!spec.startsWith('.')) return undefined;
+  if (!spec.startsWith('.')) {return undefined;}
   const base = posix.normalize(posix.join(posix.dirname(fromFile), spec));
   const candidates = [
     base,
@@ -45,9 +45,9 @@ function importsOf(file: string, source: string, files: ReadonlySet<string>): Se
   let match: RegExpExecArray | null;
   while ((match = IMPORT_RE.exec(source)) !== null) {
     const spec = match[1];
-    if (spec === undefined) continue;
+    if (spec === undefined) {continue;}
     const resolved = resolveSpec(file, spec, files);
-    if (resolved !== undefined) deps.add(resolved);
+    if (resolved !== undefined) {deps.add(resolved);}
   }
   return deps;
 }
@@ -61,16 +61,16 @@ export function lazyTaintFiles(entries: readonly { file: string; source: string 
   const imports = new Map<string, Set<string>>();
   const seeds: string[] = [];
   for (const entry of entries) {
-    if (fileNeedsTaintWalk(entry.source)) seeds.push(entry.file);
+    if (fileNeedsTaintWalk(entry.source)) {seeds.push(entry.file);}
     imports.set(entry.file, importsOf(entry.file, entry.source, files));
   }
   const walked = new Set<string>(seeds);
   const queue = seeds.map((file) => ({ file, depth: 0 }));
   while (queue.length > 0) {
     const item = queue.shift();
-    if (item === undefined || item.depth >= MAX_IMPORT_DEPTH) continue;
+    if (item === undefined || item.depth >= MAX_IMPORT_DEPTH) {continue;}
     for (const dep of imports.get(item.file) ?? []) {
-      if (walked.has(dep)) continue;
+      if (walked.has(dep)) {continue;}
       walked.add(dep);
       queue.push({ file: dep, depth: item.depth + 1 });
     }

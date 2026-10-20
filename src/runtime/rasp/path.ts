@@ -3,7 +3,7 @@ export function logicalResolve(p: string): string {
   const isAbs = p.startsWith('/') || /^[A-Za-z]:[\\/]/.test(p);
   const parts: string[] = [];
   for (const seg of p.split(/[\\/]+/)) {
-    if (seg === '' || seg === '.') continue;
+    if (seg === '' || seg === '.') {continue;}
     if (seg === '..') {
       parts.pop();
       continue;
@@ -16,13 +16,13 @@ export function logicalResolve(p: string): string {
 function isInside(base: string, target: string): boolean {
   const b = logicalResolve(base).replace(/\/+$/, '');
   const t = logicalResolve(target);
-  if (b === '') return !t.startsWith('/') && !t.split('/').includes('..');
+  if (b === '') {return !t.startsWith('/') && !t.split('/').includes('..');}
   return t === b || t.startsWith(`${b}/`);
 }
 
 function inferBase(sink: string, input: string): string {
   const idx = sink.indexOf(input);
-  if (idx <= 0) return '';
+  if (idx <= 0) {return '';}
   return sink.slice(0, idx);
 }
 
@@ -32,10 +32,10 @@ function lastSeg(p: string): string | undefined {
 }
 
 export function pathInputEscapes(sink: string, input: string, base?: string): boolean {
-  if (!input) return false;
-  if (input.includes('\0') || sink.includes('\0')) return true;
+  if (!input) {return false;}
+  if (input.includes('\0') || sink.includes('\0')) {return true;}
   if (sink.includes(input)) {
-    if (input.includes('..')) return true;
+    if (input.includes('..')) {return true;}
     const intended = base !== undefined && base.length > 0 ? base : inferBase(sink, input);
     if (intended === '') {
       return input.startsWith('/') || /^[A-Za-z]:[\\/]/.test(input) || input.includes('..');
@@ -47,7 +47,7 @@ export function pathInputEscapes(sink: string, input: string, base?: string): bo
   if (input.includes('..') || input.startsWith('/') || /^[A-Za-z]:[\\/]/.test(input)) {
     const a = lastSeg(input);
     const b = lastSeg(sink);
-    if (a && a === b) return true;
+    if (a && a === b) {return true;}
   }
   return false;
 }

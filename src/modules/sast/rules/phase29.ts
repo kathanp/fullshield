@@ -8,29 +8,29 @@ function gated(rule: SastRule): SastRule {
   return {
     meta: rule.meta,
     create(ctx) {
-      if (!classesEnabled()) return {};
+      if (!classesEnabled()) {return {};}
       return rule.create(ctx);
     },
   };
 }
 
 function objectProp(node: AstNode | undefined, name: string): AstNode | undefined {
-  if (node === undefined || node.type !== 'ObjectExpression') return undefined;
+  if (node === undefined || node.type !== 'ObjectExpression') {return undefined;}
   for (const prop of node.properties) {
-    if (prop.type !== 'Property') continue;
+    if (prop.type !== 'Property') {continue;}
     const key = prop.key.type === 'Identifier' ? prop.key.name : literalString(prop.key);
-    if (key === name) return prop.value;
+    if (key === name) {return prop.value;}
   }
   return undefined;
 }
 
 function boolLiteral(node: AstNode | undefined): boolean | undefined {
-  if (node === undefined || node.type !== 'Literal' || typeof node.value !== 'boolean') return undefined;
+  if (node === undefined || node.type !== 'Literal' || typeof node.value !== 'boolean') {return undefined;}
   return node.value;
 }
 
 function numberLiteral(node: AstNode | undefined): number | undefined {
-  if (node === undefined || node.type !== 'Literal' || typeof node.value !== 'number') return undefined;
+  if (node === undefined || node.type !== 'Literal' || typeof node.value !== 'number') {return undefined;}
   return node.value;
 }
 
@@ -47,7 +47,7 @@ function containsIdentMember(node: AstNode, objectName: string): boolean {
 function containsCallNamed(node: AstNode, name: string): boolean {
   let hit = false;
   walk(node, (child) => {
-    if (child.type === 'CallExpression' && calleeName(child) === name) hit = true;
+    if (child.type === 'CallExpression' && calleeName(child) === name) {hit = true;}
   });
   return hit;
 }
@@ -55,13 +55,13 @@ function containsCallNamed(node: AstNode, name: string): boolean {
 function containsOriginalName(node: AstNode): boolean {
   let hit = false;
   walk(node, (child) => {
-    if (child.type === 'MemberExpression' && propName(child) === 'originalname') hit = true;
+    if (child.type === 'MemberExpression' && propName(child) === 'originalname') {hit = true;}
   });
   return hit;
 }
 
 function schemaLooksSafe(schema: AstNode | undefined): boolean {
-  if (schema === undefined) return false;
+  if (schema === undefined) {return false;}
   const name =
     schema.type === 'Identifier'
       ? schema.name
@@ -82,14 +82,14 @@ interface RedosFrag {
 }
 
 function firstsOverlap(a: First, b: First): boolean {
-  if (a.kind === 'none' || b.kind === 'none') return false;
-  if (a.kind === 'any' || b.kind === 'any') return true;
+  if (a.kind === 'none' || b.kind === 'none') {return false;}
+  if (a.kind === 'any' || b.kind === 'any') {return true;}
   return a.c === b.c;
 }
 
 /** Static star-height / overlapping-quantifier check. Never compiles the pattern. */
 export function patternHasRedos(pattern: string): boolean {
-  if (pattern.length > 2000) return false;
+  if (pattern.length > 2000) {return false;}
   const st = { i: 0 };
   try {
     const frag = parseAlts(pattern, st);
@@ -147,17 +147,17 @@ function parseAtom(s: string, st: { i: number }): RedosFrag {
   }
   if (c === '(') {
     st.i += 1;
-    if (s.startsWith('?:', st.i) || s.startsWith('?=', st.i) || s.startsWith('?!', st.i)) st.i += 2;
+    if (s.startsWith('?:', st.i) || s.startsWith('?=', st.i) || s.startsWith('?!', st.i)) {st.i += 2;}
     frag = parseAlts(s, st);
-    if (s[st.i] === ')') st.i += 1;
+    if (s[st.i] === ')') {st.i += 1;}
   } else if (c === '[') {
     st.i += 1;
-    if (s[st.i] === '^') st.i += 1;
+    if (s[st.i] === '^') {st.i += 1;}
     while (st.i < s.length && s[st.i] !== ']') {
-      if (s[st.i] === '\\') st.i += 2;
-      else st.i += 1;
+      if (s[st.i] === '\\') {st.i += 2;}
+      else {st.i += 1;}
     }
-    if (s[st.i] === ']') st.i += 1;
+    if (s[st.i] === ']') {st.i += 1;}
     frag = { nested: false, overlap: false, canRepeatInner: false, altOverlap: false, first: { kind: 'any' } };
   } else if (c === '\\') {
     st.i += 1;
@@ -182,8 +182,8 @@ function parseAtom(s: string, st: { i: number }): RedosFrag {
     frag = { nested: false, overlap: false, canRepeatInner: false, altOverlap: false, first: { kind: 'char', c } };
   }
   const q = parseQuantifier(s, st);
-  if (q === undefined) return frag;
-  if (!q.repeating) return frag;
+  if (q === undefined) {return frag;}
+  if (!q.repeating) {return frag;}
   return {
     nested: frag.nested || frag.canRepeatInner,
     overlap: frag.overlap || frag.altOverlap,
@@ -197,19 +197,19 @@ function parseQuantifier(s: string, st: { i: number }): { repeating: boolean } |
   const c = s[st.i];
   if (c === '*' || c === '+') {
     st.i += 1;
-    if (s[st.i] === '?') st.i += 1;
+    if (s[st.i] === '?') {st.i += 1;}
     return { repeating: true };
   }
   if (c === '?') {
     st.i += 1;
     return { repeating: false };
   }
-  if (c !== '{') return undefined;
+  if (c !== '{') {return undefined;}
   const rest = s.slice(st.i);
   const m = rest.match(/^\{(\d+)(,(\d+)?)?\}/);
-  if (m === null) return undefined;
+  if (m === null) {return undefined;}
   st.i += m[0].length;
-  if (s[st.i] === '?') st.i += 1;
+  if (s[st.i] === '?') {st.i += 1;}
   const min = Number(m[1]);
   const hasComma = m[2] !== undefined;
   const max = m[3] !== undefined ? Number(m[3]) : hasComma ? Number.POSITIVE_INFINITY : min;
@@ -217,7 +217,7 @@ function parseQuantifier(s: string, st: { i: number }): { repeating: boolean } |
 }
 
 function regexPatternOf(node: AstNode | undefined): string | undefined {
-  if (node === undefined) return undefined;
+  if (node === undefined) {return undefined;}
   if (node.type === 'Literal' && 'regex' in node && node.regex !== null) {
     return node.regex.pattern;
   }
@@ -232,13 +232,13 @@ function regexPatternOf(node: AstNode | undefined): string | undefined {
 }
 
 function secretishName(name: string | undefined): boolean {
-  if (name === undefined) return false;
+  if (name === undefined) {return false;}
   return /secret|token|password|passwd|pwd|hmac|signature|hash|apikey|api_key|credential/i.test(name);
 }
 
 function secretish(node: AstNode): boolean {
-  if (node.type === 'Identifier') return secretishName(node.name);
-  if (node.type === 'MemberExpression') return secretishName(propName(node));
+  if (node.type === 'Identifier') {return secretishName(node.name);}
+  if (node.type === 'MemberExpression') {return secretishName(propName(node));}
   return false;
 }
 
@@ -247,7 +247,7 @@ function isTimingSafeEqual(node: AstNode): boolean {
 }
 
 function cookieFlagsComplete(opts: AstNode | undefined): boolean {
-  if (opts === undefined || opts.type !== 'ObjectExpression') return false;
+  if (opts === undefined || opts.type !== 'ObjectExpression') {return false;}
   const httpOnly = boolLiteral(objectProp(opts, 'httpOnly')) === true;
   const secure = boolLiteral(objectProp(opts, 'secure')) === true;
   const sameSite = objectProp(opts, 'sameSite');
@@ -284,17 +284,17 @@ const redosRule: SastRule = {
     const redosNames = new Set<string>();
     return {
       VariableDeclarator(node) {
-        if (node.type !== 'VariableDeclarator' || node.id.type !== 'Identifier' || node.init === null) return;
+        if (node.type !== 'VariableDeclarator' || node.id.type !== 'Identifier' || node.init === null) {return;}
         const pattern = regexPatternOf(node.init);
-        if (pattern !== undefined && patternHasRedos(pattern)) redosNames.add(node.id.name);
+        if (pattern !== undefined && patternHasRedos(pattern)) {redosNames.add(node.id.name);}
       },
       CallExpression(node) {
-        if (node.type !== 'CallExpression') return;
+        if (node.type !== 'CallExpression') {return;}
         const name = calleeName(node);
         if (name === 'test' || name === 'exec') {
           const arg = node.arguments[0];
-          if (arg === undefined || arg.type === 'SpreadElement' || !ctx.isTainted(arg)) return;
-          if (node.callee.type !== 'MemberExpression') return;
+          if (arg === undefined || arg.type === 'SpreadElement' || !ctx.isTainted(arg)) {return;}
+          if (node.callee.type !== 'MemberExpression') {return;}
           const pattern = regexPatternOf(node.callee.object);
           const named =
             node.callee.object.type === 'Identifier' && redosNames.has(node.callee.object.name);
@@ -304,9 +304,9 @@ const redosRule: SastRule = {
           return;
         }
         if (name === 'match' || name === 'search') {
-          if (node.callee.type !== 'MemberExpression' || !ctx.isTainted(node.callee.object)) return;
+          if (node.callee.type !== 'MemberExpression' || !ctx.isTainted(node.callee.object)) {return;}
           const arg = node.arguments[0];
-          if (arg === undefined || arg.type === 'SpreadElement') return;
+          if (arg === undefined || arg.type === 'SpreadElement') {return;}
           const pattern = regexPatternOf(arg);
           if (pattern !== undefined && patternHasRedos(pattern)) {
             ctx.report({ node, message: 'Tainted input is matched against a regex with nested or overlapping quantifiers.' });
@@ -328,7 +328,7 @@ const deserRule: SastRule = {
   create(ctx) {
     return {
       CallExpression(node) {
-        if (node.type !== 'CallExpression') return;
+        if (node.type !== 'CallExpression') {return;}
         const name = calleeName(node);
         const arg0 = node.arguments[0];
         const taintedFirst = arg0 !== undefined && arg0.type !== 'SpreadElement' && ctx.isTainted(arg0);
@@ -378,11 +378,11 @@ const xxeRule: SastRule = {
     const customEntities = /ENTITIES/.test(ctx.source);
     return {
       CallExpression(node) {
-        if (node.type !== 'CallExpression') return;
+        if (node.type !== 'CallExpression') {return;}
         const name = calleeName(node);
         const arg0 = node.arguments[0];
         const taintedFirst = arg0 !== undefined && arg0.type !== 'SpreadElement' && ctx.isTainted(arg0);
-        if (!taintedFirst) return;
+        if (!taintedFirst) {return;}
         if (name === 'parseXml' || name === 'parseXmlString') {
           const opts = node.arguments[1];
           if (opts !== undefined && opts.type !== 'SpreadElement' && boolLiteral(objectProp(opts, 'noent')) === true) {
@@ -416,7 +416,7 @@ const uploadRule: SastRule = {
   create(ctx) {
     return {
       CallExpression(node) {
-        if (node.type !== 'CallExpression') return;
+        if (node.type !== 'CallExpression') {return;}
         const name = calleeName(node);
         if (name === 'multer' || name === 'busboy' || name === 'formidable' || name === 'IncomingForm') {
           const opts = node.arguments[0];
@@ -441,9 +441,9 @@ const uploadRule: SastRule = {
         }
       },
       NewExpression(node) {
-        if (node.type !== 'NewExpression') return;
+        if (node.type !== 'NewExpression') {return;}
         const name = calleeName(node);
-        if (name !== 'IncomingForm' && name !== 'Formidable') return;
+        if (name !== 'IncomingForm' && name !== 'Formidable') {return;}
         const opts = node.arguments[0];
         const obj = opts !== undefined && opts.type !== 'SpreadElement' ? opts : undefined;
         if (objectProp(obj, 'maxFileSize') === undefined || objectProp(obj, 'filter') === undefined) {
@@ -473,7 +473,7 @@ const cookieRule: SastRule = {
   create(ctx) {
     return {
       CallExpression(node) {
-        if (node.type !== 'CallExpression') return;
+        if (node.type !== 'CallExpression') {return;}
         const name = calleeName(node);
         if (name === 'cookie') {
           const opts = node.arguments[2];
@@ -489,7 +489,7 @@ const cookieRule: SastRule = {
           const secret = objectProp(optNode, 'secret');
           const cookie = objectProp(optNode, 'cookie');
           // A hardcoded session secret is SECRET-SESSION-001 only, so this rule does not add a second finding.
-          if (literalString(secret) !== undefined) return;
+          if (literalString(secret) !== undefined) {return;}
           if (!cookieFlagsComplete(cookie)) {
             ctx.report({
               node,
@@ -516,12 +516,12 @@ const csrfRule: SastRule = {
     const sameSiteOk = /sameSite\s*:\s*['"](strict|lax)['"]/.test(ctx.source);
     return {
       CallExpression(node) {
-        if (node.type !== 'CallExpression' || !cookieAuth || csrfProtect || sameSiteOk) return;
-        if (node.callee.type !== 'MemberExpression') return;
+        if (node.type !== 'CallExpression' || !cookieAuth || csrfProtect || sameSiteOk) {return;}
+        if (node.callee.type !== 'MemberExpression') {return;}
         const name = calleeName(node);
-        if (name === undefined || !/^(post|put|patch|delete)$/.test(name)) return;
+        if (name === undefined || !/^(post|put|patch|delete)$/.test(name)) {return;}
         const obj = node.callee.object;
-        if (obj.type !== 'Identifier' || !/^(app|router)$/i.test(obj.name)) return;
+        if (obj.type !== 'Identifier' || !/^(app|router)$/i.test(obj.name)) {return;}
         ctx.report({
           node,
           message: 'Cookie-authenticated POST/PUT/PATCH/DELETE has no CSRF protection and sameSite is not strict/lax.',
@@ -542,7 +542,7 @@ const massAssignRule: SastRule = {
   create(ctx) {
     return {
       CallExpression(node) {
-        if (node.type !== 'CallExpression') return;
+        if (node.type !== 'CallExpression') {return;}
         const name = calleeName(node);
         if (name === 'assign') {
           const src = node.arguments[1];
@@ -551,9 +551,9 @@ const massAssignRule: SastRule = {
           }
           return;
         }
-        if (name !== 'create' && name !== 'update' && name !== 'upsert') return;
+        if (name !== 'create' && name !== 'update' && name !== 'upsert') {return;}
         const body = node.arguments.find((arg) => arg.type !== 'SpreadElement' && ctx.isRequestObject(arg));
-        if (body === undefined) return;
+        if (body === undefined) {return;}
         const opts = node.arguments[1];
         if (
           opts !== undefined &&
@@ -579,10 +579,10 @@ const timingRule: SastRule = {
   create(ctx) {
     return {
       BinaryExpression(node) {
-        if (node.type !== 'BinaryExpression') return;
-        if (node.operator !== '===' && node.operator !== '==') return;
-        if (isTimingSafeEqual(node.left) || isTimingSafeEqual(node.right)) return;
-        if (!secretish(node.left) && !secretish(node.right)) return;
+        if (node.type !== 'BinaryExpression') {return;}
+        if (node.operator !== '===' && node.operator !== '==') {return;}
+        if (isTimingSafeEqual(node.left) || isTimingSafeEqual(node.right)) {return;}
+        if (!secretish(node.left) && !secretish(node.right)) {return;}
         ctx.report({
           node,
           message: 'A secret/token/HMAC is compared with ===/== instead of crypto.timingSafeEqual.',
@@ -593,19 +593,19 @@ const timingRule: SastRule = {
 };
 
 function argon2BelowOwasp(opts: AstNode | undefined): boolean {
-  if (opts === undefined || opts.type !== 'ObjectExpression') return false;
+  if (opts === undefined || opts.type !== 'ObjectExpression') {return false;}
   const memory = numberLiteral(objectProp(opts, 'memoryCost'));
   const time = numberLiteral(objectProp(opts, 'timeCost'));
-  if (memory !== undefined && memory < 12288) return true;
-  if (time !== undefined && time < 2) return true;
-  if (memory !== undefined && time !== undefined && memory < 19456 && time < 3) return true;
+  if (memory !== undefined && memory < 12288) {return true;}
+  if (time !== undefined && time < 2) {return true;}
+  if (memory !== undefined && time !== undefined && memory < 19456 && time < 3) {return true;}
   return false;
 }
 
 function pbkdf2BelowOwasp(iterations: number, digest: string | undefined): boolean {
   const algo = (digest ?? 'sha256').toLowerCase();
-  if (algo === 'sha512') return iterations < 210_000;
-  if (algo === 'sha1') return iterations < 1_300_000;
+  if (algo === 'sha512') {return iterations < 210_000;}
+  if (algo === 'sha1') {return iterations < 1_300_000;}
   return iterations < 600_000;
 }
 
@@ -620,7 +620,7 @@ const hashRule: SastRule = {
   create(ctx) {
     return {
       CallExpression(node) {
-        if (node.type !== 'CallExpression') return;
+        if (node.type !== 'CallExpression') {return;}
         const name = calleeName(node);
         if (name === 'hash' || name === 'hashSync' || name === 'genSalt' || name === 'genSaltSync') {
           const costArg = name === 'genSalt' || name === 'genSaltSync' ? node.arguments[0] : node.arguments[1];
@@ -663,22 +663,22 @@ const gqlRule: SastRule = {
     const mentionsProduction = /NODE_ENV/.test(ctx.source) && /production/.test(ctx.source);
     return {
       NewExpression(node) {
-        if (node.type !== 'NewExpression') return;
+        if (node.type !== 'NewExpression') {return;}
         const name = calleeName(node);
-        if (name === undefined || !GQL_SERVERS.has(name)) return;
+        if (name === undefined || !GQL_SERVERS.has(name)) {return;}
         reportGqlServer(ctx, node, node.arguments[0], mentionsProduction);
       },
       CallExpression(node) {
-        if (node.type !== 'CallExpression') return;
+        if (node.type !== 'CallExpression') {return;}
         const name = calleeName(node);
         if (name !== undefined && GQL_SERVERS.has(name)) {
           reportGqlServer(ctx, node, node.arguments[0], mentionsProduction);
           return;
         }
-        if (name !== 'query' && name !== 'execute' && name !== 'exec' && name !== 'eval') return;
+        if (name !== 'query' && name !== 'execute' && name !== 'exec' && name !== 'eval') {return;}
         const sql = node.arguments[0];
-        if (sql === undefined || sql.type === 'SpreadElement') return;
-        if (!containsIdentMember(sql, 'args')) return;
+        if (sql === undefined || sql.type === 'SpreadElement') {return;}
+        if (!containsIdentMember(sql, 'args')) {return;}
         ctx.report({
           node,
           message: 'GraphQL resolver args reach a sink without validation (tainted resolver argument).',

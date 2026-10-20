@@ -8,8 +8,8 @@ export interface ChangedOptions {
 }
 
 export function resolveChangedFiles(cwd: string, opts: ChangedOptions = {}): string[] {
-  if (!opts.experimental && process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM !== '1') return [];
-  if (!opts.changed && !opts.since) return [];
+  if (!opts.experimental && process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM !== '1') {return [];}
+  if (!opts.changed && !opts.since) {return [];}
   const run =
     opts.git ??
     ((args: string[]) =>

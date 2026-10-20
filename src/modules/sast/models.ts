@@ -83,16 +83,16 @@ let activeSinks: ModelEntry[] = [];
 export function setActiveModels(entries: readonly ModelEntry[] | undefined): void {
   activeSources = [];
   activeSinks = [];
-  if (entries === undefined) return;
+  if (entries === undefined) {return;}
   for (const entry of entries) {
-    if (entry.kind === 'source') activeSources.push(entry);
-    else if (entry.kind === 'sink') activeSinks.push(entry);
+    if (entry.kind === 'source') {activeSources.push(entry);}
+    else if (entry.kind === 'sink') {activeSinks.push(entry);}
   }
 }
 
 export function versionInRange(range: string, version: string): boolean {
   const orParts = range.split('||').map((part) => part.trim()).filter((part) => part.length > 0);
-  if (orParts.length === 0) return false;
+  if (orParts.length === 0) {return false;}
   return orParts.some((part) => {
     const atoms = part.split(/\s+/).filter((atom) => atom.length > 0);
     return atoms.length > 0 && atoms.every((atom) => rangeSatisfies(atom, version) === true);
@@ -108,7 +108,7 @@ function catalogPath(): string {
       return candidate;
     } catch {
       const parent = dirname(dir);
-      if (parent === dir) break;
+      if (parent === dir) {break;}
       dir = parent;
     }
   }
@@ -116,19 +116,19 @@ function catalogPath(): string {
 }
 
 function asEntry(value: unknown): ModelEntry {
-  if (typeof value !== 'object' || value === null) throw new Error('model entry must be an object');
+  if (typeof value !== 'object' || value === null) {throw new Error('model entry must be an object');}
   const row = value as Record<string, unknown>;
-  if (typeof row.package !== 'string' || row.package.length === 0) throw new Error('model entry package');
-  if (typeof row.versionRange !== 'string' || row.versionRange.length === 0) throw new Error('model entry versionRange');
-  if (typeof row.kind !== 'string' || !KINDS.has(row.kind)) throw new Error('model entry kind');
-  if (typeof row.sinkClass !== 'string' || !CLASSES.has(row.sinkClass)) throw new Error('model entry sinkClass');
+  if (typeof row.package !== 'string' || row.package.length === 0) {throw new Error('model entry package');}
+  if (typeof row.versionRange !== 'string' || row.versionRange.length === 0) {throw new Error('model entry versionRange');}
+  if (typeof row.kind !== 'string' || !KINDS.has(row.kind)) {throw new Error('model entry kind');}
+  if (typeof row.sinkClass !== 'string' || !CLASSES.has(row.sinkClass)) {throw new Error('model entry sinkClass');}
   if (typeof row.memberPath !== 'string' || row.memberPath.length === 0 || /\s/.test(row.memberPath)) {
     throw new Error('model entry memberPath');
   }
   if (typeof row.argumentIndex !== 'number' || !Number.isInteger(row.argumentIndex) || row.argumentIndex < 0) {
     throw new Error('model entry argumentIndex');
   }
-  if (typeof row.reference !== 'string' || !/^https?:\/\/\S+$/.test(row.reference)) throw new Error('model entry reference');
+  if (typeof row.reference !== 'string' || !/^https?:\/\/\S+$/.test(row.reference)) {throw new Error('model entry reference');}
   return {
     package: row.package,
     versionRange: row.versionRange,
@@ -145,14 +145,14 @@ export function loadModelCatalog(): ModelCatalog {
   if (raw.fullshieldVersion !== packageVersion()) {
     throw new Error('model pack version does not match FullShield');
   }
-  if (!Array.isArray(raw.entries)) throw new Error('model entries must be an array');
+  if (!Array.isArray(raw.entries)) {throw new Error('model entries must be an array');}
   return { fullshieldVersion: raw.fullshieldVersion, entries: raw.entries.map(asEntry) };
 }
 
 function addVersion(map: Map<string, string[]>, name: string, version: string): void {
-  if (!/^\d+\.\d+\.\d+/.test(version)) return;
+  if (!/^\d+\.\d+\.\d+/.test(version)) {return;}
   const list = map.get(name) ?? [];
-  if (!list.includes(version)) list.push(version);
+  if (!list.includes(version)) {list.push(version);}
   map.set(name, list);
 }
 
@@ -166,7 +166,7 @@ function installedVersions(cwd: string): Map<string, string[]> {
       continue;
     }
     try {
-      for (const pkg of parseLockfile(filename, text)) addVersion(map, pkg.name, pkg.version);
+      for (const pkg of parseLockfile(filename, text)) {addVersion(map, pkg.name, pkg.version);}
     } catch {
       // Unreadable lockfile; other sources still apply.
     }
@@ -178,16 +178,16 @@ function installedVersions(cwd: string): Map<string, string[]> {
       optionalDependencies?: Record<string, unknown>;
     };
     for (const field of [pkg.dependencies, pkg.devDependencies, pkg.optionalDependencies]) {
-      if (field === undefined) continue;
+      if (field === undefined) {continue;}
       for (const [name, version] of Object.entries(field)) {
-        if (typeof version === 'string') addVersion(map, name, version);
+        if (typeof version === 'string') {addVersion(map, name, version);}
       }
     }
   } catch {
     // No manifest.
   }
   for (const name of BUILTINS) {
-    if (!map.has(name)) addVersion(map, name, process.versions.node);
+    if (!map.has(name)) {addVersion(map, name, process.versions.node);}
   }
   return map;
 }
@@ -205,7 +205,7 @@ export function resolveModelPacks(cwd: string): { active: ModelEntry[]; info: st
   const info: string[] = [];
   for (const [name, entries] of grouped) {
     const versions = installed.get(name);
-    if (versions === undefined || versions.length === 0) continue;
+    if (versions === undefined || versions.length === 0) {continue;}
     const matched = entries.filter((entry) => versions.some((version) => versionInRange(entry.versionRange, version)));
     if (matched.length > 0) {
       active.push(...matched);
@@ -228,7 +228,7 @@ function chainOf(node: AstNode): string[] {
   while (current !== undefined) {
     if (current.type === 'CallExpression') {
       const name = calleeName(current);
-      if (name !== undefined) names.push(name);
+      if (name !== undefined) {names.push(name);}
       if (current.callee.type === 'MemberExpression') {
         current = current.callee.object;
         continue;
@@ -237,7 +237,7 @@ function chainOf(node: AstNode): string[] {
     }
     if (current.type === 'MemberExpression') {
       const name = propName(current);
-      if (name !== undefined) names.push(name);
+      if (name !== undefined) {names.push(name);}
       current = current.object;
       continue;
     }
@@ -253,32 +253,32 @@ function chainOf(node: AstNode): string[] {
 function chainHas(memberPath: string, node: AstNode): boolean {
   const want = segmentsOf(memberPath);
   const got = chainOf(node);
-  if (want.length === 0 || got.length === 0 || got[got.length - 1] !== want[want.length - 1]) return false;
+  if (want.length === 0 || got.length === 0 || got[got.length - 1] !== want[want.length - 1]) {return false;}
   let index = 0;
   for (const name of got) {
-    if (name === want[index]) index += 1;
-    if (index === want.length) return true;
+    if (name === want[index]) {index += 1;}
+    if (index === want.length) {return true;}
   }
   return false;
 }
 
 export function modelSourceNode(node: AstNode): boolean {
-  if (activeSources.length === 0) return false;
-  if (node.type !== 'CallExpression' && node.type !== 'MemberExpression') return false;
+  if (activeSources.length === 0) {return false;}
+  if (node.type !== 'CallExpression' && node.type !== 'MemberExpression') {return false;}
   return activeSources.some((entry) => chainHas(entry.memberPath, node));
 }
 
 function jwtAllowsAlgorithms(call: AstNode): boolean {
-  if (call.type !== 'CallExpression') return false;
+  if (call.type !== 'CallExpression') {return false;}
   const opts = call.arguments[2];
-  if (opts === undefined || opts.type !== 'ObjectExpression') return false;
+  if (opts === undefined || opts.type !== 'ObjectExpression') {return false;}
   for (const prop of opts.properties) {
-    if (prop.type !== 'Property') continue;
+    if (prop.type !== 'Property') {continue;}
     const key = prop.key.type === 'Identifier' ? prop.key.name : literalString(prop.key);
-    if (key !== 'algorithms' || prop.value.type !== 'ArrayExpression') continue;
+    if (key !== 'algorithms' || prop.value.type !== 'ArrayExpression') {continue;}
     const values: unknown[] = [];
     for (const el of prop.value.elements) {
-      if (el !== null && el.type === 'Literal') values.push(el.value);
+      if (el !== null && el.type === 'Literal') {values.push(el.value);}
     }
     return values.length > 0 && !values.some((value) => value === 'none' || value === 'None');
   }
@@ -291,7 +291,7 @@ function sourceImports(source: string, packageName: string): boolean {
 }
 
 function snippetOf(source: string, node: AstNode): string {
-  if (node.range === undefined) return '';
+  if (node.range === undefined) {return '';}
   return source.slice(node.range[0], node.range[1]).replace(/\s+/g, ' ').trim().slice(0, 120);
 }
 
@@ -302,20 +302,20 @@ export function modelSinkFindings(
   isTainted: (node: AstNode) => boolean,
   existing: readonly Finding[],
 ): Finding[] {
-  if (activeSinks.length === 0) return [];
+  if (activeSinks.length === 0) {return [];}
   const out: Finding[] = [];
   walk(ast, (node) => {
-    if (node.type !== 'CallExpression') return;
+    if (node.type !== 'CallExpression') {return;}
     for (const entry of activeSinks) {
-      if (!sourceImports(source, entry.package) || !chainHas(entry.memberPath, node)) continue;
-      if (entry.sinkClass === 'jwt' && jwtAllowsAlgorithms(node)) continue;
+      if (!sourceImports(source, entry.package) || !chainHas(entry.memberPath, node)) {continue;}
+      if (entry.sinkClass === 'jwt' && jwtAllowsAlgorithms(node)) {continue;}
       const arg = node.arguments[entry.argumentIndex];
-      if (arg === undefined || arg.type === 'SpreadElement' || !isTainted(arg)) continue;
+      if (arg === undefined || arg.type === 'SpreadElement' || !isTainted(arg)) {continue;}
       const rule = RULES[entry.sinkClass];
-      if (rule === undefined) continue;
+      if (rule === undefined) {continue;}
       const line = node.loc?.start.line ?? 0;
-      if (existing.some((finding) => finding.ruleId === rule.id && finding.line === line)) continue;
-      if (out.some((finding) => finding.ruleId === rule.id && finding.line === line)) continue;
+      if (existing.some((finding) => finding.ruleId === rule.id && finding.line === line)) {continue;}
+      if (out.some((finding) => finding.ruleId === rule.id && finding.line === line)) {continue;}
       const snippet = snippetOf(source, node);
       out.push({
         id: makeFindingId(rule.id, filename, `${line}|${snippet}`),
@@ -343,33 +343,33 @@ function parentOf(node: AstNode): AstNode | undefined {
 }
 
 function bagsFor(factory: string): string[] {
-  if (factory === 'body' || factory === 'checkBody') return ['body'];
-  if (factory === 'query' || factory === 'checkQuery') return ['query'];
-  if (factory === 'param' || factory === 'params') return ['params'];
-  if (factory === 'check') return ['body', 'query', 'params'];
-  if (factory === 'header') return ['headers'];
+  if (factory === 'body' || factory === 'checkBody') {return ['body'];}
+  if (factory === 'query' || factory === 'checkQuery') {return ['query'];}
+  if (factory === 'param' || factory === 'params') {return ['params'];}
+  if (factory === 'check') {return ['body', 'query', 'params'];}
+  if (factory === 'header') {return ['headers'];}
   return [];
 }
 
 function requestField(node: AstNode): { bag: string; field?: string } | undefined {
-  if (node.type !== 'MemberExpression' || node.computed === true) return undefined;
+  if (node.type !== 'MemberExpression' || node.computed === true) {return undefined;}
   const prop = propName(node);
-  if (prop === undefined) return undefined;
+  if (prop === undefined) {return undefined;}
   if (node.object.type === 'Identifier' && node.object.name === 'req') {
-    if (prop === 'body' || prop === 'query' || prop === 'params' || prop === 'headers') return { bag: prop };
+    if (prop === 'body' || prop === 'query' || prop === 'params' || prop === 'headers') {return { bag: prop };}
     return undefined;
   }
   if (node.object.type === 'MemberExpression') {
     const inner = requestField(node.object);
-    if (inner?.field === undefined && inner !== undefined) return { bag: inner.bag, field: prop };
+    if (inner?.field === undefined && inner !== undefined) {return { bag: inner.bag, field: prop };}
   }
   return undefined;
 }
 
 function literalFields(node: AstNode | undefined): string[] {
-  if (node === undefined || node.type === 'SpreadElement') return [];
+  if (node === undefined || node.type === 'SpreadElement') {return [];}
   const one = literalString(node);
-  if (one !== undefined) return [one];
+  if (one !== undefined) {return [one];}
   if (node.type === 'ArrayExpression') {
     return node.elements.flatMap((el) => literalFields(el ?? undefined));
   }
@@ -379,7 +379,7 @@ function literalFields(node: AstNode | undefined): string[] {
 function factoryCall(node: AstNode, factory: string): AstNode | undefined {
   let current: AstNode | undefined = node;
   while (current !== undefined) {
-    if (current.type === 'CallExpression' && calleeName(current) === factory) return current;
+    if (current.type === 'CallExpression' && calleeName(current) === factory) {return current;}
     if (current.type === 'CallExpression' && current.callee.type === 'MemberExpression') {
       current = current.callee.object;
       continue;
@@ -395,14 +395,14 @@ function factoryCall(node: AstNode, factory: string): AstNode | undefined {
 
 function assignedNames(node: AstNode): string[] {
   let parent = parentOf(node);
-  if (parent?.type === 'AwaitExpression') parent = parentOf(parent);
-  if (parent?.type === 'VariableDeclarator') return boundNames(parent.id);
-  if (parent?.type === 'AssignmentExpression') return boundNames(parent.left);
+  if (parent?.type === 'AwaitExpression') {parent = parentOf(parent);}
+  if (parent?.type === 'VariableDeclarator') {return boundNames(parent.id);}
+  if (parent?.type === 'AssignmentExpression') {return boundNames(parent.left);}
   return [];
 }
 
 function marksFrom(entry: ModelEntry, call: AstNode, line: number): ClearMark[] {
-  if (call.type !== 'CallExpression' || !chainHas(entry.memberPath, call)) return [];
+  if (call.type !== 'CallExpression' || !chainHas(entry.memberPath, call)) {return [];}
   const factory = segmentsOf(entry.memberPath).find((segment) => LOCATION.has(segment));
   if (factory !== undefined) {
     const found = factoryCall(call, factory);
@@ -426,7 +426,7 @@ function marksFrom(entry: ModelEntry, call: AstNode, line: number): ClearMark[] 
     }));
   }
   const arg = call.arguments[entry.argumentIndex];
-  if (arg === undefined || arg.type === 'SpreadElement') return [];
+  if (arg === undefined || arg.type === 'SpreadElement') {return [];}
   const field = requestField(arg);
   if (field?.field !== undefined) {
     return [{ line, sinkClass: entry.sinkClass, packageName: entry.package, field: `${field.bag}:${field.field}` }];
@@ -448,7 +448,7 @@ function isRouteCall(node: AstNode): boolean {
 function namedFunctions(ast: AstNode): Map<string, AstNode> {
   const map = new Map<string, AstNode>();
   walk(ast, (node) => {
-    if (node.type === 'FunctionDeclaration' && node.id !== null) map.set(node.id.name, node);
+    if (node.type === 'FunctionDeclaration' && node.id !== null) {map.set(node.id.name, node);}
     if (
       node.type === 'VariableDeclarator' &&
       node.id.type === 'Identifier' &&
@@ -463,7 +463,7 @@ function namedFunctions(ast: AstNode): Map<string, AstNode> {
 }
 
 function handlersOf(node: AstNode, named: Map<string, AstNode>): AstNode[] {
-  if (isFunctionNode(node)) return [node];
+  if (isFunctionNode(node)) {return [node];}
   if (node.type === 'Identifier') {
     const found = named.get(node.name);
     return found === undefined ? [] : [found];
@@ -475,7 +475,7 @@ function handlersOf(node: AstNode, named: Map<string, AstNode>): AstNode[] {
 }
 
 function callsOf(node: AstNode): AstNode[] {
-  if (node.type === 'CallExpression') return [node];
+  if (node.type === 'CallExpression') {return [node];}
   if (node.type === 'ArrayExpression') {
     return node.elements.flatMap((el) => (el === null || el.type === 'SpreadElement' ? [] : callsOf(el)));
   }
@@ -484,14 +484,14 @@ function callsOf(node: AstNode): AstNode[] {
 
 function walkFunction(fn: AstNode, visit: (node: AstNode) => void): void {
   function inner(node: AstNode): void {
-    if (node !== fn && isFunctionNode(node)) return;
+    if (node !== fn && isFunctionNode(node)) {return;}
     visit(node);
     for (const key of Object.keys(node) as Array<keyof AstNode>) {
-      if (key === 'loc' || key === 'range' || key === 'type' || key === 'parent') continue;
+      if (key === 'loc' || key === 'range' || key === 'type' || key === 'parent') {continue;}
       const value = node[key] as unknown;
       if (Array.isArray(value)) {
         for (const child of value) {
-          if (child !== null && typeof child === 'object' && 'type' in child) inner(child as AstNode);
+          if (child !== null && typeof child === 'object' && 'type' in child) {inner(child as AstNode);}
         }
       } else if (value !== null && typeof value === 'object' && 'type' in value) {
         inner(value as AstNode);
@@ -504,7 +504,7 @@ function walkFunction(fn: AstNode, visit: (node: AstNode) => void): void {
 function enclosingFunction(node: AstNode): AstNode | undefined {
   let current = parentOf(node);
   while (current !== undefined) {
-    if (isFunctionNode(current)) return current;
+    if (isFunctionNode(current)) {return current;}
     current = parentOf(current);
   }
   return undefined;
@@ -523,11 +523,11 @@ function mergeCover(parts: Cover[]): Cover {
 }
 
 function coverNode(node: AstNode, sinkClass: string, marks: readonly ClearMark[], aliases: ReadonlyMap<string, string>, clearers: readonly ModelEntry[]): Cover {
-  if (node.type === 'Literal') return { blocked: false };
-  if (node.type === 'TemplateLiteral' && node.expressions.length === 0) return { blocked: false };
+  if (node.type === 'Literal') {return { blocked: false };}
+  if (node.type === 'TemplateLiteral' && node.expressions.length === 0) {return { blocked: false };}
   if (node.type === 'CallExpression') {
     const match = clearers.find((entry) => entry.sinkClass === sinkClass && chainHas(entry.memberPath, node));
-    if (match !== undefined) return { blocked: false, packageName: match.package };
+    if (match !== undefined) {return { blocked: false, packageName: match.package };}
   }
   const field = requestField(node);
   if (field?.field !== undefined) {
@@ -535,10 +535,10 @@ function coverNode(node: AstNode, sinkClass: string, marks: readonly ClearMark[]
     const hit = marks.find((mark) => mark.field === key);
     return hit === undefined ? { blocked: true } : { blocked: false, packageName: hit.packageName };
   }
-  if (field !== undefined) return { blocked: true };
+  if (field !== undefined) {return { blocked: true };}
   if (node.type === 'Identifier') {
     const named = marks.find((mark) => mark.name === node.name);
-    if (named !== undefined) return { blocked: false, packageName: named.packageName };
+    if (named !== undefined) {return { blocked: false, packageName: named.packageName };}
     const alias = aliases.get(node.name);
     if (alias !== undefined) {
       const hit = marks.find((mark) => mark.field === alias);
@@ -552,12 +552,12 @@ function coverNode(node: AstNode, sinkClass: string, marks: readonly ClearMark[]
   if (node.type === 'TemplateLiteral') {
     return mergeCover(node.expressions.map((expr) => coverNode(expr, sinkClass, marks, aliases, clearers)));
   }
-  if (node.type === 'AwaitExpression') return coverNode(node.argument, sinkClass, marks, aliases, clearers);
+  if (node.type === 'AwaitExpression') {return coverNode(node.argument, sinkClass, marks, aliases, clearers);}
   if (node.type === 'ObjectExpression') {
     const parts: Cover[] = [];
     for (const prop of node.properties) {
-      if (prop.type === 'Property') parts.push(coverNode(prop.value, sinkClass, marks, aliases, clearers));
-      if (prop.type === 'SpreadElement') parts.push(coverNode(prop.argument, sinkClass, marks, aliases, clearers));
+      if (prop.type === 'Property') {parts.push(coverNode(prop.value, sinkClass, marks, aliases, clearers));}
+      if (prop.type === 'SpreadElement') {parts.push(coverNode(prop.argument, sinkClass, marks, aliases, clearers));}
     }
     return parts.length === 0 ? { blocked: false } : mergeCover(parts);
   }
@@ -572,12 +572,12 @@ function aliasesBefore(fn: AstNode, line: number): Map<string, string> {
   const aliases = new Map<string, string>();
   walkFunction(fn, (node) => {
     const binding = aliasBinding(node);
-    if (binding === undefined) return;
+    if (binding === undefined) {return;}
     const at = node.loc?.start.line ?? 0;
-    if (at >= line) return;
+    if (at >= line) {return;}
     const field = requestField(binding.init);
-    if (field?.field === undefined) return;
-    for (const name of binding.names) aliases.set(name, `${field.bag}:${field.field}`);
+    if (field?.field === undefined) {return;}
+    for (const name of binding.names) {aliases.set(name, `${field.bag}:${field.field}`);}
   });
   return aliases;
 }
@@ -585,7 +585,7 @@ function aliasesBefore(fn: AstNode, line: number): Map<string, string> {
 /** Only a declarator or an assignment has a left-hand name. Other statements are skipped. */
 function aliasBinding(node: AstNode): { init: AstNode; names: string[] } | undefined {
   if (node.type === 'VariableDeclarator') {
-    if (node.init === undefined || node.init === null) return undefined;
+    if (node.init === undefined || node.init === null) {return undefined;}
     return { init: node.init, names: boundNames(node.id) };
   }
   if (node.type === 'AssignmentExpression') {
@@ -597,10 +597,10 @@ function aliasBinding(node: AstNode): { init: AstNode; names: string[] } | undef
 function marksBefore(fn: AstNode, line: number, clearers: readonly ModelEntry[], route: readonly ClearMark[]): ClearMark[] {
   const marks = route.filter((mark) => mark.line < line);
   walkFunction(fn, (node) => {
-    if (node.type !== 'CallExpression') return;
+    if (node.type !== 'CallExpression') {return;}
     const at = node.loc?.start.line ?? 0;
-    if (at >= line) return;
-    for (const entry of clearers) marks.push(...marksFrom(entry, node, at));
+    if (at >= line) {return;}
+    for (const entry of clearers) {marks.push(...marksFrom(entry, node, at));}
   });
   return marks.filter((mark) => mark.line < line);
 }
@@ -624,11 +624,11 @@ async function parseCode(source: string): Promise<AstNode | undefined> {
 function sinkCall(ast: AstNode, finding: Finding, source: string): AstNode | undefined {
   const calls: AstNode[] = [];
   walk(ast, (node) => {
-    if (node.type === 'CallExpression' && node.loc?.start.line === finding.line) calls.push(node);
+    if (node.type === 'CallExpression' && node.loc?.start.line === finding.line) {calls.push(node);}
   });
   const snippet = finding.snippet ?? '';
   for (const call of calls) {
-    if (snippetOf(source, call) === snippet) return call;
+    if (snippetOf(source, call) === snippet) {return call;}
   }
   calls.sort((a, b) => (a.range?.[0] ?? 0) - (b.range?.[0] ?? 0) || (b.range?.[1] ?? 0) - (a.range?.[1] ?? 0));
   return calls[0];
@@ -636,14 +636,14 @@ function sinkCall(ast: AstNode, finding: Finding, source: string): AstNode | und
 
 function suppressionPackage(call: AstNode, sinkClass: string, clearers: readonly ModelEntry[], routeByFn: Map<AstNode, ClearMark[]>): string | undefined {
   const arg = call.type === 'CallExpression' ? call.arguments[0] : undefined;
-  if (arg === undefined || arg.type === 'SpreadElement') return undefined;
+  if (arg === undefined || arg.type === 'SpreadElement') {return undefined;}
   const fn = enclosingFunction(call);
   const line = call.loc?.start.line ?? 0;
   const route = fn === undefined ? [] : (routeByFn.get(fn) ?? []);
   const marks = fn === undefined ? route : marksBefore(fn, line, clearers, route);
   const aliases = fn === undefined ? new Map<string, string>() : aliasesBefore(fn, line);
   const covered = coverNode(arg, sinkClass, marks.filter((mark) => mark.sinkClass === sinkClass), aliases, clearers);
-  if (covered.blocked || covered.packageName === undefined) return undefined;
+  if (covered.blocked || covered.packageName === undefined) {return undefined;}
   return covered.packageName;
 }
 
@@ -653,10 +653,10 @@ export async function applyModelSuppressions(
 ): Promise<{ findings: Finding[]; suppressed: Finding[]; info: string[] }> {
   const { active, info } = resolveModelPacks(cwd);
   const clearers = active.filter((entry) => entry.kind === 'sanitizer' || entry.kind === 'validator');
-  if (clearers.length === 0) return { findings: [...findings], suppressed: [], info };
+  if (clearers.length === 0) {return { findings: [...findings], suppressed: [], info };}
   const byFile = new Map<string, Finding[]>();
   for (const finding of findings) {
-    if (finding.file === undefined || !RULE_CLASS.has(finding.ruleId)) continue;
+    if (finding.file === undefined || !RULE_CLASS.has(finding.ruleId)) {continue;}
     const list = byFile.get(finding.file) ?? [];
     list.push(finding);
     byFile.set(finding.file, list);
@@ -670,22 +670,22 @@ export async function applyModelSuppressions(
       continue;
     }
     const ast = await parseCode(source);
-    if (ast === undefined) continue;
+    if (ast === undefined) {continue;}
     attachParents(ast);
     const named = namedFunctions(ast);
     const routeByFn = new Map<AstNode, ClearMark[]>();
     walk(ast, (node) => {
-      if (!isRouteCall(node) || node.type !== 'CallExpression') return;
+      if (!isRouteCall(node) || node.type !== 'CallExpression') {return;}
       const marks: ClearMark[] = [];
       for (const arg of node.arguments) {
-        if (arg.type === 'SpreadElement') continue;
+        if (arg.type === 'SpreadElement') {continue;}
         for (const call of callsOf(arg)) {
-          for (const entry of clearers) marks.push(...marksFrom(entry, call, 0));
+          for (const entry of clearers) {marks.push(...marksFrom(entry, call, 0));}
         }
       }
-      if (marks.length === 0) return;
+      if (marks.length === 0) {return;}
       for (const arg of node.arguments) {
-        if (arg.type === 'SpreadElement') continue;
+        if (arg.type === 'SpreadElement') {continue;}
         for (const handler of handlersOf(arg, named)) {
           const prior = routeByFn.get(handler) ?? [];
           routeByFn.set(handler, [...prior, ...marks]);
@@ -694,11 +694,11 @@ export async function applyModelSuppressions(
     });
     for (const finding of group) {
       const sinkClass = RULE_CLASS.get(finding.ruleId);
-      if (sinkClass === undefined) continue;
+      if (sinkClass === undefined) {continue;}
       const call = sinkCall(ast, finding, source);
-      if (call === undefined) continue;
+      if (call === undefined) {continue;}
       const packageName = suppressionPackage(call, sinkClass, clearers, routeByFn);
-      if (packageName !== undefined) suppressedIds.set(finding.id, packageName);
+      if (packageName !== undefined) {suppressedIds.set(finding.id, packageName);}
     }
   }
   const suppressed = sortFindings(

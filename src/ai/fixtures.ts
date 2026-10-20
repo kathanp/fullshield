@@ -97,8 +97,8 @@ export function fixtureExplain(ruleId: string): string {
 export function fixtureLogic(prompt: string): LogicFixtureFinding[] {
   const out: LogicFixtureFinding[] = [];
   for (const row of RECORDED_FIXTURES.logic) {
-    if (!prompt.includes(row.when)) continue;
-    if (row.unless !== undefined && prompt.includes(row.unless)) continue;
+    if (!prompt.includes(row.when)) {continue;}
+    if (row.unless !== undefined && prompt.includes(row.unless)) {continue;}
     out.push(...row.findings);
   }
   return out;

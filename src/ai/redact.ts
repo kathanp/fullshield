@@ -17,7 +17,7 @@ export function redactSecrets(text: string): string {
       lines,
       rawLines,
       report: ({ secret }) => {
-        if (secret !== undefined && secret.length > 0) secrets.add(secret);
+        if (secret !== undefined && secret.length > 0) {secrets.add(secret);}
       },
     });
   }

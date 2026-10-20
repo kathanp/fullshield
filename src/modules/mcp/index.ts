@@ -55,7 +55,7 @@ function finding(
 
 function lineOf(text: string, needle: string): number {
   const idx = text.indexOf(needle);
-  if (idx < 0) return 1;
+  if (idx < 0) {return 1;}
   return text.slice(0, idx).split(/\r?\n/).length;
 }
 
@@ -72,39 +72,39 @@ function parseJson(text: string): unknown {
 }
 
 function commandBase(command: unknown): string {
-  if (typeof command !== 'string') return '';
+  if (typeof command !== 'string') {return '';}
   const norm = command.replaceAll('\\', '/');
   return norm.split('/').pop() ?? command;
 }
 
 function asStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
+  if (!Array.isArray(value)) {return [];}
   return value.filter((v): v is string => typeof v === 'string');
 }
 
 function isNpmSpec(spec: string): boolean {
-  if (spec.startsWith('-') || spec.startsWith('.') || spec.startsWith('/') || spec.includes('\\')) return false;
-  if (spec.includes('://') || /\.[cm]?[jt]sx?$/.test(spec)) return false;
+  if (spec.startsWith('-') || spec.startsWith('.') || spec.startsWith('/') || spec.includes('\\')) {return false;}
+  if (spec.includes('://') || /\.[cm]?[jt]sx?$/.test(spec)) {return false;}
   return true;
 }
 
 function specUnpinned(spec: string): boolean {
-  if (!isNpmSpec(spec)) return false;
-  if (/@latest(?:[/]|$)/i.test(spec) || spec.endsWith('@*')) return true;
+  if (!isNpmSpec(spec)) {return false;}
+  if (/@latest(?:[/]|$)/i.test(spec) || spec.endsWith('@*')) {return true;}
   const rest = spec.startsWith('@') ? spec.slice(1) : spec;
   const at = rest.lastIndexOf('@');
   if (at > 0) {
     const ver = rest.slice(at + 1);
-    if (/^\d/.test(ver)) return false;
-    if (ver === 'latest' || ver === '*') return true;
+    if (/^\d/.test(ver)) {return false;}
+    if (ver === 'latest' || ver === '*') {return true;}
   }
   return /^(@[A-Za-z0-9._-]+\/)?[A-Za-z0-9._-]+$/.test(spec);
 }
 
 function looksSecretValue(value: string): boolean {
-  if (ENV_REF.test(value)) return false;
-  if (/\b(?:AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{36})\b/.test(value)) return true;
-  if (value.length >= 20 && shannonEntropy(value) > 4.5) return true;
+  if (ENV_REF.test(value)) {return false;}
+  if (/\b(?:AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{36})\b/.test(value)) {return true;}
+  if (value.length >= 20 && shannonEntropy(value) > 4.5) {return true;}
   return value.length >= 12;
 }
 
@@ -116,7 +116,7 @@ function unrestrictedPath(path: string): boolean {
 function pathAllowArgs(args: string[]): string[] {
   const out: string[] = [];
   for (const arg of args) {
-    if (arg.startsWith('-') || specUnpinned(arg) || /^(@[A-Za-z0-9._-]+\/)?[A-Za-z0-9._-]+@/.test(arg)) continue;
+    if (arg.startsWith('-') || specUnpinned(arg) || /^(@[A-Za-z0-9._-]+\/)?[A-Za-z0-9._-]+@/.test(arg)) {continue;}
     if (arg.startsWith('.') || arg.startsWith('/') || arg.includes('\\') || arg === '~' || arg === '*') {
       out.push(arg);
     }
@@ -140,10 +140,10 @@ interface ServerEntry {
 }
 
 function serverEntries(root: unknown): ServerEntry[] {
-  if (root === null || typeof root !== 'object' || Array.isArray(root)) return [];
+  if (root === null || typeof root !== 'object' || Array.isArray(root)) {return [];}
   const obj = root as Record<string, unknown>;
   const block = obj.mcpServers ?? obj.servers;
-  if (block === null || typeof block !== 'object' || Array.isArray(block)) return [];
+  if (block === null || typeof block !== 'object' || Array.isArray(block)) {return [];}
   const out: ServerEntry[] = [];
   for (const [name, value] of Object.entries(block as Record<string, unknown>)) {
     if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
@@ -159,20 +159,20 @@ function visitStrings(value: unknown, visit: (key: string, val: string) => void,
     return;
   }
   if (Array.isArray(value)) {
-    for (const item of value) visitStrings(item, visit, key);
+    for (const item of value) {visitStrings(item, visit, key);}
     return;
   }
   if (value !== null && typeof value === 'object') {
-    for (const [k, v] of Object.entries(value)) visitStrings(v, visit, k);
+    for (const [k, v] of Object.entries(value)) {visitStrings(v, visit, k);}
   }
 }
 
 function isMcpConfigRel(rel: string, name: string): boolean {
   const n = rel.replaceAll('\\', '/');
-  if (name === '.mcp.json' || n.endsWith('/.mcp.json')) return true;
-  if (name === 'claude_desktop_config.json') return true;
-  if (name === 'mcp.json' && (n === '.cursor/mcp.json' || n.endsWith('/.cursor/mcp.json'))) return true;
-  if (name === 'mcp.json' && (n === '.vscode/mcp.json' || n.endsWith('/.vscode/mcp.json'))) return true;
+  if (name === '.mcp.json' || n.endsWith('/.mcp.json')) {return true;}
+  if (name === 'claude_desktop_config.json') {return true;}
+  if (name === 'mcp.json' && (n === '.cursor/mcp.json' || n.endsWith('/.cursor/mcp.json'))) {return true;}
+  if (name === 'mcp.json' && (n === '.vscode/mcp.json' || n.endsWith('/.vscode/mcp.json'))) {return true;}
   return false;
 }
 
@@ -181,7 +181,7 @@ function isSourceName(name: string): boolean {
 }
 
 function collectRepoFiles(dir: string, out: Array<{ abs: string; rel: string }> = [], rel = ''): Array<{ abs: string; rel: string }> {
-  if (!existsSync(dir)) return out;
+  if (!existsSync(dir)) {return out;}
   let entries;
   try {
     entries = readdirSync(dir, { withFileTypes: true });
@@ -189,11 +189,11 @@ function collectRepoFiles(dir: string, out: Array<{ abs: string; rel: string }> 
     return out;
   }
   for (const entry of entries) {
-    if (entry.isSymbolicLink()) continue;
+    if (entry.isSymbolicLink()) {continue;}
     const childRel = rel === '' ? entry.name : `${rel}/${entry.name}`;
     const abs = join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (SKIP_DIRS.has(entry.name)) continue;
+      if (SKIP_DIRS.has(entry.name)) {continue;}
       collectRepoFiles(abs, out, childRel);
     } else if (entry.isFile()) {
       if (isMcpConfigRel(childRel, entry.name) || isSourceName(entry.name)) {
@@ -226,8 +226,8 @@ function scanJsonConfig(file: string, text: string, findings: Finding[]): void {
     const env = server.env;
     if (env !== null && typeof env === 'object' && !Array.isArray(env)) {
       for (const [key, value] of Object.entries(env)) {
-        if (typeof value !== 'string' || ENV_REF.test(value)) continue;
-        if (!SECRET_NAME.test(key) && !looksSecretValue(value)) continue;
+        if (typeof value !== 'string' || ENV_REF.test(value)) {continue;}
+        if (!SECRET_NAME.test(key) && !looksSecretValue(value)) {continue;}
         findings.push(
           finding(
             'MCP-001',
@@ -328,7 +328,7 @@ function scanJsonConfig(file: string, text: string, findings: Finding[]): void {
 }
 
 function scanServerSource(file: string, text: string, findings: Finding[]): void {
-  if (!/\.(?:tool|registerTool|addTool)\s*\(/.test(text) && !/@modelcontextprotocol/.test(text)) return;
+  if (!/\.(?:tool|registerTool|addTool)\s*\(/.test(text) && !/@modelcontextprotocol/.test(text)) {return;}
   if (DANGEROUS_TOOL.test(text) && !ALLOWLIST.test(text)) {
     findings.push(
       finding(
@@ -370,22 +370,22 @@ function scanOne(abs: string, file: string, findings: Finding[]): void {
   } catch {
     return;
   }
-  if (text.length > 1024 * 1024 || text.includes('\u0000')) return;
-  if (file.endsWith('.json') || file.endsWith('.mcp.json')) scanJsonConfig(file, text, findings);
-  else scanServerSource(file, text, findings);
+  if (text.length > 1024 * 1024 || text.includes('\u0000')) {return;}
+  if (file.endsWith('.json') || file.endsWith('.mcp.json')) {scanJsonConfig(file, text, findings);}
+  else {scanServerSource(file, text, findings);}
 }
 
 /** Experimental MCP client-config + server-code rules. Off unless experimental. No network. */
 export function scanMcpConfig(dir: string, opts: McpScanOptions = {}): Finding[] {
-  if (!opts.experimental && !mcpCfgEnabled()) return [];
-  if (!existsSync(dir) || !statSync(dir).isDirectory()) return [];
+  if (!opts.experimental && !mcpCfgEnabled()) {return [];}
+  if (!existsSync(dir) || !statSync(dir).isDirectory()) {return [];}
   const findings: Finding[] = [];
   for (const file of collectRepoFiles(dir)) {
     scanOne(file.abs, file.rel, findings);
   }
   if (opts.includeHome === true) {
     for (const abs of mcpHomeConfigPaths(homedir())) {
-      if (!existsSync(abs) || !statSync(abs).isFile()) continue;
+      if (!existsSync(abs) || !statSync(abs).isFile()) {continue;}
       scanOne(abs, abs, findings);
     }
   }

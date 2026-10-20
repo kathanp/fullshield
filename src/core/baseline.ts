@@ -18,32 +18,32 @@ export interface BaselineFile {
 }
 
 function isIsoDate(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}(T[\d:.+\-Z]+)?$/.test(value)) return false;
+  if (!/^\d{4}-\d{2}-\d{2}(T[\d:.+\-Z]+)?$/.test(value)) {return false;}
   return Number.isFinite(Date.parse(value));
 }
 
 function expiresAtMs(expires: string): number {
-  if (/^\d{4}-\d{2}-\d{2}$/.test(expires)) return Date.parse(`${expires}T23:59:59.999Z`);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(expires)) {return Date.parse(`${expires}T23:59:59.999Z`);}
   return Date.parse(expires);
 }
 
 function validSuppression(value: unknown): Suppression | undefined {
-  if (typeof value !== 'object' || value === null) return undefined;
+  if (typeof value !== 'object' || value === null) {return undefined;}
   const row = value as Partial<Suppression>;
-  if (typeof row.ruleId !== 'string' || row.ruleId.length === 0) return undefined;
-  if (typeof row.owner !== 'string' || row.owner.length === 0) return undefined;
-  if (typeof row.reason !== 'string' || row.reason.length === 0) return undefined;
-  if (typeof row.expires !== 'string' || !isIsoDate(row.expires)) return undefined;
+  if (typeof row.ruleId !== 'string' || row.ruleId.length === 0) {return undefined;}
+  if (typeof row.owner !== 'string' || row.owner.length === 0) {return undefined;}
+  if (typeof row.reason !== 'string' || row.reason.length === 0) {return undefined;}
+  if (typeof row.expires !== 'string' || !isIsoDate(row.expires)) {return undefined;}
   const file = row.file === undefined ? undefined : row.file.replace(/\\/g, '/');
-  if (row.file !== undefined && (typeof row.file !== 'string' || row.file.length === 0)) return undefined;
+  if (row.file !== undefined && (typeof row.file !== 'string' || row.file.length === 0)) {return undefined;}
   return { ruleId: row.ruleId, file, owner: row.owner, reason: row.reason, expires: row.expires };
 }
 
 export async function readBaseline(path: string): Promise<BaselineFile | undefined> {
   try {
     const raw = JSON.parse(await readFile(path, 'utf8')) as BaselineFile;
-    if (raw.version !== 1 || !Array.isArray(raw.findings)) return undefined;
-    if (raw.suppressions !== undefined && !Array.isArray(raw.suppressions)) return undefined;
+    if (raw.version !== 1 || !Array.isArray(raw.findings)) {return undefined;}
+    if (raw.suppressions !== undefined && !Array.isArray(raw.suppressions)) {return undefined;}
     return raw;
   } catch {
     return undefined;
@@ -69,7 +69,7 @@ export function applyBaseline(
   findings: readonly Finding[],
   baseline: BaselineFile | undefined,
 ): Finding[] {
-  if (baseline === undefined) return [...findings];
+  if (baseline === undefined) {return [...findings];}
   const known = new Set(baseline.findings.map((f) => f.id));
   return findings.filter((f) => !known.has(f.id));
 }
@@ -88,7 +88,7 @@ export function applySuppressions(
   rows: readonly unknown[] | undefined,
   now = new Date(),
 ): SuppressionResult {
-  if (rows === undefined || rows.length === 0) return { findings: [...findings], errors: [] };
+  if (rows === undefined || rows.length === 0) {return { findings: [...findings], errors: [] };}
   const errors: string[] = [];
   const active: Suppression[] = [];
   rows.forEach((row, index) => {

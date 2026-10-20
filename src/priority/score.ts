@@ -75,8 +75,8 @@ const RULE_SINK: Record<string, string> = {
 };
 
 function clampPriority(value: number): number {
-  if (value < 0) return 0;
-  if (value > 100) return 100;
+  if (value < 0) {return 0;}
+  if (value > 100) {return 100;}
   return value;
 }
 
@@ -104,13 +104,13 @@ function reachPoints(value: Finding['reachability'] | undefined): { points: numb
 }
 
 function routePoints(value: RouteExposure | undefined): { points: number; detail: string } {
-  if (value === 'unauthenticated') return { points: 10, detail: value };
-  if (value === 'authenticated') return { points: 0, detail: value };
+  if (value === 'unauthenticated') {return { points: 10, detail: value };}
+  if (value === 'authenticated') {return { points: 0, detail: value };}
   return { points: 0, detail: 'unknown' };
 }
 
 function devPoints(value: boolean | undefined): { points: number; detail: string } {
-  if (value === true) return { points: -20, detail: 'yes' };
+  if (value === true) {return { points: -20, detail: 'yes' };}
   return { points: 0, detail: 'no' };
 }
 
@@ -122,16 +122,16 @@ function sinkPoints(input: PriorityInput): { points: number; detail: string } {
   if (mapped !== undefined) {
     return { points: SINK_POINTS[mapped] ?? 0, detail: mapped };
   }
-  if (input.module === 'secrets') return { points: 2, detail: 'credential' };
+  if (input.module === 'secrets') {return { points: 2, detail: 'credential' };}
   return { points: 0, detail: 'none' };
 }
 
 function sourcePoints(count: number | undefined): { points: number; detail: string } {
   const n = count === undefined || !Number.isFinite(count) ? 1 : Math.max(0, Math.trunc(count));
   let points = 0;
-  if (n >= 4) points = 15;
-  else if (n === 3) points = 10;
-  else if (n === 2) points = 5;
+  if (n >= 4) {points = 15;}
+  else if (n === 3) {points = 10;}
+  else if (n === 2) {points = 5;}
   return { points, detail: String(n) };
 }
 
@@ -179,7 +179,7 @@ export function scoreFinding(finding: Finding): PriorityScore {
 
 /** Attach priority fields only when the flag is on. Order and severity stay as given. */
 export function applyPriority(findings: readonly Finding[]): Finding[] {
-  if (!priorityEnabled()) return [...findings];
+  if (!priorityEnabled()) {return [...findings];}
   return findings.map((finding) => {
     const scored = scoreFinding(finding);
     return {

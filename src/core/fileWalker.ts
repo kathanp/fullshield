@@ -66,7 +66,7 @@ export async function walkFiles(options: WalkOptions): Promise<string[]> {
     const entries = await readdir(join(options.cwd, relDir), { withFileTypes: true });
     for (const entry of entries) {
       const rel = relDir === '' ? entry.name : `${relDir}/${entry.name}`;
-      if (entry.isSymbolicLink()) continue;
+      if (entry.isSymbolicLink()) {continue;}
       if (entry.isDirectory()) {
         if (!ig.ignores(`${rel}/`)) {
           await walk(rel);

@@ -14,7 +14,7 @@ export async function loadLastScan(cwd: string): Promise<NotifySummary> {
     summary?: NotifySummary;
     metadata?: { version?: string; cwd?: string };
   };
-  if (raw.summary === undefined) throw new Error('last scan file has no summary');
+  if (raw.summary === undefined) {throw new Error('last scan file has no summary');}
   return { ...raw.summary, version: raw.metadata?.version, cwd: raw.metadata?.cwd ?? cwd };
 }
 
@@ -31,7 +31,7 @@ export async function postJson(url: string, body: unknown): Promise<void> {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`notifier webhook returned ${res.status}`);
+  if (!res.ok) {throw new Error(`notifier webhook returned ${res.status}`);}
 }
 
 export async function notifySlack(webhookUrl: string, summary: NotifySummary): Promise<void> {

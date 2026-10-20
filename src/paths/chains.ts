@@ -38,9 +38,9 @@ interface Consumer {
 export function sinkPaths(findings: readonly Finding[], routes: readonly RouteInfo[]): AttackPath[] {
   const out: AttackPath[] = [];
   for (const finding of findings) {
-    if (!SINK_RULES.has(finding.ruleId)) continue;
+    if (!SINK_RULES.has(finding.ruleId)) {continue;}
     const route = routeForFinding(finding, routes);
-    if (route === undefined) continue;
+    if (route === undefined) {continue;}
     out.push({
       kind: 'sink',
       entry: entryOf(route),
@@ -55,12 +55,12 @@ export function sinkPaths(findings: readonly Finding[], routes: readonly RouteIn
 function routeForFinding(finding: Finding, routes: readonly RouteInfo[]): RouteInfo | undefined {
   if (finding.file !== undefined && finding.line !== undefined) {
     const direct = routeAt(routes, finding.file, finding.line);
-    if (direct !== undefined) return direct;
+    if (direct !== undefined) {return direct;}
   }
   for (const step of finding.trace ?? []) {
-    if (step.line === undefined) continue;
+    if (step.line === undefined) {continue;}
     const hit = routeAt(routes, step.file, step.line);
-    if (hit !== undefined) return hit;
+    if (hit !== undefined) {return hit;}
   }
   return undefined;
 }
@@ -72,7 +72,7 @@ export function dependencyPaths(
 ): AttackPath[] {
   const out: AttackPath[] = [];
   for (const finding of findings) {
-    if (!isReachableDep(finding)) continue;
+    if (!isReachableDep(finding)) {continue;}
     out.push(...pathsForDep(finding, callSites(finding, asts), routes));
   }
   return out;
@@ -86,7 +86,7 @@ function pathsForDep(finding: Finding, sites: readonly CallSite[], routes: reado
   const grouped = new Map<string, { route: RouteInfo; steps: AttackPathStep[] }>();
   for (const site of sites) {
     const route = routeAt(routes, site.file, site.line);
-    if (route === undefined) continue;
+    if (route === undefined) {continue;}
     const key = `${route.file}|${route.method}|${route.path}|${finding.id}`;
     const group = grouped.get(key) ?? { route, steps: [] };
     group.steps.push({ file: site.file, line: site.line, note: `call ${site.symbol}` });
@@ -107,12 +107,12 @@ function callSites(finding: Finding, asts: ReadonlyMap<string, AstNode>): CallSi
     return listed.map((call) => ({ file: call.file, line: call.line, symbol: call.symbol }));
   }
   const pkg = packageFromSnippet(finding.snippet);
-  if (pkg === undefined) return [];
+  if (pkg === undefined) {return [];}
   return discoverCalls(pkg, asts);
 }
 
 function packageFromSnippet(snippet: string | undefined): string | undefined {
-  if (snippet === undefined || snippet.length === 0) return undefined;
+  if (snippet === undefined || snippet.length === 0) {return undefined;}
   const at = snippet.startsWith('@') ? snippet.indexOf('@', 1) : snippet.indexOf('@');
   const pkg = at <= 0 ? snippet : snippet.slice(0, at);
   return pkg.length > 0 ? pkg : undefined;
@@ -120,7 +120,7 @@ function packageFromSnippet(snippet: string | undefined): string | undefined {
 
 function discoverCalls(pkg: string, asts: ReadonlyMap<string, AstNode>): CallSite[] {
   const sites: CallSite[] = [];
-  for (const [file, ast] of asts) sites.push(...callsInFile(file, ast, pkg));
+  for (const [file, ast] of asts) {sites.push(...callsInFile(file, ast, pkg));}
   return sites;
 }
 
@@ -129,48 +129,48 @@ function callsInFile(file: string, ast: AstNode, pkg: string): CallSite[] {
   const sites: CallSite[] = [];
   walk(ast, (node) => {
     const site = callSite(node, file, locals);
-    if (site !== undefined) sites.push(site);
+    if (site !== undefined) {sites.push(site);}
   });
   return sites;
 }
 
 function callSite(node: AstNode, file: string, locals: ReadonlySet<string>): CallSite | undefined {
-  if (node.type !== 'CallExpression') return undefined;
+  if (node.type !== 'CallExpression') {return undefined;}
   const line = node.loc?.start.line;
-  if (line === undefined) return undefined;
+  if (line === undefined) {return undefined;}
   if (node.callee.type === 'Identifier' && locals.has(node.callee.name)) {
     return { file, line, symbol: node.callee.name };
   }
-  if (node.callee.type !== 'MemberExpression' || node.callee.object.type !== 'Identifier') return undefined;
-  if (!locals.has(node.callee.object.name)) return undefined;
+  if (node.callee.type !== 'MemberExpression' || node.callee.object.type !== 'Identifier') {return undefined;}
+  if (!locals.has(node.callee.object.name)) {return undefined;}
   return { file, line, symbol: propName(node.callee) ?? node.callee.object.name };
 }
 
 function localsForPackage(ast: AstNode, pkg: string): Set<string> {
   const names = new Set<string>();
   walk(ast, (node) => {
-    for (const name of bindingNames(node, pkg)) names.add(name);
+    for (const name of bindingNames(node, pkg)) {names.add(name);}
   });
   return names;
 }
 
 function bindingNames(node: AstNode, pkg: string): string[] {
-  if (node.type === 'ImportDeclaration') return importNames(node, pkg);
-  if (node.type !== 'VariableDeclarator' || node.init === null) return [];
+  if (node.type === 'ImportDeclaration') {return importNames(node, pkg);}
+  if (node.type !== 'VariableDeclarator' || node.init === null) {return [];}
   const spec = requireSpec(node.init);
-  if (spec === undefined || packageNameFromSpec(spec) !== pkg) return [];
-  if (node.id.type === 'Identifier') return [node.id.name];
-  if (node.id.type !== 'ObjectPattern') return [];
+  if (spec === undefined || packageNameFromSpec(spec) !== pkg) {return [];}
+  if (node.id.type === 'Identifier') {return [node.id.name];}
+  if (node.id.type !== 'ObjectPattern') {return [];}
   return node.id.properties.flatMap((prop) => {
-    if (prop.type !== 'Property' || prop.value.type !== 'Identifier') return [];
+    if (prop.type !== 'Property' || prop.value.type !== 'Identifier') {return [];}
     return [prop.value.name];
   });
 }
 
 function importNames(node: AstNode, pkg: string): string[] {
-  if (node.type !== 'ImportDeclaration') return [];
+  if (node.type !== 'ImportDeclaration') {return [];}
   const spec = literalString(node.source);
-  if (spec === undefined || packageNameFromSpec(spec) !== pkg) return [];
+  if (spec === undefined || packageNameFromSpec(spec) !== pkg) {return [];}
   return node.specifiers.flatMap((specifier) => {
     if (specifier.type === 'ImportDefaultSpecifier' || specifier.type === 'ImportNamespaceSpecifier') {
       return [specifier.local.name];
@@ -184,7 +184,7 @@ function requireSpec(node: AstNode): string | undefined {
     return undefined;
   }
   const arg = node.arguments[0];
-  if (arg === undefined || arg.type === 'SpreadElement') return undefined;
+  if (arg === undefined || arg.type === 'SpreadElement') {return undefined;}
   return literalString(arg);
 }
 
@@ -195,11 +195,11 @@ export function secretPaths(
 ): AttackPath[] {
   const out: AttackPath[] = [];
   for (const finding of findings) {
-    if (finding.module !== 'secrets' || finding.file === undefined || finding.line === undefined) continue;
+    if (finding.module !== 'secrets' || finding.file === undefined || finding.line === undefined) {continue;}
     const ast = asts.get(finding.file);
-    if (ast === undefined) continue;
+    if (ast === undefined) {continue;}
     const name = bindingAt(ast, finding.line);
-    if (name === undefined) continue;
+    if (name === undefined) {continue;}
     out.push(...pathsForSecret(finding, secretConsumers(finding.file, name, asts), findings, routes));
   }
   return out;
@@ -228,7 +228,7 @@ function pathsForSecret(
 function bindingAt(ast: AstNode, line: number): string | undefined {
   let found: string | undefined;
   walk(ast, (node) => {
-    if (found !== undefined) return;
+    if (found !== undefined) {return;}
     if (node.type === 'VariableDeclarator' && node.id.type === 'Identifier' && node.loc?.start.line === line) {
       found = node.id.name;
     }
@@ -244,7 +244,7 @@ function secretConsumers(startFile: string, startName: string, asts: ReadonlyMap
   const queue: Array<{ file: string; name: string; depth: number }> = [{ file: startFile, name: startName, depth: 0 }];
   while (queue.length > 0) {
     const current = queue.shift();
-    if (current === undefined || current.depth > 5 || seen.has(`${current.file}#${current.name}`)) continue;
+    if (current === undefined || current.depth > 5 || seen.has(`${current.file}#${current.name}`)) {continue;}
     seen.add(`${current.file}#${current.name}`);
     collectAliasUses(current, asts, requires, out, queue);
   }
@@ -256,7 +256,7 @@ function requireMaps(
   files: ReadonlySet<string>,
 ): Map<string, Map<string, string>> {
   const maps = new Map<string, Map<string, string>>();
-  for (const [file, ast] of asts) maps.set(file, collectRequires(file, ast, files));
+  for (const [file, ast] of asts) {maps.set(file, collectRequires(file, ast, files));}
   return maps;
 }
 
@@ -268,8 +268,8 @@ function collectAliasUses(
   queue: Array<{ file: string; name: string; depth: number }>,
 ): void {
   const ast = asts.get(current.file);
-  if (ast !== undefined) out.push(...consumersOf(current.file, current.name, ast));
-  for (const [other, map] of requires) followImport(current, other, map, asts, out, queue);
+  if (ast !== undefined) {out.push(...consumersOf(current.file, current.name, ast));}
+  for (const [other, map] of requires) {followImport(current, other, map, asts, out, queue);}
 }
 
 function followImport(
@@ -284,18 +284,18 @@ function followImport(
     if (target === `${current.file}#${current.name}`) {
       queue.push({ file: other, name: local, depth: current.depth + 1 });
     }
-    if (target !== current.file) continue;
+    if (target !== current.file) {continue;}
     const otherAst = asts.get(other);
-    if (otherAst !== undefined) out.push(...memberConsumers(other, otherAst, local, current.name));
+    if (otherAst !== undefined) {out.push(...memberConsumers(other, otherAst, local, current.name));}
   }
 }
 
 function consumersOf(file: string, name: string, ast: AstNode): Consumer[] {
   const out: Consumer[] = [];
   walk(ast, (node) => {
-    if (node.type !== 'Identifier' || node.name !== name) return;
+    if (node.type !== 'Identifier' || node.name !== name) {return;}
     const call = enclosingCall(node);
-    if (call === undefined) return;
+    if (call === undefined) {return;}
     out.push({ file, line: node.loc?.start.line ?? call.loc?.start.line ?? 1, note: `${name} passed to ${calleeName(call) ?? 'call'}` });
   });
   return out;
@@ -304,10 +304,10 @@ function consumersOf(file: string, name: string, ast: AstNode): Consumer[] {
 function memberConsumers(file: string, ast: AstNode, objectName: string, prop: string): Consumer[] {
   const out: Consumer[] = [];
   walk(ast, (node) => {
-    if (node.type !== 'MemberExpression' || propName(node) !== prop) return;
-    if (node.object.type !== 'Identifier' || node.object.name !== objectName) return;
+    if (node.type !== 'MemberExpression' || propName(node) !== prop) {return;}
+    if (node.object.type !== 'Identifier' || node.object.name !== objectName) {return;}
     const call = enclosingCall(node);
-    if (call === undefined) return;
+    if (call === undefined) {return;}
     out.push({
       file,
       line: node.loc?.start.line ?? 1,
@@ -320,7 +320,7 @@ function memberConsumers(file: string, ast: AstNode, objectName: string, prop: s
 function enclosingCall(node: AstNode): TSESTree.CallExpression | TSESTree.NewExpression | undefined {
   let current = parentOf(node);
   while (current !== undefined) {
-    if (isCallOrNew(current) && !insideCallee(node, current)) return current;
+    if (isCallOrNew(current) && !insideCallee(node, current)) {return current;}
     current = parentOf(current);
   }
   return undefined;
@@ -331,10 +331,10 @@ function isCallOrNew(node: AstNode): node is TSESTree.CallExpression | TSESTree.
 }
 
 function insideCallee(node: AstNode, call: AstNode): boolean {
-  if (call.type !== 'CallExpression' && call.type !== 'NewExpression') return false;
+  if (call.type !== 'CallExpression' && call.type !== 'NewExpression') {return false;}
   let current: AstNode | undefined = node;
   while (current !== undefined && current !== call) {
-    if (current === call.callee) return true;
+    if (current === call.callee) {return true;}
     current = parentOf(current);
   }
   return false;
@@ -349,7 +349,7 @@ function dedupeConsumers(consumers: readonly Consumer[]): Consumer[] {
   const out: Consumer[] = [];
   for (const consumer of consumers) {
     const key = `${consumer.file}:${consumer.line ?? ''}:${consumer.note}`;
-    if (seen.has(key)) continue;
+    if (seen.has(key)) {continue;}
     seen.add(key);
     out.push(consumer);
   }

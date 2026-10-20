@@ -2,9 +2,9 @@ export type LockfileKind = 'npm' | 'yarn' | 'pnpm';
 
 export function lockfileKind(filename: string): LockfileKind | undefined {
   const base = filename.replace(/\\/g, '/').split('/').pop() ?? filename;
-  if (base === 'package-lock.json') return 'npm';
-  if (base === 'yarn.lock') return 'yarn';
-  if (base === 'pnpm-lock.yaml') return 'pnpm';
+  if (base === 'package-lock.json') {return 'npm';}
+  if (base === 'yarn.lock') {return 'yarn';}
+  if (base === 'pnpm-lock.yaml') {return 'pnpm';}
   return undefined;
 }
 
@@ -18,9 +18,9 @@ export function collectManifestOverrides(manifestRaw: string): Map<string, strin
     };
     const blocks = [pkg.overrides, pkg.resolutions, pkg.pnpm?.overrides];
     for (const block of blocks) {
-      if (block === undefined || typeof block !== 'object' || Array.isArray(block)) continue;
+      if (block === undefined || typeof block !== 'object' || Array.isArray(block)) {continue;}
       for (const [name, version] of Object.entries(block)) {
-        if (typeof version === 'string' && version.length > 0) out.set(name, version);
+        if (typeof version === 'string' && version.length > 0) {out.set(name, version);}
       }
     }
   } catch {
@@ -35,7 +35,7 @@ function stringMap(value: unknown): Record<string, string> {
   }
   const out: Record<string, string> = {};
   for (const [key, entry] of Object.entries(value)) {
-    if (typeof entry === 'string') out[key] = entry;
+    if (typeof entry === 'string') {out[key] = entry;}
   }
   return out;
 }

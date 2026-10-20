@@ -138,8 +138,8 @@ function parseModules(value: string): ModuleName[] {
 }
 
 function parseAiMode(value: string | true | undefined): 'explain' | undefined {
-  if (value === undefined) return undefined;
-  if (value === true || value === 'explain') return 'explain';
+  if (value === undefined) {return undefined;}
+  if (value === true || value === 'explain') {return 'explain';}
   if (value === 'triage' || value === 'logic') {
     throw new Error(
       `--ai ${value} is not shipped in 0.1.0 (experimental: --ai explain, fix --ai)`,
@@ -470,7 +470,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           io.err(`wrote virtual patches ${out}`);
         }
 
-        for (const line of result.metadata.info ?? []) io.err(line);
+        for (const line of result.metadata.info ?? []) {io.err(line);}
         if (opts.prSummary === true) {
           io.out(renderPrSummary(result.findings));
         } else {
@@ -566,13 +566,13 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
             io.out('');
           }
         }
-        for (const warning of result.warnings ?? []) io.err(warning);
+        for (const warning of result.warnings ?? []) {io.err(warning);}
         if (result.reverted) {
           io.err('fullshield: project tests failed; fixes were reverted');
           process.exitCode = 1;
         } else if (opts.apply === true && result.applied) {
           io.out(`Applied ${result.patches.length} fix(es)${result.branch !== undefined ? ` on ${result.branch}` : ''}.`);
-          if (result.notice !== undefined) io.out(result.notice);
+          if (result.notice !== undefined) {io.out(result.notice);}
         } else if (opts.apply !== true) {
           io.out('Dry run. Re-run with --apply to write safe fixes.');
         }
@@ -661,7 +661,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           includeReach: process.env.FULLSHIELD_EXPERIMENTAL_SBOM_REACH === '1',
         });
         const errors = validateCycloneDx15(doc);
-        if (errors.length > 0) throw new Error(`invalid SBOM: ${errors.join('; ')}`);
+        if (errors.length > 0) {throw new Error(`invalid SBOM: ${errors.join('; ')}`);}
         const json = JSON.stringify(doc, null, 2);
         if (opts.out !== undefined) {
           await writeFile(resolve(opts.out), json, 'utf8');
@@ -682,7 +682,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option('--json', 'machine-readable JSON output')
     .action(async (url: string, opts: { json?: boolean }) => {
       try {
-        if (!/^https?:\/\//i.test(url)) throw new Error('edge requires an explicit http(s) URL');
+        if (!/^https?:\/\//i.test(url)) {throw new Error('edge requires an explicit http(s) URL');}
         const delayRaw = process.env.FULLSHIELD_EDGE_DELAY;
         const delayMs = delayRaw !== undefined && delayRaw.length > 0 ? Number(delayRaw) : 1000;
         const findings = await runEdge({ url, delayMs });
@@ -691,9 +691,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           io.out(JSON.stringify(payload, null, 2));
         } else {
           io.out(`FullShield edge ${url} — ${payload.summary.total} finding(s)`);
-          for (const f of findings) io.out(`  [${f.ruleId}] ${f.message}`);
+          for (const f of findings) {io.out(`  [${f.ruleId}] ${f.message}`);}
         }
-        if (findings.some((f) => meetsThreshold(f.severity, 'high'))) process.exitCode = 1;
+        if (findings.some((f) => meetsThreshold(f.severity, 'high'))) {process.exitCode = 1;}
       } catch (error) {
         io.err(formatCliError(error));
         process.exitCode = 2;
@@ -736,7 +736,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           });
         }
         const gate = failOn ?? result.config.failOn;
-        if (fresh.some((f) => meetsThreshold(f.severity, gate))) process.exitCode = 1;
+        if (fresh.some((f) => meetsThreshold(f.severity, gate))) {process.exitCode = 1;}
       } catch (error) {
         io.err(formatCliError(error));
         process.exitCode = 2;
@@ -837,7 +837,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
         const session = createMcpSession({ experimental: true });
         const chunks: Buffer[] = [];
-        for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
+        for await (const chunk of process.stdin) {chunks.push(chunk as Buffer);}
         const text = Buffer.concat(chunks).toString('utf8').trim();
         if (!text) {
           io.out(JSON.stringify({ tools: listMcpTools() }));
@@ -862,9 +862,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         if (process.env.FULLSHIELD_EXPERIMENTAL_EXPLAIN !== '1') {
           throw new Error('explain requires FULLSHIELD_EXPERIMENTAL_EXPLAIN=1');
         }
-        if (opts.from === undefined) throw new Error('explain needs --from <scan.json> (FULLSHIELD_EXPERIMENTAL_EXPLAIN)');
+        if (opts.from === undefined) {throw new Error('explain needs --from <scan.json> (FULLSHIELD_EXPERIMENTAL_EXPLAIN)');}
         const raw = JSON.parse(await readFile(opts.from, 'utf8')) as { findings?: unknown };
-        if (!Array.isArray(raw.findings)) throw new Error('explain --from is not scan JSON (FULLSHIELD_EXPERIMENTAL_EXPLAIN)');
+        if (!Array.isArray(raw.findings)) {throw new Error('explain --from is not scan JSON (FULLSHIELD_EXPERIMENTAL_EXPLAIN)');}
         const text = await explainFinding({
           cwd: process.cwd(),
           id,
@@ -926,8 +926,8 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
             const raw: unknown = JSON.parse(await readFile(registryCachePath(join(cwd, 'osv-cache'), change.name), 'utf8'));
             const facts = releaseFactsFromCache(raw, change.newVersion);
             published = facts.publishedAt;
-            if (facts.hasInstallScript === true) installScripts = 'yes';
-            if (facts.hasInstallScript === false) installScripts = 'no';
+            if (facts.hasInstallScript === true) {installScripts = 'yes';}
+            if (facts.hasInstallScript === false) {installScripts = 'no';}
           } catch {
             published = undefined;
           }
@@ -955,7 +955,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         io.out(JSON.stringify(report, null, 2));
         if (opts.failOn !== undefined) {
           const threshold = parseFailOn(opts.failOn);
-          if (introduced.some((item) => meetsThreshold(item.severity, threshold))) process.exitCode = 1;
+          if (introduced.some((item) => meetsThreshold(item.severity, threshold))) {process.exitCode = 1;}
         }
       } catch (error) {
         io.err(formatCliError(error));
@@ -1114,12 +1114,12 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           );
         } else {
           io.out(`FullShield host — ${result.findings.length} finding(s)`);
-          for (const f of result.findings) io.out(`  [${f.severity}] ${f.ruleId} ${f.message}`);
+          for (const f of result.findings) {io.out(`  [${f.severity}] ${f.ruleId} ${f.message}`);}
           if (result.findings.length === 0) {
             io.out('No HOST-SSH findings. FullShield does not stop OS or SSH exploits.');
           }
         }
-        if (result.findings.some((f) => meetsThreshold(f.severity, 'high'))) process.exitCode = 1;
+        if (result.findings.some((f) => meetsThreshold(f.severity, 'high'))) {process.exitCode = 1;}
       } catch (error) {
         io.err(formatCliError(error));
         process.exitCode = 2;
@@ -1171,15 +1171,15 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
             name?: unknown;
             version?: unknown;
           };
-          if (typeof pkg.name === 'string') name = pkg.name;
-          if (typeof pkg.version === 'string') version = pkg.version;
+          if (typeof pkg.name === 'string') {name = pkg.name;}
+          if (typeof pkg.version === 'string') {version = pkg.version;}
         } catch {
           // package.json optional
         }
         const { buildVex, validateCycloneDxVex, validateOpenVex } = await import('../vex/index.js');
         const doc = buildVex(result.findings, format, { name, version });
         const errors = format === 'cyclonedx' ? validateCycloneDxVex(doc) : validateOpenVex(doc);
-        if (errors.length > 0) throw new Error(`invalid VEX: ${errors.join('; ')}`);
+        if (errors.length > 0) {throw new Error(`invalid VEX: ${errors.join('; ')}`);}
         const json = JSON.stringify(doc, null, 2);
         if (opts.out !== undefined) {
           await writeFile(resolve(opts.out), json, 'utf8');
@@ -1209,8 +1209,8 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         opts: { experimentalDiff?: boolean; json?: boolean; out?: string; failOn?: string },
       ) => {
         try {
-          if (opts.experimentalDiff === true) process.env[DIFF_FLAG] = '1';
-          if (!diffEnabled()) throw new Error(`diff requires ${DIFF_FLAG}=1`);
+          if (opts.experimentalDiff === true) {process.env[DIFF_FLAG] = '1';}
+          if (!diffEnabled()) {throw new Error(`diff requires ${DIFF_FLAG}=1`);}
           const failOn = parseFailOn(opts.failOn ?? 'high');
           let beforeText: string;
           let afterText: string;
@@ -1222,9 +1222,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           }
           const diff = diffScans(parseScanDocument(beforeText), parseScanDocument(afterText));
           const json = JSON.stringify(diff, null, 2);
-          if (opts.out !== undefined) await writeFile(resolve(opts.out), json, 'utf8');
+          if (opts.out !== undefined) {await writeFile(resolve(opts.out), json, 'utf8');}
           io.out(opts.json === true ? json : renderDiffText(diff));
-          if (addedFails(diff, failOn)) process.exitCode = 1;
+          if (addedFails(diff, failOn)) {process.exitCode = 1;}
         } catch (error) {
           io.err(formatCliError(error));
           process.exitCode = 2;

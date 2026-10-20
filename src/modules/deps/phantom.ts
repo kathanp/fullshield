@@ -19,10 +19,10 @@ export function dependencyShapeFindings(
   for (const source of sources) {
     for (const imported of importedSpecs(source.text)) {
       const name = packageName(imported.spec);
-      if (name === undefined || declared.has(name)) continue;
-      if (devSatisfiedPath(source.file) && devDeclared.has(name)) continue;
+      if (name === undefined || declared.has(name)) {continue;}
+      if (devSatisfiedPath(source.file) && devDeclared.has(name)) {continue;}
       const key = `${name}\t${source.file}\t${imported.line}`;
-      if (seenPhantom.has(key)) continue;
+      if (seenPhantom.has(key)) {continue;}
       seenPhantom.add(key);
       findings.push({
         id: makeFindingId('DEPS-PHANTOM-001', source.file, `${name}@${imported.line}`),
@@ -40,17 +40,17 @@ export function dependencyShapeFindings(
     }
   }
   const lockedVersion = new Map<string, string>();
-  for (const pkg of locked) if (!lockedVersion.has(pkg.name)) lockedVersion.set(pkg.name, pkg.version);
+  for (const pkg of locked) {if (!lockedVersion.has(pkg.name)) {lockedVersion.set(pkg.name, pkg.version);}}
   const seenMismatch = new Set<string>();
   for (const [name, range] of [...declared.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     const version = lockedVersion.get(name);
-    if (version === undefined || range === undefined) continue;
+    if (version === undefined || range === undefined) {continue;}
     const ok = rangeSatisfies(range, version);
-    if (ok !== false) continue;
-    if (seenMismatch.has(name)) continue;
+    if (ok !== false) {continue;}
+    if (seenMismatch.has(name)) {continue;}
     seenMismatch.add(name);
     const line = manifestLine(manifestRaw, name);
-    if (line === undefined) continue;
+    if (line === undefined) {continue;}
     findings.push({
       id: makeFindingId('DEPS-LOCKMISMATCH-001', 'package.json', `${name}@${version}@${line}`),
       ruleId: 'DEPS-LOCKMISMATCH-001',
@@ -70,12 +70,12 @@ export function dependencyShapeFindings(
 
 function devSatisfiedPath(file: string): boolean {
   const parts = file.split('\\').join('/').split('/');
-  if (parts.slice(0, -1).some((part) => DEV_PATH_DIRS.has(part))) return true;
+  if (parts.slice(0, -1).some((part) => DEV_PATH_DIRS.has(part))) {return true;}
   return /\.(test|spec)\./.test(parts[parts.length - 1] ?? '');
 }
 
 function manifestLine(manifestRaw: string | undefined, name: string): number | undefined {
-  if (manifestRaw === undefined) return undefined;
+  if (manifestRaw === undefined) {return undefined;}
   const needle = `"${name}"`;
   const index = manifestRaw.split(/\r?\n/).findIndex((row) => row.includes(needle));
   return index >= 0 ? index + 1 : undefined;
@@ -83,12 +83,12 @@ function manifestLine(manifestRaw: string | undefined, name: string): number | u
 
 function declaredRanges(manifestRaw: string | undefined): Map<string, string | undefined> {
   const declared = new Map<string, string | undefined>();
-  if (manifestRaw === undefined) return declared;
+  if (manifestRaw === undefined) {return declared;}
   try {
     const manifest = JSON.parse(manifestRaw) as Record<string, unknown>;
     for (const field of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
       const block = manifest[field];
-      if (block === null || typeof block !== 'object' || Array.isArray(block)) continue;
+      if (block === null || typeof block !== 'object' || Array.isArray(block)) {continue;}
       for (const [name, range] of Object.entries(block)) {
         declared.set(name, typeof range === 'string' ? range : undefined);
       }
@@ -101,12 +101,12 @@ function declaredRanges(manifestRaw: string | undefined): Map<string, string | u
 
 function devDependencyNames(manifestRaw: string | undefined): Set<string> {
   const names = new Set<string>();
-  if (manifestRaw === undefined) return names;
+  if (manifestRaw === undefined) {return names;}
   try {
     const manifest = JSON.parse(manifestRaw) as { devDependencies?: unknown };
     const block = manifest.devDependencies;
-    if (block === null || typeof block !== 'object' || Array.isArray(block)) return names;
-    for (const name of Object.keys(block)) names.add(name);
+    if (block === null || typeof block !== 'object' || Array.isArray(block)) {return names;}
+    for (const name of Object.keys(block)) {names.add(name);}
   } catch {
     return names;
   }
@@ -119,20 +119,20 @@ function importedSpecs(source: string): Array<{ spec: string; line: number }> {
   source.split(/\r?\n/).forEach((row, index) => {
     for (const match of row.matchAll(pattern)) {
       const spec = match[1] ?? match[2];
-      if (spec !== undefined) specs.push({ spec, line: index + 1 });
+      if (spec !== undefined) {specs.push({ spec, line: index + 1 });}
     }
   });
   return specs;
 }
 
 function packageName(spec: string): string | undefined {
-  if (spec.startsWith('.') || spec.startsWith('/') || spec.startsWith('node:')) return undefined;
-  if (BUILTINS.has(spec)) return undefined;
+  if (spec.startsWith('.') || spec.startsWith('/') || spec.startsWith('node:')) {return undefined;}
+  if (BUILTINS.has(spec)) {return undefined;}
   if (spec.startsWith('@')) {
     const parts = spec.split('/');
     return parts.length >= 2 ? `${parts[0]}/${parts[1]}` : undefined;
   }
   const name = spec.split('/')[0];
-  if (name === undefined || name.length === 0 || BUILTINS.has(name)) return undefined;
+  if (name === undefined || name.length === 0 || BUILTINS.has(name)) {return undefined;}
   return name;
 }

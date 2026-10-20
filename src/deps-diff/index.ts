@@ -60,7 +60,7 @@ export async function gitShow(cwd: string, spec: string, run = defaultGit): Prom
 }
 
 async function defaultGit(cwd: string, args: string[]): Promise<string> {
-  if (args[0] !== 'show') throw new Error('deps-diff only runs git show');
+  if (args[0] !== 'show') {throw new Error('deps-diff only runs git show');}
   const { stdout } = await execFileAsync('git', args, { cwd, encoding: 'utf8' });
   return stdout;
 }
@@ -69,7 +69,7 @@ export async function lockAtRef(cwd: string, ref: string, run = defaultGit): Pro
   for (const file of LOCK_NAMES) {
     try {
       const text = await gitShow(cwd, `${ref}:${file}`, run);
-      if (text.length > 0) return { file, text };
+      if (text.length > 0) {return { file, text };}
     } catch {
       // try the next lockfile name
     }
@@ -78,9 +78,9 @@ export async function lockAtRef(cwd: string, ref: string, run = defaultGit): Pro
 }
 
 export function releaseAgeLabel(publishedAt: string | undefined, nowMs: number, minHours = 72): 'new-release' | 'aged' | 'unknown' {
-  if (publishedAt === undefined) return 'unknown';
+  if (publishedAt === undefined) {return 'unknown';}
   const published = Date.parse(publishedAt);
-  if (Number.isNaN(published)) return 'unknown';
+  if (Number.isNaN(published)) {return 'unknown';}
   const hours = (nowMs - published) / 3_600_000;
   return hours < minHours ? 'new-release' : 'aged';
 }

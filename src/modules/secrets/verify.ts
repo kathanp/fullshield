@@ -13,8 +13,8 @@ const STRIPE_URL = 'https://api.stripe.com/v1/balance';
 const SLACK_URL = 'https://slack.com/api/auth.test';
 
 function classifyHttp(status: number): VerifyStatus {
-  if (status === 200) return 'live';
-  if (status === 401 || status === 403) return 'revoked';
+  if (status === 200) {return 'live';}
+  if (status === 401 || status === 403) {return 'revoked';}
   return 'unknown';
 }
 
@@ -51,8 +51,8 @@ async function verifyAws(secret: string, fetchImpl: typeof fetch): Promise<Verif
       },
       body: 'Action=GetCallerIdentity&Version=2011-06-15',
     });
-    if (status === 200) return 'live';
-    if (status === 401) return 'revoked';
+    if (status === 200) {return 'live';}
+    if (status === 401) {return 'revoked';}
     return 'unknown';
   } catch {
     return 'unknown';
@@ -97,7 +97,7 @@ async function verifySlack(secret: string, fetchImpl: typeof fetch): Promise<Ver
       },
       body: '',
     });
-    if (status !== 200) return classifyHttp(status);
+    if (status !== 200) {return classifyHttp(status);}
     if (typeof json === 'object' && json !== null && 'ok' in json) {
       return json.ok === true ? 'live' : 'revoked';
     }
@@ -108,10 +108,10 @@ async function verifySlack(secret: string, fetchImpl: typeof fetch): Promise<Ver
 }
 
 function providerFor(ruleId: string, secret: string): ((s: string, f: typeof fetch) => Promise<VerifyStatus>) | undefined {
-  if (ruleId === 'SECRET-AWS-001' || secret.startsWith('AKIA')) return verifyAws;
-  if (ruleId === 'SECRET-GITHUB-001' || /^(?:ghp|gho|ghu|ghs|ghr)_/.test(secret)) return verifyGithub;
-  if (ruleId === 'SECRET-STRIPE-001' || /^sk_(?:live|test)_/.test(secret)) return verifyStripe;
-  if (ruleId === 'SECRET-SLACK-001' || /^xox[baprs]-/.test(secret)) return verifySlack;
+  if (ruleId === 'SECRET-AWS-001' || secret.startsWith('AKIA')) {return verifyAws;}
+  if (ruleId === 'SECRET-GITHUB-001' || /^(?:ghp|gho|ghu|ghs|ghr)_/.test(secret)) {return verifyGithub;}
+  if (ruleId === 'SECRET-STRIPE-001' || /^sk_(?:live|test)_/.test(secret)) {return verifyStripe;}
+  if (ruleId === 'SECRET-SLACK-001' || /^xox[baprs]-/.test(secret)) {return verifySlack;}
   return undefined;
 }
 

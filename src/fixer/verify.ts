@@ -35,9 +35,9 @@ export function allowPatchWrite(
   verified: FixVerification | undefined,
   options: { enabled: boolean; forceUnverified?: boolean; yes?: boolean },
 ): boolean {
-  if (!options.enabled) return true;
-  if (verified === 'introduces-finding') return options.yes === true ? false : false;
-  if (verified === 'removes-finding') return true;
+  if (!options.enabled) {return true;}
+  if (verified === 'introduces-finding') {return options.yes === true ? false : false;}
+  if (verified === 'removes-finding') {return true;}
   return options.forceUnverified === true;
 }
 
@@ -116,8 +116,8 @@ function isDependencyChange(input: VerifyInput): boolean {
   if (input.finding?.fix?.kind === 'dependency-bump' || input.finding?.fix?.kind === 'dependency-override') {
     return true;
   }
-  if (input.ruleId.startsWith('DEPS-')) return true;
-  if (/^# bump \S+ from \S+ to \S+/m.test(input.diff)) return true;
+  if (input.ruleId.startsWith('DEPS-')) {return true;}
+  if (/^# bump \S+ from \S+ to \S+/m.test(input.diff)) {return true;}
   return normalizeRel(input.file).endsWith('package.json') && /"(?:overrides|resolutions)"/.test(input.diff);
 }
 
@@ -127,15 +127,15 @@ async function classifyDependency(
   cacheDir: string,
 ): Promise<FixVerification> {
   const plans = plannedVersions(input.diff, base);
-  if (plans.length === 0) return 'does-not-remove';
+  if (plans.length === 0) {return 'does-not-remove';}
   const before = advisoryIds(input.finding);
   for (const plan of plans) {
     const after = await readCachedAdvisoryIds(cacheDir, plan.name, plan.to);
-    if (after === undefined) return 'does-not-remove';
+    if (after === undefined) {return 'does-not-remove';}
     for (const id of after) {
-      if (!before.includes(id)) return 'introduces-finding';
+      if (!before.includes(id)) {return 'introduces-finding';}
     }
-    if (before.length === 0 || before.some((id) => after.includes(id))) return 'does-not-remove';
+    if (before.length === 0 || before.some((id) => after.includes(id))) {return 'does-not-remove';}
   }
   return 'removes-finding';
 }
@@ -148,13 +148,13 @@ function advisoryIds(finding: Finding | undefined): string[] {
 
 function plannedVersions(diff: string, base: string | undefined): Array<{ name: string; to: string }> {
   const bump = /^# bump (\S+) from \S+ to (\S+)/m.exec(diff);
-  if (bump?.[1] !== undefined && bump[2] !== undefined) return [{ name: bump[1], to: bump[2] }];
-  if (base === undefined) return [];
+  if (bump?.[1] !== undefined && bump[2] !== undefined) {return [{ name: bump[1], to: bump[2] }];}
+  if (base === undefined) {return [];}
   const next = collectManifestOverrides(applyUnifiedDiff(base, diff));
   const prev = collectManifestOverrides(base);
   const plans: Array<{ name: string; to: string }> = [];
   for (const [name, version] of next) {
-    if (prev.get(name) !== version) plans.push({ name, to: version });
+    if (prev.get(name) !== version) {plans.push({ name, to: version });}
   }
   return plans;
 }
@@ -163,7 +163,7 @@ async function readCachedAdvisoryIds(cacheDir: string, name: string, version: st
   const file = join(cacheDir, 'osv', `${name.replaceAll('/', '__')}@${version}.json`);
   try {
     const raw = JSON.parse(await readFile(file, 'utf8')) as { vulns?: unknown };
-    if (!Array.isArray(raw.vulns)) return undefined;
+    if (!Array.isArray(raw.vulns)) {return undefined;}
     const ids: string[] = [];
     for (const vuln of raw.vulns) {
       if (vuln !== null && typeof vuln === 'object' && typeof (vuln as { id?: unknown }).id === 'string') {
@@ -179,7 +179,7 @@ async function readCachedAdvisoryIds(cacheDir: string, name: string, version: st
 async function resolveCacheDir(cwd: string): Promise<string> {
   try {
     const config = await loadConfig(cwd);
-    if (config.deps.cacheDir !== undefined) return resolve(cwd, config.deps.cacheDir);
+    if (config.deps.cacheDir !== undefined) {return resolve(cwd, config.deps.cacheDir);}
   } catch {
     // Missing config uses the default cache directory. A missing entry is not a clear.
   }
@@ -194,7 +194,7 @@ function classifyCode(
 ): FixVerification {
   const beforeFp = new Set(before.map((finding) => lineIndependentFingerprint(finding)));
   const introduced = after.some((finding) => !beforeFp.has(lineIndependentFingerprint(finding)));
-  if (introduced) return 'introduces-finding';
+  if (introduced) {return 'introduces-finding';}
   const remains = after.some((finding) => finding.ruleId === ruleId && normalizeRel(finding.file ?? '') === file);
   return remains ? 'does-not-remove' : 'removes-finding';
 }
@@ -208,7 +208,7 @@ async function collectFindings(
   const parsed: ParsedSource[] = [];
   for (const file of files) {
     const text = overlay.get(file) ?? (await readOptional(cwd, file));
-    if (text === undefined || text.includes('\0') || text.length > MAX_BYTES || !SOURCE_EXT.test(file)) continue;
+    if (text === undefined || text.includes('\0') || text.length > MAX_BYTES || !SOURCE_EXT.test(file)) {continue;}
     try {
       findings.push(...(await runSastOnText(file, text)));
     } catch {
@@ -238,16 +238,16 @@ async function directImporters(cwd: string, target: string, files: readonly stri
   const fileSet = new Set(files);
   const found: string[] = [];
   for (const file of files) {
-    if (file === target) continue;
+    if (file === target) {continue;}
     const text = await readOptional(cwd, file);
-    if (text === undefined || text.includes('\0') || text.length > MAX_BYTES) continue;
+    if (text === undefined || text.includes('\0') || text.length > MAX_BYTES) {continue;}
     let ast: AstNode;
     try {
       ast = await parseSource(text);
     } catch {
       continue;
     }
-    if (importedFiles(file, ast, fileSet).has(target)) found.push(file);
+    if (importedFiles(file, ast, fileSet).has(target)) {found.push(file);}
   }
   return found;
 }
@@ -255,9 +255,9 @@ async function directImporters(cwd: string, target: string, files: readonly stri
 function importedFiles(file: string, ast: AstNode, files: ReadonlySet<string>): Set<string> {
   const out = new Set<string>();
   const add = (spec: string | undefined): void => {
-    if (spec === undefined || !spec.startsWith('.')) return;
+    if (spec === undefined || !spec.startsWith('.')) {return;}
     const resolved = resolveRelative(file, spec, files);
-    if (resolved !== undefined) out.add(resolved);
+    if (resolved !== undefined) {out.add(resolved);}
   };
   walk(ast, (node) => {
     if (

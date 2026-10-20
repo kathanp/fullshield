@@ -5,17 +5,17 @@ import type { SastRule } from '../types.js';
 
 function algorithmsOption(node: TSESTree.CallExpression): TSESTree.Expression | undefined {
   const opts = node.arguments[2];
-  if (opts === undefined || opts.type !== 'ObjectExpression') return undefined;
+  if (opts === undefined || opts.type !== 'ObjectExpression') {return undefined;}
   for (const prop of opts.properties) {
-    if (prop.type !== 'Property') continue;
+    if (prop.type !== 'Property') {continue;}
     const key = prop.key.type === 'Identifier' ? prop.key.name : literalString(prop.key);
-    if (key === 'algorithms') return prop.value as TSESTree.Expression;
+    if (key === 'algorithms') {return prop.value as TSESTree.Expression;}
   }
   return undefined;
 }
 
 function includesNone(expr: TSESTree.Expression): boolean {
-  if (expr.type !== 'ArrayExpression') return false;
+  if (expr.type !== 'ArrayExpression') {return false;}
   return expr.elements.some(
     (el) => el !== null && el.type === 'Literal' && (el.value === 'none' || el.value === 'None'),
   );
@@ -32,10 +32,10 @@ export const jwtRule: SastRule = {
   create(ctx) {
     return {
       CallExpression(node) {
-        if (node.type !== 'CallExpression') return;
-        if (node.callee.type !== 'MemberExpression') return;
+        if (node.type !== 'CallExpression') {return;}
+        if (node.callee.type !== 'MemberExpression') {return;}
         const obj = node.callee.object;
-        if (obj.type !== 'Identifier' || !/^(jwt|jsonwebtoken)$/i.test(obj.name)) return;
+        if (obj.type !== 'Identifier' || !/^(jwt|jsonwebtoken)$/i.test(obj.name)) {return;}
         const name = calleeName(node);
         if (name === 'decode') {
           ctx.report({
@@ -44,7 +44,7 @@ export const jwtRule: SastRule = {
           });
           return;
         }
-        if (name !== 'verify') return;
+        if (name !== 'verify') {return;}
         const algorithms = algorithmsOption(node);
         if (algorithms === undefined) {
           ctx.report({

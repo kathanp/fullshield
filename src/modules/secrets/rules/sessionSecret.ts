@@ -14,8 +14,8 @@ export const sessionSecretRule: SecretsRule = {
   check(ctx) {
     let pending = 0;
     ctx.lines.forEach((line, index) => {
-      if (/\bsession\s*\(/.test(line)) pending = 8;
-      if (pending <= 0) return;
+      if (/\bsession\s*\(/.test(line)) {pending = 8;}
+      if (pending <= 0) {return;}
       pending -= 1;
       for (const match of everyMatch(SECRET_PROP, line)) {
         const secret = match[1];

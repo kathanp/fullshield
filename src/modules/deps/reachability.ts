@@ -28,7 +28,7 @@ function packageNameFromSnippet(snippet: string): string | undefined {
 }
 
 function packageNameFromSpec(spec: string): string | undefined {
-  if (spec.startsWith('.') || spec.startsWith('/') || spec.startsWith('node:')) return undefined;
+  if (spec.startsWith('.') || spec.startsWith('/') || spec.startsWith('node:')) {return undefined;}
   if (spec.startsWith('@')) {
     const parts = spec.split('/');
     return parts.length >= 2 ? `${parts[0]}/${parts[1]}` : spec;
@@ -43,8 +43,8 @@ function localIsCalled(source: string, local: string): boolean {
 
 export function isProductionSource(rel: string): boolean {
   const n = rel.replace(/\\/g, '/');
-  if (/(^|\/)(__tests__|tests|test)(\/|$)/.test(n)) return false;
-  if (/\.(test|spec)\.[cm]?[jt]sx?$/.test(n)) return false;
+  if (/(^|\/)(__tests__|tests|test)(\/|$)/.test(n)) {return false;}
+  if (/\.(test|spec)\.[cm]?[jt]sx?$/.test(n)) {return false;}
   return true;
 }
 
@@ -69,9 +69,9 @@ export function usageInSource(source: string): Map<string, PackageUsage> {
     while ((m = re.exec(source)) !== null) {
       const local = m[1];
       const spec = m[2];
-      if (local === undefined || spec === undefined) continue;
+      if (local === undefined || spec === undefined) {continue;}
       const pkg = packageNameFromSpec(spec);
-      if (pkg === undefined) continue;
+      if (pkg === undefined) {continue;}
       bump(pkg, localIsCalled(source, local));
     }
   }
@@ -79,9 +79,9 @@ export function usageInSource(source: string): Map<string, PackageUsage> {
   let named: RegExpExecArray | null;
   while ((named = namedRe.exec(source)) !== null) {
     const spec = named[2];
-    if (spec === undefined) continue;
+    if (spec === undefined) {continue;}
     const pkg = packageNameFromSpec(spec);
-    if (pkg === undefined) continue;
+    if (pkg === undefined) {continue;}
     const locals = (named[1] ?? '').split(',').map((s) => s.trim().split(/\s+as\s+/).pop() ?? '');
     bump(
       pkg,
@@ -117,12 +117,12 @@ export function shortestDependencyPath(
   }
   while (queue.length > 0) {
     const path = queue.shift();
-    if (path === undefined) continue;
+    if (path === undefined) {continue;}
     const last = path[path.length - 1];
-    if (last === undefined) continue;
-    if (last === target) return path;
+    if (last === undefined) {continue;}
+    if (last === target) {return path;}
     for (const next of edges.get(last) ?? []) {
-      if (seen.has(next)) continue;
+      if (seen.has(next)) {continue;}
       seen.add(next);
       queue.push([...path, next]);
     }
@@ -140,20 +140,20 @@ export function collectDependencyPaths(
   const out: string[][] = [];
   const queue: string[][] = [];
   let steps = 0;
-  for (const start of starts) queue.push([start]);
+  for (const start of starts) {queue.push([start]);}
   while (queue.length > 0 && out.length < limit && steps < 4000) {
     steps += 1;
     const path = queue.shift();
-    if (path === undefined) continue;
+    if (path === undefined) {continue;}
     const last = path[path.length - 1];
-    if (last === undefined) continue;
+    if (last === undefined) {continue;}
     if (last === target) {
-      if (path.length >= 2) out.push(path);
+      if (path.length >= 2) {out.push(path);}
       continue;
     }
-    if (path.length >= 12) continue;
+    if (path.length >= 12) {continue;}
     for (const next of edges.get(last) ?? []) {
-      if (path.includes(next)) continue;
+      if (path.includes(next)) {continue;}
       queue.push([...path, next]);
     }
   }
@@ -161,7 +161,7 @@ export function collectDependencyPaths(
 }
 
 function reachableFrom(target: string, roots: Set<string>, edges: Map<string, Set<string>>): boolean {
-  if (roots.has(target)) return true;
+  if (roots.has(target)) {return true;}
   return shortestDependencyPath(target, roots, edges) !== undefined;
 }
 
@@ -169,8 +169,8 @@ function importedDirectNames(usage: Map<string, PackageUsage>, graph: LockfileGr
   const directs = new Set([...graph.directProd, ...graph.directDev]);
   const out = new Set<string>();
   for (const [name, hit] of usage) {
-    if (!hit.imported) continue;
-    if (directs.size === 0 || directs.has(name)) out.add(name);
+    if (!hit.imported) {continue;}
+    if (directs.size === 0 || directs.has(name)) {out.add(name);}
   }
   return out;
 }
@@ -206,11 +206,11 @@ export function classifyReachability(
  * When the lockfile has no edges, the list is empty.
  */
 export function unusedDirectPackages(ctx: ReachabilityContext): string[] {
-  if (!ctx.graph.edgesKnown) return [];
+  if (!ctx.graph.edgesKnown) {return [];}
   const imported = importedDirectNames(ctx.productionUsage, ctx.graph);
   return [...ctx.graph.directProd]
     .filter((name) => {
-      if (ctx.productionUsage.get(name)?.imported === true) return false;
+      if (ctx.productionUsage.get(name)?.imported === true) {return false;}
       return !reachableFrom(name, imported, ctx.graph.edges);
     })
     .sort();
@@ -221,14 +221,14 @@ export function unusedDirectPlan(
   ctx: ReachabilityContext,
 ): { packages: string[]; advisories: number } | undefined {
   const packages = unusedDirectPackages(ctx);
-  if (packages.length === 0) return undefined;
+  if (packages.length === 0) {return undefined;}
   const names = new Set(packages);
   let advisories = 0;
   for (const finding of findings) {
-    if (finding.ruleId !== 'DEPS-VULN-001' && finding.ruleId !== 'DEPS-MALICIOUS-001') continue;
-    if (finding.snippet === undefined) continue;
+    if (finding.ruleId !== 'DEPS-VULN-001' && finding.ruleId !== 'DEPS-MALICIOUS-001') {continue;}
+    if (finding.snippet === undefined) {continue;}
     const pkg = packageNameFromSnippet(finding.snippet);
-    if (pkg !== undefined && names.has(pkg)) advisories += 1;
+    if (pkg !== undefined && names.has(pkg)) {advisories += 1;}
   }
   return { packages, advisories };
 }
@@ -246,7 +246,7 @@ export function reachabilitySteps(reachability: Reachability): number {
   ) {
     return 0;
   }
-  if (reachability === 'imported-not-called' || reachability === 'symbol-not-called') return 1;
+  if (reachability === 'imported-not-called' || reachability === 'symbol-not-called') {return 1;}
   return 2;
 }
 
@@ -256,13 +256,13 @@ export function downgradeSeverity(severity: Severity, steps: number): Severity {
 }
 
 function isDevOnly(pkgName: string, ctx: ReachabilityContext): boolean {
-  if (ctx.productionUsage.get(pkgName)?.imported === true) return false;
+  if (ctx.productionUsage.get(pkgName)?.imported === true) {return false;}
   const { directProd, directDev, edges, edgesKnown } = ctx.graph;
   if (!edgesKnown) {
     return directDev.has(pkgName) && !directProd.has(pkgName);
   }
   const inProd = reachableFrom(pkgName, directProd, edges);
-  if (inProd) return false;
+  if (inProd) {return false;}
   return directDev.has(pkgName) || reachableFrom(pkgName, directDev, edges);
 }
 
@@ -278,7 +278,7 @@ const REACH_RANK: Record<Reachability, number> = {
 
 function versionFromSnippet(snippet: string): string {
   const name = packageNameFromSnippet(snippet);
-  if (name === undefined) return snippet;
+  if (name === undefined) {return snippet;}
   return snippet.slice(name.length + 1);
 }
 
@@ -287,7 +287,7 @@ function pathFields(classified: { path?: string[]; paths?: string[][] }): {
   dependencyPaths?: string[][];
 } {
   const paths = classified.paths ?? (classified.path !== undefined ? [classified.path] : []);
-  if (paths.length === 0) return {};
+  if (paths.length === 0) {return {};}
   return {
     dependencyPath: paths[0],
     ...(paths.length > 1 ? { dependencyPaths: paths } : {}),
@@ -295,7 +295,7 @@ function pathFields(classified: { path?: string[]; paths?: string[][] }): {
 }
 
 function appendOtherPaths(message: string, paths: string[][] | undefined): string {
-  if (paths === undefined || paths.length < 2) return message;
+  if (paths === undefined || paths.length < 2) {return message;}
   const rest = paths.slice(1).map((p) => p.join(' > ')).sort().join('; ');
   return `${message} Other paths: ${rest}.`;
 }
@@ -313,8 +313,8 @@ export function groupPackageAdvisories(findings: readonly Finding[]): Finding[] 
     const advisory = finding.references?.[0] ?? finding.id;
     const key = `${finding.ruleId}\0${name}\0${advisory}`;
     const list = groups.get(key);
-    if (list === undefined) groups.set(key, [finding]);
-    else list.push(finding);
+    if (list === undefined) {groups.set(key, [finding]);}
+    else {list.push(finding);}
   }
   const merged: Finding[] = [];
   for (const list of groups.values()) {
@@ -346,7 +346,7 @@ function mergeAdvisory(list: readonly Finding[]): Finding {
     const candidates = finding.dependencyPaths ?? (finding.dependencyPath !== undefined ? [finding.dependencyPath] : []);
     for (const path of candidates) {
       const key = path.join('\0');
-      if (seenPath.has(key)) continue;
+      if (seenPath.has(key)) {continue;}
       seenPath.add(key);
       paths.push(path);
     }
@@ -386,9 +386,9 @@ export function applyReachability(
   const mapped: Finding[] = findings.map((finding): Finding => {
     if (finding.ruleId === 'DEPS-MALICIOUS-001') {
       // Symbol data never downgrades a malicious advisory. Severity stays critical.
-      if (finding.snippet === undefined) return finding;
+      if (finding.snippet === undefined) {return finding;}
       const pkg = packageNameFromSnippet(finding.snippet);
-      if (pkg === undefined || pkg.length === 0) return finding;
+      if (pkg === undefined || pkg.length === 0) {return finding;}
       const classified = classifyReachability(pkg, ctx.productionUsage, ctx.graph);
       return {
         ...finding,
@@ -397,9 +397,9 @@ export function applyReachability(
         ...pathFields(classified),
       };
     }
-    if (finding.ruleId !== 'DEPS-VULN-001' || finding.snippet === undefined) return finding;
+    if (finding.ruleId !== 'DEPS-VULN-001' || finding.snippet === undefined) {return finding;}
     const pkg = packageNameFromSnippet(finding.snippet);
-    if (pkg === undefined || pkg.length === 0) return finding;
+    if (pkg === undefined || pkg.length === 0) {return finding;}
     let classified = classifyReachability(pkg, ctx.productionUsage, ctx.graph);
     const named = symbols.get(finding.id) ?? [];
     if (named.length > 0 && ctx.sources !== undefined) {

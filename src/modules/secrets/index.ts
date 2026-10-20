@@ -64,7 +64,7 @@ export function scanTextForSecretHits(path: string, text: string): SecretHit[] {
           message: message ?? `${rule.meta.title}${masked !== undefined ? ` (${masked})` : ''}.`,
           remediation: REMEDIATION,
         };
-        if (secretCheckEnabled()) applySecretPrecision(path, finding, secret);
+        if (secretCheckEnabled()) {applySecretPrecision(path, finding, secret);}
         hits.push({ finding, secret });
       },
     });
@@ -91,7 +91,7 @@ export const secretsModule: ScanModule = {
       } catch {
         continue; // unreadable file: nothing to scan
       }
-      if (text.length > MAX_FILE_SIZE || text.includes('\u0000')) continue;
+      if (text.length > MAX_FILE_SIZE || text.includes('\u0000')) {continue;}
       findings.push(...scanTextForSecrets(rel, text));
     }
     return findings;

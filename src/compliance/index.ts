@@ -178,7 +178,7 @@ export function collectRuleIdsFromSources(texts: readonly string[]): string[] {
   const re = /\b((?:SAST|SECRET|DEPS|CONFIG|EDGE|AI|LLM|SUPPLY|IAC|RASP|RUNTIME|DLP|MCP|HOST)(?:-[A-Z0-9]+)*-\d{3})\b/g;
   for (const text of texts) {
     let m: RegExpExecArray | null;
-    while ((m = re.exec(text)) !== null) ids.add(m[1] ?? '');
+    while ((m = re.exec(text)) !== null) {ids.add(m[1] ?? '');}
   }
   return [...ids].sort();
 }

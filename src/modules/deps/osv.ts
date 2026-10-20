@@ -40,11 +40,11 @@ export type FetchLike = (input: string | URL, init?: RequestInit) => Promise<Res
 
 /** MAL- OSV ids or database_specific.malicious — install-time malware, not a CVE. */
 export function isMaliciousAdvisory(vuln: Pick<OsvVuln, 'id' | 'database_specific' | 'aliases'>): boolean {
-  if (vuln.id.startsWith('MAL-')) return true;
-  if ((vuln.aliases ?? []).some((a) => a.startsWith('MAL-'))) return true;
+  if (vuln.id.startsWith('MAL-')) {return true;}
+  if ((vuln.aliases ?? []).some((a) => a.startsWith('MAL-'))) {return true;}
   const flag = vuln.database_specific?.malicious;
-  if (flag === true) return true;
-  if (flag !== null && typeof flag === 'object') return true;
+  if (flag === true) {return true;}
+  if (flag !== null && typeof flag === 'object') {return true;}
   return false;
 }
 
@@ -62,7 +62,7 @@ function cachePath(cacheDir: string, pkg: LockedPackage): string {
 async function readCache(cacheDir: string, pkg: LockedPackage): Promise<CacheEntry | undefined> {
   try {
     const raw = JSON.parse(await readFile(cachePath(cacheDir, pkg), 'utf8')) as CacheEntry;
-    if (typeof raw.fetchedAt !== 'string' || !Array.isArray(raw.vulns)) return undefined;
+    if (typeof raw.fetchedAt !== 'string' || !Array.isArray(raw.vulns)) {return undefined;}
     return raw;
   } catch {
     return undefined;
@@ -102,9 +102,9 @@ async function queryBatch(
 
 async function fetchVuln(fetchImpl: FetchLike, id: string): Promise<OsvVuln | undefined> {
   const response = await fetchImpl(`${OSV_VULN_URL}${encodeURIComponent(id)}`);
-  if (!response.ok) return undefined;
+  if (!response.ok) {return undefined;}
   const body = (await response.json()) as OsvVuln;
-  if (typeof body.id !== 'string') return undefined;
+  if (typeof body.id !== 'string') {return undefined;}
   return body;
 }
 
@@ -128,10 +128,10 @@ export async function queryOsv(
       cached !== undefined &&
       (options.offline || now() - Date.parse(cached.fetchedAt) < TTL_MS);
     if (fresh && cached !== undefined) {
-      if (cached.vulns.length > 0) hits.push({ pkg, vulns: cached.vulns });
+      if (cached.vulns.length > 0) {hits.push({ pkg, vulns: cached.vulns });}
       continue;
     }
-    if (!options.offline) missing.push(pkg);
+    if (!options.offline) {missing.push(pkg);}
   }
 
   for (let i = 0; i < missing.length; i += BATCH_SIZE) {
@@ -144,7 +144,7 @@ export async function queryOsv(
     }
     for (let j = 0; j < chunk.length; j += 1) {
       const pkg = chunk[j];
-      if (pkg === undefined) continue;
+      if (pkg === undefined) {continue;}
       const ids = (results[j]?.vulns ?? [])
         .map((v) => v.id)
         .filter((id): id is string => typeof id === 'string' && id.length > 0);
@@ -152,7 +152,7 @@ export async function queryOsv(
       for (const id of ids) {
         try {
           const detail = await fetchVuln(fetchImpl, id);
-          if (detail !== undefined) vulns.push(detail);
+          if (detail !== undefined) {vulns.push(detail);}
         } catch {
           // Keep going; a single detail fetch must not invent or drop the rest.
         }
@@ -161,7 +161,7 @@ export async function queryOsv(
         fetchedAt: new Date(now()).toISOString(),
         vulns,
       });
-      if (vulns.length > 0) hits.push({ pkg, vulns });
+      if (vulns.length > 0) {hits.push({ pkg, vulns });}
     }
   }
 

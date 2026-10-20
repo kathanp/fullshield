@@ -8,7 +8,7 @@ export function ruleDocsUrl(ruleId: string): string {
 }
 
 function location(finding: Finding): string {
-  if (finding.file === undefined) return '(project)';
+  if (finding.file === undefined) {return '(project)';}
   return finding.line !== undefined ? `${finding.file}:${finding.line}` : finding.file;
 }
 
@@ -33,7 +33,7 @@ export function renderPrSummary(
   lines.push('');
   for (const severity of [...SEVERITIES].reverse()) {
     const group = next.filter((f) => f.severity === severity);
-    if (group.length === 0) continue;
+    if (group.length === 0) {continue;}
     lines.push(`## ${severity} (${group.length})`, '');
     for (const finding of group) {
       lines.push(
@@ -42,6 +42,6 @@ export function renderPrSummary(
     }
     lines.push('');
   }
-  while (lines[lines.length - 1] === '') lines.pop();
+  while (lines[lines.length - 1] === '') {lines.pop();}
   return `${lines.join('\n')}\n`;
 }

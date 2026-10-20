@@ -3,7 +3,7 @@ import { SEVERITIES, type Finding } from '../core/finding.js';
 import { redactScan } from './redact.js';
 
 function location(finding: Finding): string {
-  if (finding.file === undefined) return '(project)';
+  if (finding.file === undefined) {return '(project)';}
   return finding.line !== undefined ? `${finding.file}:${finding.line}` : finding.file;
 }
 
@@ -21,7 +21,7 @@ export function renderMarkdownReport(input: ScanResult): string {
   const bySeverityDesc = [...SEVERITIES].reverse();
   for (const severity of bySeverityDesc) {
     const group = result.findings.filter((f) => f.severity === severity);
-    if (group.length === 0) continue;
+    if (group.length === 0) {continue;}
     lines.push(`## ${severity} (${group.length})`, '');
     for (const finding of group) {
       lines.push(`### ${finding.ruleId} — ${finding.title}`);

@@ -35,7 +35,7 @@ export function raspMode(): RaspMode {
 }
 
 export function raspModeFor(route: string, kind: SinkKind): RaspMode {
-  if (patchForcesBlock(options.virtualPatches ?? [], route, kind)) return 'block';
+  if (patchForcesBlock(options.virtualPatches ?? [], route, kind)) {return 'block';}
   return raspMode();
 }
 
@@ -44,12 +44,12 @@ export function raspEgressAllow(): readonly string[] | undefined {
 }
 
 export function runDecide(kind: SinkKind, sink: unknown, ctx: RaspRequestContext, base?: string): Decision {
-  if (options.decide) return options.decide(kind, sink, ctx);
+  if (options.decide) {return options.decide(kind, sink, ctx);}
   return decideSink(kind, sink, ctx, base);
 }
 
 export function emitRaspEvent(event: RaspEvent): void {
-  if (events.length >= MAX_EVENTS) events.shift();
+  if (events.length >= MAX_EVENTS) {events.shift();}
   events.push(event);
   options.onEvent?.(event);
 }
@@ -75,7 +75,7 @@ export function enableRasp(opts: RaspOptions = {}): void {
 }
 
 export function disableRasp(): void {
-  if (!enabled) return;
+  if (!enabled) {return;}
   restoreHooks();
   enabled = false;
   options = {};
@@ -85,7 +85,7 @@ export function disableRasp(): void {
 }
 
 export function enableRaspFromEnv(): void {
-  if (process.env.FULLSHIELD_EXPERIMENTAL_RASP !== '1') return;
+  if (process.env.FULLSHIELD_EXPERIMENTAL_RASP !== '1') {return;}
   enableRasp({
     experimental: true,
     mode: process.env.FULLSHIELD_RASP_MODE === 'block' ? 'block' : 'monitor',

@@ -28,11 +28,11 @@ export interface ThreatModel {
 }
 
 function walk(dir: string, out: string[] = []): string[] {
-  if (!existsSync(dir)) return out;
+  if (!existsSync(dir)) {return out;}
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (['node_modules', 'dist', '.git'].includes(entry.name)) continue;
+      if (['node_modules', 'dist', '.git'].includes(entry.name)) {continue;}
       walk(full, out);
     } else if (entry.isFile() && /\.[cm]?[jt]sx?$/.test(entry.name)) {
       out.push(full);
@@ -64,9 +64,9 @@ export function buildThreatModel(dir: string, opts: { experimental?: boolean } =
         auth: /auth|requireUser|requireAuth/.test(text),
       });
     }
-    if (/sqlite|mongodb|postgres|mysql|createPool|DatabaseSync/.test(text)) stores.add(rel);
+    if (/sqlite|mongodb|postgres|mysql|createPool|DatabaseSync/.test(text)) {stores.add(rel);}
     const urlRe = /https?:\/\/[^\s'"[`]+/g;
-    while ((m = urlRe.exec(text)) !== null) egress.add(m[0] ?? '');
+    while ((m = urlRe.exec(text)) !== null) {egress.add(m[0] ?? '');}
   }
   const stride: StrideRow[] = routes.slice(0, 20).map((r) => ({
     element: `${r.method} ${r.path}`,

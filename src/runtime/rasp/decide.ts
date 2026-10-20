@@ -7,21 +7,21 @@ import { ssrfHostFromUser } from './ssrf.js';
 import { RASP_RULE, type Decision, type RaspRequestContext, type SinkKind } from './types.js';
 
 function sinkTexts(sink: unknown): string[] {
-  if (typeof sink === 'string') return [sink];
-  if (typeof sink === 'number' || typeof sink === 'boolean') return [String(sink)];
+  if (typeof sink === 'string') {return [sink];}
+  if (typeof sink === 'number' || typeof sink === 'boolean') {return [String(sink)];}
   return [];
 }
 
 function whereJsChangesStructure(sink: unknown, ctx: RaspRequestContext): boolean {
   let code = '';
-  if (typeof sink === 'string') code = sink;
+  if (typeof sink === 'string') {code = sink;}
   else if (sink !== null && typeof sink === 'object' && !Array.isArray(sink) && '$where' in sink) {
     const where = sink.$where;
-    if (typeof where === 'string') code = where;
+    if (typeof where === 'string') {code = where;}
   }
-  if (!code) return false;
+  if (!code) {return false;}
   for (const input of ctx.strings) {
-    if (input && sqlInputChangesStructure(code, input)) return true;
+    if (input && sqlInputChangesStructure(code, input)) {return true;}
   }
   return false;
 }
@@ -32,18 +32,18 @@ export function detectStructureChange(
   ctx: RaspRequestContext,
   base?: string,
 ): boolean {
-  if (kind === 'proto') return protoPolluted(ctx);
+  if (kind === 'proto') {return protoPolluted(ctx);}
   if (kind === 'nosql') {
-    if (nosqlUserOperators(sink, ctx)) return true;
+    if (nosqlUserOperators(sink, ctx)) {return true;}
     return whereJsChangesStructure(sink, ctx);
   }
   for (const text of sinkTexts(sink)) {
     for (const input of ctx.strings) {
-      if (!input) continue;
-      if (kind === 'sql' && sqlInputChangesStructure(text, input)) return true;
-      if (kind === 'shell' && shellInputChangesStructure(text, input)) return true;
-      if (kind === 'path' && pathInputEscapes(text, input, base)) return true;
-      if (kind === 'ssrf' && ssrfHostFromUser(text, input)) return true;
+      if (!input) {continue;}
+      if (kind === 'sql' && sqlInputChangesStructure(text, input)) {return true;}
+      if (kind === 'shell' && shellInputChangesStructure(text, input)) {return true;}
+      if (kind === 'path' && pathInputEscapes(text, input, base)) {return true;}
+      if (kind === 'ssrf' && ssrfHostFromUser(text, input)) {return true;}
     }
   }
   return false;
@@ -51,7 +51,7 @@ export function detectStructureChange(
 
 export function decideSink(kind: SinkKind, sink: unknown, ctx: RaspRequestContext, base?: string): Decision {
   const hit = detectStructureChange(kind, sink, ctx, base);
-  if (hit) return { block: true, ruleId: RASP_RULE[kind] };
+  if (hit) {return { block: true, ruleId: RASP_RULE[kind] };}
   return { block: false };
 }
 

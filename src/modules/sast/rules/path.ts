@@ -43,9 +43,9 @@ export const pathRule: SastRule = {
   create(ctx) {
     return {
       CallExpression(node) {
-        if (node.type !== 'CallExpression') return;
+        if (node.type !== 'CallExpression') {return;}
         const name = calleeName(node);
-        if (name === undefined) return;
+        if (name === undefined) {return;}
         if (
           EXTRACT_SINKS.has(name) &&
           node.callee.type === 'MemberExpression' &&
@@ -57,11 +57,11 @@ export const pathRule: SastRule = {
           });
           return;
         }
-        if (!PATH_SINKS.has(name) && !EXTRACT_SINKS.has(name)) return;
+        if (!PATH_SINKS.has(name) && !EXTRACT_SINKS.has(name)) {return;}
         const pathArg = node.arguments[0];
-        if (pathArg === undefined || pathArg.type === 'SpreadElement') return;
-        if (!ctx.isTainted(pathArg)) return;
-        if (ctx.isPathSanitized(pathArg)) return;
+        if (pathArg === undefined || pathArg.type === 'SpreadElement') {return;}
+        if (!ctx.isTainted(pathArg)) {return;}
+        if (ctx.isPathSanitized(pathArg)) {return;}
         ctx.report({
           node,
           message: 'Tainted input is used as a file path without path.resolve + prefix check.',

@@ -147,7 +147,7 @@ export function meetsThreshold(severity: Severity, threshold: Severity): boolean
 
 /** CI gate: deterministic findings only. `source: 'ai'` never fails a build. */
 export function failsCi(finding: Finding, threshold: Severity): boolean {
-  if (finding.source === 'ai') return false;
+  if (finding.source === 'ai') {return false;}
   return meetsThreshold(finding.severity, threshold);
 }
 

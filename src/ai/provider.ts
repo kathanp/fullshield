@@ -60,23 +60,23 @@ function cacheKey(model: string, prompt: string): string {
 }
 
 function providerUrl(provider: AiProviderName): string {
-  if (provider === 'anthropic') return 'https://api.anthropic.com/v1/messages';
-  if (provider === 'ollama') return 'http://127.0.0.1:11434/api/chat';
+  if (provider === 'anthropic') {return 'https://api.anthropic.com/v1/messages';}
+  if (provider === 'ollama') {return 'http://127.0.0.1:11434/api/chat';}
   return 'https://api.openai.com/v1/chat/completions';
 }
 
 function messageText(payload: unknown): string {
-  if (typeof payload !== 'object' || payload === null) return '';
+  if (typeof payload !== 'object' || payload === null) {return '';}
   const rec = payload as Record<string, unknown>;
   const msg = rec.message;
   if (typeof msg === 'object' && msg !== null && typeof (msg as { content?: unknown }).content === 'string') {
     return (msg as { content: string }).content;
   }
-  if (typeof rec.content === 'string') return rec.content;
+  if (typeof rec.content === 'string') {return rec.content;}
   const choices = rec.choices;
   if (Array.isArray(choices)) {
     const first = choices[0] as { message?: { content?: string } } | undefined;
-    if (typeof first?.message?.content === 'string') return first.message.content;
+    if (typeof first?.message?.content === 'string') {return first.message.content;}
   }
   return '';
 }
@@ -112,7 +112,7 @@ export function createAiClient(options: AiClientOptions): AiClient {
       return spentUsd;
     },
     async complete(req: AiCompleteRequest): Promise<AiCompleteResponse | null> {
-      if (!options.enabled) return null;
+      if (!options.enabled) {return null;}
       const redactedPrompt = `${modeInstruction(req.mode)}\n${wrapUntrustedCode(req.prompt)}`;
       const key = cacheKey(req.model ?? model, redactedPrompt);
       const cached = cache.get(key);
@@ -120,7 +120,7 @@ export function createAiClient(options: AiClientOptions): AiClient {
         return { ...cached, cached: true, costUsd: 0 };
       }
       const callCost = useFixtures ? FIXTURE_COST : liveCost;
-      if (callCost > 0 && spentUsd + callCost > cfg.maxCostUsd) return null;
+      if (callCost > 0 && spentUsd + callCost > cfg.maxCostUsd) {return null;}
 
       if (useFixtures) {
         spentUsd += FIXTURE_COST;
@@ -136,7 +136,7 @@ export function createAiClient(options: AiClientOptions): AiClient {
 
       const fetchImpl = options.fetchImpl ?? fetch;
       const apiKey = options.apiKey ?? process.env.FULLSHIELD_AI_KEY ?? '';
-      if (provider !== 'ollama' && apiKey.length === 0) return null;
+      if (provider !== 'ollama' && apiKey.length === 0) {return null;}
 
       const outbound =
         provider === 'ollama'

@@ -28,7 +28,7 @@ export const configModule: ScanModule = {
           continue;
         }
       }
-      if (!/\.[cm]?[jt]sx?$/.test(rel)) continue;
+      if (!/\.[cm]?[jt]sx?$/.test(rel)) {continue;}
       try {
         findings.push(...(await runConfigAstChecks(rel, await readFile(join(ctx.cwd, rel), 'utf8'))));
       } catch {

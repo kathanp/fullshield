@@ -27,6 +27,7 @@ dist/supply.js
 dist/threat.js
 dist/vex.js
 dist/workspaces.js
+models/index.json
 package.json
 rules/CONFIG-BODYLIMIT-001.md
 rules/CONFIG-CORS-001.md
@@ -40,7 +41,9 @@ rules/CONFIG-INSTALLSCRIPT-001.md
 rules/CONFIG-RATELIMIT-001.md
 rules/CONFIG-TRUSTPROXY-001.md
 rules/DEPS-DEPRECATED-001.md
+rules/DEPS-LOCKMISMATCH-001.md
 rules/DEPS-NOLOCK-001.md
+rules/DEPS-PHANTOM-001.md
 rules/DEPS-TYPOSQUAT-001.md
 rules/DEPS-VULN-001.md
 rules/DLP-CARD-001.md
@@ -93,8 +96,10 @@ rules/SECRET-PRIVKEY-001.md
 rules/SECRET-SESSION-001.md
 rules/SECRET-SLACK-001.md
 rules/SECRET-STRIPE-001.md
+rules/SUPPLY-CAP-001.md
 rules/SUPPLY-CHAINC2-001.md
 rules/SUPPLY-PLATFORMGATE-001.md
+rules/SUPPLY-PROV-001.md
 rules/SUPPLY-SECHOLDER-001.md
 rules/SUPPLY-STEALER-001.md
 rules/SUPPLY-WORKFLOW-001.md
