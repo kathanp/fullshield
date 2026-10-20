@@ -223,12 +223,12 @@ const EXTRA_TARGETS = [
     name: 'confirm scope lock',
     file: join(root, 'src', 'confirm', 'index.ts'),
     apply: (src) => {
-      if (!src.includes('if (isLiteralLocal(rawHost) && isLiteralLocal(host)) return;')) {
+      if (!src.includes('if (isLiteralLocal(rawHost) && isLiteralLocal(host)) {return;}')) {
         throw new Error('confirm scope lock site missing');
       }
       return src.replace(
-        'if (isLiteralLocal(rawHost) && isLiteralLocal(host)) return;',
-        'if (false && isLiteralLocal(rawHost) && isLiteralLocal(host)) return;',
+        'if (isLiteralLocal(rawHost) && isLiteralLocal(host)) {return;}',
+        'if (false && isLiteralLocal(rawHost) && isLiteralLocal(host)) {return;}',
       );
     },
   },
