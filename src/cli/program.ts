@@ -31,6 +31,7 @@ import { renderMarkdownReport } from '../reporters/markdown.js';
 import { renderSarifReport } from '../reporters/sarif.js';
 import { addedFails, diffScans, parseScanDocument, renderDiffText } from '../diff/index.js';
 import { CI_REPORTS_FLAG, DIFF_FLAG, diffEnabled } from '../modules/sast/experimental.js';
+import { guardSemgrepCli, SEMGREP_RULES_FLAG } from '../modules/sast/semgrep/flag.js';
 import { POLICY_FLAG, renderPrSummary } from '../policy/index.js';
 import { diffLockedPackages, lockAtRef, packagesFromLock, releaseAgeLabel } from '../deps-diff/index.js';
 import { explainFinding } from '../explain/index.js';
@@ -94,6 +95,8 @@ interface ScanCliOptions {
   experimentalMcpcfg?: boolean;
   includeHome?: boolean;
   prSummary?: boolean;
+  experimentalSemgrepRules?: boolean;
+  semgrepRules?: string;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -235,6 +238,14 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       'experimental: MCP client/server config rules (FULLSHIELD_EXPERIMENTAL_MCPCFG=1)',
     )
     .option(
+      '--experimental-semgrep-rules',
+      'experimental: user-supplied Semgrep-style rules (FULLSHIELD_EXPERIMENTAL_SEMGREP_RULES=1)',
+    )
+    .option(
+      '--semgrep-rules <file>',
+      'experimental: YAML rules file (requires FULLSHIELD_EXPERIMENTAL_SEMGREP_RULES=1)',
+    )
+    .option(
       '--include-home',
       'experimental: also scan MCP configs in the home directory (requires FULLSHIELD_EXPERIMENTAL_MCPCFG=1)',
     )
@@ -289,6 +300,10 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         if (opts.experimentalMcpcfg === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_MCPCFG = '1';
         }
+        if (opts.experimentalSemgrepRules === true) {
+          process.env[SEMGREP_RULES_FLAG] = '1';
+        }
+        guardSemgrepCli(opts.semgrepRules, process.env[SEMGREP_RULES_FLAG] === '1');
         if (opts.prSummary === true && process.env[POLICY_FLAG] !== '1') {
           throw new Error(`--pr-summary requires ${POLICY_FLAG}=1`);
         }
@@ -320,6 +335,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           verifySecrets: opts.verifySecrets === true,
           iOwnTheseCredentials: opts.iOwnTheseCredentials === true,
           experimentalPolicy: process.env[POLICY_FLAG] === '1',
+          semgrepRules: opts.semgrepRules,
         });
 
         if (opts.sarif !== undefined) {

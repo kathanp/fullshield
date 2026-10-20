@@ -44,6 +44,11 @@ const KNOWN: Array<{ test: RegExp; code: string; hint: string }> = [
     code: 'FS-E009',
     hint: 'Set FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS=1 before naming sast.sources or sast.sanitizers.',
   },
+  {
+    test: /unsupported construct|install yaml to use user-supplied semgrep rules|cannot read semgrep rules|FULLSHIELD_EXPERIMENTAL_SEMGREP_RULES/,
+    code: 'FS-E012',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_SEMGREP_RULES=1. An unsupported construct rejects the whole rules file.',
+  },
 ];
 
 const DOCS = 'https://github.com/kathanp/fullshield/blob/main/docs/errors.md';

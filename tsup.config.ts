@@ -32,7 +32,7 @@ export default defineConfig({
   platform: 'node',
   target: 'node22',
   // Optional peers used only by `fullshield mcp --stdio`. Must not land in the scan/runtime bundles.
-  external: [/^@modelcontextprotocol\/sdk/, 'zod'],
+  external: [/^@modelcontextprotocol\/sdk/, 'zod', 'yaml'],
   dts: { entry: { index: 'src/index.ts' } },
   sourcemap: false,
   clean: true,

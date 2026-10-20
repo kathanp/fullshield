@@ -4,6 +4,10 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+### Experimental
+
+Phase 90 reads user-supplied Semgrep-style YAML behind `FULLSHIELD_EXPERIMENTAL_SEMGREP_RULES`. Default scan is unchanged. Results may differ from Semgrep.
+
 ### Quality gate
 
 Phase 94 adds `npm run quality` (Q1–Q12) for contributors. Default scan findings are unchanged.

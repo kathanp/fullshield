@@ -41,6 +41,8 @@ import { parsePoolEnabled, parseWithPool } from '../../core/parse-pool.js';
 import { perf2Enabled } from '../../core/perf2.js';
 import { sharedAstActive, sharedParse } from '../../core/shared-ast.js';
 import { clearTaintWalk, lazyTaintFiles } from './lazy-taint.js';
+import { semgrepRulesEnabled } from './semgrep/flag.js';
+import { scanUserSemgrepRules } from './semgrep/run.js';
 
 export const sastRules: readonly SastRule[] = [
   sqliRule,
@@ -442,6 +444,17 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
   return dedupeSastSinks(findings);
 }
 
+async function withUserSemgrep(ctx: Parameters<ScanModule['run']>[0], findings: Finding[]): Promise<Finding[]> {
+  if (!semgrepRulesEnabled() || ctx.config.semgrepRules === undefined) return findings;
+  const extra = await scanUserSemgrepRules({
+    cwd: ctx.cwd,
+    files: ctx.files,
+    rulesPath: ctx.config.semgrepRules,
+    maxFileBytes: ctx.config.sast.maxFileBytes,
+  });
+  return extra.length === 0 ? findings : [...findings, ...extra];
+}
+
 export const sastModule: ScanModule = {
   name: 'sast',
   async run(ctx) {
@@ -464,7 +477,9 @@ export const sastModule: ScanModule = {
     const candidates = ctx.files.filter(
       (rel) => SOURCE_EXT.test(rel) || TEMPLATE_EXT.test(rel) || (viewEngine === 'swig' && /\.(swig|html)$/.test(rel)),
     );
-    if (candidates.length > sastStreamThreshold()) {return await runSastStreaming(ctx);}
+    if (candidates.length > sastStreamThreshold()) {
+      return await withUserSemgrep(ctx, await runSastStreaming(ctx));
+    }
 
     const maxBytes = ctx.config.sast.maxFileBytes;
     const findings: Finding[] = [];
@@ -520,7 +535,7 @@ export const sastModule: ScanModule = {
     }
     const out = dedupeSastSinks(findings);
     releaseParsed(parsed);
-    return out;
+    return await withUserSemgrep(ctx, out);
     } finally {
       setCustomTaint(undefined);
       setTaintSummaryConfig(undefined);

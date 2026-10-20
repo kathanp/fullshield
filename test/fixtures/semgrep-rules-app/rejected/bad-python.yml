@@ -1,0 +1,6 @@
+rules:
+  - id: bad-python
+    languages: [python]
+    severity: high
+    message: python is outside the subset
+    pattern: eval($X)

@@ -54,8 +54,8 @@ export interface Finding {
   dependencyPath?: string[];
   /** Every retained dependency path for this package+advisory (shortest first). */
   dependencyPaths?: string[][];
-  /** Deterministic (default) vs AI-added. AI findings never fail CI. */
-  source?: 'deterministic' | 'ai';
+  /** Deterministic (default) vs AI-added. AI findings never fail CI. `user-rule` is a Phase 90 custom rule. */
+  source?: 'deterministic' | 'ai' | 'user-rule';
   aiVerdict?: 'true-positive' | 'likely-false-positive' | 'needs-review';
   aiReasoning?: string;
   exploitScenario?: string;

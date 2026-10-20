@@ -62,6 +62,8 @@ export interface ResolvedConfig {
   deps: DepsConfig;
   ai: AiConfig;
   sast: SastConfig;
+  /** Phase 90. Path to a user Semgrep-style YAML file. Read only when the experimental flag is on. */
+  semgrepRules?: string;
 }
 
 export const DEFAULT_CONFIG: ResolvedConfig = {
@@ -89,6 +91,7 @@ const KNOWN_KEYS = new Set([
   'deps',
   'ai',
   'sast',
+  'semgrepRules',
 ]);
 
 const SAST_CLASSES = new Set([
@@ -290,6 +293,12 @@ function validate(raw: unknown, source: string): Partial<ResolvedConfig> {
       sast.sanitizers = parseSastSanitizers(rawSast.sanitizers, source);
     }
     out.sast = sast;
+  }
+  if (record.semgrepRules !== undefined) {
+    if (typeof record.semgrepRules !== 'string' || record.semgrepRules.length === 0) {
+      throw new ConfigError(`${source}: "semgrepRules" must be a path string`);
+    }
+    out.semgrepRules = record.semgrepRules;
   }
   return out;
 }
