@@ -18,6 +18,10 @@ Phase 50 flags Swig `{{ }}` when the view engine is Swig, including consolidate.
 
 Phase 52 adds `DEPS-PHANTOM-001` and `DEPS-LOCKMISMATCH-001` with import or manifest line numbers. Test, script, and seed imports declared in devDependencies are low severity. clean-app declares cors, express-rate-limit, and jsonwebtoken. Merged locally (D16).
 
+Phase 65 taint summaries are already on this branch. The 5-second nest and undici target was not met.
+
+Phase 78 cold-scan work stays behind `FULLSHIELD_EXPERIMENTAL_PERF2`. Merged locally. The quiet-machine speed comparison is not done, so the flag is not claimed to be faster.
+
 ## 0.4.0 — 2026-10-18
 
 Phase 46 still enforces Node >= 22.13 in `engines`, `doctor`, and CI. Phase 47 still owns the console view.

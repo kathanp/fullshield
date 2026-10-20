@@ -19,6 +19,7 @@ import {
   nodeIsSqlCleared,
   nodeIsTainted,
   setCustomTaint,
+  type ScopeFacts,
 } from './taint.js';
 import { authRule, setAuthProject } from './rules/auth.js';
 import { cmdiRule } from './rules/cmdi.js';
@@ -37,6 +38,9 @@ import { phase29Rules, sourceHasCsrfGuard } from './rules/phase29.js';
 import type { AstNode, RuleContext, SastRule } from './types.js';
 import { scanPromptInjection } from '../../ai/injection.js';
 import { parsePoolEnabled, parseWithPool } from '../../core/parse-pool.js';
+import { perf2Enabled } from '../../core/perf2.js';
+import { sharedAstActive, sharedParse } from '../../core/shared-ast.js';
+import { clearTaintWalk, lazyTaintFiles } from './lazy-taint.js';
 
 export const sastRules: readonly SastRule[] = [
   sqliRule,
@@ -79,8 +83,11 @@ export function findingsFromAst(
   ast: AstNode,
   extraReturners: ReadonlySet<string> = new Set(),
   projectCsrfProtected = false,
+  skipTaint = false,
 ): Finding[] {
-  const facts = analyzeFile(ast, extraReturners);
+  const facts: WeakMap<AstNode, ScopeFacts> = skipTaint
+    ? new WeakMap<AstNode, ScopeFacts>()
+    : analyzeFile(ast, extraReturners);
   const findings: Finding[] = [];
 
   for (const rule of sastRules) {
@@ -311,7 +318,8 @@ async function parseInProcess(source: string): Promise<AstNode | undefined> {
   }
 }
 
-async function parseCode(source: string): Promise<AstNode | undefined> {
+async function parseCode(source: string, file?: string): Promise<AstNode | undefined> {
+  if (file !== undefined && sharedAstActive()) {return sharedParse(file, source);}
   if (!parsePoolEnabled()) {return parseInProcess(source);}
   try {
     // The pool caches one object and later walks mutate parent links on it.
@@ -358,6 +366,7 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
   const fileSet = new Set<string>();
   const templates: { rel: string; source: string }[] = [];
   const swigViews = new Map<string, SwigViewTaint>();
+  const lazyEntries: { file: string; source: string }[] = [];
   let projectCsrf = false;
 
   for (const rel of ctx.files) {
@@ -376,21 +385,39 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
       templates.push({ rel, source });
       continue;
     }
-    const ast = await parseCode(source);
+    const ast = await parseCode(source, rel);
     if (ast === undefined) {continue;}
     if (viewEngine === 'swig') {mergeSwigViews(swigViews, taintedSwigViews([{ ast }]));}
-    returning.set(rel, taintSummariesEnabled() ? cachedReturners(source, ast) : functionsThatReturnTaint(ast));
     parseable.push(rel);
     fileSet.add(rel);
+    if (perf2Enabled()) lazyEntries.push({ file: rel, source });
+    else returning.set(rel, taintSummariesEnabled() ? cachedReturners(source, ast) : functionsThatReturnTaint(ast));
+  }
+
+  const streamedWalk = perf2Enabled() ? lazyTaintFiles(lazyEntries) : undefined;
+
+  if (streamedWalk !== undefined) {
+    for (const rel of parseable) {
+      if (!streamedWalk.has(rel)) continue;
+      const source = await readScanSource(ctx.cwd, rel);
+      if (source === undefined) continue;
+      const ast = await parseCode(source, rel);
+      if (ast === undefined) continue;
+      returning.set(rel, taintSummariesEnabled() ? cachedReturners(source, ast) : functionsThatReturnTaint(ast));
+    }
   }
 
   for (const rel of parseable) {
     const source = await readScanSource(ctx.cwd, rel);
     if (source === undefined) {continue;}
-    const ast = await parseCode(source);
+    const ast = await parseCode(source, rel);
     if (ast === undefined) {continue;}
+    const skip = streamedWalk !== undefined && !streamedWalk.has(rel);
+    if (!skip && !returning.has(rel)) {
+      returning.set(rel, taintSummariesEnabled() ? cachedReturners(source, ast) : functionsThatReturnTaint(ast));
+    }
     findings.push(
-      ...findingsFromAst(rel, source, ast, extraReturners(rel, ast, fileSet, returning), projectCsrf),
+      ...findingsFromAst(rel, source, ast, extraReturners(rel, ast, fileSet, returning), projectCsrf, skip),
     );
   }
 
@@ -398,9 +425,10 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
   for (let i = 0; i < parseable.length; i += batch) {
     const parsed: ParsedSource[] = [];
     for (const rel of parseable.slice(i, i + batch)) {
+      if (streamedWalk !== undefined && !streamedWalk.has(rel)) continue;
       const source = await readScanSource(ctx.cwd, rel);
       if (source === undefined) {continue;}
-      const ast = await parseCode(source);
+      const ast = await parseCode(source, rel);
       if (ast === undefined) {continue;}
       parsed.push({ file: rel, source, ast });
     }
@@ -430,6 +458,7 @@ export const sastModule: ScanModule = {
       setCustomTaint(undefined);
     }
     setTaintSummaryConfig(taintSummariesEnabled() ? ctx.config : undefined);
+    clearTaintWalk();
     try {
     const viewEngine = await projectViewEngine(ctx);
     const candidates = ctx.files.filter(
@@ -453,14 +482,16 @@ export const sastModule: ScanModule = {
         templates.push({ rel, source });
         continue;
       }
-      const ast = await parseCode(source);
+      const ast = await parseCode(source, rel);
       if (ast === undefined) {continue;}
       parsed.push({ file: rel, source, ast });
     }
     const files = new Set(parsed.map((p) => p.file));
+    const walked = perf2Enabled() ? lazyTaintFiles(parsed) : undefined;
     const projectCsrf = parsed.some((p) => sourceHasCsrfGuard(p.source));
     const returning = new Map<string, Set<string>>();
     for (const entry of parsed) {
+      if (walked !== undefined && !walked.has(entry.file)) continue;
       returning.set(
         entry.file,
         taintSummariesEnabled() ? cachedReturners(entry.source, entry.ast) : functionsThatReturnTaint(entry.ast),
@@ -468,6 +499,7 @@ export const sastModule: ScanModule = {
     }
     setAuthProject(new Map(parsed.map((entry) => [entry.file, entry.ast])));
     for (const entry of parsed) {
+      const skip = walked !== undefined && !walked.has(entry.file);
       findings.push(
         ...findingsFromAst(
           entry.file,
@@ -475,11 +507,13 @@ export const sastModule: ScanModule = {
           entry.ast,
           extraReturners(entry.file, entry.ast, files, returning),
           projectCsrf,
+          skip,
         ),
       );
     }
-    findings.push(...runInterproc(parsed));
-    findings.push(...crossFileReturnFindings(parsed));
+    const interprocInput = walked === undefined ? parsed : parsed.filter((entry) => walked.has(entry.file));
+    findings.push(...runInterproc(interprocInput));
+    findings.push(...crossFileReturnFindings(interprocInput));
     const swigViews = viewEngine === 'swig' ? taintedSwigViews(parsed) : undefined;
     for (const template of templates) {
       findings.push(...findingsFromTemplate(template.rel, template.source, viewEngine, swigViews));

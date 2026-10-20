@@ -32,7 +32,7 @@ describe('phase 52 phantom and lock mismatch', () => {
   it('reports an undeclared import under scripts/ as low and keeps a src import medium', async () => {
     const result = await scan({ cwd: join(import.meta.dirname, '../../../fixtures/phantom-app'), modules: ['deps'], offline: true });
     const script = result.findings.find(
-      (finding) => finding.ruleId === 'DEPS-PHANTOM-001' && finding.file.endsWith('scripts/undeclared.js'),
+      (finding) => finding.ruleId === 'DEPS-PHANTOM-001' && finding.file?.endsWith('scripts/undeclared.js') === true,
     );
     const src = result.findings.find((finding) => finding.ruleId === 'DEPS-PHANTOM-001' && finding.snippet === 'missing-pkg');
     expect(script?.severity).toBe('low');

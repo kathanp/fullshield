@@ -267,6 +267,11 @@ export function renderConsoleReport(input: ScanResult, options: ConsoleReportOpt
       ),
   );
   if (metadata.history !== undefined) lines.push(metadata.history);
+  if (metadata.skipped !== undefined && metadata.skipped.total > 0) {
+    lines.push(
+      `Skipped ${metadata.skipped.total} files that are not source (oversize ${metadata.skipped.oversize}, minified ${metadata.skipped.minified}, declarations ${metadata.skipped.declaration}, maps ${metadata.skipped.sourceMap}, generated ${metadata.skipped.generated}).`,
+    );
+  }
   if (metadata.upgradePlan !== undefined && metadata.upgradePlan.sentence.length > 0) {
     lines.push(metadata.upgradePlan.sentence);
   }

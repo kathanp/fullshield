@@ -10,7 +10,9 @@ import { isMaliciousAdvisory, queryOsv, type OsvVuln } from './osv.js';
 import { exactPinsFromManifest, lineOfManifestDep } from './pins.js';
 import { collectImportSites, evidenceForFinding } from './evidence.js';
 import { dependencyShapeFindings } from './phantom.js';
+import { callGraphConfigHash, indexPackageUsageCached } from './call-graph-cache.js';
 import { applyReachability, indexPackageUsage, isProductionSource, unusedDirectPlan } from './reachability.js';
+import { perf2Enabled } from '../../core/perf2.js';
 import { chooseUpgradePlan, type UpgradeAdvisory } from './upgrade-plan.js';
 import { campaignFindings, securityPlaceholderFinding } from '../../supply/campaign.js';
 import { affectedFunctionNames } from './symbol-reachability.js';
@@ -206,7 +208,7 @@ export const depsModule: ScanModule & {
           findings.push(finding);
         }
       }
-      const noLockCtx = await reachabilityCtx(ctx.cwd, ctx.files, graphFromManifest(manifest));
+      const noLockCtx = await reachabilityCtx(ctx.cwd, ctx.files, graphFromManifest(manifest), ctx.config.sast.maxFileBytes);
       return withWorkspaceAdvisories(ctx.cwd, manifestRaw, osvOpts, applyReachability(findings, noLockCtx, symbols));
     }
 
@@ -243,7 +245,7 @@ export const depsModule: ScanModule & {
         findings.push(finding);
       }
     }
-    const reachCtx = await reachabilityCtx(ctx.cwd, ctx.files, graph);
+    const reachCtx = await reachabilityCtx(ctx.cwd, ctx.files, graph, ctx.config.sast.maxFileBytes);
     let reached = applyReachability(findings, reachCtx, symbols);
     if (experimentalVex()) {
       reached = attachOverrideProposals(reached, graph, lockFile, manifestRaw);
@@ -408,6 +410,7 @@ async function reachabilityCtx(
   cwd: string,
   files: readonly string[],
   graph: LockfileGraph,
+  maxFileBytes: number,
 ): Promise<{
   productionUsage: Map<string, { imported: boolean; called: boolean }>;
   graph: LockfileGraph;
@@ -423,5 +426,8 @@ async function reachabilityCtx(
       // skip
     }
   }
-  return { productionUsage: indexPackageUsage(prodSources), graph, sources: prodSources };
+  const productionUsage = perf2Enabled()
+    ? indexPackageUsageCached(prodSources, callGraphConfigHash(maxFileBytes))
+    : indexPackageUsage(prodSources);
+  return { productionUsage, graph, sources: prodSources };
 }

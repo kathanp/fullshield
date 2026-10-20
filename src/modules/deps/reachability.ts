@@ -48,8 +48,8 @@ export function isProductionSource(rel: string): boolean {
   return true;
 }
 
-/** Best-effort: which npm packages the scanned sources import and call. */
-export function indexPackageUsage(sources: ReadonlyMap<string, string>): Map<string, PackageUsage> {
+/** Packages one source file imports and calls. */
+export function usageInSource(source: string): Map<string, PackageUsage> {
   const usage = new Map<string, PackageUsage>();
   const bump = (pkg: string, called: boolean): void => {
     const prev = usage.get(pkg) ?? { imported: false, called: false };
@@ -63,31 +63,41 @@ export function indexPackageUsage(sources: ReadonlyMap<string, string>): Map<str
   const importRe = /import\s+([A-Za-z_$][\w$]*)\s+from\s+['"]([^'"]+)['"]/g;
   const importStarRe = /import\s+\*\s+as\s+([A-Za-z_$][\w$]*)\s+from\s+['"]([^'"]+)['"]/g;
 
-  for (const source of sources.values()) {
-    for (const re of [nsRe, importRe, importStarRe]) {
-      re.lastIndex = 0;
-      let m: RegExpExecArray | null;
-      while ((m = re.exec(source)) !== null) {
-        const local = m[1];
-        const spec = m[2];
-        if (local === undefined || spec === undefined) continue;
-        const pkg = packageNameFromSpec(spec);
-        if (pkg === undefined) continue;
-        bump(pkg, localIsCalled(source, local));
-      }
-    }
-    namedRe.lastIndex = 0;
-    let named: RegExpExecArray | null;
-    while ((named = namedRe.exec(source)) !== null) {
-      const spec = named[2];
-      if (spec === undefined) continue;
+  for (const re of [nsRe, importRe, importStarRe]) {
+    re.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(source)) !== null) {
+      const local = m[1];
+      const spec = m[2];
+      if (local === undefined || spec === undefined) continue;
       const pkg = packageNameFromSpec(spec);
       if (pkg === undefined) continue;
-      const locals = (named[1] ?? '').split(',').map((s) => s.trim().split(/\s+as\s+/).pop() ?? '');
-      bump(
-        pkg,
-        locals.some((local) => local.length > 0 && localIsCalled(source, local)),
-      );
+      bump(pkg, localIsCalled(source, local));
+    }
+  }
+  namedRe.lastIndex = 0;
+  let named: RegExpExecArray | null;
+  while ((named = namedRe.exec(source)) !== null) {
+    const spec = named[2];
+    if (spec === undefined) continue;
+    const pkg = packageNameFromSpec(spec);
+    if (pkg === undefined) continue;
+    const locals = (named[1] ?? '').split(',').map((s) => s.trim().split(/\s+as\s+/).pop() ?? '');
+    bump(
+      pkg,
+      locals.some((local) => local.length > 0 && localIsCalled(source, local)),
+    );
+  }
+  return usage;
+}
+
+/** Best-effort: which npm packages the scanned sources import and call. */
+export function indexPackageUsage(sources: ReadonlyMap<string, string>): Map<string, PackageUsage> {
+  const usage = new Map<string, PackageUsage>();
+  for (const source of sources.values()) {
+    for (const [pkg, row] of usageInSource(source)) {
+      const prev = usage.get(pkg) ?? { imported: false, called: false };
+      usage.set(pkg, { imported: true, called: prev.called || row.called });
     }
   }
   return usage;
@@ -177,6 +187,7 @@ export function classifyReachability(
   if (graph !== undefined && graph.edgesKnown) {
     const roots = importedDirectNames(productionUsage, graph);
     const paths = collectDependencyPaths(pkgName, roots, graph.edges);
+    paths.sort((a, b) => a.length - b.length || a.join('>').localeCompare(b.join('>')));
     const path = paths[0];
     if (path !== undefined && path.length >= 2) {
       return { reachability: 'reachable-via-dependency', path, paths };
@@ -285,7 +296,7 @@ function pathFields(classified: { path?: string[]; paths?: string[][] }): {
 
 function appendOtherPaths(message: string, paths: string[][] | undefined): string {
   if (paths === undefined || paths.length < 2) return message;
-  const rest = paths.slice(1).map((p) => p.join(' > ')).join('; ');
+  const rest = paths.slice(1).map((p) => p.join(' > ')).sort().join('; ');
   return `${message} Other paths: ${rest}.`;
 }
 

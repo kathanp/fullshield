@@ -15,6 +15,8 @@ import { createAiClient, isInternalAi, isLiveAi } from '../ai/provider.js';
 import { applyBaseline, applySuppressions, readBaseline, writeBaseline } from './baseline.js';
 import { loadConfig, type ResolvedConfig } from './config.js';
 import { walkFiles } from './fileWalker.js';
+import { partitionPerf2, perf2Enabled } from './perf2.js';
+import { beginSharedAst, endSharedAst, preparseProject } from './shared-ast.js';
 import { listStagedFiles } from './git.js';
 import { applyInlineSuppressions } from './suppression.js';
 import {
@@ -97,6 +99,15 @@ export interface ScanMetadata {
   history?: string;
   /** Phase 48. Direct dependencies no project file imports. Absent when the list is empty. */
   unusedDirect?: { packages: string[]; advisories: number };
+  /** Phase 78. Present only when FULLSHIELD_EXPERIMENTAL_PERF2=1. Not findings. */
+  skipped?: {
+    total: number;
+    oversize: number;
+    minified: number;
+    declaration: number;
+    sourceMap: number;
+    generated: number;
+  };
   /** Phase 49. Direct version bumps taken from OSV `fixed` versions. Absent when there is nothing to say. */
   upgradePlan?: {
     bumps: Array<{ name: string; from: string; to: string; safe: boolean; findings: number }>;
@@ -142,6 +153,31 @@ function dedupe(findings: readonly Finding[]): Finding[] {
     }
   }
   return out;
+}
+
+async function collectModuleFindings(
+  available: ReadonlyMap<ModuleName, ScanModule>,
+  modulesRun: readonly ModuleName[],
+  ctx: ModuleContext,
+): Promise<Finding[]> {
+  if (!perf2Enabled()) {
+    const collected: Finding[] = [];
+    for (const name of modulesRun) {
+      const module = available.get(name);
+      if (module !== undefined) collected.push(...(await module.run(ctx)));
+    }
+    return collected;
+  }
+  const runs = await Promise.all(
+    modulesRun.map(async (name) => {
+      const module = available.get(name);
+      const findings = module === undefined ? [] : await module.run(ctx);
+      findings.sort((a, b) => a.id.localeCompare(b.id));
+      return { name, findings };
+    }),
+  );
+  runs.sort((a, b) => a.name.localeCompare(b.name));
+  return runs.flatMap((run) => run.findings);
 }
 
 /**
@@ -207,16 +243,26 @@ export async function runScan(
     }
   }
 
+  let skipped: ScanMetadata['skipped'];
+  if (perf2Enabled()) {
+    const part = await partitionPerf2(cwd, files, config.sast.maxFileBytes);
+    files = part.kept;
+    skipped = part.skipped;
+  }
+
   const available = new Map(modules.map((m) => [m.name, m]));
   const modulesRun = modulesRequested.filter((name) => available.has(name));
 
   const ctx: ModuleContext = { cwd, files, config };
-  const collected: Finding[] = [];
-  for (const name of modulesRun) {
-    const module = available.get(name);
-    if (module !== undefined) {
-      collected.push(...(await module.run(ctx)));
-    }
+  if (perf2Enabled()) {
+    beginSharedAst();
+    await preparseProject(cwd, files, config.sast.maxFileBytes);
+  }
+  let collected: Finding[];
+  try {
+    collected = await collectModuleFindings(available, modulesRun, ctx);
+  } finally {
+    if (perf2Enabled()) endSharedAst();
   }
   if (process.env.FULLSHIELD_EXPERIMENTAL_MCPCFG === '1') {
     collected.push(
@@ -347,6 +393,7 @@ export async function runScan(
       modulesRequested: [...modulesRequested],
       modulesRun,
       ...(historyNotice !== undefined ? { history: historyNotice } : {}),
+      ...(skipped !== undefined ? { skipped } : {}),
       ...(depsModule.unusedDirect !== undefined ? { unusedDirect: depsModule.unusedDirect } : {}),
       ...(depsModule.upgradePlan !== undefined ? { upgradePlan: depsModule.upgradePlan } : {}),
     },
