@@ -500,10 +500,10 @@ export const sastModule: ScanModule = {
     const candidates = ctx.files.filter(
       (rel) => SOURCE_EXT.test(rel) || TEMPLATE_EXT.test(rel) || (viewEngine === 'swig' && /\.(swig|html)$/.test(rel)),
     );
-    if (haltTaint(candidates.filter((rel) => SOURCE_EXT.test(rel)).length)) {return [];}
     if (candidates.length > sastStreamThreshold()) {
       return await withUserSemgrep(ctx, await runSastStreaming(ctx));
     }
+    if (haltTaint(candidates.filter((rel) => SOURCE_EXT.test(rel)).length)) {return [];}
 
     const maxBytes = ctx.config.sast.maxFileBytes;
     const findings: Finding[] = [];
