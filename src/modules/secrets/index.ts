@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import type { ScanModule } from '../../core/engine.js';
 import { makeFindingId, type Finding } from '../../core/finding.js';
 import { foldStringConcat, maskSecret } from './mask.js';
+import { applySecretPrecision, secretCheckEnabled } from './precision.js';
 import { aiKeyRule } from './rules/aiKey.js';
 import { awsRule } from './rules/aws.js';
 import { dbUrlRule } from './rules/dbUrl.js';
@@ -49,23 +50,22 @@ export function scanTextForSecretHits(path: string, text: string): SecretHit[] {
       rawLines,
       report: ({ line, secret, message }) => {
         const masked = secret !== undefined ? maskSecret(secret) : undefined;
-        hits.push({
-          finding: {
-            id: makeFindingId(rule.meta.id, path, `${line}|${masked ?? 'file'}`),
-            ruleId: rule.meta.id,
-            module: 'secrets',
-            title: rule.meta.title,
-            severity: rule.meta.severity,
-            confidence: rule.meta.confidence,
-            cwe: rule.meta.cwe,
-            file: path,
-            line,
-            snippet: masked,
-            message: message ?? `${rule.meta.title}${masked !== undefined ? ` (${masked})` : ''}.`,
-            remediation: REMEDIATION,
-          },
-          secret,
-        });
+        const finding: Finding = {
+          id: makeFindingId(rule.meta.id, path, `${line}|${masked ?? 'file'}`),
+          ruleId: rule.meta.id,
+          module: 'secrets',
+          title: rule.meta.title,
+          severity: rule.meta.severity,
+          confidence: rule.meta.confidence,
+          cwe: rule.meta.cwe,
+          file: path,
+          line,
+          snippet: masked,
+          message: message ?? `${rule.meta.title}${masked !== undefined ? ` (${masked})` : ''}.`,
+          remediation: REMEDIATION,
+        };
+        if (secretCheckEnabled()) {applySecretPrecision(path, finding, secret);}
+        hits.push({ finding, secret });
       },
     });
   }
@@ -91,7 +91,7 @@ export const secretsModule: ScanModule = {
       } catch {
         continue; // unreadable file: nothing to scan
       }
-      if (text.length > MAX_FILE_SIZE || text.includes('\u0000')) continue;
+      if (text.length > MAX_FILE_SIZE || text.includes('\u0000')) {continue;}
       findings.push(...scanTextForSecrets(rel, text));
     }
     return findings;

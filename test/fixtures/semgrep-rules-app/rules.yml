@@ -1,0 +1,82 @@
+rules:
+  - id: js-direct-eval
+    languages: [javascript]
+    severity: high
+    message: direct eval of a value
+    pattern: eval($CODE)
+
+  - id: ts-danger
+    languages: [typescript]
+    severity: high
+    message: danger helper called
+    pattern: danger($INPUT)
+
+  - id: either-launch
+    languages: [javascript]
+    severity: high
+    message: launch helper or Launcher constructor
+    pattern-either:
+      - pattern: launch($CMD)
+      - pattern: new Launcher($CMD)
+
+  - id: query-not-fixed
+    languages: [javascript]
+    severity: high
+    message: store query other than the fixed literal
+    pattern: store.query($SQL)
+    pattern-not: store.query("ok")
+
+  - id: send-inside-handler
+    languages: [javascript]
+    severity: medium
+    message: send inside a two-argument function
+    pattern: res.send($BODY)
+    pattern-inside: |
+      function $NAME($REQ, $RES) {
+        res.send($BODY);
+      }
+
+  - id: read-with-tail
+    languages: [javascript]
+    severity: WARNING
+    message: readFile call with options, a path, and optional tail arguments
+    pattern: fs.readFile($OPTS, $PATH, ...)
+
+  - id: pair-same
+    languages: [javascript]
+    severity: high
+    message: pair called with the same value twice
+    pattern: pair($LEFT, $LEFT)
+
+  - id: tainted-eval
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: request body reaches eval
+    mode: taint
+    pattern-sources:
+      - pattern: req.body
+    pattern-sinks:
+      - pattern: eval($SINK)
+    pattern-sanitizers:
+      - pattern: scrub($SINK)
+
+  - id: ticket-to-run
+    languages: [javascript]
+    severity: high
+    message: ticket text reaches run
+    mode: taint
+    pattern-sources:
+      - pattern: readTicket()
+    pattern-sinks:
+      - pattern: run($CMD)
+    pattern-sanitizers:
+      - pattern: allow($CMD)
+
+  - id: run-not-fixed
+    languages: [javascript]
+    severity: high
+    message: run or runSync except the fixed command
+    pattern-either:
+      - pattern: run($CMD)
+      - pattern: runSync($CMD)
+    pattern-not: run("fixed")

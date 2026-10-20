@@ -58,6 +58,7 @@ export function setTaintSummaryConfig(config: ResolvedConfig | undefined): void 
         gaps: sastGapsEnabled(),
         classes: classesEnabled(),
         custom: process.env.FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS === '1',
+        ...(process.env.FULLSHIELD_EXPERIMENTAL_MODELS === '1' ? { models: true } : {}),
       }),
     )
     .digest('hex');
@@ -115,7 +116,7 @@ function writeJson(key: string, value: unknown): void {
 function readFileSummary(key: string): StoredFileSummary | undefined {
   const raw = readJson(key);
   if (typeof raw !== 'object' || raw === null) {
-    if (raw !== undefined) discard(key);
+    if (raw !== undefined) {discard(key);}
     return undefined;
   }
   const row = raw as Partial<StoredFileSummary>;
@@ -132,7 +133,7 @@ const fileMemo = new Map<string, StoredFileSummary>();
 export function cachedReturners(source: string, ast: AstNode): Set<string> {
   const key = taintSummaryKey(source, 'file');
   const memo = fileMemo.get(key);
-  if (memo !== undefined) return new Set(memo.returnsTaint);
+  if (memo !== undefined) {return new Set(memo.returnsTaint);}
   const cached = readFileSummary(key);
   if (cached !== undefined) {
     fileMemo.set(key, cached);
@@ -182,7 +183,7 @@ function factsFrom(row: StoredFacts): ScopeFacts {
 function readFacts(key: string): ScopeFacts | undefined {
   const raw = readJson(key);
   if (typeof raw !== 'object' || raw === null) {
-    if (raw !== undefined) discard(key);
+    if (raw !== undefined) {discard(key);}
     return undefined;
   }
   const row = raw as Partial<StoredFacts>;
@@ -210,7 +211,7 @@ function readFacts(key: string): ScopeFacts | undefined {
 export function cachedFunctionFacts(fileSource: string, fn: AstNode, seed: readonly string[]): ScopeFacts {
   const key = taintSummaryKey(fileSource, `seed:${fn.loc?.start.line ?? 0}:${seed.join(',')}`);
   const cached = readFacts(key);
-  if (cached !== undefined) return cached;
+  if (cached !== undefined) {return cached;}
   const facts = analyzeFunctionWithSeed(fn, seed);
   writeJson(key, lists(facts));
   return facts;

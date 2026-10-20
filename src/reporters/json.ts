@@ -16,6 +16,8 @@ export function renderJsonReport(result: ScanResult): string {
   return JSON.stringify(
     {
       findings: result.findings.map(publicFinding),
+      ...(result.suppressed !== undefined ? { suppressed: result.suppressed.map(publicFinding) } : {}),
+      ...(result.paths !== undefined ? { paths: result.paths } : {}),
       summary: result.summary,
       metadata: result.metadata,
     },

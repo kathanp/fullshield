@@ -18,7 +18,7 @@ const SKIP_HEADERS = new Set([
 const storage = new AsyncLocalStorage<RaspRequestContext>();
 
 function flatten(value: unknown, out: string[], depth: number): void {
-  if (depth > 8 || out.length > 200) return;
+  if (depth > 8 || out.length > 200) {return;}
   if (typeof value === 'string') {
     out.push(value);
     return;
@@ -28,22 +28,22 @@ function flatten(value: unknown, out: string[], depth: number): void {
     return;
   }
   if (Array.isArray(value)) {
-    for (const item of value) flatten(item, out, depth + 1);
+    for (const item of value) {flatten(item, out, depth + 1);}
     return;
   }
   if (value !== null && typeof value === 'object') {
-    for (const child of Object.values(value as Record<string, unknown>)) flatten(child, out, depth + 1);
+    for (const child of Object.values(value as Record<string, unknown>)) {flatten(child, out, depth + 1);}
   }
 }
 
 function collectObjects(value: unknown, out: unknown[], depth: number): void {
-  if (depth > 8 || value === null || typeof value !== 'object') return;
+  if (depth > 8 || value === null || typeof value !== 'object') {return;}
   out.push(value);
   if (Array.isArray(value)) {
-    for (const item of value) collectObjects(item, out, depth + 1);
+    for (const item of value) {collectObjects(item, out, depth + 1);}
     return;
   }
-  for (const child of Object.values(value as Record<string, unknown>)) collectObjects(child, out, depth + 1);
+  for (const child of Object.values(value as Record<string, unknown>)) {collectObjects(child, out, depth + 1);}
 }
 
 export interface IncomingLike {
@@ -66,7 +66,7 @@ export function contextFromRequest(req: IncomingLike): RaspRequestContext {
   }
   if (req.headers && typeof req.headers === 'object') {
     for (const [key, value] of Object.entries(req.headers)) {
-      if (SKIP_HEADERS.has(key.toLowerCase())) continue;
+      if (SKIP_HEADERS.has(key.toLowerCase())) {continue;}
       flatten(value, strings, 0);
     }
     collectObjects(req.headers, objects, 0);

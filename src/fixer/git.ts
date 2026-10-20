@@ -25,11 +25,11 @@ export async function listDirtyPaths(cwd: string): Promise<Set<string>> {
   const { stdout } = await execFileAsync('git', ['-C', cwd, 'status', '--porcelain']);
   const dirty = new Set<string>();
   for (const line of stdout.split('\n')) {
-    if (line.length < 4) continue;
+    if (line.length < 4) {continue;}
     const rest = line.slice(3);
     for (const raw of rest.split(' -> ')) {
       const path = unquoteGitPath(raw.trim());
-      if (path.length > 0) dirty.add(path);
+      if (path.length > 0) {dirty.add(path);}
     }
   }
   return dirty;

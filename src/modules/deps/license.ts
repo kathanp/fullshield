@@ -10,10 +10,10 @@ export function isCopyleftLicense(license: string): boolean {
 }
 
 function licenseText(value: unknown): string | undefined {
-  if (typeof value === 'string') return value;
+  if (typeof value === 'string') {return value;}
   if (typeof value === 'object' && value !== null && 'type' in value) {
     const type = (value as { type?: unknown }).type;
-    if (typeof type === 'string') return type;
+    if (typeof type === 'string') {return type;}
   }
   return undefined;
 }
@@ -32,20 +32,20 @@ async function readJson(path: string): Promise<unknown> {
  */
 export async function scanCopyleftLicenses(cwd: string): Promise<Finding[]> {
   const manifest = await readJson(join(cwd, 'package.json'));
-  if (typeof manifest !== 'object' || manifest === null) return [];
+  if (typeof manifest !== 'object' || manifest === null) {return [];}
   const names = new Set<string>();
   for (const field of ['dependencies', 'devDependencies', 'optionalDependencies']) {
     const block = (manifest as Record<string, unknown>)[field];
     if (typeof block === 'object' && block !== null && !Array.isArray(block)) {
-      for (const name of Object.keys(block)) names.add(name);
+      for (const name of Object.keys(block)) {names.add(name);}
     }
   }
   const findings: Finding[] = [];
   for (const name of names) {
     const pkg = await readJson(join(cwd, 'node_modules', name, 'package.json'));
-    if (typeof pkg !== 'object' || pkg === null) continue;
+    if (typeof pkg !== 'object' || pkg === null) {continue;}
     const license = licenseText((pkg as { license?: unknown }).license);
-    if (license === undefined || !isCopyleftLicense(license)) continue;
+    if (license === undefined || !isCopyleftLicense(license)) {continue;}
     findings.push({
       id: makeFindingId('DEPS-LICENSE-001', 'package.json', `${name}|${license}`),
       ruleId: 'DEPS-LICENSE-001',

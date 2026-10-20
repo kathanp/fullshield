@@ -39,13 +39,13 @@ function headerMap(headers: Headers): Map<string, string> {
 }
 
 function hasCdn(headers: Map<string, string>): boolean {
-  if (CDN_HEADERS.some((h) => headers.has(h))) return true;
+  if (CDN_HEADERS.some((h) => headers.has(h))) {return true;}
   const server = headers.get('server') ?? '';
   return CDN_SERVER.test(server);
 }
 
 async function pause(ms: number): Promise<void> {
-  if (ms <= 0) return;
+  if (ms <= 0) {return;}
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
@@ -90,7 +90,7 @@ export async function runEdge(options: EdgeOptions): Promise<Finding[]> {
   ];
   const csp = headers.get('content-security-policy') ?? '';
   for (const [header, ruleId, title] of required) {
-    if (header === 'x-frame-options' && /frame-ancestors/i.test(csp)) continue;
+    if (header === 'x-frame-options' && /frame-ancestors/i.test(csp)) {continue;}
     if (!headers.has(header)) {
       findings.push(finding(ruleId, title, 'medium', `${title}.`));
     }

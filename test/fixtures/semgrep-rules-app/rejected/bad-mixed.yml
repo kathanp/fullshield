@@ -1,0 +1,12 @@
+rules:
+  - id: still-good
+    languages: [javascript]
+    severity: high
+    message: direct eval of a value
+    pattern: eval($CODE)
+  - id: bad-where
+    languages: [javascript]
+    severity: high
+    message: where clause is outside the subset
+    pattern: eval($CODE)
+    pattern-where: "true"

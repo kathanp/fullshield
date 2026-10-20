@@ -7,10 +7,10 @@ function containsHtml(node: AstNode): boolean {
   let found = false;
   walk(node, (child) => {
     const lit = literalString(child);
-    if (lit !== undefined && /<[^>]+>/.test(lit)) found = true;
+    if (lit !== undefined && /<[^>]+>/.test(lit)) {found = true;}
     if (child.type === 'TemplateLiteral') {
       for (const q of child.quasis) {
-        if (/<[^>]+>/.test(q.value.cooked ?? q.value.raw)) found = true;
+        if (/<[^>]+>/.test(q.value.cooked ?? q.value.raw)) {found = true;}
       }
     }
   });
@@ -29,7 +29,7 @@ function lineNode(line: number): AstNode {
 
 /** Unescaped template interpolations (`<%-` / `{{{`) that are not includes. */
 function scanTemplateXss(ctx: RuleContext): void {
-  if (!TEMPLATE_EXT.test(ctx.filename)) return;
+  if (!TEMPLATE_EXT.test(ctx.filename)) {return;}
   const lines = ctx.source.split(/\r?\n/);
   lines.forEach((line, index) => {
     const ejs = /<%-(?!\s*include\b)/g;
@@ -55,11 +55,11 @@ export const xssRule: SastRule = {
     scanTemplateXss(ctx);
     return {
       CallExpression(node) {
-        if (node.type !== 'CallExpression') return;
+        if (node.type !== 'CallExpression') {return;}
         for (const arg of node.arguments) {
-          if (arg.type !== 'ObjectExpression') continue;
+          if (arg.type !== 'ObjectExpression') {continue;}
           for (const prop of arg.properties) {
-            if (prop.type !== 'Property') continue;
+            if (prop.type !== 'Property') {continue;}
             const key = prop.key.type === 'Identifier' ? prop.key.name : literalString(prop.key);
             if (
               key === 'autoescape' &&
@@ -74,11 +74,11 @@ export const xssRule: SastRule = {
           }
         }
         const name = calleeName(node);
-        if (name !== 'send' && name !== 'write') return;
+        if (name !== 'send' && name !== 'write') {return;}
         const arg = node.arguments[0];
-        if (arg === undefined || arg.type === 'SpreadElement') return;
-        if (!ctx.isTainted(arg) || ctx.isSanitizedFor(arg, 'xss')) return;
-        if (!containsHtml(arg) && !/\{\{\{/.test(ctx.source) && !/<%-/.test(ctx.source)) return;
+        if (arg === undefined || arg.type === 'SpreadElement') {return;}
+        if (!ctx.isTainted(arg) || ctx.isSanitizedFor(arg, 'xss')) {return;}
+        if (!containsHtml(arg) && !/\{\{\{/.test(ctx.source) && !/<%-/.test(ctx.source)) {return;}
         ctx.report({
           node,
           message: 'Tainted input is interpolated into an HTML response.',

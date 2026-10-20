@@ -6,9 +6,9 @@ const MANIFEST_FIELDS = ['dependencies', 'devDependencies', 'optionalDependencie
 export function isExactNpmVersion(spec: string): boolean {
   const trimmed = spec.trim();
   const bare = trimmed.startsWith('=') ? trimmed.slice(1).trim() : trimmed;
-  if (bare.length === 0) return false;
-  if (/^(workspace:|file:|http:|https:|git:|git\+|npm:|latest|next|\*)/i.test(bare)) return false;
-  if (/[~^><*xX|]/.test(bare)) return false;
+  if (bare.length === 0) {return false;}
+  if (/^(workspace:|file:|http:|https:|git:|git\+|npm:|latest|next|\*)/i.test(bare)) {return false;}
+  if (/[~^><*xX|]/.test(bare)) {return false;}
   return /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(bare);
 }
 
@@ -28,13 +28,13 @@ export function lineOfManifestDep(raw: string, name: string): number | undefined
       inBlock = true;
       depth = 0;
     }
-    if (!inBlock) continue;
+    if (!inBlock) {continue;}
     for (const ch of line) {
-      if (ch === '{') depth += 1;
-      if (ch === '}') depth -= 1;
+      if (ch === '{') {depth += 1;}
+      if (ch === '}') {depth -= 1;}
     }
-    if (depLine.test(line) && depth >= 1) return i + 1;
-    if (depth <= 0 && !startsBlock) inBlock = false;
+    if (depLine.test(line) && depth >= 1) {return i + 1;}
+    if (depth <= 0 && !startsBlock) {inBlock = false;}
   }
   return undefined;
 }
@@ -43,9 +43,9 @@ export function exactPinsFromManifest(pkg: Record<string, unknown>): LockedPacka
   const out: LockedPackage[] = [];
   for (const field of MANIFEST_FIELDS) {
     const block = pkg[field];
-    if (block === null || typeof block !== 'object' || Array.isArray(block)) continue;
+    if (block === null || typeof block !== 'object' || Array.isArray(block)) {continue;}
     for (const [name, spec] of Object.entries(block as Record<string, unknown>)) {
-      if (typeof spec !== 'string' || !isExactNpmVersion(spec)) continue;
+      if (typeof spec !== 'string' || !isExactNpmVersion(spec)) {continue;}
       const version = spec.trim().startsWith('=') ? spec.trim().slice(1).trim() : spec.trim();
       out.push({ name, version, path: `package.json:${field}` });
     }

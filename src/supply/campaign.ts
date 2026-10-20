@@ -71,8 +71,8 @@ export function campaignFindings(files: readonly { file: string; text: string }[
 }
 
 export function securityPlaceholderFinding(name: string, locked: string, latest: string | undefined): Finding | undefined {
-  if (latest !== '0.0.1-security') return undefined;
-  if (locked === '0.0.1-security') return undefined;
+  if (latest !== '0.0.1-security') {return undefined;}
+  if (locked === '0.0.1-security') {return undefined;}
   return hit(
     'SUPPLY-SECHOLDER-001',
     `Locked ${name}@${locked} was replaced on the registry by the security placeholder`,

@@ -5,6 +5,11 @@ const KNOWN: Array<{ test: RegExp; code: string; hint: string }> = [
     hint: 'Use one of critical, high, medium, low, info.',
   },
   {
+    test: /invalid --max-time/,
+    code: 'FS-E015',
+    hint: 'Pass a positive number of seconds. Set FULLSHIELD_EXPERIMENTAL_BUDGET=1 or pass --experimental-budget.',
+  },
+  {
     test: /unknown module/,
     code: 'FS-E002',
     hint: 'Pass a comma-separated list from `fullshield scan --help`.',
@@ -43,6 +48,26 @@ const KNOWN: Array<{ test: RegExp; code: string; hint: string }> = [
     test: /FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS|sast\.sources|sast\.sanitizers/,
     code: 'FS-E009',
     hint: 'Set FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS=1 before naming sast.sources or sast.sanitizers.',
+  },
+  {
+    test: /FULLSHIELD_EXPERIMENTAL_INGEST/,
+    code: 'FS-E012',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_INGEST=1 or pass --experimental-ingest. A bad file is named with the first schema error; other files are still ingested.',
+  },
+  {
+    test: /optional peer typescript is not installed/,
+    code: 'FS-E013',
+    hint: 'Install the optional peer: npm i -D typescript',
+  },
+  {
+    test: /FULLSHIELD_EXPERIMENTAL_CAPABILITIES/,
+    code: 'FS-E014',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_CAPABILITIES=1 before deps --capabilities or a capability deny policy.',
+  },
+  {
+    test: /unsupported construct|install yaml to use user-supplied semgrep rules|cannot read semgrep rules|FULLSHIELD_EXPERIMENTAL_SEMGREP_RULES/,
+    code: 'FS-E016',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_SEMGREP_RULES=1. An unsupported construct rejects the whole rules file.',
   },
 ];
 

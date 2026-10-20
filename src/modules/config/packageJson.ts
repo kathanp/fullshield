@@ -8,7 +8,7 @@ export function scanPackageScripts(file: string, text: string): Finding[] {
   } catch {
     return [];
   }
-  if (typeof raw !== 'object' || raw === null) return [];
+  if (typeof raw !== 'object' || raw === null) {return [];}
   const findings: Finding[] = [];
   const record = raw as Record<string, unknown>;
 
@@ -33,7 +33,7 @@ export function scanPackageScripts(file: string, text: string): Finding[] {
   const packages = record.packages;
   if (packages !== undefined && typeof packages === 'object' && packages !== null) {
     for (const [key, value] of Object.entries(packages as Record<string, unknown>)) {
-      if (key === '' || typeof value !== 'object' || value === null) continue;
+      if (key === '' || typeof value !== 'object' || value === null) {continue;}
       if ((value as { hasInstallScript?: unknown }).hasInstallScript === true) {
         findings.push(
           configFinding(

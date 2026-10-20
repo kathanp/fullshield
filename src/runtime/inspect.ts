@@ -56,12 +56,12 @@ const RULE: Record<AttackKind, string> = {
 };
 
 function bodyStats(value: unknown, depth = 0): { bytes: number; depth: number; keys: number } {
-  if (value === null || value === undefined) return { bytes: 0, depth, keys: 0 };
-  if (typeof value === 'string') return { bytes: value.length, depth, keys: 0 };
+  if (value === null || value === undefined) {return { bytes: 0, depth, keys: 0 };}
+  if (typeof value === 'string') {return { bytes: value.length, depth, keys: 0 };}
   if (typeof value === 'number' || typeof value === 'boolean') {
     return { bytes: String(value).length, depth, keys: 0 };
   }
-  if (typeof value !== 'object') return { bytes: 0, depth, keys: 0 };
+  if (typeof value !== 'object') {return { bytes: 0, depth, keys: 0 };}
   const entries = Object.entries(value as Record<string, unknown>);
   let bytes = 2;
   let keys = entries.length;
@@ -71,7 +71,7 @@ function bodyStats(value: unknown, depth = 0): { bytes: number; depth: number; k
     const inner = bodyStats(v, depth + 1);
     bytes += inner.bytes;
     keys += inner.keys;
-    if (inner.depth > maxDepth) maxDepth = inner.depth;
+    if (inner.depth > maxDepth) {maxDepth = inner.depth;}
   }
   return { bytes, depth: maxDepth, keys };
 }
@@ -101,7 +101,7 @@ export interface Inspector {
 }
 
 function keysOf(value: unknown): string[] {
-  if (value === null || value === undefined || typeof value !== 'object') return [];
+  if (value === null || value === undefined || typeof value !== 'object') {return [];}
   return Object.keys(value);
 }
 
@@ -124,7 +124,7 @@ export function createInspector(options: GuardOptions = {}): Inspector {
     const emit = (ruleId: string, sample: string, shouldBlock: boolean): InspectResult => {
       const event: GuardEvent = { ruleId, path, ip, sample: sample.slice(0, 40) };
       options.onEvent?.(event);
-      if (shouldBlock) options.onBlock?.(event);
+      if (shouldBlock) {options.onBlock?.(event);}
       return { block: shouldBlock, event };
     };
 
@@ -150,7 +150,7 @@ export function createInspector(options: GuardOptions = {}): Inspector {
     if (anomaly !== undefined) {
       const now = anomaly.now ?? Date.now;
       const t = now();
-      if (windowStart === undefined) windowStart = t;
+      if (windowStart === undefined) {windowStart = t;}
       const learning = t - windowStart < anomaly.learnMinutes * 60_000;
       let baseline = routes.get(path);
       if (baseline === undefined) {
@@ -169,14 +169,14 @@ export function createInspector(options: GuardOptions = {}): Inspector {
       if (learning) {
         baseline.count += 1;
         baseline.bodySum += stats.bytes;
-        for (const n of names) baseline.paramNames.set(n, true);
-        if (status === 401) baseline.status401 += 1;
-        if (status === 404) baseline.status404 += 1;
+        for (const n of names) {baseline.paramNames.set(n, true);}
+        if (status === 401) {baseline.status401 += 1;}
+        if (status === 404) {baseline.status404 += 1;}
       } else {
         const newParam = names.some((n) => !baseline.paramNames.has(n));
         const spike401 = status === 401 && baseline.status401 === 0 && baseline.count > 0;
-        if (status === 404) baseline.recent404 += 1;
-        else baseline.recent404 = 0;
+        if (status === 404) {baseline.recent404 += 1;}
+        else {baseline.recent404 = 0;}
         const burst404 = baseline.recent404 >= 3 && baseline.status404 === 0 && baseline.count > 0;
         if (newParam || spike401 || burst404) {
           const event: GuardEvent = {

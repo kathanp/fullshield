@@ -8,6 +8,7 @@ import { nodeOk, runDoctor } from '../../../src/cli/commands/doctor.js';
 import { createProgram } from '../../../src/cli/program.js';
 import { renderConsoleReport } from '../../../src/reporters/console.js';
 import { formatCliError } from '../../../src/cli/errors.js';
+import { DEFAULT_CONFIG } from '../../../src/core/config.js';
 import type { ScanResult } from '../../../src/core/engine.js';
 
 describe('Phase 44 developer experience', () => {
@@ -72,17 +73,20 @@ describe('Phase 44 developer experience', () => {
       message: 'query is built from request data',
       remediation: 'use a placeholder',
     }));
-    const result = {
+    const result: ScanResult = {
       findings,
       summary: { total: 21, bySeverity: { info: 0, low: 0, medium: 0, high: 21, critical: 0 } },
       metadata: {
         version: '0.1.3',
-        filesScanned: 1,
+        startedAt: '2026-10-19T00:00:00.000Z',
         durationMs: 1,
+        cwd: '/tmp/app',
+        filesScanned: 1,
         modulesRequested: ['sast'],
         modulesRun: ['sast'],
       },
-    } as ScanResult;
+      config: structuredClone(DEFAULT_CONFIG),
+    };
     const text = renderConsoleReport(result);
     expect(text).toContain('1 more actionable — use --json');
     expect(text).toContain('docs: rules/SAST-SQLI-001.md');

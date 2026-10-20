@@ -12,10 +12,17 @@ import {
   type LockfileKind,
 } from './override.js';
 import { applyUnifiedDiff, proposeFix } from './patches.js';
+import {
+  allowPatchWrite,
+  fixVerifyEnabled,
+  verificationWarning,
+  verifyProposedChange,
+  type FixVerification,
+} from './verify.js';
 
 function detectLockKind(cwd: string): LockfileKind {
-  if (existsSync(join(cwd, 'yarn.lock'))) return 'yarn';
-  if (existsSync(join(cwd, 'pnpm-lock.yaml'))) return 'pnpm';
+  if (existsSync(join(cwd, 'yarn.lock'))) {return 'yarn';}
+  if (existsSync(join(cwd, 'pnpm-lock.yaml'))) {return 'pnpm';}
   return 'npm';
 }
 
@@ -26,6 +33,12 @@ export interface FixOptions {
   force?: boolean;
   unsafe?: boolean;
   noBranch?: boolean;
+  /** Re-scan each patch in memory. Also on when FULLSHIELD_EXPERIMENTAL_FIX_VERIFY=1. */
+  experimentalFixVerify?: boolean;
+  /** Write a patch whose rescan still reports the original finding. */
+  forceUnverified?: boolean;
+  /** Accepted by the CLI. It does not write a patch that introduces a finding. */
+  yes?: boolean;
 }
 
 export interface FixPatch {
@@ -33,6 +46,7 @@ export interface FixPatch {
   ruleId: string;
   safe: boolean;
   diff: string;
+  verified?: FixVerification;
 }
 
 export interface FixResult {
@@ -43,6 +57,35 @@ export interface FixResult {
   findings: Finding[];
   /** Set when an override was written to package.json. The lockfile is left unchanged. */
   notice?: string;
+  /** Set when a patch does not remove its finding or would introduce one. */
+  warnings?: string[];
+}
+
+async function gatePatch(
+  options: FixOptions,
+  cwd: string,
+  file: string,
+  ruleId: string,
+  line: number | undefined,
+  diff: string,
+  base: string,
+  finding: Finding | undefined,
+  warnings: string[],
+): Promise<{ verified?: FixVerification; write: boolean }> {
+  if (!fixVerifyEnabled(options.experimentalFixVerify)) {return { write: true };}
+  const verdict = await verifyProposedChange({ cwd, file, ruleId, line, diff, base, finding });
+  if (verdict.status !== 'removes-finding') {
+    const warning = verificationWarning(ruleId, file, verdict.status);
+    if (warning !== undefined) {warnings.push(warning);}
+  }
+  return {
+    verified: verdict.status,
+    write: allowPatchWrite(verdict.status, {
+      enabled: true,
+      forceUnverified: options.forceUnverified,
+      yes: options.yes,
+    }),
+  };
 }
 
 export async function runFix(options: FixOptions = {}): Promise<FixResult> {
@@ -52,8 +95,11 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
 
   const byFile = new Map<string, string>();
   const patches: FixPatch[] = [];
+  const warnings: string[] = [];
   let appliedOverride = false;
   const lockKind = detectLockKind(cwd);
+  const finish = (result: Omit<FixResult, 'warnings'>): FixResult =>
+    warnings.length > 0 ? { ...result, warnings } : result;
 
   for (const finding of result.findings) {
     if (finding.fix?.kind === 'dependency-override') {
@@ -66,13 +112,26 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
           continue;
         }
       }
+      const gate = await gatePatch(
+        options,
+        cwd,
+        'package.json',
+        finding.ruleId,
+        finding.line,
+        finding.fix.diff,
+        manifest,
+        finding,
+        warnings,
+      );
       patches.push({
         file: 'package.json',
         ruleId: finding.ruleId,
         safe: finding.fix.safe,
         diff: finding.fix.diff,
+        ...(gate.verified !== undefined ? { verified: gate.verified } : {}),
       });
-      if (finding.fix.safe !== true && options.unsafe !== true) continue;
+      if (finding.fix.safe !== true && options.unsafe !== true) {continue;}
+      if (!gate.write) {continue;}
       const next = applyUnifiedDiff(manifest, finding.fix.diff);
       let merged = byFile.get('package.json') ?? manifest;
       for (const [name, version] of collectManifestOverrides(next)) {
@@ -83,7 +142,7 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
       continue;
     }
     const file = finding.file;
-    if (file === undefined) continue;
+    if (file === undefined) {continue;}
     if (!byFile.has(file)) {
       try {
         byFile.set(file, await readFile(join(cwd, file), 'utf8'));
@@ -97,14 +156,32 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
     }
     const sourceFile = finding.ruleId === 'SECRET-ENVFILE-001' && file === '.env' ? '.gitignore' : file;
     const source = byFile.get(sourceFile) ?? byFile.get(file);
-    if (source === undefined) continue;
+    if (source === undefined) {continue;}
     const proposed = proposeFix(
       sourceFile === file ? finding : { ...finding, file: sourceFile },
       source,
     );
-    if (proposed === undefined) continue;
-    patches.push({ file: sourceFile, ruleId: finding.ruleId, safe: proposed.safe, diff: proposed.diff });
-    if (proposed.safe !== true && options.unsafe !== true) continue;
+    if (proposed === undefined) {continue;}
+    const gate = await gatePatch(
+      options,
+      cwd,
+      sourceFile,
+      finding.ruleId,
+      finding.line,
+      proposed.diff,
+      source,
+      finding,
+      warnings,
+    );
+    patches.push({
+      file: sourceFile,
+      ruleId: finding.ruleId,
+      safe: proposed.safe,
+      diff: proposed.diff,
+      ...(gate.verified !== undefined ? { verified: gate.verified } : {}),
+    });
+    if (proposed.safe !== true && options.unsafe !== true) {continue;}
+    if (!gate.write) {continue;}
     const after = applyUnifiedDiff(source, proposed.diff);
     byFile.set(sourceFile, after);
   }
@@ -123,8 +200,25 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
       const next = removeDirectDependencies(manifest, unused);
       const diff = dependencyRemovalDiff(manifest, unused);
       if (diff.length > 0) {
-        patches.push({ file: 'package.json', ruleId: 'DEPS-VULN-001', safe: false, diff });
-        if (options.unsafe === true) {
+        const gate = await gatePatch(
+          options,
+          cwd,
+          'package.json',
+          'DEPS-VULN-001',
+          undefined,
+          diff,
+          manifest,
+          undefined,
+          warnings,
+        );
+        patches.push({
+          file: 'package.json',
+          ruleId: 'DEPS-VULN-001',
+          safe: false,
+          diff,
+          ...(gate.verified !== undefined ? { verified: gate.verified } : {}),
+        });
+        if (options.unsafe === true && gate.write) {
           byFile.set('package.json', next);
           appliedOverride = true;
         }
@@ -135,7 +229,7 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
   const notice = appliedOverride ? 'run npm install' : undefined;
 
   if (options.apply !== true) {
-    return { applied: false, reverted: false, patches, findings: result.findings, notice };
+    return finish({ applied: false, reverted: false, patches, findings: result.findings, notice });
   }
 
   if (!(await isGitRepo(cwd)) && options.force !== true) {
@@ -154,7 +248,7 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
   const snapshots = new Map<string, Buffer | null>();
 
   for (const [file, contents] of byFile) {
-    if (dirtyPaths.has(file)) continue;
+    if (dirtyPaths.has(file)) {continue;}
     const abs = join(cwd, file);
     let original: Buffer | null = null;
     try {
@@ -162,7 +256,7 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
     } catch {
       original = null;
     }
-    if (original !== null && original.toString('utf8') === contents) continue;
+    if (original !== null && original.toString('utf8') === contents) {continue;}
     snapshots.set(file, original);
     await mkdir(dirname(abs), { recursive: true });
     await writeFile(abs, contents, 'utf8');
@@ -171,10 +265,10 @@ export async function runFix(options: FixOptions = {}): Promise<FixResult> {
   const testFailed = runProjectTests(cwd);
   if (testFailed) {
     await restoreSnapshots(cwd, snapshots);
-    return { applied: false, reverted: true, branch, patches, findings: result.findings };
+    return finish({ applied: false, reverted: true, branch, patches, findings: result.findings });
   }
 
-  return { applied: true, reverted: false, branch, patches, findings: result.findings, notice };
+  return finish({ applied: true, reverted: false, branch, patches, findings: result.findings, notice });
 }
 
 async function restoreSnapshots(cwd: string, snapshots: Map<string, Buffer | null>): Promise<void> {
@@ -191,7 +285,7 @@ async function restoreSnapshots(cwd: string, snapshots: Map<string, Buffer | nul
 function dependencyRemovalDiff(manifest: string, names: readonly string[]): string {
   const drop = names.map((name) => `"${name}"`);
   const removed = manifest.split('\n').filter((line) => drop.some((token) => line.includes(token)));
-  if (removed.length === 0) return '';
+  if (removed.length === 0) {return '';}
   return ['--- a/package.json', '+++ b/package.json', ...removed.map((line) => `-${line}`)].join('\n');
 }
 
@@ -202,11 +296,11 @@ function removeDirectDependencies(manifest: string, names: readonly string[]): s
   } catch {
     return manifest;
   }
-  if (parsed.dependencies === undefined || typeof parsed.dependencies !== 'object') return manifest;
+  if (parsed.dependencies === undefined || typeof parsed.dependencies !== 'object') {return manifest;}
   const drop = new Set(names);
   const next: Record<string, unknown> = {};
   for (const [name, version] of Object.entries(parsed.dependencies)) {
-    if (!drop.has(name)) next[name] = version;
+    if (!drop.has(name)) {next[name] = version;}
   }
   parsed.dependencies = next;
   const trailing = manifest.endsWith('\n') ? '\n' : '';
@@ -222,7 +316,7 @@ function runProjectTests(cwd: string): boolean {
   } catch {
     return false;
   }
-  if (typeof pkg.scripts?.test !== 'string' || pkg.scripts.test.length === 0) return false;
+  if (typeof pkg.scripts?.test !== 'string' || pkg.scripts.test.length === 0) {return false;}
   const result = spawnSync('npm', ['test'], { cwd, encoding: 'utf8', shell: process.platform === 'win32' });
   return result.status !== 0;
 }

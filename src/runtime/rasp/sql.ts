@@ -12,7 +12,7 @@ export function tokenizeSql(sql: string): SqlToken[] {
     const c = sql[i]!;
     if (c <= ' ') {
       const start = i;
-      while (i < n && sql[i]! <= ' ') i += 1;
+      while (i < n && sql[i]! <= ' ') {i += 1;}
       tokens.push({ kind: 'space', start, end: i });
       continue;
     }
@@ -37,33 +37,33 @@ export function tokenizeSql(sql: string): SqlToken[] {
     if (c === '-' && sql[i + 1] === '-') {
       const start = i;
       i += 2;
-      while (i < n && sql[i] !== '\n') i += 1;
+      while (i < n && sql[i] !== '\n') {i += 1;}
       tokens.push({ kind: 'comment', start, end: i });
       continue;
     }
     if (c === '/' && sql[i + 1] === '*') {
       const start = i;
       i += 2;
-      while (i < n && !(sql[i] === '*' && sql[i + 1] === '/')) i += 1;
-      if (i + 1 < n) i += 2;
+      while (i < n && !(sql[i] === '*' && sql[i + 1] === '/')) {i += 1;}
+      if (i + 1 < n) {i += 2;}
       tokens.push({ kind: 'comment', start, end: i });
       continue;
     }
     if (c === '#') {
       const start = i;
-      while (i < n && sql[i] !== '\n') i += 1;
+      while (i < n && sql[i] !== '\n') {i += 1;}
       tokens.push({ kind: 'comment', start, end: i });
       continue;
     }
     if ((c >= '0' && c <= '9') || (c === '.' && i + 1 < n && sql[i + 1]! >= '0' && sql[i + 1]! <= '9')) {
       const start = i;
-      while (i < n && /[0-9.eE+-]/.test(sql[i]!)) i += 1;
+      while (i < n && /[0-9.eE+-]/.test(sql[i]!)) {i += 1;}
       tokens.push({ kind: 'number', start, end: i });
       continue;
     }
     if (/[A-Za-z_]/.test(c)) {
       const start = i;
-      while (i < n && /[A-Za-z0-9_$]/.test(sql[i]!)) i += 1;
+      while (i < n && /[A-Za-z0-9_$]/.test(sql[i]!)) {i += 1;}
       tokens.push({ kind: 'ident', start, end: i });
       continue;
     }
@@ -97,13 +97,13 @@ function spanUnsafe(tokens: SqlToken[], start: number, end: number): boolean {
 
 /** True when `input` appears in `query` and is not wholly one string/number/comment token. */
 export function sqlInputChangesStructure(query: string, input: string): boolean {
-  if (!input) return false;
+  if (!input) {return false;}
   const tokens = tokenizeSql(query);
   let from = 0;
   while (from <= query.length) {
     const idx = query.indexOf(input, from);
-    if (idx === -1) return false;
-    if (spanUnsafe(tokens, idx, idx + input.length)) return true;
+    if (idx === -1) {return false;}
+    if (spanUnsafe(tokens, idx, idx + input.length)) {return true;}
     from = idx + Math.max(input.length, 1);
   }
   return false;

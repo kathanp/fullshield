@@ -26,7 +26,7 @@ export function diffKey(
 function groupById(findings: readonly DiffFinding[]): Map<string, DiffFinding[]> {
   const groups = new Map<string, DiffFinding[]>();
   for (const finding of findings) {
-    if (finding.id === undefined || finding.id.length === 0) continue;
+    if (finding.id === undefined || finding.id.length === 0) {continue;}
     const list = groups.get(finding.id) ?? [];
     list.push(finding);
     groups.set(finding.id, list);
@@ -82,9 +82,9 @@ export function diffScans(before: readonly DiffFinding[], after: readonly DiffFi
   const removed: DiffFinding[] = [];
   const moved: Array<{ before: DiffFinding; after: DiffFinding }> = [];
   const keys: string[] = [];
-  for (const key of beforeGroups.keys()) keys.push(key);
+  for (const key of beforeGroups.keys()) {keys.push(key);}
   for (const key of afterGroups.keys()) {
-    if (!beforeGroups.has(key)) keys.push(key);
+    if (!beforeGroups.has(key)) {keys.push(key);}
   }
 
   for (const key of keys) {
@@ -94,12 +94,12 @@ export function diffScans(before: readonly DiffFinding[], after: readonly DiffFi
     for (let i = 0; i < paired; i += 1) {
       const earlier = left[i];
       const later = right[i];
-      if (earlier === undefined || later === undefined) continue;
-      if ((earlier.line ?? 0) === (later.line ?? 0)) unchanged.push(later);
-      else moved.push({ before: earlier, after: later });
+      if (earlier === undefined || later === undefined) {continue;}
+      if ((earlier.line ?? 0) === (later.line ?? 0)) {unchanged.push(later);}
+      else {moved.push({ before: earlier, after: later });}
     }
-    for (const finding of left.slice(paired)) removed.push(finding);
-    for (const finding of right.slice(paired)) added.push(finding);
+    for (const finding of left.slice(paired)) {removed.push(finding);}
+    for (const finding of right.slice(paired)) {added.push(finding);}
   }
 
   const idMoves = pairMoves(removed, added);
@@ -164,9 +164,9 @@ export function renderDiffText(diff: ScanDiff): string {
   const lines = [
     `fullshield diff: unchanged ${diff.unchanged.length}, added ${diff.added.length}, removed ${diff.removed.length}, moved ${diff.moved.length}`,
   ];
-  if (diff.added.length === 0) return lines.join('\n');
+  if (diff.added.length === 0) {return lines.join('\n');}
   lines.push('added:');
-  for (const finding of diff.added.slice(0, ADDED_CAP)) lines.push(addedLine(finding));
-  if (diff.added.length > ADDED_CAP) lines.push(`${diff.added.length - ADDED_CAP} more — use --json`);
+  for (const finding of diff.added.slice(0, ADDED_CAP)) {lines.push(addedLine(finding));}
+  if (diff.added.length > ADDED_CAP) {lines.push(`${diff.added.length - ADDED_CAP} more — use --json`);}
   return lines.join('\n');
 }

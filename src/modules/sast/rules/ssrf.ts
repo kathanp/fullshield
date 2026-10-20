@@ -15,18 +15,18 @@ export const ssrfRule: SastRule = {
   create(ctx) {
     return {
       CallExpression(node) {
-        if (node.type !== 'CallExpression') return;
+        if (node.type !== 'CallExpression') {return;}
         const name = calleeName(node);
-        if (name === undefined || !SSRF_CALLEES.has(name)) return;
+        if (name === undefined || !SSRF_CALLEES.has(name)) {return;}
         const isFetch = node.callee.type === 'Identifier' && node.callee.name === 'fetch';
         const isHttpLib =
           node.callee.type === 'MemberExpression' &&
           node.callee.object.type === 'Identifier' &&
           HTTP_LIBS.test(node.callee.object.name);
-        if (!isFetch && !isHttpLib) return;
+        if (!isFetch && !isHttpLib) {return;}
         const url = node.arguments[0];
-        if (url === undefined || url.type === 'SpreadElement') return;
-        if (!ctx.isTainted(url) || ctx.isSanitizedFor(url, 'url')) return;
+        if (url === undefined || url.type === 'SpreadElement') {return;}
+        if (!ctx.isTainted(url) || ctx.isSanitizedFor(url, 'url')) {return;}
         ctx.report({
           node,
           message: 'Tainted URL is passed to fetch/axios/http.request.',

@@ -29,7 +29,7 @@ async function verifyPatch(
   try {
     cpSync(cwd, tmp, { recursive: true });
     const dest = join(tmp, file);
-    if (!existsSync(dirname(dest))) mkdirSync(dirname(dest), { recursive: true });
+    if (!existsSync(dirname(dest))) {mkdirSync(dirname(dest), { recursive: true });}
     const before = await readFile(join(cwd, file), 'utf8').catch(() => '');
     await writeFile(dest, after, 'utf8');
     const diff = unifiedDiff(file, before, after);
@@ -39,13 +39,13 @@ async function verifyPatch(
     const newIds = new Set(again.findings.map((f) => f.ruleId));
     const oldIds = new Set(original.findings.map((f) => f.ruleId));
     const added = [...newIds].filter((id) => !oldIds.has(id));
-    if (!gone || added.length > 0) return { ok: false, diff };
+    if (!gone || added.length > 0) {return { ok: false, diff };}
     const pkg = join(tmp, 'package.json');
     if (existsSync(pkg)) {
       const parsed = JSON.parse(await readFile(pkg, 'utf8')) as { scripts?: { test?: string } };
       if (parsed.scripts?.test !== undefined) {
         const test = spawnSync('npm', ['test'], { cwd: tmp, encoding: 'utf8' });
-        if (test.status !== 0) return { ok: false, diff };
+        if (test.status !== 0) {return { ok: false, diff };}
       }
     }
     return { ok: true, diff };
@@ -65,7 +65,7 @@ export async function runAiFix(options: {
 }): Promise<AiFixResult> {
   const result = await scan({ cwd: options.cwd, offline: true });
   const target = result.findings.find((f) => {
-    if (f.file === undefined) return false;
+    if (f.file === undefined) {return false;}
     return proposeFix(f, '') === undefined;
   });
   if (target === undefined || target.file === undefined) {
@@ -81,21 +81,21 @@ export async function runAiFix(options: {
       mode: 'fix',
       prompt: `${target.ruleId}\n${target.file}\n${target.message}`,
     });
-    if (res === null) break;
+    if (res === null) {break;}
 
     const patch = options.client.useFixtures ? fixtureFix(target.ruleId) : asFix(res.json);
-    if (patch === undefined) continue;
+    if (patch === undefined) {continue;}
     lastFile = patch.file;
     const checked = await verifyPatch(options.cwd, result, patch.file, patch.after);
     lastDiff = checked.diff;
-    if (checked.ok) return { accepted: true, attempts, diff: lastDiff, file: patch.file };
+    if (checked.ok) {return { accepted: true, attempts, diff: lastDiff, file: patch.file };}
   }
   return { accepted: false, attempts, diff: lastDiff, file: lastFile };
 }
 
 export function findingsWithoutRuleFix(findings: readonly Finding[], sources: Record<string, string>): Finding[] {
   return findings.filter((f) => {
-    if (f.file === undefined) return true;
+    if (f.file === undefined) {return true;}
     return proposeFix(f, sources[f.file] ?? '') === undefined;
   });
 }

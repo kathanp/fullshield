@@ -1,0 +1,4 @@
+{
+  "modules": ["sast"],
+  "semgrepRules": "rejected/bad-regex.yml"
+}

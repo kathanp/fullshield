@@ -39,25 +39,25 @@ async function listFiles(root: string): Promise<string[]> {
       return;
     }
     for (const entry of entries) {
-      if (entry.isSymbolicLink()) continue;
+      if (entry.isSymbolicLink()) {continue;}
       const full = join(dir, entry.name);
       if (entry.isDirectory()) {
-        if (SKIP_DIRS.has(entry.name)) continue;
+        if (SKIP_DIRS.has(entry.name)) {continue;}
         await walk(full);
       } else if (entry.isFile()) {
         const base = entry.name;
-        if (FILE_OK.test(base) || ENV_NAME.test(base)) files.push(full);
+        if (FILE_OK.test(base) || ENV_NAME.test(base)) {files.push(full);}
       }
     }
   }
 
   const roots = new Set<string>([root]);
-  for (const sub of BUNDLE_SUBDIRS) roots.add(join(root, sub));
+  for (const sub of BUNDLE_SUBDIRS) {roots.add(join(root, sub));}
   for (const dir of roots) {
     try {
       const s = await stat(dir);
-      if (s.isDirectory()) await walk(dir);
-      else if (s.isFile()) files.push(dir);
+      if (s.isDirectory()) {await walk(dir);}
+      else if (s.isFile()) {files.push(dir);}
     } catch {
       // missing conventional subdir
     }
@@ -66,12 +66,12 @@ async function listFiles(root: string): Promise<string[]> {
 }
 
 function isSecretShaped(name: string, value: string): boolean {
-  if (value.startsWith('pk_live_') || value.startsWith('pk_test_')) return false;
-  if (/^https?:\/\//i.test(value)) return false;
-  if (value.includes(' ') || value.includes('${')) return false;
+  if (value.startsWith('pk_live_') || value.startsWith('pk_test_')) {return false;}
+  if (/^https?:\/\//i.test(value)) {return false;}
+  if (value.includes(' ') || value.includes('${')) {return false;}
   const probe = `const ${name} = "${value}";\n`;
-  if (scanTextForSecretHits('bundle.js', probe).some((h) => h.secret !== undefined)) return true;
-  if (!SECRETISH_NAME.test(name)) return false;
+  if (scanTextForSecretHits('bundle.js', probe).some((h) => h.secret !== undefined)) {return true;}
+  if (!SECRETISH_NAME.test(name)) {return false;}
   return value.length >= 16 && shannonEntropy(value) > 4.5;
 }
 
@@ -82,8 +82,8 @@ function publicEnvHits(rel: string, text: string): SecretHit[] {
     for (const match of everyMatch(PUBLIC_ENV, line)) {
       const name = match[1];
       const value = match[2] ?? match[3];
-      if (name === undefined || value === undefined) continue;
-      if (!isSecretShaped(name, value)) continue;
+      if (name === undefined || value === undefined) {continue;}
+      if (!isSecretShaped(name, value)) {continue;}
       const masked = maskSecret(value);
       const lineNo = index + 1;
       hits.push({
@@ -113,7 +113,7 @@ export async function scanBundle(root: string): Promise<BundleScanResult> {
   const hits: SecretHit[] = [];
   const seen = new Set<string>();
   for (const full of await listFiles(root)) {
-    if (seen.has(full)) continue;
+    if (seen.has(full)) {continue;}
     seen.add(full);
     let text: string;
     try {
@@ -121,7 +121,7 @@ export async function scanBundle(root: string): Promise<BundleScanResult> {
     } catch {
       continue;
     }
-    if (text.length > MAX_FILE || text.includes('\u0000')) continue;
+    if (text.length > MAX_FILE || text.includes('\u0000')) {continue;}
     const rel = posixRel(root, full) || full;
     hits.push(...scanTextForSecretHits(rel, text), ...publicEnvHits(rel, text));
   }

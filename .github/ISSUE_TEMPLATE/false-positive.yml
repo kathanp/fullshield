@@ -11,16 +11,24 @@ body:
     validations:
       required: true
   - type: textarea
-    id: why
+    id: code
     attributes:
-      label: Why this is not a vulnerability
-      description: What sanitizer, framework guarantee, or context did we miss?
+      label: Minimal code
+      description: Smallest code that reproduces the finding. No real secrets.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `fullshield --version`.
+      placeholder: 0.4.0
     validations:
       required: true
   - type: textarea
-    id: snippet
+    id: expected
     attributes:
-      label: Snippet (redacted)
-      description: Smallest code that reproduces the finding. No real secrets.
+      label: Expected
+      description: What you expected instead, including any sanitizer, framework guarantee, or context that was missed.
     validations:
       required: true

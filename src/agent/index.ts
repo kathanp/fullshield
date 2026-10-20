@@ -84,7 +84,7 @@ function currentBranch(cwd: string): string {
 function defaultTests(cwd: string): { ok: boolean; output: string } {
   try {
     const pkg = JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8')) as { scripts?: { test?: string } };
-    if (!pkg.scripts?.test) return { ok: true, output: 'no test script' };
+    if (!pkg.scripts?.test) {return { ok: true, output: 'no test script' };}
     // execFile('npm') does not search PATHEXT on Windows; cmd.exe does.
     const out = execFileSync(
       process.platform === 'win32' ? 'cmd.exe' : npmBin(),
@@ -100,7 +100,7 @@ function defaultTests(cwd: string): { ok: boolean; output: string } {
 
 function sourceFor(finding: Finding, cwd: string): { file: string; source: string } | undefined {
   const file = finding.file;
-  if (file === undefined) return undefined;
+  if (file === undefined) {return undefined;}
   const target = finding.ruleId === 'SECRET-ENVFILE-001' ? '.gitignore' : file;
   const path = join(cwd, target);
   const source = existsSync(path) ? readFileSync(path, 'utf8') : '';
@@ -152,16 +152,16 @@ export async function runAgent(options: AgentOptions = {}): Promise<AgentResult>
   let stoppedOnTestFailure = false;
 
   for (const finding of ranked) {
-    if (prs.length >= maxPrs) break;
+    if (prs.length >= maxPrs) {break;}
     const src = sourceFor(finding, cwd);
-    if (src === undefined) continue;
+    if (src === undefined) {continue;}
     const proposed = proposeFix(
       finding.ruleId === 'SECRET-ENVFILE-001' ? { ...finding, file: src.file } : finding,
       src.source,
     );
-    if (proposed === undefined || proposed.safe !== true) continue;
+    if (proposed === undefined || proposed.safe !== true) {continue;}
     const files = [src.file].slice(0, maxFiles);
-    if (files.length === 0) continue;
+    if (files.length === 0) {continue;}
 
     const branch = `fullshield/agent-${finding.ruleId.toLowerCase()}-${prs.length + 1}`;
     if (PROTECTED.has(branch)) {

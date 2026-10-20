@@ -25,11 +25,11 @@ function finding(
 }
 
 function walk(dir: string, out: string[] = []): string[] {
-  if (!existsSync(dir)) return out;
+  if (!existsSync(dir)) {return out;}
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (['node_modules', 'dist', '.git'].includes(entry.name)) continue;
+      if (['node_modules', 'dist', '.git'].includes(entry.name)) {continue;}
       walk(full, out);
     } else if (entry.isFile() && /\.[cm]?[jt]sx?$/.test(entry.name)) {
       out.push(full);
@@ -44,8 +44,8 @@ export interface LlmScanOptions {
 
 /** Static LLM-app rules. Off unless experimental. */
 export function scanLlmApp(dir: string, opts: LlmScanOptions = {}): Finding[] {
-  if (!opts.experimental && process.env.FULLSHIELD_EXPERIMENTAL_LLM !== '1') return [];
-  if (!existsSync(dir) || !statSync(dir).isDirectory()) return [];
+  if (!opts.experimental && process.env.FULLSHIELD_EXPERIMENTAL_LLM !== '1') {return [];}
+  if (!existsSync(dir) || !statSync(dir).isDirectory()) {return [];}
   const findings: Finding[] = [];
   for (const file of walk(dir)) {
     const rel = relative(dir, file) || file;

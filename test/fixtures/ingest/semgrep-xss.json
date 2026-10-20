@@ -1,0 +1,18 @@
+{
+  "version": "1.0.0",
+  "results": [
+    {
+      "check_id": "fixture.xss",
+      "path": "src/db.js",
+      "start": { "line": 14, "col": 1 },
+      "end": { "line": 14, "col": 8 },
+      "extra": {
+        "message": "Fixture XSS",
+        "severity": "ERROR",
+        "metadata": { "cwe": ["CWE-79: XSS"] }
+      }
+    }
+  ],
+  "errors": [],
+  "paths": { "scanned": ["src/db.js"] }
+}

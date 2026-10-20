@@ -19,7 +19,7 @@ export function packageVersion(): string {
       // No package.json at this level; keep walking up.
     }
     const parent = dirname(dir);
-    if (parent === dir) break;
+    if (parent === dir) {break;}
     dir = parent;
   }
   throw new Error('fullshield package.json not found');

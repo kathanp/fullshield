@@ -26,7 +26,7 @@ export default tseslint.config(
   {
     // TSESTree.Node['type'] is a string enum; comparing it to AST type names
     // is the documented way to narrow nodes and is not an unsafe comparison.
-    files: ['src/modules/sast/**/*.ts', 'src/modules/config/**/*.ts'],
+    files: ['src/modules/sast/**/*.ts', 'src/modules/config/**/*.ts', 'src/paths/**/*.ts'],
     rules: {
       '@typescript-eslint/no-unsafe-enum-comparison': 'off',
     },

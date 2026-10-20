@@ -12,8 +12,8 @@ export function scanPromptInjection(file: string, source: string): Finding[] {
   const findings: Finding[] = [];
   const lines = source.split(/\r?\n/);
   lines.forEach((line, index) => {
-    if (!isCommentLine(line)) return;
-    if (!PHRASES.some((p) => p.test(line))) return;
+    if (!isCommentLine(line)) {return;}
+    if (!PHRASES.some((p) => p.test(line))) {return;}
     findings.push({
       id: makeFindingId('AI-INJECT-001', file, `${index + 1}|${line.trim()}`),
       ruleId: 'AI-INJECT-001',

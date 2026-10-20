@@ -4,11 +4,11 @@ import { applyEol, detectEol, normalizeNewlines } from './eol.js';
 
 export function proposeFix(finding: Finding, source: string): FixProposal | undefined {
   const file = finding.file ?? '';
-  if (finding.ruleId === 'CONFIG-HELMET-001') return helmetFix(file, source);
-  if (finding.ruleId === 'CONFIG-BODYLIMIT-001') return bodyLimitFix(file, source);
-  if (finding.ruleId === 'SAST-CRYPTO-001') return cryptoFix(file, source);
-  if (finding.ruleId === 'SECRET-ENVFILE-001') return gitignoreFix(file, source);
-  if (finding.fix !== undefined) return finding.fix;
+  if (finding.ruleId === 'CONFIG-HELMET-001') {return helmetFix(file, source);}
+  if (finding.ruleId === 'CONFIG-BODYLIMIT-001') {return bodyLimitFix(file, source);}
+  if (finding.ruleId === 'SAST-CRYPTO-001') {return cryptoFix(file, source);}
+  if (finding.ruleId === 'SECRET-ENVFILE-001') {return gitignoreFix(file, source);}
+  if (finding.fix !== undefined) {return finding.fix;}
   if (finding.ruleId.startsWith('SECRET-') && finding.ruleId !== 'SECRET-ENVFILE-001') {
     return secretEnvFix(file, source, finding);
   }
@@ -17,7 +17,7 @@ export function proposeFix(finding: Finding, source: string): FixProposal | unde
 
 function helmetFix(file: string, source: string): FixProposal | undefined {
   const normalized = normalizeNewlines(source);
-  if (/helmet\s*\(/.test(normalized)) return undefined;
+  if (/helmet\s*\(/.test(normalized)) {return undefined;}
   let after = normalized;
   if (!/require\(\s*['"]helmet['"]\s*\)|from\s+['"]helmet['"]/.test(after)) {
     after = `const helmet = require('helmet');\n${after}`;
@@ -25,20 +25,20 @@ function helmetFix(file: string, source: string): FixProposal | undefined {
   if (!/app\.use\(\s*helmet\s*\(\s*\)\s*\)/.test(after)) {
     after = after.replace(/const app = express\(\s*\);/, (m) => `${m}\napp.use(helmet());`);
   }
-  if (after === normalized) return undefined;
+  if (after === normalized) {return undefined;}
   return { kind: 'config-add', safe: false, diff: unifiedDiff(file, normalized, after) };
 }
 
 function bodyLimitFix(file: string, source: string): FixProposal | undefined {
   const normalized = normalizeNewlines(source);
-  if (!/express\.json\(\s*\)/.test(normalized)) return undefined;
+  if (!/express\.json\(\s*\)/.test(normalized)) {return undefined;}
   const after = normalized.replace(/express\.json\(\s*\)/g, "express.json({ limit: '100kb' })");
   return { kind: 'config-add', safe: true, diff: unifiedDiff(file, normalized, after) };
 }
 
 function cryptoFix(file: string, source: string): FixProposal | undefined {
   const normalized = normalizeNewlines(source);
-  if (!/Math\.random\(\)/.test(normalized)) return undefined;
+  if (!/Math\.random\(\)/.test(normalized)) {return undefined;}
   let after = normalized;
   if (!/require\(\s*['"]crypto['"]\s*\)|from\s+['"]crypto['"]/.test(after)) {
     after = `const crypto = require('crypto');\n${after}`;
@@ -47,14 +47,14 @@ function cryptoFix(file: string, source: string): FixProposal | undefined {
     /Math\.random\(\)\.toString\(\s*36\s*\)(?:\.slice\(\s*2\s*\))?/g,
     'crypto.randomUUID()',
   );
-  if (after === normalized) return undefined;
+  if (after === normalized) {return undefined;}
   return { kind: 'code-patch', safe: true, diff: unifiedDiff(file, normalized, after) };
 }
 
 function gitignoreFix(file: string, source: string): FixProposal | undefined {
   const target = file.endsWith('.gitignore') ? file : '.gitignore';
   const normalized = normalizeNewlines(source);
-  if (/(^|\n)\.env(\n|$)/.test(normalized)) return undefined;
+  if (/(^|\n)\.env(\n|$)/.test(normalized)) {return undefined;}
   const after =
     normalized.length === 0 || normalized.endsWith('\n')
       ? `${normalized}.env\n`
@@ -69,26 +69,26 @@ function secretEnvFix(file: string, source: string, finding: Finding): FixPropos
   const lines = normalized.split('\n');
   const idx = (finding.line ?? 1) - 1;
   const line = lines[idx];
-  if (line === undefined) return undefined;
+  if (line === undefined) {return undefined;}
   const replaced = line.replace(
     /=\s*(?:'[^']*'|"[^"]*"|(?:'[^']*'|"[^"]*"|\s|\+)+\s*$)/,
     `= process.env.${envName} /* TODO: rotate this key; it remains in git history */`,
   );
-  if (replaced === line) return undefined;
+  if (replaced === line) {return undefined;}
   const afterLines = [...lines];
   afterLines[idx] = replaced;
   return { kind: 'code-patch', safe: false, diff: unifiedDiff(file, normalized, afterLines.join('\n')) };
 }
 
 function envNameFor(ruleId: string): string {
-  if (ruleId.includes('AWS')) return 'AWS_ACCESS_KEY_ID';
-  if (ruleId.includes('STRIPE')) return 'STRIPE_SECRET_KEY';
-  if (ruleId.includes('JWT')) return 'JWT_SECRET';
-  if (ruleId.includes('GITHUB')) return 'GITHUB_TOKEN';
-  if (ruleId.includes('SLACK')) return 'SLACK_TOKEN';
-  if (ruleId.includes('GOOGLE')) return 'GOOGLE_API_KEY';
-  if (ruleId.includes('AI')) return 'AI_API_KEY';
-  if (ruleId.includes('DBURL')) return 'DATABASE_URL';
+  if (ruleId.includes('AWS')) {return 'AWS_ACCESS_KEY_ID';}
+  if (ruleId.includes('STRIPE')) {return 'STRIPE_SECRET_KEY';}
+  if (ruleId.includes('JWT')) {return 'JWT_SECRET';}
+  if (ruleId.includes('GITHUB')) {return 'GITHUB_TOKEN';}
+  if (ruleId.includes('SLACK')) {return 'SLACK_TOKEN';}
+  if (ruleId.includes('GOOGLE')) {return 'GOOGLE_API_KEY';}
+  if (ruleId.includes('AI')) {return 'AI_API_KEY';}
+  if (ruleId.includes('DBURL')) {return 'DATABASE_URL';}
   return 'SECRET';
 }
 
@@ -98,6 +98,6 @@ export function applyUnifiedDiff(source: string, diff: string): string {
     .split('\n')
     .filter((line) => line.startsWith('+') && !line.startsWith('+++'))
     .map((line) => line.slice(1));
-  if (plus.length === 0) return source;
+  if (plus.length === 0) {return source;}
   return applyEol(plus.join('\n'), detectEol(source));
 }

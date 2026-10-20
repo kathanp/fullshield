@@ -15,8 +15,8 @@ export async function buildSbom(cwd: string, options: { includeReach?: boolean }
   let manifest: Record<string, unknown> = {};
   try {
     manifest = JSON.parse(await readFile(join(cwd, 'package.json'), 'utf8')) as Record<string, unknown>;
-    if (typeof manifest.name === 'string') name = manifest.name;
-    if (typeof manifest.version === 'string') version = manifest.version;
+    if (typeof manifest.name === 'string') {name = manifest.name;}
+    if (typeof manifest.version === 'string') {version = manifest.version;}
   } catch {
     // package.json is optional for SBOM of a lockfile-only tree
   }

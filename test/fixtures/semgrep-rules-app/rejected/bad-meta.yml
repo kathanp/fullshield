@@ -1,0 +1,8 @@
+rules:
+  - id: bad-meta
+    languages: [javascript]
+    severity: high
+    message: metavariable regex is outside the subset
+    pattern: eval($X)
+    metavariable-regex:
+      $X: .*

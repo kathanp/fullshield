@@ -1,0 +1,8 @@
+{
+  "name": "spdx-negative",
+  "version": "0.0.1",
+  "dependencies": {
+    "mystery": "1.0.0",
+    "other": "2.0.0"
+  }
+}

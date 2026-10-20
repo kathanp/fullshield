@@ -1,4 +1,11 @@
 node_modules/
+bench/.cache/
+.quality-tmp-*/
+.fullshield-verify.lock
+.fullshield-dist-*/
+.fullshield-dist-previous/
+.fullshield-dist-backup/
+.fullshield-mutation.vitest.config.ts
 dist/
 coverage/
 CAPABILITIES.md

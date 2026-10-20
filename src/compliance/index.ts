@@ -87,12 +87,14 @@ export const RULE_MAP: readonly RuleMapping[] = [
   ROW('SUPPLY-LOCKINTEGRITY-001', 'A08:2021 Integrity Failures', 'CWE-353', 'V14.2.3', 'PCI DSS 6.3.3'),
   ROW('SUPPLY-CONFUSION-001', 'A08:2021 Integrity Failures', 'CWE-494', 'V14.2.3', 'PCI DSS 6.3.3'),
   ROW('SUPPLY-PROVENANCE-001', 'A08:2021 Integrity Failures', 'CWE-494', 'V14.2.3', 'PCI DSS 6.3.3'),
+  ROW('SUPPLY-PROV-001', 'A08:2021 Integrity Failures', 'CWE-494', 'V14.2.3', 'PCI DSS 6.3.3'),
   ROW('SUPPLY-WORM-001', 'A06:2021 Vulnerable Components', 'CWE-506', 'V14.2.1', 'PCI DSS 6.3.3 / 12.10'),
   ROW('SUPPLY-WORKFLOW-001', 'A08:2021 Integrity Failures', 'CWE-829', 'V14.2.3', 'PCI DSS 6.3.3'),
   ROW('SUPPLY-CHAINC2-001', 'A06:2021 Vulnerable Components', 'CWE-506', 'V14.2.1', 'PCI DSS 6.3.3'),
   ROW('SUPPLY-STEALER-001', 'A06:2021 Vulnerable Components', 'CWE-506', 'V14.2.1', 'PCI DSS 12.10'),
   ROW('SUPPLY-PLATFORMGATE-001', 'A06:2021 Vulnerable Components', 'CWE-829', 'V14.2.1', 'PCI DSS 6.3.3'),
   ROW('SUPPLY-SECHOLDER-001', 'A06:2021 Vulnerable Components', 'CWE-506', 'V14.2.1', 'PCI DSS 6.3.3'),
+  ROW('SUPPLY-CAP-001', 'A06:2021 Vulnerable Components', 'CWE-829', 'V14.2.1', 'PCI DSS 6.3.3'),
   ROW('IAC-GHA-UNPINNED-001', 'A08:2021 Integrity Failures', 'CWE-494', 'V14.2.3', 'PCI DSS 6.3.3'),
   ROW('IAC-GHA-PRTARGET-001', 'A01:2021 Broken Access Control', 'CWE-269', 'V4.1.1', 'PCI DSS 7.2'),
   ROW('IAC-GHA-PERMS-001', 'A01:2021 Broken Access Control', 'CWE-250', 'V4.1.1', 'PCI DSS 7.2'),
@@ -142,6 +144,8 @@ export const RULE_MAP: readonly RuleMapping[] = [
   ROW('HOST-SSH-001', 'A06:2021 Vulnerable Components', 'CWE-364', 'V14.2.1', 'PCI DSS 6.3.3'),
   ROW('HOST-SSH-002', 'A05:2021 Security Misconfiguration', 'CWE-693', 'V14.4.3', 'PCI DSS 2.2'),
   ROW('HOST-SSH-003', 'A07:2021 Identification Failures', 'CWE-307', 'V7.1.1', 'PCI DSS 10.2 / 11.5'),
+  ROW('DEPS-PHANTOM-001', 'A06:2021 Vulnerable Components', 'CWE-829', 'V14.2.1', 'PCI DSS 6.3.3'),
+  ROW('DEPS-LOCKMISMATCH-001', 'A06:2021 Vulnerable Components', 'CWE-1104', 'V14.2.1', 'PCI DSS 6.3.3'),
 ];
 
 const byId = new Map(RULE_MAP.map((r) => [r.ruleId, r]));
@@ -174,7 +178,7 @@ export function collectRuleIdsFromSources(texts: readonly string[]): string[] {
   const re = /\b((?:SAST|SECRET|DEPS|CONFIG|EDGE|AI|LLM|SUPPLY|IAC|RASP|RUNTIME|DLP|MCP|HOST)(?:-[A-Z0-9]+)*-\d{3})\b/g;
   for (const text of texts) {
     let m: RegExpExecArray | null;
-    while ((m = re.exec(text)) !== null) ids.add(m[1] ?? '');
+    while ((m = re.exec(text)) !== null) {ids.add(m[1] ?? '');}
   }
   return [...ids].sort();
 }

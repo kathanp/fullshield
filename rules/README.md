@@ -31,6 +31,7 @@ negative counterpart in `test/fixtures/clean-app`.
 | [DEPS-TYPOSQUAT-001](DEPS-TYPOSQUAT-001.md) | Direct dep 1 edit from a popular name |
 | [DEPS-DEPRECATED-001](DEPS-DEPRECATED-001.md) | Lockfile `deprecated` field |
 | [DEPS-NOLOCK-001](DEPS-NOLOCK-001.md) | package.json without a lockfile |
+| [SUPPLY-PROV-001](SUPPLY-PROV-001.md) | Experimental: provenance regression, publisher change, or new release |
 | [SUPPLY-WORM-001](SUPPLY-WORM-001.md) | Experimental: token read + publish/registry/GitHub/workflow write |
 | [SUPPLY-WORKFLOW-001](SUPPLY-WORKFLOW-001.md) | Experimental: dep writes `.github/` / git hooks / CI config |
 

@@ -5,6 +5,7 @@ import { performance } from 'node:perf_hooks';
 import { configModule } from '../modules/config/index.js';
 import { depsModule } from '../modules/deps/index.js';
 import { scanMcpConfig } from '../modules/mcp/index.js';
+import { typesEnabled } from '../modules/sast/experimental.js';
 import { sastModule } from '../modules/sast/index.js';
 import { secretsModule } from '../modules/secrets/index.js';
 import { secretsAdvEnabled } from '../modules/secrets/experimental.js';
@@ -15,7 +16,10 @@ import { createAiClient, isInternalAi, isLiveAi } from '../ai/provider.js';
 import { applyBaseline, applySuppressions, readBaseline, writeBaseline } from './baseline.js';
 import { loadConfig, type ResolvedConfig } from './config.js';
 import { walkFiles } from './fileWalker.js';
+import { partitionPerf2, perf2Enabled } from './perf2.js';
+import { beginSharedAst, endSharedAst, preparseProject } from './shared-ast.js';
 import { listStagedFiles } from './git.js';
+import { budgetEnabled, armBudget, budgetSnapshot, clearBudget } from './budget.js';
 import { applyInlineSuppressions } from './suppression.js';
 import {
   sortFindings,
@@ -25,7 +29,11 @@ import {
   type ModuleName,
   type Severity,
 } from './finding.js';
+import { applyPriority } from '../priority/score.js';
+import type { AttackPath } from '../paths/types.js';
 import { packageVersion } from './version.js';
+import { modelsEnabled } from '../modules/sast/experimental.js';
+import { applyModelSuppressions } from '../modules/sast/models.js';
 import {
   POLICY_FILE_NAME,
   applyPolicy,
@@ -82,6 +90,15 @@ export interface ScanOptions {
   experimentalPolicy?: boolean;
   /** Override git/CI branch when applying `failOn` per branch. */
   policyBranch?: string;
+  /** Phase 85: join existing findings into attack paths. Requires FULLSHIELD_EXPERIMENTAL_PATHS=1. */
+  paths?: boolean;
+  /**
+   * Phase 79. Seconds for `--max-time`. Applied only when
+   * `FULLSHIELD_EXPERIMENTAL_BUDGET=1`.
+   */
+  maxTimeSeconds?: number;
+  /** Phase 90. Overrides `semgrepRules` in config. The file is parsed only when the flag is on. */
+  semgrepRules?: string;
 }
 
 export interface ScanMetadata {
@@ -90,13 +107,33 @@ export interface ScanMetadata {
   durationMs: number;
   cwd: string;
   filesScanned: number;
-  modulesRequested: ModuleName[];
+  modulesRequested: readonly ModuleName[];
   /** Requested modules that are actually implemented and ran. */
-  modulesRun: ModuleName[];
+  modulesRun: readonly ModuleName[];
   /** Set when `scan --history` stops at the commit cap. Exact text: `scanned N of M commits`. */
   history?: string;
   /** Phase 48. Direct dependencies no project file imports. Absent when the list is empty. */
   unusedDirect?: { packages: string[]; advisories: number };
+  /** Phase 81. One line per model pack skipped because the installed version is out of range. */
+  info?: string[];
+  /** Phase 78. Present only when FULLSHIELD_EXPERIMENTAL_PERF2=1. Not findings. */
+  skipped?: {
+    total: number;
+    oversize: number;
+    minified: number;
+    declaration: number;
+    sourceMap: number;
+    generated: number;
+  };
+  /**
+   * Phase 79. Set only when `FULLSHIELD_EXPERIMENTAL_BUDGET` stops the scan early.
+   * An incomplete scan is not a clean result.
+   */
+  incomplete?: true;
+  /** Modules that did not finish. Deps, secrets, and config still run to completion. */
+  incompleteModules?: ModuleName[];
+  /** Source files that did not get a SAST taint pass. */
+  filesNotTaintChecked?: number;
   /** Phase 49. Direct version bumps taken from OSV `fixed` versions. Absent when there is nothing to say. */
   upgradePlan?: {
     bumps: Array<{ name: string; from: string; to: string; safe: boolean; findings: number }>;
@@ -122,6 +159,15 @@ export interface ScanResult {
   policy?: PolicyScanResult;
   /** Set when a baseline suppression is missing fields or has expired. */
   suppressionErrors?: string[];
+  /**
+   * Phase 80 and Phase 81. Findings removed from `findings`.
+   * Present when the type checker ran or a model pack suppressed a finding.
+   */
+  suppressed?: Finding[];
+  /** Phase 80. Missing `typescript` (FS-E013) or the types.maxFiles fallback. Printed by the CLI. */
+  typesNotice?: string;
+  /** Phase 85. Present only when scan paths were requested and FULLSHIELD_EXPERIMENTAL_PATHS=1. */
+  paths?: AttackPath[];
 }
 
 /**
@@ -144,6 +190,31 @@ function dedupe(findings: readonly Finding[]): Finding[] {
   return out;
 }
 
+async function collectModuleFindings(
+  available: ReadonlyMap<ModuleName, ScanModule>,
+  modulesRun: readonly ModuleName[],
+  ctx: ModuleContext,
+): Promise<Finding[]> {
+  if (!perf2Enabled()) {
+    const collected: Finding[] = [];
+    for (const name of modulesRun) {
+      const module = available.get(name);
+      if (module !== undefined) {collected.push(...(await module.run(ctx)));}
+    }
+    return collected;
+  }
+  const runs = await Promise.all(
+    modulesRun.map(async (name) => {
+      const module = available.get(name);
+      const findings = module === undefined ? [] : await module.run(ctx);
+      findings.sort((a, b) => a.id.localeCompare(b.id));
+      return { name, findings };
+    }),
+  );
+  runs.sort((a, b) => a.name.localeCompare(b.name));
+  return runs.flatMap((run) => run.findings);
+}
+
 /**
  * Core scan: load config, walk files, run the requested modules that exist,
  * then dedupe, sort, and summarize findings. `modules` is injectable so the
@@ -158,6 +229,16 @@ export async function runScan(
   depsModule.unusedDirect = undefined;
   depsModule.upgradePlan = undefined;
 
+  try {
+  if (
+    budgetEnabled() &&
+    options.maxTimeSeconds !== undefined &&
+    Number.isFinite(options.maxTimeSeconds) &&
+    options.maxTimeSeconds > 0
+  ) {
+    armBudget(options.maxTimeSeconds);
+  }
+
   const cwd = resolve(options.cwd ?? process.cwd());
   const stats = await stat(cwd).catch(() => null);
   if (stats === null || !stats.isDirectory()) {
@@ -165,6 +246,9 @@ export async function runScan(
   }
 
   let config = await loadConfig(cwd, options.configPath);
+  if (options.semgrepRules !== undefined && options.semgrepRules.length > 0) {
+    config = { ...config, semgrepRules: options.semgrepRules };
+  }
   if (options.offline === true) {
     config = { ...config, deps: { ...config.deps, offline: true } };
   }
@@ -207,16 +291,26 @@ export async function runScan(
     }
   }
 
+  let skipped: ScanMetadata['skipped'];
+  if (perf2Enabled()) {
+    const part = await partitionPerf2(cwd, files, config.sast.maxFileBytes);
+    files = part.kept;
+    skipped = part.skipped;
+  }
+
   const available = new Map(modules.map((m) => [m.name, m]));
   const modulesRun = modulesRequested.filter((name) => available.has(name));
 
   const ctx: ModuleContext = { cwd, files, config };
-  const collected: Finding[] = [];
-  for (const name of modulesRun) {
-    const module = available.get(name);
-    if (module !== undefined) {
-      collected.push(...(await module.run(ctx)));
-    }
+  if (perf2Enabled()) {
+    beginSharedAst();
+    await preparseProject(cwd, files, config.sast.maxFileBytes);
+  }
+  let collected: Finding[];
+  try {
+    collected = await collectModuleFindings(available, modulesRun, ctx);
+  } finally {
+    if (perf2Enabled()) {endSharedAst();}
   }
   if (process.env.FULLSHIELD_EXPERIMENTAL_MCPCFG === '1') {
     collected.push(
@@ -272,7 +366,7 @@ export async function runScan(
     const { scanTextForSecretHits } = await import('../modules/secrets/index.js');
     const secretById = new Map<string, string>();
     for (const hit of extraHits) {
-      if (hit.secret !== undefined) secretById.set(hit.finding.id, hit.secret);
+      if (hit.secret !== undefined) {secretById.set(hit.finding.id, hit.secret);}
     }
     for (const finding of findings) {
       if (finding.module !== 'secrets' || finding.file === undefined || secretById.has(finding.id)) {
@@ -287,7 +381,7 @@ export async function runScan(
         }
       }
       for (const hit of scanTextForSecretHits(finding.file, text)) {
-        if (hit.secret !== undefined) secretById.set(hit.finding.id, hit.secret);
+        if (hit.secret !== undefined) {secretById.set(hit.finding.id, hit.secret);}
       }
     }
     findings = sortFindings(
@@ -320,6 +414,15 @@ export async function runScan(
     aiMode === 'explain' ||
     aiMode === 'logic' ||
     config.ai.enabled;
+  let modelSuppressed: Finding[] | undefined;
+  let modelInfo: string[] | undefined;
+  if (modelsEnabled()) {
+    const applied = await applyModelSuppressions(cwd, findings);
+    findings = sortFindings(applied.findings);
+    if (applied.suppressed.length > 0) {modelSuppressed = applied.suppressed;}
+    if (applied.info.length > 0) {modelInfo = applied.info;}
+  }
+
   if (aiEnabled) {
     const client = createAiClient({
       enabled: true,
@@ -335,6 +438,23 @@ export async function runScan(
       findings = sortFindings([...findings, ...(await runLogicHunt(cwd, files, client))]);
     }
   }
+  findings = applyPriority(findings);
+
+  let typeSuppressed: Finding[] | undefined;
+  let typesNotice: string | undefined;
+  if (typesEnabled()) {
+    const { applyTypeSuppression } = await import('../modules/sast/type-receivers.js');
+    const applied = await applyTypeSuppression(findings, cwd, config.types);
+    findings = applied.findings;
+    typeSuppressed = applied.suppressed;
+    typesNotice = applied.notice;
+  }
+
+  let attackPaths: AttackPath[] | undefined;
+  if (options.paths === true && process.env.FULLSHIELD_EXPERIMENTAL_PATHS === '1') {
+    const { buildAttackPathsFromFiles } = await import('../paths/index.js');
+    attackPaths = await buildAttackPathsFromFiles(findings, cwd, files);
+  }
   return {
     findings,
     summary: summarize(findings),
@@ -347,13 +467,24 @@ export async function runScan(
       modulesRequested: [...modulesRequested],
       modulesRun,
       ...(historyNotice !== undefined ? { history: historyNotice } : {}),
+      ...(skipped !== undefined ? { skipped } : {}),
       ...(depsModule.unusedDirect !== undefined ? { unusedDirect: depsModule.unusedDirect } : {}),
       ...(depsModule.upgradePlan !== undefined ? { upgradePlan: depsModule.upgradePlan } : {}),
+      ...(budgetSnapshot() ?? {}),
+      ...(modelInfo !== undefined ? { info: modelInfo } : {}),
     },
     config,
     policy: policyResult,
     ...(suppressionErrors.length > 0 ? { suppressionErrors } : {}),
+    ...(typeSuppressed !== undefined || modelSuppressed !== undefined
+      ? { suppressed: [...(modelSuppressed ?? []), ...(typeSuppressed ?? [])] }
+      : {}),
+    ...(typesNotice !== undefined ? { typesNotice } : {}),
+    ...(attackPaths !== undefined ? { paths: attackPaths } : {}),
   };
+  } finally {
+    clearBudget();
+  }
 }
 
 /** Public library API: scan with the built-in modules. */

@@ -17,7 +17,7 @@ function dedupe(packages: LockedPackage[]): LockedPackage[] {
   const out: LockedPackage[] = [];
   for (const pkg of packages) {
     const key = `${pkg.name}@${pkg.version}`;
-    if (seen.has(key)) continue;
+    if (seen.has(key)) {continue;}
     seen.add(key);
     out.push(pkg);
   }
@@ -25,9 +25,9 @@ function dedupe(packages: LockedPackage[]): LockedPackage[] {
 }
 
 function nameFromPackagesKey(key: string): string | undefined {
-  if (key === '') return undefined;
+  if (key === '') {return undefined;}
   const idx = key.lastIndexOf('node_modules/');
-  if (idx === -1) return undefined;
+  if (idx === -1) {return undefined;}
   const name = key.slice(idx + 'node_modules/'.length);
   return name.length > 0 ? name : undefined;
 }
@@ -70,7 +70,7 @@ function fromPackagesTable(packages: Record<string, NpmPackageEntry>): LockedPac
   const out: LockedPackage[] = [];
   for (const [key, value] of Object.entries(packages)) {
     const name = nameFromPackagesKey(key);
-    if (name === undefined || typeof value.version !== 'string') continue;
+    if (name === undefined || typeof value.version !== 'string') {continue;}
     out.push({
       name,
       version: value.version,
@@ -87,7 +87,7 @@ function fromDependenciesTree(
 ): LockedPackage[] {
   const out: LockedPackage[] = [];
   for (const [name, value] of Object.entries(deps)) {
-    if (typeof value.version !== 'string') continue;
+    if (typeof value.version !== 'string') {continue;}
     const path = prefix === '' ? `node_modules/${name}` : `${prefix}/node_modules/${name}`;
     out.push({
       name,
@@ -106,7 +106,7 @@ function fromDependenciesTree(
 
 function yarnNameFromKey(key: string): string | undefined {
   const first = key.split(',')[0]?.trim().replace(/^"|"$/g, '');
-  if (first === undefined || first.length === 0) return undefined;
+  if (first === undefined || first.length === 0) {return undefined;}
   if (first.startsWith('@')) {
     const match = /^(@[^@/]+\/[^@/]+)@/.exec(first);
     return match?.[1];
@@ -124,7 +124,7 @@ function parseYarnGraph(contents: string): Omit<LockfileGraph, 'directProd' | 'd
   let currentName: string | undefined;
   let inDeps = false;
   for (const raw of contents.split(/\r?\n/)) {
-    if (raw.startsWith('#')) continue;
+    if (raw.startsWith('#')) {continue;}
     if (raw.trim() === '') {
       inDeps = false;
       continue;
@@ -153,7 +153,7 @@ function parseYarnGraph(contents: string): Omit<LockfileGraph, 'directProd' | 'd
         addEdge(edges, currentName, depName);
         continue;
       }
-      if (/^\s{2}\S/.test(raw)) inDeps = false;
+      if (/^\s{2}\S/.test(raw)) {inDeps = false;}
     }
   }
   return {
@@ -212,7 +212,7 @@ function parsePnpmGraph(contents: string): LockfileGraph {
       continue;
     }
     if (raw.length > 0 && !raw.startsWith(' ') && !raw.startsWith('\t')) {
-      if (!/^importers:\s*$/.test(raw) && !/^packages:\s*$/.test(raw)) section = 'none';
+      if (!/^importers:\s*$/.test(raw) && !/^packages:\s*$/.test(raw)) {section = 'none';}
       continue;
     }
 
@@ -228,8 +228,8 @@ function parsePnpmGraph(contents: string): LockfileGraph {
       const depName = /^      (?:'([^']+)'|"([^"]+)"|([^:]+)):/.exec(raw);
       const name = depName?.[1] ?? depName?.[2] ?? depName?.[3];
       if (name !== undefined && importerField !== undefined) {
-        if (importerField === 'prod') directProd.add(name);
-        else directDev.add(name);
+        if (importerField === 'prod') {directProd.add(name);}
+        else {directDev.add(name);}
       }
       continue;
     }
@@ -256,7 +256,7 @@ function parsePnpmGraph(contents: string): LockfileGraph {
           addEdge(edges, currentPkg, depName);
           continue;
         }
-        if (/^    \S/.test(raw)) inPkgDeps = false;
+        if (/^    \S/.test(raw)) {inPkgDeps = false;}
       }
     }
   }
@@ -294,7 +294,7 @@ function graphFromPackagesTable(packages: Record<string, NpmPackageEntry>): Pick
   const directDev = new Set(objectKeys(root.devDependencies));
   for (const [key, value] of Object.entries(packages)) {
     const name = key === '' ? '' : nameFromPackagesKey(key);
-    if (name === undefined || name.length === 0) continue;
+    if (name === undefined || name.length === 0) {continue;}
     for (const dep of [...objectKeys(value.dependencies), ...objectKeys(value.optionalDependencies)]) {
       addEdge(edges, name, dep);
     }
@@ -308,9 +308,9 @@ function graphFromDependenciesTree(
 ): void {
   for (const [name, value] of Object.entries(deps)) {
     const child = value.dependencies;
-    if (child === undefined || typeof child !== 'object' || child === null) continue;
+    if (child === undefined || typeof child !== 'object' || child === null) {continue;}
     const nested = child as Record<string, NpmPackageEntry>;
-    for (const childName of Object.keys(nested)) addEdge(edges, name, childName);
+    for (const childName of Object.keys(nested)) {addEdge(edges, name, childName);}
     graphFromDependenciesTree(nested, edges);
   }
 }
@@ -327,15 +327,15 @@ export function parseLockfileGraph(filename: string, contents: string): Lockfile
   };
   const modern = process.env.FULLSHIELD_EXPERIMENTAL_LOCKFILES === '1';
   if (name === 'yarn.lock') {
-    if (modern && contents.includes('__metadata')) return parseYarnBerry(contents);
+    if (modern && contents.includes('__metadata')) {return parseYarnBerry(contents);}
     return parseYarnGraph(contents);
   }
   if (name === 'pnpm-lock.yaml') {
-    if (modern && /lockfileVersion:\s*['"]?9/.test(contents)) return parsePnpmV9(contents);
+    if (modern && /lockfileVersion:\s*['"]?9/.test(contents)) {return parsePnpmV9(contents);}
     return parsePnpmGraph(contents);
   }
-  if (modern && name === 'bun.lock') return parseBunLock(contents);
-  if (name !== 'package-lock.json') return empty;
+  if (modern && name === 'bun.lock') {return parseBunLock(contents);}
+  if (name !== 'package-lock.json') {return empty;}
 
   try {
     const json = JSON.parse(contents) as {

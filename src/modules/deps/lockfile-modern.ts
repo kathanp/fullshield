@@ -1,7 +1,7 @@
 import type { LockedPackage, LockfileGraph } from './lockfile.js';
 
 function addEdge(edges: Map<string, Set<string>>, from: string, to: string): void {
-  if (from.length === 0 || to.length === 0 || from === to) return;
+  if (from.length === 0 || to.length === 0 || from === to) {return;}
   const list = edges.get(from) ?? new Set<string>();
   list.add(to);
   edges.set(from, list);
@@ -43,13 +43,13 @@ export function parseYarnBerry(contents: string): LockfileGraph {
       devBlock = true;
       continue;
     }
-    if (!inDeps || current === undefined) continue;
+    if (!inDeps || current === undefined) {continue;}
     const dep = /^\s{4}"?([^":]+)"?:\s+(.+)$/.exec(raw);
-    if (dep?.[1] === undefined) continue;
+    if (dep?.[1] === undefined) {continue;}
     const depName = dep[1];
     if (current.length === 0) {
-      if (devBlock) directDev.add(depName);
-      else directProd.add(depName);
+      if (devBlock) {directDev.add(depName);}
+      else {directProd.add(depName);}
     } else {
       addEdge(edges, current, depName);
     }
@@ -71,7 +71,7 @@ function versionFromProtocol(raw: string): string {
   const patch = /^patch:(.+)#/.exec(raw);
   const body = patch?.[1] ?? raw;
   const npm = /^(?:npm:)?(@?[^@]+)@(.+)$/.exec(body);
-  if (npm?.[2] !== undefined) return npm[2];
+  if (npm?.[2] !== undefined) {return npm[2];}
   return body;
 }
 
@@ -128,15 +128,15 @@ export function parsePnpmV9(contents: string): LockfileGraph {
       }
       if (inSnapshotDeps && snapshot !== undefined) {
         const dep = /^\s{6}['"]?([^'":]+)['"]?:/.exec(raw);
-        if (dep?.[1] !== undefined) addEdge(edges, snapshot, dep[1]);
+        if (dep?.[1] !== undefined) {addEdge(edges, snapshot, dep[1]);}
       }
       continue;
     }
     if (block === 'importer-deps' || block === 'importer-dev') {
       const dep = /^\s{6}['"]?([^'":]+)['"]?:/.exec(raw);
       if (dep?.[1] !== undefined && !raw.trim().startsWith('specifier') && !raw.trim().startsWith('version')) {
-        if (block === 'importer-dev') directDev.add(dep[1]);
-        else directProd.add(dep[1]);
+        if (block === 'importer-dev') {directDev.add(dep[1]);}
+        else {directProd.add(dep[1]);}
       }
     }
   }
@@ -155,7 +155,7 @@ export function parseBunLock(contents: string): LockfileGraph {
       packages?: Record<string, unknown>;
     };
     for (const [name, value] of Object.entries(json.packages ?? {})) {
-      if (!Array.isArray(value)) continue;
+      if (!Array.isArray(value)) {continue;}
       const entry: unknown[] = Array.from(value as unknown[]);
       const spec = typeof entry[0] === 'string' ? entry[0] : '';
       const version = spec.includes('@') ? spec.slice(spec.lastIndexOf('@') + 1) : spec;
@@ -164,7 +164,7 @@ export function parseBunLock(contents: string): LockfileGraph {
       if (meta !== null && typeof meta === 'object' && 'dependencies' in meta) {
         const deps = meta.dependencies;
         if (deps !== null && typeof deps === 'object') {
-          for (const dep of Object.keys(deps)) addEdge(edges, name, dep);
+          for (const dep of Object.keys(deps)) {addEdge(edges, name, dep);}
         }
       }
     }

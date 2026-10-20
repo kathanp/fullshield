@@ -1,0 +1,9 @@
+{
+  "name": "capabilities-app",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "direct-helper": "1.0.0",
+    "quiet-helper": "1.0.0"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "results": [
+    {
+      "source": { "path": "package-lock.json", "type": "lockfile" },
+      "packages": [
+        {
+          "package": { "name": "lodash", "version": "9.9.9", "ecosystem": "npm" },
+          "vulnerabilities": [
+            {
+              "id": "CVE-2024-99999",
+              "aliases": ["GHSA-fx00-0000-0000"],
+              "summary": "Fixture advisory",
+              "database_specific": { "severity": "HIGH" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

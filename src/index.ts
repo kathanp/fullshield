@@ -84,7 +84,18 @@ export {
 } from './vex/index.js';
 export { experimentalVex } from './supply/experimental.js';
 export {
+  PRIORITY_FLAG,
+  applyPriority,
+  compareByPriority,
+  priorityEnabled,
+  scoreFinding,
+  scorePriority,
+} from './priority/score.js';
+export type { PriorityFactor, PriorityInput, PriorityScore, RouteExposure } from './priority/score.js';
+export {
   analyzeWorkflowTampering,
   analyzeWormIndicators,
   provenanceCoverage,
 } from './supply/index.js';
+export { INGEST_FLAG, IngestError, ingestEnabled, ingestLocalFiles } from './ingest/index.js';
+export type { IngestLoad } from './ingest/index.js';

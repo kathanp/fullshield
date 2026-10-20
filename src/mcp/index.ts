@@ -50,7 +50,7 @@ export async function callMcpTool(
   name: string,
   args: ToolArgs = {},
 ): Promise<unknown> {
-  if (!session.experimental) return { skipped: true };
+  if (!session.experimental) {return { skipped: true };}
   if (name === 'scan') {
     const cwd = resolve(args.path ?? session.cwd ?? process.cwd());
     session.cwd = cwd;
@@ -64,7 +64,7 @@ export async function callMcpTool(
   }
   if (name === 'explain_finding') {
     const hit = session.findings.find((f) => f.ruleId === args.ruleId);
-    if (!hit) return { text: `no finding ${args.ruleId}` };
+    if (!hit) {return { text: `no finding ${args.ruleId}` };}
     return { text: `${hit.title}: ${hit.message} ${hit.remediation}` };
   }
   if (name === 'propose_fix') {
@@ -78,7 +78,7 @@ export async function callMcpTool(
 
 function proposeOnly(session: McpSession, ruleId: string | undefined): { diff: string; wrote: boolean } {
   const hit = session.findings.find((f) => f.ruleId === ruleId);
-  if (!hit?.file || !session.cwd) return { diff: '', wrote: false };
+  if (!hit?.file || !session.cwd) {return { diff: '', wrote: false };}
   const abs = join(session.cwd, hit.file);
   const source = readFileSync(abs, 'utf8');
   const proposal = proposeFix(hit, source);
@@ -90,12 +90,12 @@ function verifyInTemp(
   ruleId: string | undefined,
 ): { originalUntouched: boolean; tempApplied: boolean } {
   const hit = session.findings.find((f) => f.ruleId === ruleId);
-  if (!hit?.file || !session.cwd) return { originalUntouched: true, tempApplied: false };
+  if (!hit?.file || !session.cwd) {return { originalUntouched: true, tempApplied: false };}
   const original = join(session.cwd, hit.file);
   const before = readFileSync(original, 'utf8');
   const mtime = statSync(original).mtimeMs;
   const proposal = proposeFix(hit, before);
-  if (!proposal?.diff) return { originalUntouched: true, tempApplied: false };
+  if (!proposal?.diff) {return { originalUntouched: true, tempApplied: false };}
   const tmp = mkdtempSync(join(tmpdir(), 'fullshield-mcp-verify-'));
   try {
     cpSync(session.cwd, tmp, { recursive: true });

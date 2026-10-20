@@ -13,9 +13,12 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { acquireVerifyLock, assertSrcTestClean, releaseVerifyLock, srcTestDiff } from './verify-lock.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const isWindows = process.platform === 'win32';
+acquireVerifyLock(root);
+process.on('exit', () => releaseVerifyLock(root));
 
 const args = process.argv.slice(2);
 let phase = null;
@@ -29,6 +32,12 @@ if (phaseIdx !== -1) {
 }
 
 function fail(message) {
+  const dirty = srcTestDiff(root);
+  if (dirty !== '') {
+    console.error('fullshield: FS-E011 src or test changed during verify');
+    console.error(dirty);
+  }
+  releaseVerifyLock(root);
   console.error(`\nVERIFY FAILED: ${message}`);
   process.exit(1);
 }
@@ -109,6 +118,7 @@ runNpm('typecheck');
 runNpm('lint');
 runNpm('build');
 runNpm('test:coverage');
+runNpm('quality');
 
 // ------------------------------------------------------------------ step 3
 section('anti-cheat checks');
@@ -1724,6 +1734,140 @@ s.listen(0, '127.0.0.1', () => {
     if (!existsSync(join(root, '.github', 'dependabot.yml'))) fail('phase 45 acceptance: dependabot.yml missing');
     console.log('  ✔ project workflows are pinned; CodeQL, Scorecard, and the SBOM release job exist');
   },
+  92: () => {
+    const dir = join(root, '.github', 'ISSUE_TEMPLATE');
+    for (const name of ['false-positive.yml', 'false-negative.yml', 'bug.yml', 'config.yml']) {
+      if (!existsSync(join(dir, name))) fail(`phase 92 acceptance: ${name} missing`);
+    }
+    const config = readFileSync(join(dir, 'config.yml'), 'utf8');
+    if (!config.includes('blank_issues_enabled: false')) fail('phase 92 acceptance: blank issues still on');
+    if (!config.includes('SECURITY.md')) fail('phase 92 acceptance: config.yml does not point at SECURITY.md');
+    const tools = readFileSync(join(root, 'docs', 'use-with-other-tools.md'), 'utf8');
+    for (const needle of [
+      'semgrep scan --json',
+      'osv-scanner scan',
+      '--format json',
+      'npm audit --json',
+      'gitleaks git --report-format sarif',
+      'fullshield ingest',
+    ]) {
+      if (!tools.includes(needle)) fail(`phase 92 acceptance: use-with-other-tools.md missing ${needle}`);
+    }
+    if (/\b(more|less) accurate\b/i.test(tools)) fail('phase 92 acceptance: accuracy claim about another tool');
+    const protection = readFileSync(join(root, 'docs', 'branch-protection.md'), 'utf8');
+    for (const name of [
+      'verify (ubuntu-24.04, node 22)',
+      'verify (ubuntu-24.04, node 24)',
+      'verify (macos-latest, node 22)',
+      'verify (macos-latest, node 24)',
+      'verify (windows-latest, node 22)',
+      'verify (windows-latest, node 24)',
+    ]) {
+      if (!protection.includes(name)) fail(`phase 92 acceptance: branch-protection.md missing ${name}`);
+    }
+    const spec = readFileSync(join(root, 'SECURITY_SCANNER_SPEC.md'), 'utf8');
+    if (
+      !spec.includes(
+        '[ X ] Issue templates for bug, false positive, missed attack, and new rule (Section 15).',
+      )
+    ) {
+      fail('phase 92 acceptance: Section 33 issue-templates item still open');
+    }
+    console.log('  ✔ issue forms, companion-tool docs, and the six required check names are present');
+  },
+  93: () => {
+    const summaryPath = join(root, 'bench', 'promotion', 'SUMMARY.md');
+    if (!existsSync(summaryPath)) fail('phase 93 acceptance: bench/promotion/SUMMARY.md missing');
+    const summary = readFileSync(summaryPath, 'utf8');
+    if (!summary.includes('unmet')) fail('phase 93 acceptance: summary must list unmet criteria');
+    if (/\|\s*promoted\s*\|/i.test(summary)) fail('phase 93 acceptance: a flag was marked promoted');
+    const refused = spawnSync(process.execPath, [join(root, 'scripts', 'promotion-batch2.mjs'), '--promote'], {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    if (refused.status === 0) fail('phase 93 acceptance: script must refuse to mark a flag stable');
+    console.log('  ✔ promotion evidence lists unmet criteria and refuses to mark a flag stable');
+  },
+  76: () => {
+    for (const rel of ['scripts/precision-sample.mjs', 'scripts/precision-report.mjs', 'bench/review-cli.mjs']) {
+      if (!existsSync(join(root, rel))) fail(`phase 76 acceptance: missing ${rel}`);
+    }
+    const packed = readFileSync(join(root, 'quality', 'pack-files.txt'), 'utf8');
+    for (const needle of ['scripts/precision-sample.mjs', 'scripts/precision-report.mjs', 'bench/precision']) {
+      if (packed.includes(needle)) fail(`phase 76 acceptance: ${needle} is listed in the npm pack`);
+    }
+    const files = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).files ?? [];
+    if (files.some((name) => name === 'bench' || name === 'scripts' || String(name).startsWith('bench/') || String(name).startsWith('scripts/'))) {
+      fail('phase 76 acceptance: package files include bench or scripts');
+    }
+    console.log('  ✔ precision sampler leaves labels blank and is not packed');
+  },
+  77: () => {
+    for (const rel of [
+      'scripts/realworld-lib.mjs',
+      'scripts/realworld-snapshot.mjs',
+      'scripts/realworld-diff.mjs',
+      'test/unit/release/phase77-realworld-gate.test.ts',
+      'test/fixtures/phase77/repo/src/added.js',
+      'test/fixtures/phase77/repo/src/literal.js',
+    ]) {
+      if (!existsSync(join(root, rel))) fail(`phase 77 acceptance: missing ${rel}`);
+    }
+    const diff = readFileSync(join(root, 'scripts/realworld-diff.mjs'), 'utf8');
+    if (!diff.includes('readApprovedKeys')) {
+      fail('phase 77 acceptance: diff script must read the approval list');
+    }
+    if (diff.includes('writeFileSync') || diff.includes('appendFile')) {
+      fail('phase 77 acceptance: diff script must not write the approval list');
+    }
+    const snapshot = readFileSync(join(root, 'scripts/realworld-snapshot.mjs'), 'utf8');
+    if (snapshot.includes('realworld-approved.txt')) {
+      fail('phase 77 acceptance: snapshot script must not touch the approval list');
+    }
+    const ci = readFileSync(join(root, '.github/workflows/ci.yml'), 'utf8');
+    if (!ci.includes('realworld-precision:')) fail('phase 77 acceptance: CI job missing');
+    if (!ci.includes('timeout-minutes: 30')) fail('phase 77 acceptance: CI timeout missing');
+    if (!ci.includes("hashFiles('bench/realworld.json')")) {
+      fail('phase 77 acceptance: CI cache must be keyed by the pin file');
+    }
+    console.log('  ✔ realworld diff reads approvals; next-only CI job is present');
+  },
+  89: () => {
+    const flagFile = readFileSync(join(root, 'src', 'sbom', 'spdx-flag.ts'), 'utf8');
+    if (!flagFile.includes('FULLSHIELD_EXPERIMENTAL_SPDX')) fail('phase 89 acceptance: SPDX flag missing');
+    const program = readFileSync(join(root, 'src', 'cli', 'program.ts'), 'utf8');
+    if (!program.includes('--sbom-timestamp')) fail('phase 89 acceptance: --sbom-timestamp missing');
+    if (!program.includes('--format spdx') && !program.includes("opts.format === 'spdx'")) {
+      fail('phase 89 acceptance: sbom --format spdx missing');
+    }
+    if (!existsSync(join(root, 'test', 'schemas', 'spdx-2.3.schema.json'))) {
+      fail('phase 89 acceptance: vendored SPDX schema missing');
+    }
+    const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+    const files = Array.isArray(pkg.files) ? pkg.files.join('\n') : '';
+    if (files.includes('test/schemas') || files.includes('spdx-2.3')) {
+      fail('phase 89 acceptance: SPDX schema must not be shipped');
+    }
+    console.log('  ✔ experimental SPDX 2.3 SBOM; schema is test-only');
+  },
+  88: () => {
+    const program = readFileSync(join(root, 'src', 'cli', 'program.ts'), 'utf8');
+    if (!program.includes(".command('dev')")) fail('phase 88 acceptance: dev command missing');
+    const src = readFileSync(join(root, 'src', 'dev', 'index.ts'), 'utf8');
+    if (!src.includes('FULLSHIELD_EXPERIMENTAL_DEV')) fail('phase 88 acceptance: flag missing');
+    if (!src.includes('fs.watch') && !src.includes('watch(')) fail('phase 88 acceptance: fs.watch missing');
+    if (!src.includes('300')) fail('phase 88 acceptance: 300ms debounce missing');
+    if (!existsSync(join(root, 'test', 'unit', 'dev', 'phase88.test.ts'))) fail('phase 88 acceptance: test missing');
+    console.log('  ✔ fullshield dev is behind FULLSHIELD_EXPERIMENTAL_DEV');
+  },
+  94: () => {
+    const doc = readFileSync(join(root, 'docs', 'QUALITY.md'), 'utf8');
+    for (const id of ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10', 'Q11', 'Q12']) {
+      if (!doc.includes(id)) fail(`phase 94 acceptance: QUALITY.md missing ${id}`);
+    }
+    if (!existsSync(join(root, 'quality', 'baseline.json'))) fail('phase 94 acceptance: baseline missing');
+    console.log('  ✔ quality gate documents Q1–Q12 and records a baseline');
+  },
 };
 
 if (phase !== null) {
@@ -1737,4 +1881,6 @@ if (phase !== null) {
   console.log(`  ✔ phase ${phase} acceptance criteria passed`);
 }
 
+assertSrcTestClean(root, 'verify');
+releaseVerifyLock(root);
 console.log('\nVERIFY PASSED');

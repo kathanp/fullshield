@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path';
 
 import { Command } from 'commander';
 
+import { budgetEnabled } from '../core/budget.js';
 import { scan } from '../core/engine.js';
 import { readLastScanIds, writeLastScan } from '../core/lastScan.js';
 import { diffNewFindings } from '../core/watch.js';
@@ -22,6 +23,7 @@ import {
 } from '../core/finding.js';
 import { createAiClient, isLiveAi } from '../ai/provider.js';
 import { runAiFix } from '../ai/fixLoop.js';
+import { PRIORITY_FLAG } from '../priority/score.js';
 import { packageVersion } from '../core/version.js';
 import { renderGithubAnnotations, renderGitlabCodeQuality, renderJunitReport } from '../reporters/ci.js';
 import { renderConsoleReport } from '../reporters/console.js';
@@ -30,22 +32,38 @@ import { renderJsonReport } from '../reporters/json.js';
 import { renderMarkdownReport } from '../reporters/markdown.js';
 import { renderSarifReport } from '../reporters/sarif.js';
 import { addedFails, diffScans, parseScanDocument, renderDiffText } from '../diff/index.js';
-import { CI_REPORTS_FLAG, DIFF_FLAG, diffEnabled } from '../modules/sast/experimental.js';
+import { CI_REPORTS_FLAG, DIFF_FLAG, TYPES_FLAG, diffEnabled } from '../modules/sast/experimental.js';
+import { guardSemgrepCli, SEMGREP_RULES_FLAG } from '../modules/sast/semgrep/flag.js';
 import { POLICY_FLAG, renderPrSummary } from '../policy/index.js';
 import { diffLockedPackages, lockAtRef, packagesFromLock, releaseAgeLabel } from '../deps-diff/index.js';
+import { registryCachePath, releaseFactsFromCache } from '../provenance/index.js';
+import {
+  assertCapabilitiesEnabled,
+  capabilitiesEnabled,
+  formatCapabilityReport,
+  introducedCapabilities,
+  profileProject,
+} from '../capabilities/index.js';
+import { loadConfig } from '../core/config.js';
 import { explainFinding } from '../explain/index.js';
 import { queryOsv } from '../modules/deps/osv.js';
 import { osvSeverity } from '../modules/deps/semver.js';
 import { buildSbom } from '../sbom/index.js';
 import { validateCycloneDx15 } from '../sbom/cyclonedx.js';
+import { experimentalSpdxEnabled } from '../sbom/spdx-flag.js';
+import { runSpdxCli } from '../sbom/spdx-command.js';
 import { runEdge } from '../modules/edge/index.js';
 import { runHostCheck } from '../host/index.js';
 import { runDoctor } from './commands/doctor.js';
 import { formatCliError } from './errors.js';
+import { runIngestCommand } from '../ingest/command.js';
+import { DEV_FLAG, DevError, devEnabled, startDevLoop } from '../dev/index.js';
 
 export interface ProgramIO {
   out(text: string): void;
   err(text: string): void;
+  /** Defaults to the built-in scan. Tests pass a scan that includes a slow rule. */
+  scan?(options: Parameters<typeof scan>[0]): ReturnType<typeof scan>;
 }
 
 const defaultIO: ProgramIO = {
@@ -90,10 +108,20 @@ interface ScanCliOptions {
   experimentalSarifV2?: boolean;
   experimentalCustomSanitizers?: boolean;
   experimentalValidation?: boolean;
+  experimentalTypes?: boolean;
+  experimentalModels?: boolean;
   taintSummaries?: boolean;
   experimentalMcpcfg?: boolean;
   includeHome?: boolean;
   prSummary?: boolean;
+  experimentalPriority?: boolean;
+  experimentalCapabilities?: boolean;
+  paths?: boolean;
+  experimentalPaths?: boolean;
+  maxTime?: string;
+  experimentalBudget?: boolean;
+  experimentalSemgrepRules?: boolean;
+  semgrepRules?: string;
 }
 
 function parseModules(value: string): ModuleName[] {
@@ -110,8 +138,8 @@ function parseModules(value: string): ModuleName[] {
 }
 
 function parseAiMode(value: string | true | undefined): 'explain' | undefined {
-  if (value === undefined) return undefined;
-  if (value === true || value === 'explain') return 'explain';
+  if (value === undefined) {return undefined;}
+  if (value === true || value === 'explain') {return 'explain';}
   if (value === 'triage' || value === 'logic') {
     throw new Error(
       `--ai ${value} is not shipped in 0.1.0 (experimental: --ai explain, fix --ai)`,
@@ -120,11 +148,30 @@ function parseAiMode(value: string | true | undefined): 'explain' | undefined {
   throw new Error(`invalid --ai mode "${value}" (valid: explain)`);
 }
 
+function pollIntervalOption(raw: string | undefined): number | undefined {
+  if (raw === undefined || raw.length === 0) {
+    return undefined;
+  }
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return undefined;
+  }
+  return Math.floor(parsed);
+}
+
 function parseFailOn(value: string): Severity {
   if (!isSeverity(value)) {
     throw new Error(`invalid --fail-on severity "${value}" (valid: ${SEVERITIES.join(', ')})`);
   }
   return value;
+}
+
+function parseMaxTime(value: string): number {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    throw new Error(`invalid --max-time "${value}" (expected a positive number of seconds)`);
+  }
+  return seconds;
 }
 
 export function createProgram(io: ProgramIO = defaultIO): Command {
@@ -142,6 +189,14 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option('--json', 'machine-readable JSON output')
     .option('--all', 'print every finding in the console, with no 20-row cap')
     .option('--fail-on <severity>', 'exit 1 if any finding is at or above this severity')
+    .option(
+      '--max-time <seconds>',
+      'experimental: stop at this many seconds (FULLSHIELD_EXPERIMENTAL_BUDGET=1). An incomplete scan is not clean',
+    )
+    .option(
+      '--experimental-budget',
+      'experimental: time budget and partial results (FULLSHIELD_EXPERIMENTAL_BUDGET=1)',
+    )
     .option('--modules <modules>', 'comma-separated subset of modules to run')
     .option('--staged', 'scan only files staged in git (pre-commit mode)')
     .option('--offline', 'use the OSV cache only (no network)')
@@ -229,10 +284,35 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       '--experimental-validation',
       'experimental: route schema validation inference (FULLSHIELD_EXPERIMENTAL_VALIDATION=1)',
     )
+    .option(
+      '--experimental-types',
+      'experimental: suppress non-sink receivers with the TypeScript checker (FULLSHIELD_EXPERIMENTAL_TYPES=1)',
+    )
+    .option(
+      '--experimental-models',
+      'experimental: library model packs (FULLSHIELD_EXPERIMENTAL_MODELS=1)',
+    )
     .option('--taint-summaries', 'cache per-function taint summaries (FULLSHIELD_TAINT_SUMMARIES=1)')
+    .option(
+      '--experimental-paths',
+      'experimental: attack paths from existing findings (FULLSHIELD_EXPERIMENTAL_PATHS=1)',
+    )
+    .option('--paths', 'add a paths section (requires FULLSHIELD_EXPERIMENTAL_PATHS=1)')
     .option(
       '--experimental-mcpcfg',
       'experimental: MCP client/server config rules (FULLSHIELD_EXPERIMENTAL_MCPCFG=1)',
+    )
+    .option(
+      '--experimental-priority',
+      `experimental: deterministic priority score (${PRIORITY_FLAG}=1)`,
+    )
+    .option(
+      '--experimental-semgrep-rules',
+      'experimental: user-supplied Semgrep-style rules (FULLSHIELD_EXPERIMENTAL_SEMGREP_RULES=1)',
+    )
+    .option(
+      '--semgrep-rules <file>',
+      'experimental: YAML rules file (requires FULLSHIELD_EXPERIMENTAL_SEMGREP_RULES=1)',
     )
     .option(
       '--include-home',
@@ -241,6 +321,10 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option(
       '--pr-summary',
       'experimental: deterministic Markdown of new findings versus baseline (FULLSHIELD_EXPERIMENTAL_POLICY=1)',
+    )
+    .option(
+      '--experimental-capabilities',
+      'experimental: dependency capability profile (FULLSHIELD_EXPERIMENTAL_CAPABILITIES=1)',
     )
     .action(async (path: string, opts: ScanCliOptions) => {
       try {
@@ -271,6 +355,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         if (opts.experimentalSupply === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY = '1';
         }
+        if (opts.experimentalCapabilities === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_CAPABILITIES = '1';
+        }
         if (opts.experimentalWorkspaces === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_WORKSPACES = '1';
         }
@@ -283,12 +370,36 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         if (opts.experimentalValidation === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_VALIDATION = '1';
         }
+        if (opts.experimentalTypes === true) {
+          process.env[TYPES_FLAG] = '1';
+        }
+        if (opts.experimentalModels === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_MODELS = '1';
+        }
         if (opts.taintSummaries === true) {
           process.env.FULLSHIELD_TAINT_SUMMARIES = '1';
+        }
+        if (opts.experimentalPaths === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_PATHS = '1';
+        }
+        if (opts.paths === true && process.env.FULLSHIELD_EXPERIMENTAL_PATHS !== '1') {
+          throw new Error('--paths requires FULLSHIELD_EXPERIMENTAL_PATHS=1');
         }
         if (opts.experimentalMcpcfg === true) {
           process.env.FULLSHIELD_EXPERIMENTAL_MCPCFG = '1';
         }
+        if (opts.experimentalPriority === true) {
+          process.env[PRIORITY_FLAG] = '1';
+        }
+        if (opts.experimentalBudget === true) {
+          process.env.FULLSHIELD_EXPERIMENTAL_BUDGET = '1';
+        }
+        const maxTimeSeconds =
+          budgetEnabled() && opts.maxTime !== undefined ? parseMaxTime(opts.maxTime) : undefined;
+        if (opts.experimentalSemgrepRules === true) {
+          process.env[SEMGREP_RULES_FLAG] = '1';
+        }
+        guardSemgrepCli(opts.semgrepRules, process.env[SEMGREP_RULES_FLAG] === '1');
         if (opts.prSummary === true && process.env[POLICY_FLAG] !== '1') {
           throw new Error(`--pr-summary requires ${POLICY_FLAG}=1`);
         }
@@ -303,7 +414,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           );
         }
 
-        const result = await scan({
+        const result = await (io.scan ?? scan)({
           cwd: resolve(path),
           modules,
           includeHome: opts.includeHome === true,
@@ -320,6 +431,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           verifySecrets: opts.verifySecrets === true,
           iOwnTheseCredentials: opts.iOwnTheseCredentials === true,
           experimentalPolicy: process.env[POLICY_FLAG] === '1',
+          paths: opts.paths === true,
+          ...(maxTimeSeconds !== undefined ? { maxTimeSeconds } : {}),
+          semgrepRules: opts.semgrepRules,
         });
 
         if (opts.sarif !== undefined) {
@@ -356,6 +470,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           io.err(`wrote virtual patches ${out}`);
         }
 
+        for (const line of result.metadata.info ?? []) {io.err(line);}
         if (opts.prSummary === true) {
           io.out(renderPrSummary(result.findings));
         } else {
@@ -372,6 +487,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           }
           process.exitCode = 1;
         }
+        if (result.typesNotice !== undefined) {
+          io.err(result.typesNotice);
+        }
         if (result.suppressionErrors !== undefined && result.suppressionErrors.length > 0) {
           for (const message of result.suppressionErrors) {
             io.err(`fullshield: ${message}`);
@@ -381,6 +499,8 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         const failOn = failOnOverride ?? result.policy?.failOn ?? result.config.failOn;
         if (result.findings.some((f) => failsCi(f, failOn))) {
           process.exitCode = 1;
+        } else if (process.exitCode !== 1 && result.metadata.incomplete === true) {
+          process.exitCode = 3;
         }
       } catch (error) {
         io.err(formatCliError(error));
@@ -397,6 +517,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option('--unsafe', 'include major-version bumps and code patches marked unsafe')
     .option('--no-branch', 'do not create a fullshield/fixes-* branch')
     .option('--modules <modules>', 'comma-separated subset of modules to scan')
+    .option('--experimental-fix-verify', 're-scan each patch in memory (FULLSHIELD_EXPERIMENTAL_FIX_VERIFY=1)')
+    .option('--force-unverified', 'write a patch that does not remove its finding')
+    .option('--yes', 'does not write a patch that introduces a finding')
     .option('--ai', 'draft a verified patch for findings without a rule-based fix (reviewable diff only)')
     .action(async (path: string, opts: {
       apply?: boolean;
@@ -405,6 +528,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
       branch?: boolean;
       modules?: string;
       ai?: boolean;
+      experimentalFixVerify?: boolean;
+      forceUnverified?: boolean;
+      yes?: boolean;
     }) => {
       try {
         const modules = opts.modules !== undefined ? parseModules(opts.modules) : undefined;
@@ -426,22 +552,27 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           force: opts.force === true,
           unsafe: opts.unsafe === true,
           noBranch: opts.branch === false,
+          experimentalFixVerify: opts.experimentalFixVerify === true,
+          forceUnverified: opts.forceUnverified === true,
+          yes: opts.yes === true,
         });
         if (result.patches.length === 0) {
           io.out('No safe fixes available.');
         } else {
           for (const patch of result.patches) {
-            io.out(`# ${patch.ruleId} ${patch.file}${patch.safe ? '' : ' (unsafe)'}`);
+            const verified = patch.verified !== undefined ? ` verified: ${patch.verified}` : '';
+            io.out(`# ${patch.ruleId} ${patch.file}${patch.safe ? '' : ' (unsafe)'}${verified}`);
             io.out(patch.diff);
             io.out('');
           }
         }
+        for (const warning of result.warnings ?? []) {io.err(warning);}
         if (result.reverted) {
           io.err('fullshield: project tests failed; fixes were reverted');
           process.exitCode = 1;
         } else if (opts.apply === true && result.applied) {
           io.out(`Applied ${result.patches.length} fix(es)${result.branch !== undefined ? ` on ${result.branch}` : ''}.`);
-          if (result.notice !== undefined) io.out(result.notice);
+          if (result.notice !== undefined) {io.out(result.notice);}
         } else if (opts.apply !== true) {
           io.out('Dry run. Re-run with --apply to write safe fixes.');
         }
@@ -509,20 +640,28 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
 
   program
     .command('sbom')
-    .description('Write a CycloneDX 1.5 SBOM for the project')
+    .description('Write a CycloneDX 1.5 SBOM, or experimental SPDX 2.3 when enabled')
     .argument('[path]', 'project directory', '.')
     .option('--format <format>', 'sbom format', 'cyclonedx')
     .option('--out <file>', 'write to this file instead of stdout')
-    .action(async (path: string, opts: { format?: string; out?: string }) => {
+    .option('--sbom-timestamp <timestamp>', 'SPDX created time; else SOURCE_DATE_EPOCH')
+    .option('--cyclonedx-out <file>', 'with SPDX, also write CycloneDX and reference it')
+    .option('--experimental-spdx', 'enable experimental SPDX 2.3 (FULLSHIELD_EXPERIMENTAL_SPDX=1)')
+    .action(async (path: string, opts: { format?: string; out?: string; sbomTimestamp?: string; cyclonedxOut?: string; experimentalSpdx?: boolean }) => {
       try {
-        if (opts.format !== undefined && opts.format !== 'cyclonedx') {
+        const spdxOn = experimentalSpdxEnabled(opts.experimentalSpdx === true);
+        if (opts.format !== undefined && opts.format !== 'cyclonedx' && !(opts.format === 'spdx' && spdxOn)) {
           throw new Error(`unsupported SBOM format "${opts.format}" (valid: cyclonedx)`);
+        }
+        if (opts.format === 'spdx') {
+          await runSpdxCli(resolve(path), opts, io);
+          return;
         }
         const doc = await buildSbom(resolve(path), {
           includeReach: process.env.FULLSHIELD_EXPERIMENTAL_SBOM_REACH === '1',
         });
         const errors = validateCycloneDx15(doc);
-        if (errors.length > 0) throw new Error(`invalid SBOM: ${errors.join('; ')}`);
+        if (errors.length > 0) {throw new Error(`invalid SBOM: ${errors.join('; ')}`);}
         const json = JSON.stringify(doc, null, 2);
         if (opts.out !== undefined) {
           await writeFile(resolve(opts.out), json, 'utf8');
@@ -543,7 +682,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option('--json', 'machine-readable JSON output')
     .action(async (url: string, opts: { json?: boolean }) => {
       try {
-        if (!/^https?:\/\//i.test(url)) throw new Error('edge requires an explicit http(s) URL');
+        if (!/^https?:\/\//i.test(url)) {throw new Error('edge requires an explicit http(s) URL');}
         const delayRaw = process.env.FULLSHIELD_EDGE_DELAY;
         const delayMs = delayRaw !== undefined && delayRaw.length > 0 ? Number(delayRaw) : 1000;
         const findings = await runEdge({ url, delayMs });
@@ -552,9 +691,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           io.out(JSON.stringify(payload, null, 2));
         } else {
           io.out(`FullShield edge ${url} — ${payload.summary.total} finding(s)`);
-          for (const f of findings) io.out(`  [${f.ruleId}] ${f.message}`);
+          for (const f of findings) {io.out(`  [${f.ruleId}] ${f.message}`);}
         }
-        if (findings.some((f) => meetsThreshold(f.severity, 'high'))) process.exitCode = 1;
+        if (findings.some((f) => meetsThreshold(f.severity, 'high'))) {process.exitCode = 1;}
       } catch (error) {
         io.err(formatCliError(error));
         process.exitCode = 2;
@@ -597,7 +736,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           });
         }
         const gate = failOn ?? result.config.failOn;
-        if (fresh.some((f) => meetsThreshold(f.severity, gate))) process.exitCode = 1;
+        if (fresh.some((f) => meetsThreshold(f.severity, gate))) {process.exitCode = 1;}
       } catch (error) {
         io.err(formatCliError(error));
         process.exitCode = 2;
@@ -698,7 +837,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
         const session = createMcpSession({ experimental: true });
         const chunks: Buffer[] = [];
-        for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
+        for await (const chunk of process.stdin) {chunks.push(chunk as Buffer);}
         const text = Buffer.concat(chunks).toString('utf8').trim();
         if (!text) {
           io.out(JSON.stringify({ tools: listMcpTools() }));
@@ -717,18 +856,20 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .description('Print one finding from a scan JSON file (requires FULLSHIELD_EXPERIMENTAL_EXPLAIN=1)')
     .argument('<id>', 'finding id or a prefix of at least 6 characters')
     .option('--from <file>', 'scan --json file')
-    .action(async (id: string, opts: { from?: string }) => {
+    .option('--experimental-fix-verify', 're-scan the suggested diff in memory (FULLSHIELD_EXPERIMENTAL_FIX_VERIFY=1)')
+    .action(async (id: string, opts: { from?: string; experimentalFixVerify?: boolean }) => {
       try {
         if (process.env.FULLSHIELD_EXPERIMENTAL_EXPLAIN !== '1') {
           throw new Error('explain requires FULLSHIELD_EXPERIMENTAL_EXPLAIN=1');
         }
-        if (opts.from === undefined) throw new Error('explain needs --from <scan.json> (FULLSHIELD_EXPERIMENTAL_EXPLAIN)');
+        if (opts.from === undefined) {throw new Error('explain needs --from <scan.json> (FULLSHIELD_EXPERIMENTAL_EXPLAIN)');}
         const raw = JSON.parse(await readFile(opts.from, 'utf8')) as { findings?: unknown };
-        if (!Array.isArray(raw.findings)) throw new Error('explain --from is not scan JSON (FULLSHIELD_EXPERIMENTAL_EXPLAIN)');
+        if (!Array.isArray(raw.findings)) {throw new Error('explain --from is not scan JSON (FULLSHIELD_EXPERIMENTAL_EXPLAIN)');}
         const text = await explainFinding({
           cwd: process.cwd(),
           id,
           findings: raw.findings as Parameters<typeof explainFinding>[0]['findings'],
+          experimentalFixVerify: opts.experimentalFixVerify === true,
         });
         io.out(text);
       } catch (error) {
@@ -782,13 +923,11 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           let published: string | undefined;
           let installScripts: 'yes' | 'no' | 'unknown' = 'unknown';
           try {
-            const raw = JSON.parse(await readFile(join(cwd, 'osv-cache', 'registry', `${change.name}.json`), 'utf8')) as {
-              time?: string;
-              hasInstallScript?: boolean;
-            };
-            published = raw.time;
-            if (raw.hasInstallScript === true) installScripts = 'yes';
-            if (raw.hasInstallScript === false) installScripts = 'no';
+            const raw: unknown = JSON.parse(await readFile(registryCachePath(join(cwd, 'osv-cache'), change.name), 'utf8'));
+            const facts = releaseFactsFromCache(raw, change.newVersion);
+            published = facts.publishedAt;
+            if (facts.hasInstallScript === true) {installScripts = 'yes';}
+            if (facts.hasInstallScript === false) {installScripts = 'no';}
           } catch {
             published = undefined;
           }
@@ -799,12 +938,50 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
             installScripts,
           });
         }
-        const report = { changes, introduced, ages };
+        const report: {
+          changes: typeof changes;
+          introduced: typeof introduced;
+          ages: typeof ages;
+          newCapabilities?: ReturnType<typeof introducedCapabilities>;
+        } = { changes, introduced, ages };
+        if (capabilitiesEnabled()) {
+          report.newCapabilities = introducedCapabilities({
+            beforeText: previous.text,
+            afterText: currentText,
+            cwd,
+            cacheDir: join(cwd, 'osv-cache'),
+          });
+        }
         io.out(JSON.stringify(report, null, 2));
         if (opts.failOn !== undefined) {
           const threshold = parseFailOn(opts.failOn);
-          if (introduced.some((item) => meetsThreshold(item.severity, threshold))) process.exitCode = 1;
+          if (introduced.some((item) => meetsThreshold(item.severity, threshold))) {process.exitCode = 1;}
         }
+      } catch (error) {
+        io.err(formatCliError(error));
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('deps')
+    .description('Dependency capability profile (requires FULLSHIELD_EXPERIMENTAL_CAPABILITIES=1)')
+    .argument('[path]', 'project directory', '.')
+    .option('--capabilities', 'print each direct dependency capability and who introduces it')
+    .option('--json', 'print JSON')
+    .action(async (path: string, opts: { capabilities?: boolean; json?: boolean }) => {
+      try {
+        if (opts.capabilities !== true) {
+          io.out('pass --capabilities');
+          return;
+        }
+        assertCapabilitiesEnabled('deps --capabilities');
+        const cwd = resolve(path);
+        const config = await loadConfig(cwd);
+        const cacheDir =
+          config.deps.cacheDir !== undefined ? resolve(cwd, config.deps.cacheDir) : join(cwd, 'osv-cache');
+        const rows = profileProject(cwd, cacheDir, config.deps.capabilityPolicy);
+        io.out(opts.json === true ? JSON.stringify({ dependencies: rows }, null, 2) : formatCapabilityReport(rows));
       } catch (error) {
         io.err(formatCliError(error));
         process.exitCode = 2;
@@ -937,12 +1114,12 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           );
         } else {
           io.out(`FullShield host — ${result.findings.length} finding(s)`);
-          for (const f of result.findings) io.out(`  [${f.severity}] ${f.ruleId} ${f.message}`);
+          for (const f of result.findings) {io.out(`  [${f.severity}] ${f.ruleId} ${f.message}`);}
           if (result.findings.length === 0) {
             io.out('No HOST-SSH findings. FullShield does not stop OS or SSH exploits.');
           }
         }
-        if (result.findings.some((f) => meetsThreshold(f.severity, 'high'))) process.exitCode = 1;
+        if (result.findings.some((f) => meetsThreshold(f.severity, 'high'))) {process.exitCode = 1;}
       } catch (error) {
         io.err(formatCliError(error));
         process.exitCode = 2;
@@ -994,15 +1171,15 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
             name?: unknown;
             version?: unknown;
           };
-          if (typeof pkg.name === 'string') name = pkg.name;
-          if (typeof pkg.version === 'string') version = pkg.version;
+          if (typeof pkg.name === 'string') {name = pkg.name;}
+          if (typeof pkg.version === 'string') {version = pkg.version;}
         } catch {
           // package.json optional
         }
         const { buildVex, validateCycloneDxVex, validateOpenVex } = await import('../vex/index.js');
         const doc = buildVex(result.findings, format, { name, version });
         const errors = format === 'cyclonedx' ? validateCycloneDxVex(doc) : validateOpenVex(doc);
-        if (errors.length > 0) throw new Error(`invalid VEX: ${errors.join('; ')}`);
+        if (errors.length > 0) {throw new Error(`invalid VEX: ${errors.join('; ')}`);}
         const json = JSON.stringify(doc, null, 2);
         if (opts.out !== undefined) {
           await writeFile(resolve(opts.out), json, 'utf8');
@@ -1032,8 +1209,8 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         opts: { experimentalDiff?: boolean; json?: boolean; out?: string; failOn?: string },
       ) => {
         try {
-          if (opts.experimentalDiff === true) process.env[DIFF_FLAG] = '1';
-          if (!diffEnabled()) throw new Error(`diff requires ${DIFF_FLAG}=1`);
+          if (opts.experimentalDiff === true) {process.env[DIFF_FLAG] = '1';}
+          if (!diffEnabled()) {throw new Error(`diff requires ${DIFF_FLAG}=1`);}
           const failOn = parseFailOn(opts.failOn ?? 'high');
           let beforeText: string;
           let afterText: string;
@@ -1045,15 +1222,53 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           }
           const diff = diffScans(parseScanDocument(beforeText), parseScanDocument(afterText));
           const json = JSON.stringify(diff, null, 2);
-          if (opts.out !== undefined) await writeFile(resolve(opts.out), json, 'utf8');
+          if (opts.out !== undefined) {await writeFile(resolve(opts.out), json, 'utf8');}
           io.out(opts.json === true ? json : renderDiffText(diff));
-          if (addedFails(diff, failOn)) process.exitCode = 1;
+          if (addedFails(diff, failOn)) {process.exitCode = 1;}
         } catch (error) {
           io.err(formatCliError(error));
           process.exitCode = 2;
         }
       },
     );
+
+  program
+    .command('ingest')
+    .description('Ingest local SARIF, npm audit, OSV-Scanner, and Semgrep JSON (FULLSHIELD_EXPERIMENTAL_INGEST=1)')
+    .argument('<files...>', 'local report files')
+    .option('--json', 'print JSON')
+    .option('--sarif <file>', 'write SARIF 2.1.0 with one run per source tool plus FullShield')
+    .option('--experimental-ingest', 'enable ingest (FULLSHIELD_EXPERIMENTAL_INGEST=1)')
+    .action(async (files: string[], opts: { json?: boolean; sarif?: string; experimentalIngest?: boolean }) => {
+      try {
+        await runIngestCommand(files, opts, io);
+      } catch (error) {
+        io.err(formatCliError(error));
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('dev')
+    .description('Watch the project and print new or resolved findings (FULLSHIELD_EXPERIMENTAL_DEV=1)')
+    .argument('[path]', 'project directory', '.')
+    .option('--poll-interval <ms>', 'poll interval when recursive fs.watch is unavailable')
+    .action(async (path: string, opts: { pollInterval?: string }) => {
+      try {
+        if (!devEnabled()) {
+          throw new DevError(`dev requires ${DEV_FLAG}=1`);
+        }
+        const session = await startDevLoop({
+          cwd: resolve(path),
+          out: (line) => io.out(line),
+          pollIntervalMs: pollIntervalOption(opts.pollInterval),
+        });
+        await session.done;
+      } catch (error) {
+        io.err(formatCliError(error));
+        process.exitCode = 2;
+      }
+    });
 
   program
     .command('doctor')

@@ -17,10 +17,10 @@ export const entropyRule: SecretsRule = {
     ctx.lines.forEach((line, index) => {
       for (const match of everyMatch(ASSIGNMENT, line)) {
         const [, name, value] = match;
-        if (name === undefined || value === undefined) continue;
-        if (!SECRET_NAME.test(name)) continue;
-        if (value.includes(' ') || value.includes('${')) continue;
-        if (shannonEntropy(value) <= ENTROPY_THRESHOLD) continue;
+        if (name === undefined || value === undefined) {continue;}
+        if (!SECRET_NAME.test(name)) {continue;}
+        if (value.includes(' ') || value.includes('${')) {continue;}
+        if (shannonEntropy(value) <= ENTROPY_THRESHOLD) {continue;}
         ctx.report({ line: index + 1, secret: value });
       }
     });

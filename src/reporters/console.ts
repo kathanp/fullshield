@@ -2,6 +2,8 @@ import pc from 'picocolors';
 
 import type { ScanResult } from '../core/engine.js';
 import { SEVERITIES, type Finding, type Severity } from '../core/finding.js';
+import { compareByPriority, priorityEnabled } from '../priority/score.js';
+import type { AttackPath } from '../paths/types.js';
 import { redactScan } from './redact.js';
 
 const SEVERITY_COLOR: Record<Severity, (text: string) => string> = {
@@ -67,7 +69,7 @@ const SHOWN_VULN_REACH = new Set<NonNullable<Finding['reachability']>>([
 ]);
 
 function packageNameFromSnippet(snippet: string | undefined): string | undefined {
-  if (snippet === undefined || snippet.length === 0) return undefined;
+  if (snippet === undefined || snippet.length === 0) {return undefined;}
   if (snippet.startsWith('@')) {
     const second = snippet.indexOf('@', 1);
     return second === -1 ? snippet : snippet.slice(0, second);
@@ -78,7 +80,7 @@ function packageNameFromSnippet(snippet: string | undefined): string | undefined
 
 function versionsFromSnippet(snippet: string | undefined): string[] {
   const name = packageNameFromSnippet(snippet);
-  if (name === undefined || snippet === undefined) return [];
+  if (name === undefined || snippet === undefined) {return [];}
   const rest = snippet.slice(name.length + 1);
   return rest.length === 0 ? [] : rest.split(',').filter((version) => version.length > 0);
 }
@@ -92,9 +94,9 @@ function isDevOnly(finding: Finding): boolean {
  * Dependency rows ignore severity and confidence. JSON and other reporters are unchanged.
  */
 export function isActionable(finding: Finding): boolean {
-  if (finding.ruleId === 'DEPS-MALICIOUS-001') return true;
+  if (finding.ruleId === 'DEPS-MALICIOUS-001') {return true;}
   if (finding.ruleId === 'DEPS-VULN-001') {
-    if (isDevOnly(finding)) return false;
+    if (isDevOnly(finding)) {return false;}
     return finding.reachability !== undefined && SHOWN_VULN_REACH.has(finding.reachability);
   }
   if (finding.module === 'sast' || finding.module === 'secrets' || finding.module === 'config') {
@@ -103,12 +105,21 @@ export function isActionable(finding: Finding): boolean {
   return false;
 }
 
+function formatPath(path: AttackPath): string {
+  const entry = path.entry === undefined ? '(no route)' : `${path.entry.method} ${path.entry.path} auth=${path.entry.auth}`;
+  const where =
+    path.sink.file !== undefined
+      ? `${path.sink.file}${path.sink.line !== undefined ? `:${path.sink.line}` : ''}`
+      : '(project)';
+  return `  ${entry} → [${path.sink.ruleId}] ${where}`;
+}
+
 function reachRank(finding: Finding): number {
   const reachability = finding.reachability;
-  if (reachability === 'reachable' || reachability === 'symbol-reachable') return 0;
-  if (reachability === 'reachable-via-dependency') return 1;
-  if (reachability === 'reachability-unknown') return 2;
-  if (reachability === undefined) return 4;
+  if (reachability === 'reachable' || reachability === 'symbol-reachable') {return 0;}
+  if (reachability === 'reachable-via-dependency') {return 1;}
+  if (reachability === 'reachability-unknown') {return 2;}
+  if (reachability === undefined) {return 4;}
   return 3;
 }
 
@@ -170,8 +181,8 @@ function dependencyRows(findings: readonly Finding[]): ConsoleRow[] {
     const name = packageNameFromSnippet(finding.snippet);
     if ((finding.ruleId === 'DEPS-VULN-001' || finding.ruleId === 'DEPS-MALICIOUS-001') && name !== undefined) {
       const list = groups.get(name);
-      if (list === undefined) groups.set(name, [finding]);
-      else list.push(finding);
+      if (list === undefined) {groups.set(name, [finding]);}
+      else {list.push(finding);}
     } else {
       singles.push(finding);
     }
@@ -189,7 +200,7 @@ function dependencyRows(findings: readonly Finding[]): ConsoleRow[] {
   for (const [packageName, list] of groups) {
     const ordered = [...list].sort(compareActionable);
     const first = ordered[0];
-    if (first === undefined) continue;
+    if (first === undefined) {continue;}
     const versions = [...new Set(list.flatMap((finding) => versionsFromSnippet(finding.snippet)))].sort();
     const malicious = list.find((finding) => finding.ruleId === 'DEPS-MALICIOUS-001');
     rows.push({
@@ -208,7 +219,16 @@ function dependencyRows(findings: readonly Finding[]): ConsoleRow[] {
   rows.sort((a, b) => {
     const probeA = a.findings[0];
     const probeB = b.findings[0];
-    if (probeA === undefined || probeB === undefined) return 0;
+    if (probeA === undefined || probeB === undefined) {return 0;}
+    if (priorityEnabled()) {
+      return (
+        rowPriority(b) - rowPriority(a) ||
+        SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] ||
+        (a.file ?? '').localeCompare(b.file ?? '') ||
+        (a.line ?? 0) - (b.line ?? 0) ||
+        a.ruleId.localeCompare(b.ruleId)
+      );
+    }
     const maliciousA = a.ruleId === 'DEPS-MALICIOUS-001' ? 0 : 1;
     const maliciousB = b.ruleId === 'DEPS-MALICIOUS-001' ? 0 : 1;
     return (
@@ -223,10 +243,19 @@ function dependencyRows(findings: readonly Finding[]): ConsoleRow[] {
   return rows;
 }
 
+function rowPriority(row: ConsoleRow): number {
+  let best = 0;
+  for (const finding of row.findings) {
+    const score = finding.priority ?? 0;
+    if (score > best) {best = score;}
+  }
+  return best;
+}
+
 function renderRow(row: ConsoleRow): string[] {
   if (!row.grouped) {
     const only = row.findings[0];
-    if (only === undefined) return [];
+    if (only === undefined) {return [];}
     return [...renderFinding(only), `    docs: rules/${only.ruleId}.md`];
   }
   const reach = row.reachability ?? 'unspecified';
@@ -266,7 +295,12 @@ export function renderConsoleReport(input: ScanResult, options: ConsoleReportOpt
           ` (modules: ${metadata.modulesRun.length > 0 ? metadata.modulesRun.join(', ') : 'none'})`,
       ),
   );
-  if (metadata.history !== undefined) lines.push(metadata.history);
+  if (metadata.history !== undefined) {lines.push(metadata.history);}
+  if (metadata.skipped !== undefined && metadata.skipped.total > 0) {
+    lines.push(
+      `Skipped ${metadata.skipped.total} files that are not source (oversize ${metadata.skipped.oversize}, minified ${metadata.skipped.minified}, declarations ${metadata.skipped.declaration}, maps ${metadata.skipped.sourceMap}, generated ${metadata.skipped.generated}).`,
+    );
+  }
   if (metadata.upgradePlan !== undefined && metadata.upgradePlan.sentence.length > 0) {
     lines.push(metadata.upgradePlan.sentence);
   }
@@ -290,7 +324,7 @@ export function renderConsoleReport(input: ScanResult, options: ConsoleReportOpt
   const showAll = options.all === true;
   const folded = findings.filter((finding) => !isActionable(finding));
   const rows = showAll
-    ? [...findings].sort(compareActionable).map((finding) => ({
+    ? [...findings].sort(priorityEnabled() ? compareByPriority : compareActionable).map((finding) => ({
         findings: [finding],
         severity: finding.severity,
         reachability: finding.reachability,
@@ -325,9 +359,22 @@ export function renderConsoleReport(input: ScanResult, options: ConsoleReportOpt
   }
 
   lines.push('');
-  if (summary.total === 0) {
+  if (result.paths !== undefined && result.paths.length > 0) {
+    lines.push(pc.bold('Attack paths'));
+    for (const path of result.paths.slice(0, 5)) {lines.push(formatPath(path));}
+    if (result.paths.length > 5) {lines.push(`${result.paths.length - 5} more paths — use --json`);}
+    lines.push('');
+  }
+  if (metadata.incomplete === true) {
+    lines.push(
+      pc.yellow(
+        `Scan stopped at budget. ${metadata.filesNotTaintChecked ?? 0} files not taint-checked.`,
+      ),
+    );
+  }
+  if (summary.total === 0 && metadata.incomplete !== true) {
     lines.push(pc.green('✔ No findings.'));
-  } else {
+  } else if (summary.total > 0) {
     const bySeverityDesc = [...SEVERITIES].reverse();
     const counts = bySeverityDesc
       .filter((s) => summary.bySeverity[s] > 0)

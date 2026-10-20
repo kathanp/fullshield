@@ -11,19 +11,19 @@ const DASH_C_CALLEES = new Set(['spawn', 'spawnSync', 'execFile', 'execFileSync'
 
 function optionsObject(node: TSESTree.CallExpression): TSESTree.ObjectExpression | undefined {
   for (const arg of node.arguments) {
-    if (arg.type === 'ObjectExpression') return arg;
+    if (arg.type === 'ObjectExpression') {return arg;}
   }
   return undefined;
 }
 
 function hasShellTrue(node: TSESTree.CallExpression): boolean {
   const opts = optionsObject(node);
-  if (opts === undefined) return false;
+  if (opts === undefined) {return false;}
   for (const prop of opts.properties) {
-    if (prop.type !== 'Property') continue;
+    if (prop.type !== 'Property') {continue;}
     const key =
       prop.key.type === 'Identifier' ? prop.key.name : literalString(prop.key);
-    if (key !== 'shell') continue;
+    if (key !== 'shell') {continue;}
     return prop.value.type === 'Literal' && prop.value.value === true;
   }
   return false;
@@ -31,12 +31,12 @@ function hasShellTrue(node: TSESTree.CallExpression): boolean {
 
 function argumentTainted(node: TSESTree.CallExpression, isTainted: (n: AstNode) => boolean): boolean {
   for (const arg of node.arguments) {
-    if (arg.type === 'SpreadElement') continue;
-    if (arg.type === 'ObjectExpression') continue;
-    if (isTainted(arg)) return true;
+    if (arg.type === 'SpreadElement') {continue;}
+    if (arg.type === 'ObjectExpression') {continue;}
+    if (isTainted(arg)) {return true;}
     if (arg.type === 'ArrayExpression') {
       for (const el of arg.elements) {
-        if (el !== null && el.type !== 'SpreadElement' && isTainted(el)) return true;
+        if (el !== null && el.type !== 'SpreadElement' && isTainted(el)) {return true;}
       }
     }
   }
@@ -45,21 +45,21 @@ function argumentTainted(node: TSESTree.CallExpression, isTainted: (n: AstNode) 
 
 function interpreterBase(node: TSESTree.CallExpression): string | undefined {
   const cmd = literalString(node.arguments[0]);
-  if (cmd === undefined) return undefined;
+  if (cmd === undefined) {return undefined;}
   return cmd.replace(/^.*[/\\]/, '').toLowerCase();
 }
 
 function isInterpreterDashC(node: TSESTree.CallExpression, isTainted: (n: AstNode) => boolean): boolean {
   const name = calleeName(node);
-  if (name === undefined || !DASH_C_CALLEES.has(name)) return false;
+  if (name === undefined || !DASH_C_CALLEES.has(name)) {return false;}
   const base = interpreterBase(node);
-  if (base === undefined || !INTERPRETERS.has(base)) return false;
+  if (base === undefined || !INTERPRETERS.has(base)) {return false;}
   const args = node.arguments[1];
-  if (args === undefined || args.type !== 'ArrayExpression') return false;
+  if (args === undefined || args.type !== 'ArrayExpression') {return false;}
   for (let i = 0; i < args.elements.length; i += 1) {
     const el = args.elements[i];
-    if (el == null || el.type === 'SpreadElement') continue;
-    if (literalString(el) !== '-c') continue;
+    if (el == null || el.type === 'SpreadElement') {continue;}
+    if (literalString(el) !== '-c') {continue;}
     const next = args.elements[i + 1];
     return next !== null && next !== undefined && next.type !== 'SpreadElement' && isTainted(next);
   }
@@ -72,11 +72,11 @@ function isUnsafeZxTag(tag: AstNode): boolean {
   }
   if (tag.type === 'CallExpression' && tag.callee.type === 'Identifier' && tag.callee.name === '$') {
     const opts = tag.arguments[0];
-    if (opts === undefined || opts.type !== 'ObjectExpression') return false;
+    if (opts === undefined || opts.type !== 'ObjectExpression') {return false;}
     for (const prop of opts.properties) {
-      if (prop.type !== 'Property') continue;
+      if (prop.type !== 'Property') {continue;}
       const key = prop.key.type === 'Identifier' ? prop.key.name : literalString(prop.key);
-      if (key === 'quote' && prop.value.type === 'Literal' && prop.value.value === false) return true;
+      if (key === 'quote' && prop.value.type === 'Literal' && prop.value.value === false) {return true;}
     }
   }
   return false;
@@ -98,9 +98,9 @@ export const cmdiRule: SastRule = {
     const tainted = (n: AstNode) => ctx.isTainted(n);
     return {
       CallExpression(node) {
-        if (node.type !== 'CallExpression') return;
+        if (node.type !== 'CallExpression') {return;}
         const name = calleeName(node);
-        if (name === undefined) return;
+        if (name === undefined) {return;}
         const dashC = sastGapsEnabled() && isInterpreterDashC(node, tainted);
         const execaCall = sastGapsEnabled() && name === 'execa' && hasShellTrue(node);
         const shell =
@@ -108,7 +108,7 @@ export const cmdiRule: SastRule = {
           (OPTIONAL_SHELL.has(name) && hasShellTrue(node)) ||
           dashC ||
           execaCall;
-        if (!shell) return;
+        if (!shell) {return;}
         if (node.callee.type === 'MemberExpression') {
           const obj = node.callee.object;
           const fromChild =
@@ -118,16 +118,16 @@ export const cmdiRule: SastRule = {
             return;
           }
         }
-        if (!argumentTainted(node, tainted) && !dashC) return;
+        if (!argumentTainted(node, tainted) && !dashC) {return;}
         ctx.report({
           node,
           message: 'Tainted input reaches a shell command (exec/execSync/spawn with shell: true).',
         });
       },
       TaggedTemplateExpression(node) {
-        if (node.type !== 'TaggedTemplateExpression' || !sastGapsEnabled()) return;
-        if (!isUnsafeZxTag(node.tag) && !isExecaShellTag(node.tag)) return;
-        if (!tainted(node.quasi)) return;
+        if (node.type !== 'TaggedTemplateExpression' || !sastGapsEnabled()) {return;}
+        if (!isUnsafeZxTag(node.tag) && !isExecaShellTag(node.tag)) {return;}
+        if (!tainted(node.quasi)) {return;}
         ctx.report({
           node,
           message: 'Tainted input reaches a shell tagged template that does not auto-escape interpolations.',

@@ -16,21 +16,21 @@ function clip(text: string): string {
 /** GitHub workflow-command escaping. `%` is replaced first so later escapes stay intact. */
 function githubEscape(value: string, property: boolean): string {
   let out = value.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A').replace(/:/g, '%3A');
-  if (property) out = out.replace(/,/g, '%2C');
+  if (property) {out = out.replace(/,/g, '%2C');}
   return out;
 }
 
 function githubLevel(severity: Severity): 'error' | 'warning' | 'notice' {
-  if (severity === 'critical' || severity === 'high') return 'error';
-  if (severity === 'medium') return 'warning';
+  if (severity === 'critical' || severity === 'high') {return 'error';}
+  if (severity === 'medium') {return 'warning';}
   return 'notice';
 }
 
 function gitlabSeverity(severity: Severity): 'info' | 'minor' | 'major' | 'critical' | 'blocker' {
-  if (severity === 'info') return 'info';
-  if (severity === 'low') return 'minor';
-  if (severity === 'medium') return 'major';
-  if (severity === 'high') return 'critical';
+  if (severity === 'info') {return 'info';}
+  if (severity === 'low') {return 'minor';}
+  if (severity === 'medium') {return 'major';}
+  if (severity === 'high') {return 'critical';}
   return 'blocker';
 }
 
@@ -58,9 +58,9 @@ export function renderGithubAnnotations(input: ScanResult): string {
   }
   const lines = result.findings.map((finding) => {
     const props: string[] = [];
-    if (finding.file !== undefined) props.push(`file=${githubEscape(posix(finding.file), true)}`);
-    if (finding.line !== undefined) props.push(`line=${finding.line}`);
-    if (finding.column !== undefined) props.push(`col=${finding.column + 1}`);
+    if (finding.file !== undefined) {props.push(`file=${githubEscape(posix(finding.file), true)}`);}
+    if (finding.line !== undefined) {props.push(`line=${finding.line}`);}
+    if (finding.column !== undefined) {props.push(`col=${finding.column + 1}`);}
     props.push(`title=${githubEscape(finding.ruleId, true)}`);
     const message = githubEscape(clip(finding.message), false);
     return `::${githubLevel(finding.severity)} ${props.join(',')}::${message}`;
@@ -75,7 +75,7 @@ function junitCase(finding: Finding): string {
     `classname="${xmlEscape(file)}"`,
     `file="${xmlEscape(file)}"`,
   ];
-  if (finding.line !== undefined) attrs.push(`line="${finding.line}"`);
+  if (finding.line !== undefined) {attrs.push(`line="${finding.line}"`);}
   const open = `<testcase ${attrs.join(' ')}>`;
   if (!meetsThreshold(finding.severity, 'medium')) {
     return `${open}<skipped message="${xmlEscape(oneLine(clip(finding.message)))}"/></testcase>`;
@@ -107,8 +107,8 @@ export function renderJunitReport(input: ScanResult): string {
     let suiteFailures = 0;
     let suiteSkipped = 0;
     const cases = findings.map((finding) => {
-      if (meetsThreshold(finding.severity, 'medium')) suiteFailures += 1;
-      else suiteSkipped += 1;
+      if (meetsThreshold(finding.severity, 'medium')) {suiteFailures += 1;}
+      else {suiteSkipped += 1;}
       return junitCase(finding);
     });
     failures += suiteFailures;
@@ -126,7 +126,7 @@ export function renderGitlabCodeQuality(input: ScanResult): string {
   const report = result.findings.map((finding) => {
     const path = finding.file !== undefined ? posix(finding.file) : '.';
     const location: { path: string; lines?: { begin: number } } = { path };
-    if (finding.line !== undefined) location.lines = { begin: finding.line };
+    if (finding.line !== undefined) {location.lines = { begin: finding.line };}
     return {
       description: clip(finding.message),
       check_name: finding.ruleId,

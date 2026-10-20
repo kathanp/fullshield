@@ -5,9 +5,9 @@ const PATTERN =
   /\b(?:postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|redis|amqp):\/\/([^\s'"@/:]+):([^\s'"@]+)@/g;
 
 function isPlaceholderPassword(password: string): boolean {
-  if (password.includes('${')) return true;
-  if (/^<[^>]+>$/.test(password)) return true;
-  if (/^\{[^}]+\}$/.test(password)) return true;
+  if (password.includes('${')) {return true;}
+  if (/^<[^>]+>$/.test(password)) {return true;}
+  if (/^\{[^}]+\}$/.test(password)) {return true;}
   return false;
 }
 
@@ -25,7 +25,7 @@ export const dbUrlRule: SecretsRule = {
         const password = match[2];
         // Template placeholders (`:${password}@`) and docs tokens (`<password>`)
         // are not hardcoded secrets.
-        if (password === undefined || isPlaceholderPassword(password)) continue;
+        if (password === undefined || isPlaceholderPassword(password)) {continue;}
         ctx.report({ line: index + 1, secret: password });
       }
     });

@@ -29,7 +29,7 @@ export async function applyTriage(
       mode: 'triage',
       prompt: `${finding.ruleId}\n${snippet}`,
     });
-    if (res === null) continue;
+    if (res === null) {continue;}
     if (client.useFixtures) {
       const label = fixtureTriage(finding.ruleId);
       finding.aiVerdict = label.verdict;
@@ -38,7 +38,7 @@ export async function applyTriage(
       continue;
     }
     const live = asTriage(res.json);
-    if (live === undefined) continue;
+    if (live === undefined) {continue;}
     finding.aiVerdict = live.verdict;
     finding.aiReasoning = live.reasoning;
     finding.exploitScenario = live.exploitScenario;
@@ -59,13 +59,13 @@ export async function applyExplain(
       mode: 'explain',
       prompt: `${finding.ruleId}\n${snippet}`,
     });
-    if (res === null) continue;
+    if (res === null) {continue;}
     if (client.useFixtures) {
       finding.explanation = fixtureExplain(finding.ruleId);
       continue;
     }
     const text = asExplanation(res.json);
-    if (text !== undefined) finding.explanation = text;
+    if (text !== undefined) {finding.explanation = text;}
     delete finding.aiVerdict;
     delete finding.exploitScenario;
     delete finding.aiReasoning;

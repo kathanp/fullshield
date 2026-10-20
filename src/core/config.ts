@@ -1,6 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
+import { isCapabilityName, type CapabilityName } from '../capabilities/names.js';
+import type { CapabilityPolicy } from '../capabilities/policy.js';
 import {
   MODULE_NAMES,
   isModuleName,
@@ -20,6 +22,8 @@ export interface DepsConfig {
   offline: boolean;
   /** Cache root (contains an `osv/` directory). Relative paths are resolved from cwd. */
   cacheDir?: string;
+  /** Present only when FULLSHIELD_EXPERIMENTAL_CAPABILITIES=1. */
+  capabilityPolicy?: CapabilityPolicy;
 }
 
 export interface AiConfig {
@@ -49,6 +53,11 @@ export interface SastConfig {
   sanitizers?: SastSanitizerConfig[];
 }
 
+/** Phase 80. The TypeScript program is not built above `maxFiles`. */
+export interface TypesConfig {
+  maxFiles: number;
+}
+
 export interface ResolvedConfig {
   modules: ModuleName[];
   failOn: Severity;
@@ -62,6 +71,9 @@ export interface ResolvedConfig {
   deps: DepsConfig;
   ai: AiConfig;
   sast: SastConfig;
+  types: TypesConfig;
+  /** Phase 90. Path to a user Semgrep-style YAML file. Read only when the experimental flag is on. */
+  semgrepRules?: string;
 }
 
 export const DEFAULT_CONFIG: ResolvedConfig = {
@@ -74,6 +86,7 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
   deps: { offline: false },
   ai: { enabled: false, maxCostUsd: 1, maxFindings: 50 },
   sast: { maxFileBytes: 1024 * 1024 },
+  types: { maxFiles: 5000 },
 };
 
 export class ConfigError extends Error {}
@@ -89,6 +102,8 @@ const KNOWN_KEYS = new Set([
   'deps',
   'ai',
   'sast',
+  'types',
+  'semgrepRules',
 ]);
 
 const SAST_CLASSES = new Set([
@@ -109,8 +124,8 @@ const SAST_CLASSES = new Set([
 ]);
 
 function parseSastSources(value: unknown, source: string): SastSourceConfig[] | undefined {
-  if (value === undefined) return undefined;
-  if (!Array.isArray(value)) throw new ConfigError(`${source}: "sast.sources" must be an array`);
+  if (value === undefined) {return undefined;}
+  if (!Array.isArray(value)) {throw new ConfigError(`${source}: "sast.sources" must be an array`);}
   return value.map((item) => {
     if (typeof item !== 'object' || item === null) {
       throw new ConfigError(`${source}: "sast.sources" entries must be objects`);
@@ -127,8 +142,8 @@ function parseSastSources(value: unknown, source: string): SastSourceConfig[] | 
 }
 
 function parseSastSanitizers(value: unknown, source: string): SastSanitizerConfig[] | undefined {
-  if (value === undefined) return undefined;
-  if (!Array.isArray(value)) throw new ConfigError(`${source}: "sast.sanitizers" must be an array`);
+  if (value === undefined) {return undefined;}
+  if (!Array.isArray(value)) {throw new ConfigError(`${source}: "sast.sanitizers" must be an array`);}
   return value.map((item) => {
     if (typeof item !== 'object' || item === null) {
       throw new ConfigError(`${source}: "sast.sanitizers" entries must be objects`);
@@ -142,6 +157,42 @@ function parseSastSanitizers(value: unknown, source: string): SastSanitizerConfi
     }
     return { callee: row.callee, clears: row.clears.filter((name) => name !== 'secrets' && name !== 'deps') };
   });
+}
+
+function parseCapabilityGlobs(
+  value: unknown,
+  source: string,
+  label: string,
+): Partial<Record<CapabilityName, readonly string[]>> {
+  if (value === undefined) {return {};}
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new ConfigError(`${source}: "${label}" must be an object`);
+  }
+  const out: Partial<Record<CapabilityName, readonly string[]>> = {};
+  for (const [key, globs] of Object.entries(value)) {
+    if (!isCapabilityName(key)) {throw new ConfigError(`${source}: unknown capability "${key}"`);}
+    if (!Array.isArray(globs) || globs.some((item) => typeof item !== 'string' || item.length === 0)) {
+      throw new ConfigError(`${source}: "${label}.${key}" must be an array of package globs`);
+    }
+    out[key] = globs;
+  }
+  return out;
+}
+
+function parseCapabilityPolicy(value: unknown, source: string): CapabilityPolicy {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new ConfigError(`${source}: "deps.capabilityPolicy" must be an object`);
+  }
+  const raw = value as Record<string, unknown>;
+  for (const key of Object.keys(raw)) {
+    if (key !== 'deny' && key !== 'warn') {
+      throw new ConfigError(`${source}: unknown key "deps.capabilityPolicy.${key}"`);
+    }
+  }
+  return {
+    deny: parseCapabilityGlobs(raw.deny, source, 'deps.capabilityPolicy.deny'),
+    warn: parseCapabilityGlobs(raw.warn, source, 'deps.capabilityPolicy.warn'),
+  };
 }
 
 function validate(raw: unknown, source: string): Partial<ResolvedConfig> {
@@ -224,6 +275,9 @@ function validate(raw: unknown, source: string): Partial<ResolvedConfig> {
       }
       deps.cacheDir = rawDeps.cacheDir;
     }
+    if (process.env.FULLSHIELD_EXPERIMENTAL_CAPABILITIES === '1' && rawDeps.capabilityPolicy !== undefined) {
+      deps.capabilityPolicy = parseCapabilityPolicy(rawDeps.capabilityPolicy, source);
+    }
     out.deps = deps;
   }
   if (record.ai !== undefined) {
@@ -290,6 +344,26 @@ function validate(raw: unknown, source: string): Partial<ResolvedConfig> {
       sast.sanitizers = parseSastSanitizers(rawSast.sanitizers, source);
     }
     out.sast = sast;
+  }
+  if (record.types !== undefined) {
+    if (typeof record.types !== 'object' || record.types === null || Array.isArray(record.types)) {
+      throw new ConfigError(`${source}: "types" must be an object`);
+    }
+    const rawTypes = record.types as Record<string, unknown>;
+    const types: TypesConfig = { maxFiles: DEFAULT_CONFIG.types.maxFiles };
+    if (rawTypes.maxFiles !== undefined) {
+      if (typeof rawTypes.maxFiles !== 'number' || !Number.isInteger(rawTypes.maxFiles) || rawTypes.maxFiles < 1) {
+        throw new ConfigError(`${source}: "types.maxFiles" must be a positive integer`);
+      }
+      types.maxFiles = rawTypes.maxFiles;
+    }
+    out.types = types;
+  }
+  if (record.semgrepRules !== undefined) {
+    if (typeof record.semgrepRules !== 'string' || record.semgrepRules.length === 0) {
+      throw new ConfigError(`${source}: "semgrepRules" must be a path string`);
+    }
+    out.semgrepRules = record.semgrepRules;
   }
   return out;
 }

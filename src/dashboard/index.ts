@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { join } from 'node:path';
 
-import { nodeSqliteAvailable, nodeSqliteUnavailableMessage } from '../core/sqlite.js';
+import { nodeSqliteAvailable, nodeSqliteUnavailableMessage, trackDbHandle } from '../core/sqlite.js';
 
 const require = createRequire(import.meta.url);
 
@@ -49,7 +49,7 @@ function sqliteDb(file: string): HistoryDb {
   }
   let closed = false;
   const handle = db;
-  return {
+  const api: HistoryDb = {
     list() {
       return handle.prepare('SELECT scannedAt, total, highCrit FROM scans ORDER BY scannedAt').all() as unknown as HistoryRow[];
     },
@@ -71,7 +71,7 @@ function sqliteDb(file: string): HistoryDb {
       ).run(row.scannedAt, row.percent, row.withProvenance, row.total);
     },
     close() {
-      if (closed) return;
+      if (closed) {return;}
       closed = true;
       try {
         handle.close();
@@ -80,6 +80,8 @@ function sqliteDb(file: string): HistoryDb {
       }
     },
   };
+  trackDbHandle(api);
+  return api;
 }
 
 export function openHistory(dir: string): HistoryDb {
@@ -104,7 +106,7 @@ export function listProvenance(db: HistoryDb): ProvenanceRow[] {
 }
 
 export function assertDashboardHost(host: string | undefined): boolean {
-  if (host === undefined || host.length === 0) return false;
+  if (host === undefined || host.length === 0) {return false;}
   const h = host.split(':')[0]?.toLowerCase() ?? '';
   return h === 'localhost' || h === '127.0.0.1';
 }
@@ -168,7 +170,7 @@ export function createDashboardHandler(opts: {
 }
 
 export function startDashboard(opts: { dir: string; experimental?: boolean; port?: number }): Promise<{ close: () => Promise<void>; port: number }> {
-  if (!existsSync(opts.dir)) mkdirSync(opts.dir, { recursive: true });
+  if (!existsSync(opts.dir)) {mkdirSync(opts.dir, { recursive: true });}
   const db = openHistory(opts.dir);
   const handler = createDashboardHandler({ dbPath: opts.dir, experimental: opts.experimental, db });
   const server = createServer(handler);
@@ -186,8 +188,8 @@ export function startDashboard(opts: { dir: string; experimental?: boolean; port
               } catch {
                 // already closed
               }
-              if (err) rej(err);
-              else res();
+              if (err) {rej(err);}
+              else {res();}
             });
           }),
       });

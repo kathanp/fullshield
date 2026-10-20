@@ -23,7 +23,7 @@ export function assertRegistryUrl(url: string): void {
 export function packageNameFromSpec(spec: string): string {
   if (spec.startsWith('@')) {
     const slash = spec.indexOf('/');
-    if (slash < 0) return spec;
+    if (slash < 0) {return spec;}
     const scope = spec.slice(0, slash);
     const rest = spec.slice(slash + 1);
     const name = rest.includes('@') ? rest.slice(0, rest.indexOf('@')) : rest;
@@ -54,11 +54,11 @@ function finding(
 }
 
 function walkJs(dir: string, out: string[] = []): string[] {
-  if (!existsSync(dir)) return out;
+  if (!existsSync(dir)) {return out;}
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name === 'node_modules') continue;
+      if (entry.name === 'node_modules') {continue;}
       walkJs(full, out);
     } else if (entry.isFile() && /\.(js|cjs|mjs|ts)$/.test(entry.name)) {
       out.push(full);
@@ -72,7 +72,7 @@ function readJson(path: string): Record<string, unknown> {
 }
 
 function installScriptKeys(scripts: Record<string, string> | undefined): string[] {
-  if (!scripts) return [];
+  if (!scripts) {return [];}
   return INSTALL_SCRIPT_KEYS.filter((k) => typeof scripts[k] === 'string');
 }
 
@@ -80,7 +80,7 @@ function installScriptKeys(scripts: Record<string, string> | undefined): string[
 export function analyzePackageDir(dir: string): Finding[] {
   const findings: Finding[] = [];
   const manifestPath = join(dir, 'package.json');
-  if (!existsSync(manifestPath) || !statSync(manifestPath).isFile()) return findings;
+  if (!existsSync(manifestPath) || !statSync(manifestPath).isFile()) {return findings;}
   const pkg = readJson(manifestPath);
   const scripts = (pkg.scripts ?? {}) as Record<string, string>;
   const keys = installScriptKeys(scripts);
@@ -145,7 +145,7 @@ export function diffPackageVersions(oldDir: string, newDir: string): Finding[] {
     .join('\n');
   const newChild = /child_process/.test(newSrc) && !/child_process/.test(oldSrc);
   const newNet = /https?\.request|fetch\s*\(/.test(newSrc) && !/https?\.request|fetch\s*\(/.test(oldSrc);
-  if (added.length === 0 && !newChild && !newNet) return [];
+  if (added.length === 0 && !newChild && !newNet) {return [];}
   return [
     finding(
       'SUPPLY-BEHAVIOR-001',
@@ -163,11 +163,11 @@ export function checkCooldown(
   nowMs = Date.now(),
 ): Finding[] {
   const stamp = packument.time?.[version];
-  if (!stamp) return [];
+  if (!stamp) {return [];}
   const published = Date.parse(stamp);
-  if (Number.isNaN(published)) return [];
+  if (Number.isNaN(published)) {return [];}
   const ageHours = (nowMs - published) / 3_600_000;
-  if (ageHours >= minHours) return [];
+  if (ageHours >= minHours) {return [];}
   return [
     finding(
       'SUPPLY-COOLDOWN-001',
@@ -184,9 +184,9 @@ export function checkLockfileIntegrity(lock: {
 }): Finding[] {
   const findings: Finding[] = [];
   for (const [name, entry] of Object.entries(lock.packages ?? {})) {
-    if (name === '') continue;
+    if (name === '') {continue;}
     const resolved = entry.resolved;
-    if (!resolved) continue;
+    if (!resolved) {continue;}
     if (entry.integrity === undefined || entry.integrity.length === 0) {
       findings.push(
         finding(
@@ -272,7 +272,7 @@ export async function installGuard(
   const name = packageNameFromSpec(spec);
   const url = `https://${REGISTRY_HOST}/${encodeURIComponent(name)}`;
   assertRegistryUrl(url);
-  if (opts.fetchPackument) await opts.fetchPackument(url);
+  if (opts.fetchPackument) {await opts.fetchPackument(url);}
   const findings = opts.extractDir !== undefined ? analyzePackageDir(opts.extractDir) : [];
   if (findings.length === 0 && opts.runNpm) {
     await opts.runNpm(['install', spec, '--ignore-scripts']);
@@ -311,15 +311,15 @@ function packageSources(dir: string): { sources: Array<{ file: string; text: str
 /** Static worm indicators: token read + publish / registry PUT / GitHub create / workflow write. */
 export function analyzeWormIndicators(dir: string): Finding[] {
   const { sources, scripts } = packageSources(dir);
-  if (sources.length === 0 && scripts.length === 0) return [];
+  if (sources.length === 0 && scripts.length === 0) {return [];}
   const text = `${sources.map((s) => s.text).join('\n')}\n${scripts}`;
-  if (!TOKEN_RE.test(text)) return [];
+  if (!TOKEN_RE.test(text)) {return [];}
   const replicates =
     PUBLISH_RE.test(text) ||
     REGISTRY_PUT_RE.test(text) ||
     GITHUB_CREATE_RE.test(text) ||
     WORKFLOW_PATH_RE.test(text);
-  if (!replicates) return [];
+  if (!replicates) {return [];}
   const hit =
     sources.find(
       (s) =>
@@ -344,7 +344,7 @@ export function analyzeWormIndicators(dir: string): Finding[] {
 export function analyzeWorkflowTampering(dir: string): Finding[] {
   const { sources, scripts } = packageSources(dir);
   const text = `${sources.map((s) => s.text).join('\n')}\n${scripts}`;
-  if (!CI_WRITE_RE.test(text)) return [];
+  if (!CI_WRITE_RE.test(text)) {return [];}
   const hit = sources.find((s) => CI_WRITE_RE.test(s.text));
   return [
     finding(
@@ -373,8 +373,8 @@ export function provenanceCoverage(
   let unknown = 0;
   for (const pkg of packages) {
     const hit = known.get(`${pkg.name}@${pkg.version}`);
-    if (hit === true) withProvenance += 1;
-    else if (hit === undefined) unknown += 1;
+    if (hit === true) {withProvenance += 1;}
+    else if (hit === undefined) {unknown += 1;}
   }
   const total = packages.length;
   return {

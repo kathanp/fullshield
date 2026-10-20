@@ -1,0 +1,6 @@
+rules:
+  - id: bad-regex
+    languages: [javascript]
+    severity: high
+    message: regex is outside the subset
+    pattern-regex: eval\(

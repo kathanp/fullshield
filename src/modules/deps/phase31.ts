@@ -24,7 +24,7 @@ function packageNameFromSnippet(snippet: string): string {
 function parentsOf(name: string, edges: Map<string, Set<string>>): string[] {
   const out: string[] = [];
   for (const [from, tos] of edges) {
-    if (tos.has(name)) out.push(from);
+    if (tos.has(name)) {out.push(from);}
   }
   return out;
 }
@@ -36,8 +36,8 @@ function isDirect(name: string, graph: LockfileGraph): boolean {
 function packagesWithAFixedRelease(findings: readonly Finding[]): Set<string> {
   const names = new Set<string>();
   for (const finding of findings) {
-    if (finding.ruleId !== 'DEPS-VULN-001' || finding.snippet === undefined) continue;
-    if (!/Upgrade \S+ to \S+ or later/.test(finding.remediation)) continue;
+    if (finding.ruleId !== 'DEPS-VULN-001' || finding.snippet === undefined) {continue;}
+    if (!/Upgrade \S+ to \S+ or later/.test(finding.remediation)) {continue;}
     names.add(packageNameFromSnippet(finding.snippet));
   }
   return names;
@@ -59,20 +59,20 @@ export function attachOverrideProposals(
   lockFile: string,
   manifestRaw: string | undefined,
 ): Finding[] {
-  if (!graph.edgesKnown || manifestRaw === undefined) return findings;
+  if (!graph.edgesKnown || manifestRaw === undefined) {return findings;}
   const withFix = packagesWithAFixedRelease(findings);
   const kind = kindFromLockfile(lockFile);
   return findings.map((finding) => {
-    if (finding.ruleId !== 'DEPS-VULN-001' || finding.snippet === undefined) return finding;
+    if (finding.ruleId !== 'DEPS-VULN-001' || finding.snippet === undefined) {return finding;}
     const name = packageNameFromSnippet(finding.snippet);
-    if (name.length === 0 || isDirect(name, graph)) return finding;
+    if (name.length === 0 || isDirect(name, graph)) {return finding;}
     const version = targetVersion(finding);
-    if (version === undefined) return finding;
+    if (version === undefined) {return finding;}
     const parentFixed = parentsOf(name, graph.edges).some((parent) => withFix.has(parent));
-    if (parentFixed) return finding;
+    if (parentFixed) {return finding;}
     const after = withManifestOverride(manifestRaw, kind, name, version);
     const diff = unifiedDiff('package.json', manifestRaw, after);
-    if (diff.length === 0) return finding;
+    if (diff.length === 0) {return finding;}
     return {
       ...finding,
       fix: { kind: 'dependency-override', safe: false, diff },
@@ -89,7 +89,7 @@ export function scanInstalledPackages(cwd: string, packages: readonly LockedPack
   const out: Finding[] = [];
   for (const pkg of packages) {
     const dir = packageDir(cwd, pkg);
-    if (dir === undefined) continue;
+    if (dir === undefined) {continue;}
     const prefix = pkg.path.startsWith('node_modules/') ? pkg.path : `node_modules/${pkg.name}`;
     for (const hit of [...analyzeWormIndicators(dir), ...analyzeWorkflowTampering(dir)]) {
       out.push({
@@ -104,15 +104,15 @@ export function scanInstalledPackages(cwd: string, packages: readonly LockedPack
 export function loadProvenanceMap(cacheDir: string, packages: readonly LockedPackage[]): Map<string, boolean> {
   const known = new Map<string, boolean>();
   const root = join(cacheDir, 'provenance');
-  if (!existsSync(root)) return known;
+  if (!existsSync(root)) {return known;}
   for (const pkg of packages) {
     const key = `${pkg.name}@${pkg.version}`;
     try {
       const raw = JSON.parse(readFileSync(join(root, `${key.replaceAll('/', '__')}.json`), 'utf8')) as {
         provenance?: unknown;
       };
-      if (raw.provenance === true) known.set(key, true);
-      else if (raw.provenance === false) known.set(key, false);
+      if (raw.provenance === true) {known.set(key, true);}
+      else if (raw.provenance === false) {known.set(key, false);}
     } catch {
       // missing / unreadable attestations stay unknown (never guessed present)
     }

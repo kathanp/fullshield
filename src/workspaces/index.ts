@@ -2,15 +2,15 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 export function listWorkspaces(dir: string, opts: { experimental?: boolean } = {}): string[] {
-  if (!opts.experimental && process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM !== '1') return [];
+  if (!opts.experimental && process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM !== '1') {return [];}
   const manifestPath = join(dir, 'package.json');
-  if (!existsSync(manifestPath)) return [];
+  if (!existsSync(manifestPath)) {return [];}
   try {
     const pkg = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
       workspaces?: string[] | { packages?: string[] };
     };
-    if (Array.isArray(pkg.workspaces)) return pkg.workspaces;
-    if (Array.isArray(pkg.workspaces?.packages)) return pkg.workspaces.packages;
+    if (Array.isArray(pkg.workspaces)) {return pkg.workspaces;}
+    if (Array.isArray(pkg.workspaces?.packages)) {return pkg.workspaces.packages;}
   } catch {
     return [];
   }

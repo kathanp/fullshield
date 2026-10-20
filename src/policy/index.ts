@@ -78,7 +78,7 @@ function formatZodIssues(error: { issues: Array<{ path: PropertyKey[]; message: 
 }
 
 function isIsoTimestamp(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}(T[\d:.+-Z]+)?$/.test(value)) return false;
+  if (!/^\d{4}-\d{2}-\d{2}(T[\d:.+-Z]+)?$/.test(value)) {return false;}
   return Number.isFinite(Date.parse(value));
 }
 
@@ -131,13 +131,13 @@ export async function parsePolicy(
   const severityOverrides: FullShieldPolicy['severityOverrides'] = {};
   if (data.severityOverrides !== undefined) {
     for (const [ruleId, severity] of Object.entries(data.severityOverrides)) {
-      if (isSeverity(severity)) severityOverrides[ruleId] = severity;
+      if (isSeverity(severity)) {severityOverrides[ruleId] = severity;}
     }
   }
   const failOn: Record<string, Severity> = {};
   if (data.failOn !== undefined) {
     for (const [branch, severity] of Object.entries(data.failOn)) {
-      if (isSeverity(severity)) failOn[branch] = severity;
+      if (isSeverity(severity)) {failOn[branch] = severity;}
     }
   }
   return {
@@ -154,14 +154,14 @@ export async function loadPolicy(
   opts: PolicyLoadOptions = {},
   loadZod: ZodLoader = defaultLoadZod,
 ): Promise<FullShieldPolicy | undefined> {
-  if (!isPolicyEnabled(opts)) return undefined;
+  if (!isPolicyEnabled(opts)) {return undefined;}
   const file = join(cwd, POLICY_FILE_NAME);
   let contents: string;
   try {
     contents = await readFile(file, 'utf8');
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;
-    if (code === 'ENOENT') return undefined;
+    if (code === 'ENOENT') {return undefined;}
     throw new PolicyError(`cannot read policy file ${file}: ${code ?? String(error)}`);
   }
   let raw: unknown;
@@ -176,8 +176,8 @@ export async function loadPolicy(
 }
 
 function globMatch(pattern: string, value: string): boolean {
-  if (pattern === '*') return true;
-  if (!pattern.includes('*')) return pattern === value;
+  if (pattern === '*') {return true;}
+  if (!pattern.includes('*')) {return pattern === value;}
   const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
   return new RegExp(`^${escaped}$`).test(value);
 }
@@ -186,11 +186,11 @@ export function failOnForBranch(
   map: Record<string, Severity> | undefined,
   branch: string,
 ): Severity | undefined {
-  if (map === undefined) return undefined;
-  if (Object.prototype.hasOwnProperty.call(map, branch)) return map[branch];
+  if (map === undefined) {return undefined;}
+  if (Object.prototype.hasOwnProperty.call(map, branch)) {return map[branch];}
   for (const [key, severity] of Object.entries(map)) {
-    if (key === '*') continue;
-    if (globMatch(key, branch)) return severity;
+    if (key === '*') {continue;}
+    if (globMatch(key, branch)) {return severity;}
   }
   return map['*'];
 }
@@ -198,7 +198,7 @@ export function failOnForBranch(
 export function resolvePolicyBranch(cwd: string, env: NodeJS.ProcessEnv = process.env): string {
   const fromEnv =
     env.FULLSHIELD_POLICY_BRANCH ?? env.GITHUB_HEAD_REF ?? env.GITHUB_REF_NAME ?? env.CI_COMMIT_BRANCH;
-  if (fromEnv !== undefined && fromEnv.length > 0) return fromEnv;
+  if (fromEnv !== undefined && fromEnv.length > 0) {return fromEnv;}
   try {
     const stdout = execFileSync('git', ['-C', cwd, 'rev-parse', '--abbrev-ref', 'HEAD'], {
       encoding: 'utf8',
@@ -219,9 +219,9 @@ function expiresAtMs(expires: string): number {
 }
 
 function exceptionMatches(exception: PolicyException, finding: Finding): boolean {
-  if (exception.ruleId !== finding.ruleId) return false;
-  if (exception.id !== undefined && exception.id !== finding.id) return false;
-  if (exception.file !== undefined && exception.file !== finding.file) return false;
+  if (exception.ruleId !== finding.ruleId) {return false;}
+  if (exception.id !== undefined && exception.id !== finding.id) {return false;}
+  if (exception.file !== undefined && exception.file !== finding.file) {return false;}
   return true;
 }
 
@@ -250,7 +250,7 @@ export function applyPolicy(
       continue;
     }
     for (const finding of next) {
-      if (exceptionMatches(exception, finding)) suppressed.add(finding.id);
+      if (exceptionMatches(exception, finding)) {suppressed.add(finding.id);}
     }
   }
   next = next.filter((finding) => !suppressed.has(finding.id));
@@ -272,10 +272,10 @@ export function mergeRequiredModules(
   requested: readonly ModuleName[],
   required: readonly ModuleName[] | undefined,
 ): ModuleName[] {
-  if (required === undefined || required.length === 0) return [...requested];
+  if (required === undefined || required.length === 0) {return [...requested];}
   const out = [...requested];
   for (const name of required) {
-    if (!out.includes(name)) out.push(name);
+    if (!out.includes(name)) {out.push(name);}
   }
   return out;
 }

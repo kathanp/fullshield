@@ -33,7 +33,7 @@ function collectFunctions(file: string, ast: AstNode): FnInfo[] {
   attachParents(ast);
   const out: FnInfo[] = [];
   const push = (node: AstNode, name: string | undefined): void => {
-    if (name === undefined || name.length === 0) return;
+    if (name === undefined || name.length === 0) {return;}
     out.push({
       file,
       name,
@@ -62,7 +62,7 @@ function collectFunctions(file: string, ast: AstNode): FnInfo[] {
 }
 
 function boundNamesFromParams(node: AstNode): string[] {
-  if (!isFunctionNode(node)) return [];
+  if (!isFunctionNode(node)) {return [];}
   return node.params.flatMap((p) => boundNames(p));
 }
 
@@ -71,14 +71,14 @@ export function collectRequires(file: string, ast: AstNode, files: ReadonlySet<s
   const ns = new Map<string, string>();
   const bind = (local: string, spec: string, exportName?: string): void => {
     const resolved = resolveRelative(file, spec, files);
-    if (resolved === undefined) return;
+    if (resolved === undefined) {return;}
     ns.set(local, exportName !== undefined ? `${resolved}#${exportName}` : resolved);
   };
 
   walk(ast, (node) => {
     if (node.type === 'ImportDeclaration') {
       const spec = literalString(node.source);
-      if (spec === undefined) return;
+      if (spec === undefined) {return;}
       for (const s of node.specifiers) {
         if (s.type === 'ImportDefaultSpecifier' || s.type === 'ImportNamespaceSpecifier') {
           bind(s.local.name, spec);
@@ -89,12 +89,12 @@ export function collectRequires(file: string, ast: AstNode, files: ReadonlySet<s
       }
       return;
     }
-    if (node.type !== 'VariableDeclarator' || node.init === null) return;
-    if (node.id.type !== 'Identifier' && node.id.type !== 'ObjectPattern') return;
+    if (node.type !== 'VariableDeclarator' || node.init === null) {return;}
+    if (node.id.type !== 'Identifier' && node.id.type !== 'ObjectPattern') {return;}
 
     const req = requireCall(node.init);
     if (req !== undefined) {
-      if (node.id.type === 'Identifier') bind(node.id.name, req.spec, req.exportName);
+      if (node.id.type === 'Identifier') {bind(node.id.name, req.spec, req.exportName);}
       if (node.id.type === 'ObjectPattern') {
         for (const prop of node.id.properties) {
           if (prop.type === 'Property' && prop.key.type === 'Identifier' && prop.value.type === 'Identifier') {
@@ -109,14 +109,14 @@ export function collectRequires(file: string, ast: AstNode, files: ReadonlySet<s
 
 function requireCall(node: AstNode): { spec: string; exportName?: string } | undefined {
   if (node.type === 'CallExpression') {
-    if (node.callee.type !== 'Identifier' || node.callee.name !== 'require') return undefined;
+    if (node.callee.type !== 'Identifier' || node.callee.name !== 'require') {return undefined;}
     const spec = literalString(node.arguments[0]);
     return spec === undefined ? undefined : { spec };
   }
   if (node.type === 'MemberExpression' && node.object.type === 'CallExpression') {
     const inner = requireCall(node.object);
     const name = propName(node);
-    if (inner === undefined || name === undefined) return undefined;
+    if (inner === undefined || name === undefined) {return undefined;}
     return { spec: inner.spec, exportName: name };
   }
   return undefined;
@@ -125,21 +125,21 @@ function requireCall(node: AstNode): { spec: string; exportName?: string } | und
 function reexportsOf(ast: AstNode): Map<string, { spec: string; name: string }> {
   const out = new Map<string, { spec: string; name: string }>();
   walk(ast, (node) => {
-    if (node.type !== 'ExportNamedDeclaration' || node.source === null || node.source === undefined) return;
+    if (node.type !== 'ExportNamedDeclaration' || node.source === null || node.source === undefined) {return;}
     const spec = literalString(node.source);
-    if (spec === undefined) return;
+    if (spec === undefined) {return;}
     for (const specNode of node.specifiers) {
-      if (specNode.type !== 'ExportSpecifier') continue;
+      if (specNode.type !== 'ExportSpecifier') {continue;}
       const exported = specNode.exported.type === 'Identifier' ? specNode.exported.name : undefined;
       const local = specNode.local.type === 'Identifier' ? specNode.local.name : exported;
-      if (exported !== undefined && local !== undefined) out.set(exported, { spec, name: local });
+      if (exported !== undefined && local !== undefined) {out.set(exported, { spec, name: local });}
     }
   });
   return out;
 }
 
 function resolveRelative(fromFile: string, spec: string, files: ReadonlySet<string>): string | undefined {
-  if (!spec.startsWith('.')) return undefined;
+  if (!spec.startsWith('.')) {return undefined;}
   const base = posix.normalize(posix.join(posix.dirname(fromFile), spec));
   const candidates = [base, `${base}.js`, `${base}.ts`, `${base}.mjs`, `${base}.cjs`, `${base}/index.js`, `${base}/index.ts`];
   return candidates.find((c) => files.has(c));
@@ -148,11 +148,11 @@ function resolveRelative(fromFile: string, spec: string, files: ReadonlySet<stri
 function collectInstances(ast: AstNode, ns: Map<string, string>): Map<string, string> {
   const instances = new Map<string, string>();
   walk(ast, (node) => {
-    if (node.type !== 'VariableDeclarator' || node.init === null) return;
-    if (node.id.type !== 'Identifier' || node.init.type !== 'NewExpression') return;
-    if (node.init.callee.type !== 'Identifier') return;
+    if (node.type !== 'VariableDeclarator' || node.init === null) {return;}
+    if (node.id.type !== 'Identifier' || node.init.type !== 'NewExpression') {return;}
+    if (node.init.callee.type !== 'Identifier') {return;}
     const hit = ns.get(node.init.callee.name);
-    if (hit === undefined) return;
+    if (hit === undefined) {return;}
     instances.set(node.id.name, hit.includes('#') ? (hit.split('#')[0] ?? hit) : hit);
   });
   return instances;
@@ -165,13 +165,13 @@ function resolveCallee(
   currentFile: string,
   functions: Map<string, FnInfo>,
 ): { file: string; name: string } | undefined {
-  if (node.type !== 'CallExpression') return undefined;
+  if (node.type !== 'CallExpression') {return undefined;}
   if (node.callee.type === 'Identifier') {
     const hit = ns.get(node.callee.name);
     if (hit !== undefined) {
       if (hit.includes('#')) {
         const [file, name] = hit.split('#');
-        if (file !== undefined && name !== undefined) return { file, name };
+        if (file !== undefined && name !== undefined) {return { file, name };}
       }
       return { file: hit, name: node.callee.name };
     }
@@ -182,38 +182,38 @@ function resolveCallee(
   }
   if (node.callee.type === 'MemberExpression' && node.callee.object.type === 'Identifier') {
     const name = calleeName(node);
-    if (name === undefined) return undefined;
+    if (name === undefined) {return undefined;}
     const instFile = instances.get(node.callee.object.name);
-    if (instFile !== undefined) return { file: instFile, name };
+    if (instFile !== undefined) {return { file: instFile, name };}
     const file = ns.get(node.callee.object.name);
-    if (file !== undefined && !file.includes('#')) return { file, name };
+    if (file !== undefined && !file.includes('#')) {return { file, name };}
   }
   return undefined;
 }
 
 function isSqlSink(node: AstNode): boolean {
-  if (node.type !== 'CallExpression') return false;
+  if (node.type !== 'CallExpression') {return false;}
   const name = calleeName(node);
   return name === 'query' || name === 'execute';
 }
 
 function isCmdSink(node: AstNode): boolean {
-  if (node.type !== 'CallExpression') return false;
+  if (node.type !== 'CallExpression') {return false;}
   const name = calleeName(node);
   return name === 'exec' || name === 'execSync' || name === 'spawn' || name === 'spawnSync';
 }
 
 function whereValue(node: AstNode): AstNode | undefined {
-  if (node.type !== 'ObjectExpression') return undefined;
+  if (node.type !== 'ObjectExpression') {return undefined;}
   for (const prop of node.properties) {
-    if (prop.type !== 'Property') continue;
+    if (prop.type !== 'Property') {continue;}
     const key =
       prop.key.type === 'Identifier'
         ? prop.key.name
         : prop.key.type === 'Literal' && typeof prop.key.value === 'string'
           ? prop.key.value
           : undefined;
-    if (key === '$where') return prop.value;
+    if (key === '$where') {return prop.value;}
   }
   return undefined;
 }
@@ -236,17 +236,17 @@ export function runInterproc(parsed: readonly ParsedSource[]): Finding[] {
 
   if (taintV2Enabled()) {
     const barrels = new Map<string, Map<string, { spec: string; name: string }>>();
-    for (const p of parsed) barrels.set(p.file, reexportsOf(p.ast));
+    for (const p of parsed) {barrels.set(p.file, reexportsOf(p.ast));}
     for (const ns of requires.values()) {
       for (const [local, target] of ns) {
         const hash = target.indexOf('#');
-        if (hash < 0) continue;
+        if (hash < 0) {continue;}
         const file = target.slice(0, hash);
         const name = target.slice(hash + 1);
         const re = barrels.get(file)?.get(name);
-        if (re === undefined) continue;
+        if (re === undefined) {continue;}
         const resolved = resolveRelative(file, re.spec, files);
-        if (resolved !== undefined) ns.set(local, `${resolved}#${re.name}`);
+        if (resolved !== undefined) {ns.set(local, `${resolved}#${re.name}`);}
       }
     }
   }
@@ -257,13 +257,13 @@ export function runInterproc(parsed: readonly ParsedSource[]): Finding[] {
     const ns = requires.get(p.file) ?? new Map<string, string>();
     const inst = instances.get(p.file) ?? new Map<string, string>();
     walk(p.ast, (node) => {
-      if (node.type !== 'CallExpression') return;
+      if (node.type !== 'CallExpression') {return;}
       const target = resolveCallee(node, ns, inst, p.file, functions);
-      if (target === undefined) return;
+      if (target === undefined) {return;}
       node.arguments.forEach((arg, i) => {
-        if (arg.type === 'SpreadElement') return;
-        if (arg.type === 'CallExpression' && isSchemaValidatorCall(arg)) return;
-        if (!nodeIsTainted(arg, facts)) return;
+        if (arg.type === 'SpreadElement') {return;}
+        if (arg.type === 'CallExpression' && isSchemaValidatorCall(arg)) {return;}
+        if (!nodeIsTainted(arg, facts)) {return;}
         queue.push({
           file: target.file,
           name: target.name,
@@ -285,17 +285,17 @@ export function runInterproc(parsed: readonly ParsedSource[]): Finding[] {
 
   while (queue.length > 0) {
     const seed = queue.shift();
-    if (seed === undefined) continue;
-    if (seed.trace.length > MAX_HOPS) continue;
+    if (seed === undefined) {continue;}
+    if (seed.trace.length > MAX_HOPS) {continue;}
     const key = `${seed.file}#${seed.name}#${seed.paramIndex}`;
-    if (seen.has(key)) continue;
+    if (seen.has(key)) {continue;}
     seen.add(key);
     const fn = functions.get(`${seed.file}#${seed.name}`);
-    if (fn === undefined) continue;
+    if (fn === undefined) {continue;}
     const param = fn.params[seed.paramIndex];
-    if (param === undefined) continue;
+    if (param === undefined) {continue;}
     const p = byFile.get(fn.file);
-    if (p === undefined) continue;
+    if (p === undefined) {continue;}
     const facts = taintSummariesEnabled()
       ? cachedFunctionFacts(p.source, fn.node, [param])
       : analyzeFunctionWithSeed(fn.node, [param]);
@@ -319,7 +319,7 @@ export function runInterproc(parsed: readonly ParsedSource[]): Finding[] {
           });
         }
       }
-      if (node.type !== 'CallExpression') return;
+      if (node.type !== 'CallExpression') {return;}
       const first = node.arguments[0];
       const taintedFirst =
         first !== undefined && first.type !== 'SpreadElement' && exprIsTainted(first, facts.tainted);
@@ -338,11 +338,11 @@ export function runInterproc(parsed: readonly ParsedSource[]): Finding[] {
         });
       }
       const target = resolveCallee(node, ns, inst, fn.file, functions);
-      if (target === undefined) return;
+      if (target === undefined) {return;}
       node.arguments.forEach((arg, i) => {
-        if (arg.type === 'SpreadElement') return;
-        if (arg.type === 'CallExpression' && isSchemaValidatorCall(arg)) return;
-        if (!exprIsTainted(arg, facts.tainted)) return;
+        if (arg.type === 'SpreadElement') {return;}
+        if (arg.type === 'CallExpression' && isSchemaValidatorCall(arg)) {return;}
+        if (!exprIsTainted(arg, facts.tainted)) {return;}
         queue.push({
           file: target.file,
           name: target.name,

@@ -16,17 +16,17 @@ const GAP_SQL_SINKS = new Set([
 
 function hasBindings(node: TSESTree.CallExpression): boolean {
   const second = node.arguments[1];
-  if (second === undefined || second.type === 'SpreadElement') return false;
+  if (second === undefined || second.type === 'SpreadElement') {return false;}
   return second.type === 'ArrayExpression' || second.type === 'ObjectExpression';
 }
 
 function isSqlSink(node: TSESTree.CallExpression): boolean {
   const name = calleeName(node);
-  if (name === undefined) return false;
-  if (STABLE_SQL_SINKS.has(name)) return true;
-  if (!sastGapsEnabled()) return false;
+  if (name === undefined) {return false;}
+  if (STABLE_SQL_SINKS.has(name)) {return true;}
+  if (!sastGapsEnabled()) {return false;}
   if (GAP_SQL_SINKS.has(name)) {
-    if ((name === 'whereRaw' || name === 'orderByRaw') && hasBindings(node)) return false;
+    if ((name === 'whereRaw' || name === 'orderByRaw') && hasBindings(node)) {return false;}
     return true;
   }
   if (name === 'where' && calleeChainHas(node, 'createQueryBuilder')) {
@@ -47,7 +47,7 @@ export const sqliRule: SastRule = {
   create(ctx) {
     return {
       CallExpression(node) {
-        if (node.type !== 'CallExpression' || !isSqlSink(node)) return;
+        if (node.type !== 'CallExpression' || !isSqlSink(node)) {return;}
         const sql = node.arguments[0];
         if (sql !== undefined && sql.type !== 'SpreadElement' && ctx.isTainted(sql) && !ctx.isSqlCleared(sql)) {
           ctx.report({

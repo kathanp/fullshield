@@ -1,0 +1,21 @@
+{
+  "version": "1.0.0",
+  "results": [
+    {
+      "check_id": "fixture.sqli",
+      "path": "src/db.js",
+      "start": { "line": 12, "col": 3 },
+      "end": { "line": 12, "col": 20 },
+      "extra": {
+        "message": "Fixture SQL sink",
+        "severity": "ERROR",
+        "metadata": {
+          "cwe": ["CWE-89: SQL Injection"],
+          "category": "security"
+        }
+      }
+    }
+  ],
+  "errors": [],
+  "paths": { "scanned": ["src/db.js"] }
+}

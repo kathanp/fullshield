@@ -19,7 +19,7 @@ export function parsePoolSize(): number {
   const raw = process.env.FULLSHIELD_PARSE_WORKERS;
   if (raw !== undefined && raw !== '') {
     const parsed = Number(raw);
-    if (Number.isFinite(parsed) && parsed >= 1) return Math.min(4, Math.floor(parsed));
+    if (Number.isFinite(parsed) && parsed >= 1) {return Math.min(4, Math.floor(parsed));}
   }
   return Math.min(2, Math.max(1, availableParallelism() - 1));
 }
@@ -27,7 +27,7 @@ export function parsePoolSize(): number {
 function workerMemoryMb(): number {
   const raw = process.env.FULLSHIELD_PARSE_WORKER_MB;
   const parsed = raw !== undefined && raw !== '' ? Number(raw) : 512;
-  if (Number.isFinite(parsed) && parsed >= 64) return Math.floor(parsed);
+  if (Number.isFinite(parsed) && parsed >= 64) {return Math.floor(parsed);}
   return 512;
 }
 
@@ -43,7 +43,7 @@ export function parseCacheKey(code: string): string {
 function parseOne(code: string): Promise<unknown> {
   const key = parseCacheKey(code);
   const hit = cache.get(key);
-  if (hit !== undefined) return Promise.resolve(hit);
+  if (hit !== undefined) {return Promise.resolve(hit);}
   return new Promise((resolve, reject) => {
     const worker = new Worker(fileURLToPath(workerUrl), {
       workerData: { code },
@@ -54,14 +54,14 @@ function parseOne(code: string): Promise<unknown> {
       void worker.terminate();
     };
     const succeed = (ast: unknown): void => {
-      if (settled) return;
+      if (settled) {return;}
       settled = true;
       cache.set(key, ast);
       finish();
       resolve(ast);
     };
     const fail = (error: Error): void => {
-      if (settled) return;
+      if (settled) {return;}
       settled = true;
       finish();
       reject(error);
@@ -74,7 +74,7 @@ function parseOne(code: string): Promise<unknown> {
     });
     // terminate() after a message also emits exit. Ignore that one.
     worker.once('exit', (code) => {
-      if (settled) return;
+      if (settled) {return;}
       fail(new Error(`parse worker exited ${code ?? 'null'}`));
     });
   });
@@ -89,9 +89,9 @@ export async function parseWithPool(codes: readonly string[]): Promise<unknown[]
     for (;;) {
       const index = next;
       next += 1;
-      if (index >= codes.length) return;
+      if (index >= codes.length) {return;}
       const code = codes[index];
-      if (code === undefined) return;
+      if (code === undefined) {return;}
       out[index] = await parseOne(code);
     }
   }

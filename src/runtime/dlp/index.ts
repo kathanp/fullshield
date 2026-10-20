@@ -58,22 +58,22 @@ function allMatches(re: RegExp, text: string): RegExpExecArray[] {
 }
 
 function maskSample(value: string): string {
-  if (value.length <= 4) return '****';
+  if (value.length <= 4) {return '****';}
   return `${value.slice(0, 4)}****`.slice(0, 40);
 }
 
 function luhnOk(digits: string): boolean {
-  if (digits.length < 13 || digits.length > 19) return false;
+  if (digits.length < 13 || digits.length > 19) {return false;}
   const first = digits.charCodeAt(0) - 48;
-  if (first < 3 || first > 6) return false;
-  if (digits.split('').every((c) => c === digits[0])) return false;
+  if (first < 3 || first > 6) {return false;}
+  if (digits.split('').every((c) => c === digits[0])) {return false;}
   let sum = 0;
   let alt = false;
   for (let i = digits.length - 1; i >= 0; i -= 1) {
     let n = digits.charCodeAt(i) - 48;
     if (alt) {
       n *= 2;
-      if (n > 9) n -= 9;
+      if (n > 9) {n -= 9;}
     }
     sum += n;
     alt = !alt;
@@ -110,7 +110,7 @@ const SECRET_MARKERS = [
 
 function hasAny(text: string, markers: readonly string[]): boolean {
   for (const m of markers) {
-    if (text.includes(m)) return true;
+    if (text.includes(m)) {return true;}
   }
   return false;
 }
@@ -120,21 +120,21 @@ function collectSpans(text: string): Span[] {
   if (hasAny(text, SECRET_MARKERS)) {
     for (const re of SECRET_RES) {
       for (const m of allMatches(re, text)) {
-        if (m[0] === undefined || m.index === undefined) continue;
-        if (re.source.includes('postgres') && /\$\{|^<[^>]+>$|^\{[^}]+\}$/.test(m[0])) continue;
+        if (m[0] === undefined || m.index === undefined) {continue;}
+        if (re.source.includes('postgres') && /\$\{|^<[^>]+>$|^\{[^}]+\}$/.test(m[0])) {continue;}
         spans.push({ start: m.index, end: m.index + m[0].length, ruleId: 'DLP-SECRET-001', text: m[0] });
       }
     }
   }
   if (text.includes(' at ') || text.includes('Error') || text.includes('Exception')) {
     for (const m of allMatches(STACK_RE, text)) {
-      if (m[0] === undefined || m.index === undefined) continue;
+      if (m[0] === undefined || m.index === undefined) {continue;}
       spans.push({ start: m.index, end: m.index + m[0].length, ruleId: 'DLP-STACK-001', text: m[0] });
     }
   }
   if (/\d/.test(text)) {
     for (const m of allMatches(INTERNAL_IP_RE, text)) {
-      if (m[0] === undefined || m.index === undefined) continue;
+      if (m[0] === undefined || m.index === undefined) {continue;}
       spans.push({ start: m.index, end: m.index + m[0].length, ruleId: 'DLP-INTERNAL-001', text: m[0] });
     }
     spans.push(...findCards(text));
@@ -167,7 +167,7 @@ function findIgnoreCase(hay: string, needle: string, from: number): number {
     for (let j = 0; j < n; j += 1) {
       const a = hay.charCodeAt(i + j);
       const b = needle.charCodeAt(j);
-      if (a !== b && a !== b - 32 && a !== b + 32) continue outer;
+      if (a !== b && a !== b - 32 && a !== b + 32) {continue outer;}
     }
     return i;
   }
@@ -179,7 +179,7 @@ function findLocalhost(text: string): Span[] {
   let from = 0;
   while (from < text.length) {
     const idx = findIgnoreCase(text, 'localhost', from);
-    if (idx < 0) break;
+    if (idx < 0) {break;}
     if (!isWord(text[idx - 1]) && !isWord(text[idx + 9])) {
       spans.push({ start: idx, end: idx + 9, ruleId: 'DLP-INTERNAL-001', text: text.slice(idx, idx + 9) });
     }
@@ -194,9 +194,9 @@ function findInternalHosts(text: string): Span[] {
     let from = 0;
     while (from < text.length) {
       const idx = findIgnoreCase(text, tld, from);
-      if (idx < 0) break;
+      if (idx < 0) {break;}
       let start = idx - 1;
-      while (start >= 0 && /[A-Za-z0-9.-]/.test(text[start] ?? '')) start -= 1;
+      while (start >= 0 && /[A-Za-z0-9.-]/.test(text[start] ?? '')) {start -= 1;}
       start += 1;
       const label = text.slice(start, idx).toLowerCase();
       const end = idx + tld.length;
@@ -244,12 +244,12 @@ function findEmails(text: string): Span[] {
   let from = 0;
   while (from < text.length) {
     const at = text.indexOf('@', from);
-    if (at < 0) break;
+    if (at < 0) {break;}
     let start = at - 1;
-    while (start >= 0 && /[A-Za-z0-9._%+-]/.test(text[start] ?? '')) start -= 1;
+    while (start >= 0 && /[A-Za-z0-9._%+-]/.test(text[start] ?? '')) {start -= 1;}
     start += 1;
     let end = at + 1;
-    while (end < text.length && /[A-Za-z0-9.-]/.test(text[end] ?? '')) end += 1;
+    while (end < text.length && /[A-Za-z0-9.-]/.test(text[end] ?? '')) {end += 1;}
     const local = text.slice(start, at);
     const domain = text.slice(at + 1, end);
     const dot = domain.lastIndexOf('.');
@@ -269,7 +269,7 @@ function findEmails(text: string): Span[] {
 }
 
 function countEmails(text: string): { count: number; spans: Span[] } {
-  if (!text.includes('@')) return { count: 0, spans: [] };
+  if (!text.includes('@')) {return { count: 0, spans: [] };}
   const spans = findEmails(text);
   return { count: spans.length, spans };
 }
@@ -279,7 +279,7 @@ function redact(text: string, spans: Span[]): string {
   let out = text;
   const taken: Array<[number, number]> = [];
   for (const s of ordered) {
-    if (taken.some(([a, b]) => s.start < b && s.end > a)) continue;
+    if (taken.some(([a, b]) => s.start < b && s.end > a)) {continue;}
     taken.push([s.start, s.end]);
     out = `${out.slice(0, s.start)}${REDACT}${out.slice(s.end)}`;
   }
@@ -290,7 +290,7 @@ function uniqueHits(spans: Span[]): DlpHit[] {
   const seen = new Set<string>();
   const hits: DlpHit[] = [];
   for (const s of spans) {
-    if (seen.has(s.ruleId)) continue;
+    if (seen.has(s.ruleId)) {continue;}
     seen.add(s.ruleId);
     hits.push({ ruleId: s.ruleId, sample: maskSample(s.text) });
   }
@@ -298,10 +298,10 @@ function uniqueHits(spans: Span[]): DlpHit[] {
 }
 
 function toText(body: unknown): { text: string; kind: 'string' | 'json' } | undefined {
-  if (body === null || body === undefined) return undefined;
-  if (typeof body === 'string') return { text: body, kind: 'string' };
-  if (typeof body === 'number' || typeof body === 'boolean') return { text: String(body), kind: 'string' };
-  if (typeof Buffer !== 'undefined' && Buffer.isBuffer(body)) return undefined;
+  if (body === null || body === undefined) {return undefined;}
+  if (typeof body === 'string') {return { text: body, kind: 'string' };}
+  if (typeof body === 'number' || typeof body === 'boolean') {return { text: String(body), kind: 'string' };}
+  if (typeof Buffer !== 'undefined' && Buffer.isBuffer(body)) {return undefined;}
   try {
     return { text: JSON.stringify(body), kind: 'json' };
   } catch {
@@ -316,7 +316,7 @@ interface RoutePii {
 }
 
 export function createDlpInspector(options: GuardOptions = {}): DlpInspector | undefined {
-  if (!isDlpEnabled() || options.dlp === undefined) return undefined;
+  if (!isDlpEnabled() || options.dlp === undefined) {return undefined;}
   const mode = options.dlp.mode;
   const maxBytes = options.dlp.maxBytes ?? DLP_MAX_BYTES;
   const routes = new Map<string, RoutePii>();
@@ -344,8 +344,8 @@ export function createDlpInspector(options: GuardOptions = {}): DlpInspector | u
     }
     if (pii.samples < PII_LEARN) {
       pii.samples += 1;
-      if (emails.count <= 1) pii.seenLow = true;
-      if (emails.count >= BULK_EMAILS) pii.seenHigh = true;
+      if (emails.count <= 1) {pii.seenLow = true;}
+      if (emails.count >= BULK_EMAILS) {pii.seenHigh = true;}
     } else if (pii.seenLow && !pii.seenHigh && emails.count >= BULK_EMAILS) {
       spans.push(...emails.spans);
     }

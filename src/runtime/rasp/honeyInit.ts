@@ -10,8 +10,8 @@ function ensureGitignore(cwd: string, entries: readonly string[]): void {
   let text = existsSync(path) ? readFileSync(path, 'utf8') : '';
   const have = new Set(text.split('\n').map((l) => l.trim()));
   for (const entry of entries) {
-    if (have.has(entry)) continue;
-    if (text.length > 0 && !text.endsWith('\n')) text += '\n';
+    if (have.has(entry)) {continue;}
+    if (text.length > 0 && !text.endsWith('\n')) {text += '\n';}
     text += `${entry}\n`;
     have.add(entry);
   }

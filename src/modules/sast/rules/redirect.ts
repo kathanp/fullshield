@@ -12,11 +12,11 @@ export const redirectRule: SastRule = {
   create(ctx) {
     return {
       CallExpression(node) {
-        if (node.type !== 'CallExpression') return;
-        if (calleeName(node) !== 'redirect') return;
+        if (node.type !== 'CallExpression') {return;}
+        if (calleeName(node) !== 'redirect') {return;}
         const target = node.arguments[0];
-        if (target === undefined || target.type === 'SpreadElement') return;
-        if (!ctx.isTainted(target) || ctx.isSanitizedFor(target, 'url')) return;
+        if (target === undefined || target.type === 'SpreadElement') {return;}
+        if (!ctx.isTainted(target) || ctx.isSanitizedFor(target, 'url')) {return;}
         ctx.report({
           node,
           message: 'Tainted input is passed to res.redirect.',

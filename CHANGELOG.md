@@ -2,6 +2,68 @@
 
 All notable changes to FullShield are documented here.
 
+## 1.0.0 — 2026-10-20
+
+1.0.0 freezes the stable CLI, config keys, exit codes, error codes `FS-E000`–`FS-E016`, and the library exports in `api/fullshield.api.json`. The promise is [docs/stability.md](docs/stability.md).
+
+Experimental features stay behind `FULLSHIELD_EXPERIMENTAL_*` and are not part of that promise. Phase 56 (EPSS / CISA) is not in this release.
+
+Reviewed recall on untouched apps is not in this release. The stored Next.js cold scan remains 71.7 seconds.
+
+### Precision sampling (dev tooling)
+
+Phase 76 adds `scripts/precision-sample.mjs` and `scripts/precision-report.mjs`. Neither script nor `bench/precision/` is in the npm package. The sampler writes `label`, `reviewer`, and `note` as null. Default scan findings are unchanged.
+
+### Provenance signals
+
+Phase 87 adds informational `SUPPLY-PROV-001` when `FULLSHIELD_EXPERIMENTAL_PROVENANCE=1`. Severity is medium. The signal is not a malicious-package claim. Default scan keys are unchanged with the flag off.
+
+### Experimental ingest
+
+Phase 83 reads local Semgrep, npm audit, OSV-Scanner, and SARIF files and dedupes them when `FULLSHIELD_EXPERIMENTAL_INGEST=1`. It does not run those tools, does not fetch, and does not change their severity. Default scan is unchanged. `fullshieldPriority` is not set.
+
+### Phase 86 — dependency capability profile (experimental)
+
+`FULLSHIELD_EXPERIMENTAL_CAPABILITIES=1` adds `fullshield deps --capabilities`, capability notes on `deps-diff`, and `SUPPLY-CAP-001` when `deps.capabilityPolicy` denies a statically read capability. Default scan does not emit `SUPPLY-CAP-001`. Package files are not executed and packages are not installed.
+
+### Fix verification
+
+`FULLSHIELD_EXPERIMENTAL_FIX_VERIFY=1` (or `fix --experimental-fix-verify`) re-scans each proposed fix and each `explain` diff in memory. A patch is `removes-finding`, `does-not-remove`, or `introduces-finding`. A patch that introduces a finding is never written. `does-not-remove` needs `--force-unverified`. Dependency overrides and bumps are checked against the OSV cache only. Default scan output is unchanged.
+
+### Experimental
+
+Phase 90 reads user-supplied Semgrep-style YAML behind `FULLSHIELD_EXPERIMENTAL_SEMGREP_RULES`. Default scan is unchanged. Results may differ from Semgrep.
+
+### Developer loop
+
+`fullshield dev` is off unless `FULLSHIELD_EXPERIMENTAL_DEV=1`. It prints findings that appeared or went away after a save. Default scan output is unchanged.
+
+### Quality gate
+
+Phase 94 adds `npm run quality` (Q1–Q12) for contributors. Default scan findings are unchanged.
+
+Phase 85 adds `scan --paths` behind `FULLSHIELD_EXPERIMENTAL_PATHS`. A path lists findings that already exist. It does not add a finding or change severity. Default scan JSON is unchanged when the flag is off.
+
+### New/changed stable findings — may change CI results; use --update-baseline
+
+Phase 75 router-level auth inheritance. Default-scan diff against `bench/snapshots/HEAD.json` (0.4.0) was empty on vulnerable-app, clean-app, and every bench app. Merged (D9).
+
+Phase 51 follows a SQL string or Mongo filter returned from another file. Default-scan diff against `bench/snapshots/HEAD.json` (0.4.0) was empty on vulnerable-app, clean-app, and every bench app. Merged (D9).
+
+Phase 50 flags Swig `{{ }}` when the view engine is Swig, including consolidate. NodeGoat gains 12 `SAST-XSS-001` keys on profile and contributions fields. `{{csrftoken}}` is not reported. Merged (D15).
+
+Phase 52 adds `DEPS-PHANTOM-001` and `DEPS-LOCKMISMATCH-001` with import or manifest line numbers. Test, script, and seed imports declared in devDependencies are low severity. clean-app declares cors, express-rate-limit, and jsonwebtoken. Merged locally (D16).
+
+Phase 65 taint summaries are already on this branch. The 5-second nest and undici target was not met.
+
+Phase 78 cold-scan work stays behind `FULLSHIELD_EXPERIMENTAL_PERF2`. Merged locally. The quiet-machine speed comparison is not done, so the flag is not claimed to be faster.
+
+### Phase 80 — type-aware receivers
+
+`FULLSHIELD_EXPERIMENTAL_TYPES=1` or `scan --experimental-types` loads the optional `typescript` peer and suppresses sink calls whose receiver resolves to a non-sink type (`Array`, `Map`, a user class). Mongoose models and `any` stay. Suppressed findings are listed in JSON `suppressed[]` with `suppressedBy: "types"`. The flag off leaves scan JSON unchanged. A missing `typescript` install prints FS-E013 and keeps the heuristics.
+
+Phase 79 time budget stays behind `FULLSHIELD_EXPERIMENTAL_BUDGET`. `scan --max-time` stops SAST taint, still finishes deps, secrets, and config, and exits 3 when nothing scanned meets `--fail-on`. That exit is not a clean scan. A finding at or above `--fail-on` still exits 1. The flag off leaves output and exit codes unchanged.
+
 ## 0.4.0 — 2026-10-18
 
 Phase 46 still enforces Node >= 22.13 in `engines`, `doctor`, and CI. Phase 47 still owns the console view.

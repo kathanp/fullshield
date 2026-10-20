@@ -32,10 +32,13 @@ export default defineConfig({
   platform: 'node',
   target: 'node22',
   // Optional peers used only by `fullshield mcp --stdio`. Must not land in the scan/runtime bundles.
-  external: [/^@modelcontextprotocol\/sdk/, 'zod'],
+  external: [/^@modelcontextprotocol\/sdk/, 'zod', 'typescript', 'yaml'],
   dts: { entry: { index: 'src/index.ts' } },
   sourcemap: false,
   clean: true,
   treeshake: true,
   splitting: false,
+  // Each entry bundles its own copy of the scanner. Minify keeps the npm
+  // package under the Phase 36 unpacked budget of 2.0 MB.
+  minify: true,
 });

@@ -1,0 +1,7 @@
+{
+  "name": "direct-helper",
+  "version": "1.0.0",
+  "dependencies": {
+    "inert-helper": "1.0.0"
+  }
+}

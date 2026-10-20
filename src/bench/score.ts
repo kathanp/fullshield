@@ -77,10 +77,10 @@ const RULE_CLASS: Record<string, BenchClass> = {
 };
 
 export function classForRule(ruleId: string): BenchClass {
-  if (RULE_CLASS[ruleId]) return RULE_CLASS[ruleId];
-  if (ruleId.startsWith('SECRET-')) return 'secrets';
-  if (ruleId.startsWith('DEPS-')) return 'deps';
-  if (ruleId.startsWith('CONFIG-')) return 'config';
+  if (RULE_CLASS[ruleId]) {return RULE_CLASS[ruleId];}
+  if (ruleId.startsWith('SECRET-')) {return 'secrets';}
+  if (ruleId.startsWith('DEPS-')) {return 'deps';}
+  if (ruleId.startsWith('CONFIG-')) {return 'config';}
   return 'other';
 }
 
@@ -93,7 +93,7 @@ export function findingKey(finding: FindingLike): string {
 }
 
 function filesMatch(finding: FindingLike, truth: GroundTruthEntry): boolean {
-  if (!finding.file) return false;
+  if (!finding.file) {return false;}
   const ff = normFile(finding.file);
   const tf = normFile(truth.file);
   return ff === tf || ff.endsWith(`/${tf}`) || tf.endsWith(`/${ff}`);
@@ -104,8 +104,8 @@ export function isFileLevelFinding(finding: FindingLike): boolean {
 }
 
 export function isTruePositive(finding: FindingLike, truth: GroundTruthEntry): boolean {
-  if (classForRule(finding.ruleId) !== truth.class) return false;
-  if (!filesMatch(finding, truth)) return false;
+  if (classForRule(finding.ruleId) !== truth.class) {return false;}
+  if (!filesMatch(finding, truth)) {return false;}
   const line = finding.line ?? 0;
   return Math.abs(line - truth.line) <= 3;
 }
@@ -118,7 +118,7 @@ export function isLineAttributionOnly(findings: FindingLike[], truth: GroundTrut
     const group = same.filter((f) => f.ruleId === ruleId);
     const lined = group.some((f) => !isFileLevelFinding(f) && Math.abs((f.line ?? 0) - truth.line) <= 3);
     const fileLevel = group.some((f) => isFileLevelFinding(f));
-    if (lined && fileLevel) return true;
+    if (lined && fileLevel) {return true;}
   }
   return false;
 }

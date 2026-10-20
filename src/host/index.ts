@@ -148,7 +148,7 @@ export function createProcessHostIo(): HostIo {
       }
     },
     glob(pattern) {
-      if (!pattern.includes('*')) return existsSync(pattern) ? [pattern] : [];
+      if (!pattern.includes('*')) {return existsSync(pattern) ? [pattern] : [];}
       const slash = Math.max(pattern.lastIndexOf('/'), pattern.lastIndexOf('\\'));
       const dir = slash === -1 ? '.' : pattern.slice(0, slash);
       const filePat = slash === -1 ? pattern : pattern.slice(slash + 1);
@@ -166,7 +166,7 @@ export function createProcessHostIo(): HostIo {
 
 function spawnOut(io: HostIo, command: string, args: readonly string[]): string | undefined {
   const result = io.spawn(command, args);
-  if (result.status !== 0) return undefined;
+  if (result.status !== 0) {return undefined;}
   const text = result.stdout.trim();
   return text.length > 0 ? result.stdout : undefined;
 }
@@ -198,10 +198,10 @@ export function collectHostSnapshot(io: HostIo): HostSnapshot {
     sshdConfigFiles['/etc/ssh/sshd_config'] = mainCfg;
     for (const line of mainCfg.split('\n')) {
       const inc = line.replace(/#.*$/, '').trim().match(/^Include\s+(\S+)/i);
-      if (inc?.[1] === undefined) continue;
+      if (inc?.[1] === undefined) {continue;}
       for (const path of io.glob(inc[1])) {
         const text = io.readFile(path);
-        if (text !== undefined) sshdConfigFiles[path] = text;
+        if (text !== undefined) {sshdConfigFiles[path] = text;}
       }
     }
   }
@@ -231,9 +231,9 @@ export function collectHostSnapshot(io: HostIo): HostSnapshot {
 }
 
 function packageFromSnapshot(snapshot: HostSnapshot): OpensshPackage | undefined {
-  if (snapshot.dpkgQuery) return parseDpkgQuery(snapshot.dpkgQuery);
-  if (snapshot.rpmQuery) return parseRpmQuery(snapshot.rpmQuery);
-  if (snapshot.apkInfo) return parseApkInfo(snapshot.apkInfo);
+  if (snapshot.dpkgQuery) {return parseDpkgQuery(snapshot.dpkgQuery);}
+  if (snapshot.rpmQuery) {return parseRpmQuery(snapshot.rpmQuery);}
+  if (snapshot.apkInfo) {return parseApkInfo(snapshot.apkInfo);}
   return undefined;
 }
 
@@ -249,10 +249,10 @@ function sshdFromSnapshot(snapshot: HostSnapshot): SshdEffective {
 }
 
 function hasSshd(snapshot: HostSnapshot, pkg: OpensshPackage | undefined): boolean {
-  if (pkg !== undefined) return true;
-  if (snapshot.sshdPresent === true) return true;
-  if (snapshot.sshdT !== undefined) return true;
-  if (snapshot.sshdConfigFiles && Object.keys(snapshot.sshdConfigFiles).length > 0) return true;
+  if (pkg !== undefined) {return true;}
+  if (snapshot.sshdPresent === true) {return true;}
+  if (snapshot.sshdT !== undefined) {return true;}
+  if (snapshot.sshdConfigFiles && Object.keys(snapshot.sshdConfigFiles).length > 0) {return true;}
   return false;
 }
 
@@ -261,7 +261,7 @@ async function distroVerdict(
   ecosystem: string,
   opts: HostCheckOptions,
 ): Promise<HostOsvVerdict> {
-  if (opts.offline === true && opts.osvLookup === undefined) return 'unknown';
+  if (opts.offline === true && opts.osvLookup === undefined) {return 'unknown';}
   const names = pkg.name === 'openssh-server' ? [pkg.name, 'openssh'] : [pkg.name, 'openssh-server'];
   try {
     let sawResult = false;
@@ -279,12 +279,12 @@ async function distroVerdict(
             version: pkg.distroVersion,
           }),
         });
-        if (!response.ok) continue;
+        if (!response.ok) {continue;}
         const body = (await response.json()) as { vulns?: HostOsvVuln[] };
         vulns = body.vulns ?? [];
       }
       sawResult = true;
-      if (vulns.some((v) => isRegreSSHionVuln(v))) return 'vulnerable';
+      if (vulns.some((v) => isRegreSSHionVuln(v))) {return 'vulnerable';}
     }
     return sawResult ? 'patched' : 'unknown';
   } catch {
@@ -319,8 +319,8 @@ function hostFinding(
 }
 
 function versionSeverity(mitigated: boolean, exposure: ListenExposure): Severity {
-  if (!mitigated && exposure === 'public') return 'critical';
-  if (exposure === 'public') return 'high';
+  if (!mitigated && exposure === 'public') {return 'critical';}
+  if (exposure === 'public') {return 'high';}
   return 'medium';
 }
 

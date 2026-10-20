@@ -29,7 +29,7 @@ export async function runLogicHunt(
   const chunks: string[] = [];
   const fileTexts: Array<{ file: string; text: string }> = [];
   for (const file of files) {
-    if (!/\.[cm]?[jt]sx?$/.test(file)) continue;
+    if (!/\.[cm]?[jt]sx?$/.test(file)) {continue;}
     if (!ROUTE_FILE.test(file) && !/app\.(get|post|put|patch|delete)/.test(file)) {
       try {
         const text = await readFile(join(cwd, file), 'utf8');
@@ -52,9 +52,9 @@ export async function runLogicHunt(
     }
   }
   const prompt = chunks.join('\n\n');
-  if (prompt.length === 0) return [];
+  if (prompt.length === 0) {return [];}
   const res = await client.complete({ mode: 'logic', prompt });
-  if (res === null) return [];
+  if (res === null) {return [];}
 
   if (!client.useFixtures) {
     const live = asLogicFindings(res.json) ?? [];
@@ -87,7 +87,7 @@ export async function runLogicHunt(
       fileTexts.find((f) =>
         f.text.includes(seed.ruleId === 'AI-IDOR-001' ? 'findById(req.params.id)' : 'Object.assign(user, req.body)'),
       );
-    if (hit === undefined) continue;
+    if (hit === undefined) {continue;}
     const line =
       hit.text
         .split(/\r?\n/)
@@ -100,7 +100,7 @@ export async function runLogicHunt(
 /** True positives / all AI findings on a fixture set (spec §16.5). */
 export function aiPrecision(findings: readonly Finding[], expectedRuleIds: readonly string[]): number {
   const ai = findings.filter((f) => f.source === 'ai');
-  if (ai.length === 0) return 1;
+  if (ai.length === 0) {return 1;}
   const expected = new Set(expectedRuleIds);
   const tp = ai.filter((f) => expected.has(f.ruleId)).length;
   return tp / ai.length;
