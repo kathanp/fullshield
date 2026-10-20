@@ -7,7 +7,7 @@ import { lineIndependentFingerprint } from '../core/fingerprint.js';
 import type { Finding, Severity } from '../core/finding.js';
 import { redactScan } from './redact.js';
 
-const SCHEMA_URI = 'https://json.schemastore.org/sarif-2.1.0.json';
+export const SCHEMA_URI = 'https://json.schemastore.org/sarif-2.1.0.json';
 
 function sarifLevel(severity: Severity): 'error' | 'warning' | 'note' {
   if (severity === 'critical' || severity === 'high') return 'error';

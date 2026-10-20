@@ -17,4 +17,5 @@ FullShield prints `fullshield: FS-E### <message>`. The message is the same text 
 | FS-E009 | `sast.sources` or `sast.sanitizers` without the experimental flag | Set `FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS=1`. `clears` takes B4 class names. |
 | FS-E010 | A second `npm run verify` starts in a worktree that already has one | Wait for the verify recorded in `.fullshield-verify.lock` to finish. |
 | FS-E011 | `src/` or `test/` changed during verify, quality, or mutation | The run is discarded. Restore the files. Mutation edits a temp copy only. |
+| FS-E012 | `ingest` without its flag, or a local report that is not valid JSON for a supported schema | Set `FULLSHIELD_EXPERIMENTAL_INGEST=1` or pass `--experimental-ingest`. The message names the file and the first schema error. Other files are still ingested. |
 | FS-E000 | Any other command error | Read the message. Re-run with `--debug` if you need the stack. |

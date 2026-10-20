@@ -44,6 +44,11 @@ const KNOWN: Array<{ test: RegExp; code: string; hint: string }> = [
     code: 'FS-E009',
     hint: 'Set FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS=1 before naming sast.sources or sast.sanitizers.',
   },
+  {
+    test: /FULLSHIELD_EXPERIMENTAL_INGEST/,
+    code: 'FS-E012',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_INGEST=1 or pass --experimental-ingest. A bad file is named with the first schema error; other files are still ingested.',
+  },
 ];
 
 const DOCS = 'https://github.com/kathanp/fullshield/blob/main/docs/errors.md';

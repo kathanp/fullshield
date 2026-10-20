@@ -137,6 +137,8 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 
 **Experimental scan diff (off by default):** `FULLSHIELD_EXPERIMENTAL_DIFF=1` or `fullshield diff --experimental-diff <before.json> <after.json>`. Compares two `scan --json` files. The match ignores the line number. It does not scan and does not decide which findings are real. Added findings at or above `--fail-on` (default high) exit 1. Baseline `suppressions` need an owner, a reason, and an expiry. The spec is [`docs/ADVANCED-SPEC.md`](docs/ADVANCED-SPEC.md).
 
+**Experimental ingest (off by default):** `FULLSHIELD_EXPERIMENTAL_INGEST=1` or `fullshield ingest --experimental-ingest <file...>`. Reads local SARIF 2.1.0, OSV-Scanner JSON, `npm audit --json`, and Semgrep JSON. It does not run those tools and does not fetch. Severity stays the tool's severity (`moderate` and Semgrep `WARNING` are stored as medium; the original token is `externalSeverity`). `fullshieldPriority` is not set.
+
 **Experimental RASP** (Frontier, off by default): structure-change sink hooks via `node --import fullshield/runtime/register app.js` or `import 'fullshield/runtime/auto'` as the first import. Enable only with `FULLSHIELD_EXPERIMENTAL_RASP=1`. Default mode is `monitor` (events only). `FULLSHIELD_RASP_MODE=block` throws on structure-changing SQL/shell/path/NoSQL/SSRF/prototype input. Hooks **fail open**: a hook error logs `RASP-FAIL-OPEN-001` and the original call proceeds. Do not use block mode in production until you have measured the benign corpus on your app.
 
 `npm run bench` reports `inspect()` p50/p95 (must stay under 1ms) and full Express request overhead p50/p95 with the middleware on the stack.
@@ -149,6 +151,7 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 |---|---|
 | `scan` | Run deps, secrets, sast, config. `--json`, `--sarif`, `--markdown`, `--html`, `--fail-on`, `--offline`, `--staged`, `--update-baseline`. `--ai explain` is **experimental** (off by default; explanation text only, never a verdict). `--pr-summary` is **experimental** (`FULLSHIELD_EXPERIMENTAL_POLICY=1`): deterministic Markdown of new findings versus baseline for GitHub/GitLab PR comments (no AI; links to rule docs). |
 | `diff` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_DIFF=1`). Compare two `scan --json` files. `--fail-on` applies to added findings only. |
+| `ingest` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_INGEST=1`). Read local SARIF, npm audit, OSV-Scanner, and Semgrep JSON and dedupe. Does not run those tools. |
 | `fullshield.policy.json` | **Experimental** policy-as-code (`FULLSHIELD_EXPERIMENTAL_POLICY=1`): `requiredModules`, per-rule `severityOverrides`, `failOn` per branch, and `exceptions` that require `owner`, `reason`, and ISO `expires`. Expired exceptions fail CI. Exceptions without owner or expiry are rejected. |
 | `fix` | Dry-run patches (unsafe suggestions included). `--apply` writes only `safe: true` patches on a clean git tree. `--unsafe` is required for `helmet()` insertion and secret → `process.env` replacement. `--force` skips files with uncommitted changes. `--ai` is **experimental**: drafts a verified, reviewable diff for findings without a rule-based fix (never auto-merged). |
 | `init` | Config + GitHub/GitLab CI + pre-commit hook |

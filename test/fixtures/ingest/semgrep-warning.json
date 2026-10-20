@@ -1,0 +1,18 @@
+{
+  "version": "1.0.0",
+  "results": [
+    {
+      "check_id": "fixture.warning",
+      "path": "src/other.js",
+      "start": { "line": 2, "col": 1 },
+      "end": { "line": 2, "col": 4 },
+      "extra": {
+        "message": "Fixture warning",
+        "severity": "WARNING",
+        "metadata": { "cwe": ["CWE-22"] }
+      }
+    }
+  ],
+  "errors": [],
+  "paths": { "scanned": ["src/other.js"] }
+}

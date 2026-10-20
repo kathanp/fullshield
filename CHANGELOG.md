@@ -12,6 +12,10 @@ Phase 76 adds `scripts/precision-sample.mjs` and `scripts/precision-report.mjs`.
 
 Phase 87 adds informational `SUPPLY-PROV-001` when `FULLSHIELD_EXPERIMENTAL_PROVENANCE=1`. Severity is medium. The signal is not a malicious-package claim. Default scan keys are unchanged with the flag off.
 
+### Experimental ingest
+
+Phase 83 reads local Semgrep, npm audit, OSV-Scanner, and SARIF files and dedupes them when `FULLSHIELD_EXPERIMENTAL_INGEST=1`. It does not run those tools, does not fetch, and does not change their severity. Default scan is unchanged. `fullshieldPriority` is not set.
+
 ### Quality gate
 
 Phase 94 adds `npm run quality` (Q1–Q12) for contributors. Default scan findings are unchanged.

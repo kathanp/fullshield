@@ -1,0 +1,18 @@
+{
+  "version": "1.0.0",
+  "results": [
+    {
+      "check_id": "fixture.sqli.far",
+      "path": "src/db.js",
+      "start": { "line": 40, "col": 1 },
+      "end": { "line": 40, "col": 10 },
+      "extra": {
+        "message": "Fixture SQL sink far away",
+        "severity": "ERROR",
+        "metadata": { "cwe": ["CWE-89"] }
+      }
+    }
+  ],
+  "errors": [],
+  "paths": { "scanned": ["src/db.js"] }
+}

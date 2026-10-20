@@ -790,6 +790,7 @@ Worm and workflow-tampering indicators; transitive overrides written to `package
 - [  ] FullShield does not stop attacks by itself: `--fail-on` and runtime monitor/block are the prevention mechanisms.
 - [  ] No deterministic detection of business-logic or authorization bugs.
 - [  ] Production reliance is Section 38. README and release notes keep that stance. Do not claim FullShield replaces Semgrep, npm audit, OSV-Scanner, or a secrets scanner.
+- [  ] `ingest` (Phase 83) reads local report files only. It does not run Semgrep, npm audit, or OSV-Scanner and does not fetch. It does not set `fullshieldPriority` (Phase 84; KEV/EPSS stay blocked on Phase 56). An npm audit file with no installed version uses `unknown` and will not match an OSV-Scanner row that has a version.
 
 ---
 
@@ -1577,12 +1578,12 @@ Acceptance: a valid-format fixture token (generated in the test with the documen
 ### Phase 83 — External findings ingest and dedupe [`FULLSHIELD_EXPERIMENTAL_INGEST`]
 Section 38 says use FullShield beside Semgrep, npm audit, and OSV-Scanner. Make that one command.
 
-- [  ] `fullshield ingest <file...>` reads local files only: SARIF 2.1.0 (any tool), OSV-Scanner `--format json`, `npm audit --json`, Semgrep `--json`. Never runs those tools. Never fetches.
-- [  ] Normalizes each to the Finding model with `source: "<tool>"`, keeps the tool's original rule ID in `externalRuleId`, never rewrites its severity.
-- [  ] Dedupe keys: dependency findings by `(advisoryId or alias, package, version)`; code findings by `(cwe, file, line ±3)` or SARIF `partialFingerprints` when present. Merged rows list every `sources[]`.
-- [  ] Annotates every ingested finding with FullShield's own evidence where it has it: dependency reachability class (Phase 39/61), route exposure and auth (Phase 58/75), sink class. Never changes the external tool's severity; adds `fullshieldPriority` only with Phase 84's flag.
-- [  ] Output: console (Phase 47 view), `--json`, `--sarif` (one run per source tool + one FullShield run, so GitHub keeps tool identity).
-- [  ] Malformed input → `FS-E` code naming the file and the first schema error; other files still ingested.
+- [x] `fullshield ingest <file...>` reads local files only: SARIF 2.1.0 (any tool), OSV-Scanner `--format json`, `npm audit --json`, Semgrep `--json`. Never runs those tools. Never fetches.
+- [x] Normalizes each to the Finding model with `source: "<tool>"`, keeps the tool's original rule ID in `externalRuleId`, never rewrites its severity.
+- [x] Dedupe keys: dependency findings by `(advisoryId or alias, package, version)`; code findings by `(cwe, file, line ±3)` or SARIF `partialFingerprints` when present. Merged rows list every `sources[]`.
+- [x] Annotates every ingested finding with FullShield's own evidence where it has it: dependency reachability class (Phase 39/61), route exposure and auth (Phase 58/75), sink class. Never changes the external tool's severity; adds `fullshieldPriority` only with Phase 84's flag.
+- [x] Output: console (Phase 47 view), `--json`, `--sarif` (one run per source tool + one FullShield run, so GitHub keeps tool identity).
+- [x] Malformed input → `FS-E` code naming the file and the first schema error; other files still ingested.
 
 Acceptance: fixture outputs from each tool (hand-written, small, schema-valid) dedupe as expected: a CVE reported by npm audit and OSV-Scanner becomes one row with two sources; a Semgrep SQLi on the same line as `SAST-SQLI-001` becomes one row. Default scan unchanged.
 
