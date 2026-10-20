@@ -1629,10 +1629,10 @@ Acceptance: mocked registry fixtures for each signal; a test asserts only `regis
 ### Phase 88 — Developer loop: `fullshield dev` [`FULLSHIELD_EXPERIMENTAL_DEV`]
 Feedback while coding, without an editor extension (Section 31).
 
-- [  ] `fullshield dev` watches the project with `fs.watch` (recursive where supported; polling fallback on Linux without recursive support, interval configurable). Debounce 300 ms.
-- [  ] On change: rescan only changed files and their reverse dependents (Phase 42 `--changed` logic + Phase 78 caches). Print only **new** and **resolved** findings since the previous run, using the Section 34 line-independent key.
-- [  ] Never runs deps OSV lookups on every save; deps rescan only when a manifest or lockfile changes.
-- [  ] Ctrl-C closes watchers and every DB handle (Windows, R22).
+- [x] `fullshield dev` watches the project with `fs.watch` (recursive where supported; polling fallback on Linux without recursive support, interval configurable). Debounce 300 ms.
+- [x] On change: rescan only changed files and their reverse dependents (Phase 42 `--changed` logic + Phase 78 caches). Print only **new** and **resolved** findings since the previous run, using the Section 34 line-independent key.
+- [x] Never runs deps OSV lookups on every save; deps rescan only when a manifest or lockfile changes.
+- [x] Ctrl-C closes watchers and every DB handle (Windows, R22).
 
 Acceptance: a test edits a fixture file to add a SQLi and asserts one "new" line within 5 s, then reverts and asserts one "resolved" line. Runs on Linux/macOS/Windows CI (or `skipIf` with reason).
 

@@ -19,3 +19,22 @@ export function nodeSqliteAvailable(): boolean {
 export function nodeSqliteUnavailableMessage(feature: string): string {
   return `${feature} requires Node 22.13+ (node:sqlite is not available on Node ${process.versions.node})`;
 }
+
+const dbHandles = new Set<{ close(): void }>();
+
+/** Remember a database so `fullshield dev` can close it on Ctrl-C. */
+export function trackDbHandle(handle: { close(): void }): void {
+  dbHandles.add(handle);
+}
+
+/** Close every tracked database. A second call is a no-op. */
+export function closeAllDbHandles(): void {
+  for (const handle of dbHandles) {
+    try {
+      handle.close();
+    } catch {
+      // already closed
+    }
+  }
+  dbHandles.clear();
+}

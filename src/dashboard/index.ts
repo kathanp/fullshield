@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { join } from 'node:path';
 
-import { nodeSqliteAvailable, nodeSqliteUnavailableMessage } from '../core/sqlite.js';
+import { nodeSqliteAvailable, nodeSqliteUnavailableMessage, trackDbHandle } from '../core/sqlite.js';
 
 const require = createRequire(import.meta.url);
 
@@ -49,7 +49,7 @@ function sqliteDb(file: string): HistoryDb {
   }
   let closed = false;
   const handle = db;
-  return {
+  const api: HistoryDb = {
     list() {
       return handle.prepare('SELECT scannedAt, total, highCrit FROM scans ORDER BY scannedAt').all() as unknown as HistoryRow[];
     },
@@ -80,6 +80,8 @@ function sqliteDb(file: string): HistoryDb {
       }
     },
   };
+  trackDbHandle(api);
+  return api;
 }
 
 export function openHistory(dir: string): HistoryDb {

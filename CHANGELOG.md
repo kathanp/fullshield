@@ -4,6 +4,10 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+### Developer loop
+
+`fullshield dev` is off unless `FULLSHIELD_EXPERIMENTAL_DEV=1`. It prints findings that appeared or went away after a save. Default scan output is unchanged.
+
 ### Quality gate
 
 Phase 94 adds `npm run quality` (Q1–Q12) for contributors. Default scan findings are unchanged.
