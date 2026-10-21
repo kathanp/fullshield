@@ -54,8 +54,9 @@ If you depended on a moved value, it still works in 1.0.1. It may change in a la
 ### Release check
 
 1.0.0 was tagged before the six-job matrix was confirmed green on `main`.
-1.0.1 is tagged only after all six required checks in `docs/branch-protection.md` pass
-on `main`. The run link is filled in when that matrix is green.
+The six required checks in `docs/branch-protection.md` passed on pull request #18:
+https://github.com/kathanp/fullshield/actions/runs/39514123297
+1.0.1 is tagged only after those checks pass on `main`.
 
 ## 1.0.0 — 2026-10-20
 
