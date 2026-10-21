@@ -1,3 +1,4 @@
+import { clearDnsPins, setDnsPinTtl } from './dns-pin.js';
 import { decideSink } from './decide.js';
 import { installHooks, restoreHooks } from './hooks.js';
 import { clearCanaries } from './honey.js';
@@ -19,6 +20,8 @@ export interface RaspOptions {
   threatAutoBlock?: boolean;
   /** Max auto-block duration in ms (default 15 minutes). */
   threatMaxBlockMs?: number;
+  /** Per-request DNS pin lifetime in ms (default 60 seconds). */
+  dnsPinTtlMs?: number;
 }
 
 let enabled = false;
@@ -67,6 +70,7 @@ export function enableRasp(opts: RaspOptions = {}): void {
     return;
   }
   options = { ...opts, experimental: true };
+  setDnsPinTtl(opts.dnsPinTtlMs);
   configureThreat({ autoBlock: opts.threatAutoBlock === true, maxBlockMs: opts.threatMaxBlockMs });
   if (!enabled) {
     installHooks();
@@ -80,6 +84,8 @@ export function disableRasp(): void {
   enabled = false;
   options = {};
   setSsrfLookup(undefined);
+  clearDnsPins();
+  setDnsPinTtl(undefined);
   clearCanaries();
   clearThreats();
 }

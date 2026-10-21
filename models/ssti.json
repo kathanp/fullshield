@@ -1,0 +1,14 @@
+{
+  "entries": [
+    { "member": "ejs.render", "templateIndex": 0 },
+    { "member": "ejs.compile", "templateIndex": 0 },
+    { "member": "pug.render", "templateIndex": 0 },
+    { "member": "pug.compile", "templateIndex": 0 },
+    { "member": "handlebars.compile", "templateIndex": 0 },
+    { "member": "nunjucks.renderString", "templateIndex": 0 },
+    { "member": "_.template", "templateIndex": 0 },
+    { "member": "doT.template", "templateIndex": 0 },
+    { "member": "Mustache.render", "templateIndex": 0 },
+    { "member": "Function", "templateIndex": 0 }
+  ]
+}

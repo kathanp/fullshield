@@ -19,11 +19,14 @@ import { affectedFunctionNames } from './symbol-reachability.js';
 import { minFixedVersion, osvSeverity, sameMajor } from './semver.js';
 import { findTyposquats, type TyposquatHit } from './typosquat.js';
 import { experimentalVex } from '../../supply/experimental.js';
-import { licenseEnabled } from '../sast/experimental.js';
+import { healthEnabled, licenseEnabled, vendoredEnabled } from '../sast/experimental.js';
+import { unfixedFindings } from './unfixed.js';
+import { vendoredFindings } from './vendored.js';
 import { scanCopyleftLicenses } from './license.js';
 import { attachOverrideProposals, scanInstalledPackages } from './phase31.js';
 import { provenanceEnabled, provenanceFindingsForScan } from '../../provenance/index.js';
 import { capabilitiesEnabled, capabilityFindings } from '../../capabilities/index.js';
+import { npmDepthFindings, pickNpmLock, readLockTexts } from './npm/index.js';
 
 const LOCKFILE_NAMES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'] as const;
 
@@ -165,7 +168,8 @@ export const depsModule: ScanModule & {
   async run(ctx) {
     depsModule.unusedDirect = undefined;
     depsModule.upgradePlan = undefined;
-    const lockFile = LOCKFILE_NAMES.find((name) => ctx.files.includes(name));
+    const lockTexts = await readLockTexts(ctx.cwd, ctx.files);
+    const lockFile = pickNpmLock(ctx.files) ?? LOCKFILE_NAMES.find((name) => ctx.files.includes(name));
     const cacheDir =
       ctx.config.deps.cacheDir !== undefined
         ? resolve(ctx.cwd, ctx.config.deps.cacheDir)
@@ -178,6 +182,14 @@ export const depsModule: ScanModule & {
     } catch {
       manifestRaw = undefined;
     }
+    const npmInput = {
+      cwd: ctx.cwd,
+      files: ctx.files,
+      manifestRaw,
+      lockTexts,
+      cacheDir,
+      offline: ctx.config.deps.offline,
+    };
     const depLoc = (name: string): { file: string; line?: number } | undefined => {
       if (manifestRaw === undefined) {return undefined;}
       const line = lineOfManifestDep(manifestRaw, name);
@@ -211,7 +223,17 @@ export const depsModule: ScanModule & {
         }
       }
       const noLockCtx = await reachabilityCtx(ctx.cwd, ctx.files, graphFromManifest(manifest), ctx.config.sast.maxFileBytes);
-      return withWorkspaceAdvisories(ctx.cwd, manifestRaw, osvOpts, applyReachability(findings, noLockCtx, symbols));
+      if (vendoredEnabled()) {findings.push(...(await vendoredFindings(ctx.cwd, ctx.files, osvOpts)));}
+      if (healthEnabled()) {
+        const deps = manifest.dependencies;
+        const prod = new Set(
+          deps !== null && typeof deps === 'object' && !Array.isArray(deps) ? Object.keys(deps) : [],
+        );
+        findings.push(...(await unfixedFindings(osvHits, prod, noLockCtx, cacheDir)));
+      }
+      const noLockReached = applyReachability(findings, noLockCtx, symbols);
+      noLockReached.push(...(await npmDepthFindings(npmInput)));
+      return withWorkspaceAdvisories(ctx.cwd, manifestRaw, osvOpts, noLockReached);
     }
 
     let contents: string;
@@ -221,7 +243,8 @@ export const depsModule: ScanModule & {
       return [];
     }
 
-    const graph = parseLockfileGraph(lockFile, contents);
+    const parseAs = lockFile === 'npm-shrinkwrap.json' ? 'package-lock.json' : lockFile;
+    const graph = parseLockfileGraph(parseAs, contents);
     const packages = graph.packages;
     const findings: Finding[] = [];
     const directNames = await readDirectDependencyNames(ctx.cwd);
@@ -316,6 +339,9 @@ export const depsModule: ScanModule & {
       });
       reached.push(...provenance.findings);
     }
+    if (vendoredEnabled()) {reached.push(...(await vendoredFindings(ctx.cwd, ctx.files, osvOpts)));}
+    if (healthEnabled()) {reached.push(...(await unfixedFindings(osvHits, graph.directProd, reachCtx, cacheDir)));}
+    reached.push(...(await npmDepthFindings({ ...npmInput, lockTexts: { ...lockTexts, [lockFile]: contents } })));
     return reached;
   },
 };

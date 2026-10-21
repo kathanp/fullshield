@@ -17,6 +17,6 @@ Today's recorded baseline is from the Phase 94 run on `next` (2026-10-19). Exist
 | Q9 | A `src` file added versus `next` has ≥ 90% lines and ≥ 80% branches in `coverage/coverage-summary.json` | no added files when this runs on `next` |
 | Q10 | A new rule ID needs a mutation that the tests kill | 70 rules already in the tree; none new versus the baseline |
 | Q11 | Two default `scan --json --offline-safe` runs of vulnerable-app, and of `~/fullshield-bench/dvna` when that checkout exists, match after sorting findings and dropping `metadata.durationMs` and `metadata.startedAt` (those are the clock). The same check runs for an experimental flag that is not yet in the baseline | measured on this machine during `npm run quality` |
-| Q12 | `npm pack --dry-run` matches `quality/pack-files.txt`, ships no `test/`, `bench/`, `reports/`, or `.map`, and `pack-budget` passes | 106 packed files |
+| Q12 | `npm pack --dry-run` matches `quality/pack-files.txt`, ships no `test/`, `bench/`, `reports/`, or `.map`, and `pack-budget` passes | 273 packed files |
 
 `src/net/hosts.ts` is the host list for Q8. Phase 56 hosts are not on it.

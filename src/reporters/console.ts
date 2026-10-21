@@ -95,6 +95,8 @@ function isDevOnly(finding: Finding): boolean {
  */
 export function isActionable(finding: Finding): boolean {
   if (finding.ruleId === 'DEPS-MALICIOUS-001') {return true;}
+  if (finding.ruleId === 'DEPS-VENDORED-001') {return true;}
+  if (finding.ruleId === 'DEPS-UNFIXED-001') {return finding.reachability === 'reachable';}
   if (finding.ruleId === 'DEPS-VULN-001') {
     if (isDevOnly(finding)) {return false;}
     return finding.reachability !== undefined && SHOWN_VULN_REACH.has(finding.reachability);

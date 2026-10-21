@@ -33,6 +33,10 @@ export function detectStructureChange(
   base?: string,
 ): boolean {
   if (kind === 'proto') {return protoPolluted(ctx);}
+  if (kind === 'ssti') {
+    if (typeof sink !== 'string' || sink.length === 0) {return false;}
+    return ctx.strings.some((input) => input.length >= 3 && sink.includes(input));
+  }
   if (kind === 'nosql') {
     if (nosqlUserOperators(sink, ctx)) {return true;}
     return whereJsChangesStructure(sink, ctx);

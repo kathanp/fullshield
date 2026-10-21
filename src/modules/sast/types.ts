@@ -16,6 +16,8 @@ export interface SastReport {
   node: AstNode;
   message: string;
   confidence?: Confidence;
+  severity?: Severity;
+  context?: 'test';
 }
 
 export interface RuleContext {

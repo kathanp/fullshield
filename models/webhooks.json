@@ -1,0 +1,9 @@
+{
+  "entries": [
+    { "id": "stripe", "body": "event.type", "verifiers": ["constructEvent"] },
+    { "id": "github", "header": "x-github-event", "verifiers": ["verify", "timingSafeEqual"] },
+    { "id": "slack", "header": "x-slack-signature", "verifiers": ["timingSafeEqual"] },
+    { "id": "shopify", "header": "x-shopify-hmac-sha256", "verifiers": ["timingSafeEqual"] },
+    { "id": "twilio", "header": "x-twilio-signature", "verifiers": ["validateRequest", "timingSafeEqual"] }
+  ]
+}

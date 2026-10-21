@@ -8,6 +8,7 @@ const REACH = new Set<string>([
   'reachability-unknown',
   'symbol-reachable',
   'symbol-not-called',
+  'vendored',
 ]);
 
 const ROUTE = new Set<Finding['routeExposure']>(['unauthenticated', 'authenticated', 'unknown']);

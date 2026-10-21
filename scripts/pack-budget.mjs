@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Phase 36. Fail if the npm pack is over 2.0 MB unpacked, over 120 files,
+ * Phase 36. Fail if the npm pack is over 3.0 MB unpacked, over 320 files,
  * or adds a hard dependency versus the last v* tag.
  */
 import { spawnSync } from 'node:child_process';

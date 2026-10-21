@@ -2,6 +2,26 @@
 
 All notable changes to FullShield are documented here.
 
+## 1.2.0
+
+### Experimental
+
+- Phase 105: committed credential files behind `FULLSHIELD_EXPERIMENTAL_CREDFILES` (`SECRET-FILE-002` through `SECRET-FILE-007`). Off by default. Default scan output is unchanged.
+- Phase 95: disabled TLS verification behind `FULLSHIELD_EXPERIMENTAL_TLS` (`SAST-TLS-001`, `SAST-TLS-002`). Off by default. Default scan output is unchanged.
+- Phase 96: crypto v2 behind `FULLSHIELD_EXPERIMENTAL_CRYPTO2` (`SAST-CIPHER-001`, `SAST-CIPHER-002`, `SAST-RSA-001`, `SAST-JWT-002`). Off by default. Default scan output is unchanged.
+- Phase 102: Electron window settings behind `FULLSHIELD_EXPERIMENTAL_ELECTRON` (`CONFIG-ELECTRON-001`, `CONFIG-ELECTRON-002`, `CONFIG-ELECTRON-003`). Off by default. Default scan output is unchanged.
+- Phase 104: vendored library files behind `FULLSHIELD_EXPERIMENTAL_VENDORED` (`DEPS-VENDORED-001`). Off by default. Default scan output is unchanged.
+- Phase 97: server-side template injection behind `FULLSHIELD_EXPERIMENTAL_SSTI` (`SAST-SSTI-001`) and a RASP template-source hook (`RASP-SSTI-001`) on `ejs`, `pug`, and `nunjucks`. Off by default. Default scan output is unchanged.
+- Phase 71: RASP hooks for MongoDB and Mongoose write and aggregate methods, Axios verbs and `axios.create()`, `undici.request`, and `undici:request:create`. Off unless `FULLSHIELD_EXPERIMENTAL_RASP=1`.
+- Phase 72: in-request DNS pin (`dnsPinTtlMs`, default 60 seconds) refuses a later private address for a host already resolved in that request.
+- Phase 99: webhook verifiers behind `FULLSHIELD_EXPERIMENTAL_WEBHOOK` (`SAST-WEBHOOK-001`). Off by default. Default scan output is unchanged.
+- Phase 100: session fixation behind `FULLSHIELD_EXPERIMENTAL_SESSION2` (`SAST-SESSION-002`). Off by default. Default scan output is unchanged.
+- Phase 98: secret logging behind `FULLSHIELD_EXPERIMENTAL_LOGLEAK` (`SAST-LOGLEAK-001`). Off by default. Default scan output is unchanged.
+- Phase 103: Next.js boundary behind `FULLSHIELD_EXPERIMENTAL_NEXT` (`SAST-NEXT-001`, `CONFIG-NEXT-001`, `CONFIG-NEXT-002`, `SECRET-NEXTPUB-001`). Off by default. Default scan output is unchanged.
+- Phase 101: browser JavaScript behind `FULLSHIELD_EXPERIMENTAL_BROWSER` (`SAST-DOMXSS-001`, `SAST-REACT-001`, `SAST-POSTMSG-001`, `SAST-TOKENSTORE-001`). Off by default. Default scan output is unchanged.
+- Phase 106: unfixed dependencies behind `FULLSHIELD_EXPERIMENTAL_HEALTH` (`DEPS-UNFIXED-001`). Off by default. Default scan output is unchanged.
+- Phase 107: IDOR hints behind `FULLSHIELD_EXPERIMENTAL_IDOR` (`SAST-IDOR-001`). Off by default. `source: rule` never fails CI. Default scan output is unchanged.
+
 ## 1.0.1 — 2026-10-20
 
 Documentation-only release. Scanner behavior, default `scan --json` output, and exit
@@ -56,7 +76,11 @@ If you depended on a moved value, it still works in 1.0.1. It may change in a la
 1.0.0 was tagged before the six-job matrix was confirmed green on `main`.
 The six required checks in `docs/branch-protection.md` passed on pull request #18:
 https://github.com/kathanp/fullshield/actions/runs/39514123297
-1.0.1 is tagged only after those checks pass on `main`.
+The same six checks passed on the changelog commit:
+https://github.com/kathanp/fullshield/actions/runs/39521633354
+`v1.0.1` is `dc2b719` on `main`. Publish succeeded:
+https://github.com/kathanp/fullshield/actions/runs/39529799316
+npm published `1.0.1` at 2026-10-21T02:43:27Z with SLSA provenance.
 
 ## 1.0.0 — 2026-10-20
 

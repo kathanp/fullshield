@@ -22,6 +22,7 @@ FullShield prints `fullshield: FS-E### <message>`. The message is the same text 
 | FS-E014 | `deps --capabilities` without `FULLSHIELD_EXPERIMENTAL_CAPABILITIES=1` | Set the flag. The command only reads installed files. |
 | FS-E015 | `--max-time` is not a positive number of seconds while the budget flag is on | Pass a positive number of seconds. Set `FULLSHIELD_EXPERIMENTAL_BUDGET=1` or pass `--experimental-budget`. |
 | FS-E016 | User Semgrep-style rules without the flag, a missing `yaml` peer, an unreadable rules file, or an unsupported construct | Set `FULLSHIELD_EXPERIMENTAL_SEMGREP_RULES=1`. Install the optional `yaml` peer. The message names the construct and the rule id. The whole file is rejected. |
+| FS-E017 | `npm-audit-diff` without its flag, or the audit file or scan JSON cannot be read | Set `FULLSHIELD_EXPERIMENTAL_NPM_AUDIT_DIFF=1`. Pass `--file` for an `npm audit --json` file you already produced. `--from` is a `scan --json` file. Without `--from` the command reads `.fullshield/last-scan.json`. The command does not run `npm audit`. |
 | FS-E000 | Any other command error | Read the message. Re-run with `--debug` if you need the stack. |
 
 ## Scan exit codes

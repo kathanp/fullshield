@@ -21,6 +21,12 @@ negative counterpart in `test/fixtures/clean-app`.
 | [SECRET-SESSION-001](SECRET-SESSION-001.md) | Hardcoded express-session secret |
 | [SECRET-ENTROPY-001](SECRET-ENTROPY-001.md) | High-entropy assignment (low confidence) |
 | [SECRET-ENVFILE-001](SECRET-ENVFILE-001.md) | Committed `.env` file |
+| [SECRET-FILE-002](SECRET-FILE-002.md) | `.npmrc` `_authToken` / `_auth` literal (experimental) |
+| [SECRET-FILE-003](SECRET-FILE-003.md) | Docker `config.json` `auths` auth value (experimental) |
+| [SECRET-FILE-004](SECRET-FILE-004.md) | kubeconfig `token` or `client-key-data` (experimental) |
+| [SECRET-FILE-005](SECRET-FILE-005.md) | Committed Terraform state (experimental) |
+| [SECRET-FILE-006](SECRET-FILE-006.md) | JSON service-account `private_key` (experimental) |
+| [SECRET-FILE-007](SECRET-FILE-007.md) | `id_rsa`, `id_ed25519`, `*.p12`, `*.pfx`, `*.keystore` (experimental) |
 | [SECRET-BUNDLE-001](SECRET-BUNDLE-001.md) | Secret-shaped `NEXT_PUBLIC_`/`VITE_` value in a client bundle (experimental) |
 
 ## Dependencies
@@ -48,6 +54,12 @@ negative counterpart in `test/fixtures/clean-app`.
 | [SAST-REDIRECT-001](SAST-REDIRECT-001.md) | Tainted `res.redirect` |
 | [SAST-JWT-001](SAST-JWT-001.md) | `jwt.decode` / `algorithms: none` |
 | [SAST-CRYPTO-001](SAST-CRYPTO-001.md) | `Math.random` tokens / md5 passwords |
+| [SAST-CIPHER-001](SAST-CIPHER-001.md) | ECB, deprecated cipher, literal IV (experimental) |
+| [SAST-CIPHER-002](SAST-CIPHER-002.md) | String-literal key to `createCipheriv` / `createHmac` (experimental) |
+| [SAST-RSA-001](SAST-RSA-001.md) | RSA below 2048 or `secp192*` (experimental) |
+| [SAST-JWT-002](SAST-JWT-002.md) | `jwt.sign` with no expiry or a short HMAC secret (experimental) |
+| [SAST-TLS-001](SAST-TLS-001.md) | `rejectUnauthorized: false` and a no-op identity check (experimental) |
+| [SAST-TLS-002](SAST-TLS-002.md) | `NODE_TLS_REJECT_UNAUTHORIZED=0` (experimental) |
 | [SAST-PROTO-001](SAST-PROTO-001.md) | Unguarded recursive merge |
 | [SAST-XSS-001](SAST-XSS-001.md) | HTML `res.send` or `<%-` / `{{{` |
 | [SAST-AUTH-001](SAST-AUTH-001.md) | Data route with no auth middleware |
@@ -107,3 +119,26 @@ Requires `FULLSHIELD_EXPERIMENTAL_DLP=1` and `shieldGuard({ dlp: { mode } })`. N
 | [HOST-SSH-001](HOST-SSH-001.md) | OpenSSH version in the CVE-2024-6387 range |
 | [HOST-SSH-002](HOST-SSH-002.md) | Vulnerable OpenSSH without `LoginGraceTime 0` |
 | [HOST-SSH-003](HOST-SSH-003.md) | Possible SSH authentication-timeout attempts |
+
+## Breadth 1.2.0 (experimental, off by default)
+
+| ID | What |
+|---|---|
+| [CONFIG-ELECTRON-001](CONFIG-ELECTRON-001.md) | Unsafe Electron `webPreferences` (`FULLSHIELD_EXPERIMENTAL_ELECTRON`) |
+| [CONFIG-ELECTRON-002](CONFIG-ELECTRON-002.md) | `shell.openExternal` without an https check |
+| [CONFIG-ELECTRON-003](CONFIG-ELECTRON-003.md) | Remote `loadURL` without navigation guards |
+| [DEPS-VENDORED-001](DEPS-VENDORED-001.md) | Vendored library matched by banner or VERSION (`FULLSHIELD_EXPERIMENTAL_VENDORED`) |
+| [DEPS-UNFIXED-001](DEPS-UNFIXED-001.md) | Production dependency with no fixed version, last publish over 730 days (`FULLSHIELD_EXPERIMENTAL_HEALTH`) |
+| [SAST-SSTI-001](SAST-SSTI-001.md) | Tainted template source (`FULLSHIELD_EXPERIMENTAL_SSTI`) |
+| [SAST-WEBHOOK-001](SAST-WEBHOOK-001.md) | Known webhook provider with no verifier (`FULLSHIELD_EXPERIMENTAL_WEBHOOK`) |
+| [SAST-SESSION-002](SAST-SESSION-002.md) | Login session write without regenerate (`FULLSHIELD_EXPERIMENTAL_SESSION2`) |
+| [SAST-LOGLEAK-001](SAST-LOGLEAK-001.md) | Secret written to a log (`FULLSHIELD_EXPERIMENTAL_LOGLEAK`) |
+| [SAST-NEXT-001](SAST-NEXT-001.md) | `use server` write without auth (`FULLSHIELD_EXPERIMENTAL_NEXT`) |
+| [CONFIG-NEXT-001](CONFIG-NEXT-001.md) | Auth only in Next.js middleware |
+| [CONFIG-NEXT-002](CONFIG-NEXT-002.md) | Unrestricted Next.js image hosts |
+| [SECRET-NEXTPUB-001](SECRET-NEXTPUB-001.md) | `NEXT_PUBLIC_` name that looks like a secret |
+| [SAST-DOMXSS-001](SAST-DOMXSS-001.md) | DOM XSS sink (`FULLSHIELD_EXPERIMENTAL_BROWSER`) |
+| [SAST-REACT-001](SAST-REACT-001.md) | Unsanitized HTML binding |
+| [SAST-POSTMSG-001](SAST-POSTMSG-001.md) | postMessage without an origin check |
+| [SAST-TOKENSTORE-001](SAST-TOKENSTORE-001.md) | Token written to localStorage |
+| [SAST-IDOR-001](SAST-IDOR-001.md) | Load-by-id hint that never fails CI (`FULLSHIELD_EXPERIMENTAL_IDOR`) |

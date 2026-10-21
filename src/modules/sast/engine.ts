@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import type { ScanModule } from '../../core/engine.js';
 import { makeFindingId, type Finding } from '../../core/finding.js';
 import { assignedNameOf, walk } from './ast.js';
-import { modelsEnabled } from './experimental.js';
+import { crypto2Enabled, modelsEnabled, tlsEnabled, sstiEnabled, webhookEnabled, session2Enabled, logLeakEnabled, nextEnabled, browserEnabled, idorEnabled } from './experimental.js';
 import { modelSinkFindings, resolveModelPacks, setActiveModels } from './models.js';
 import { collectRequires, runInterproc, type ParsedSource } from './interproc.js';
 import { crossFileReturnFindings } from './returns.js';
@@ -37,6 +37,27 @@ import { ssrfRule } from './rules/ssrf.js';
 import { TEMPLATE_EXT, xssRule } from './rules/xss.js';
 import { lineHasTracedSwig, mergeSwigViews, swigNamesForFile, taintedSwigViews, type SwigViewTaint } from './swig-render.js';
 import { phase29Rules, sourceHasCsrfGuard } from './rules/phase29.js';
+import { crypto2Rules } from './rules/crypto2.js';
+import {
+  clearBreadthProject,
+  domRule,
+  idorRule,
+  isBrowserSource,
+  logLeakRule,
+  nextProjectFindings,
+  nextServerRule,
+  passportVersionFrom,
+  postMessageRule,
+  reactRule,
+  scanBrowserMarkup,
+  sessionRule,
+  setBreadthProject,
+  setBreadthSources,
+  sstiRule,
+  tokenStoreRule,
+  webhookRule,
+} from './rules/breadth.js';
+import { scanTlsConfigText, tlsRules } from './rules/tls.js';
 import type { AstNode, RuleContext, SastRule } from './types.js';
 import { scanPromptInjection } from '../../ai/injection.js';
 import { budgetArmed, budgetExpired, markTaintStopped } from '../../core/budget.js';
@@ -102,18 +123,31 @@ export function findingsFromAst(
     : analyzeFile(ast, extraReturners);
   const findings: Finding[] = [];
 
-  for (const rule of sastRules) {
+  const browserFile = browserEnabled() && isBrowserSource(filename, source);
+  const activeRules = [
+    ...(browserFile ? [] : sastRules),
+    ...(tlsEnabled() ? tlsRules : []),
+    ...(crypto2Enabled() ? crypto2Rules : []),
+    ...(sstiEnabled() && !browserFile ? [sstiRule] : []),
+    ...(logLeakEnabled() && !browserFile ? [logLeakRule] : []),
+    ...(webhookEnabled() && !browserFile ? [webhookRule] : []),
+    ...(session2Enabled() && !browserFile ? [sessionRule] : []),
+    ...(idorEnabled() && !browserFile ? [idorRule] : []),
+    ...(nextEnabled() && !browserFile ? [nextServerRule] : []),
+    ...(browserFile ? [domRule, reactRule, postMessageRule, tokenStoreRule] : []),
+  ];
+  for (const rule of activeRules) {
     const ctx: RuleContext = {
       filename,
       source,
-      report: ({ node, message, confidence }) => {
+      report: ({ node, message, confidence, severity, context }) => {
         const snippet = snippetOf(source, node);
         findings.push({
           id: makeFindingId(rule.meta.id, filename, `${node.loc?.start.line ?? 0}|${snippet}`),
           ruleId: rule.meta.id,
           module: 'sast',
           title: rule.meta.title,
-          severity: rule.meta.severity,
+          severity: severity ?? rule.meta.severity,
           confidence: confidence ?? 'high',
           cwe: rule.meta.cwe,
           file: filename,
@@ -123,6 +157,8 @@ export function findingsFromAst(
           message,
           remediation: `${rule.meta.title}. See ${rule.meta.docs}`,
           references: [rule.meta.docs, rule.meta.cwe],
+          ...(context !== undefined ? { context } : {}),
+          ...(rule.meta.id === 'SAST-IDOR-001' ? { source: 'rule' as const } : {}),
         });
       },
       isTainted: (node) => nodeIsTainted(node, facts),
@@ -467,14 +503,64 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
 }
 
 async function withUserSemgrep(ctx: Parameters<ScanModule['run']>[0], findings: Finding[]): Promise<Finding[]> {
-  if (!semgrepRulesEnabled() || ctx.config.semgrepRules === undefined) {return findings;}
-  const extra = await scanUserSemgrepRules({
-    cwd: ctx.cwd,
-    files: ctx.files,
-    rulesPath: ctx.config.semgrepRules,
-    maxFileBytes: ctx.config.sast.maxFileBytes,
+  let out = findings;
+  if (semgrepRulesEnabled() && ctx.config.semgrepRules !== undefined) {
+    const extra = await scanUserSemgrepRules({
+      cwd: ctx.cwd,
+      files: ctx.files,
+      rulesPath: ctx.config.semgrepRules,
+      maxFileBytes: ctx.config.sast.maxFileBytes,
+    });
+    if (extra.length > 0) {out = [...out, ...extra];}
+  }
+  if (tlsEnabled()) {
+    for (const rel of ctx.files) {
+      if (SOURCE_EXT.test(rel)) {continue;}
+      const source = await readScanSource(ctx.cwd, rel);
+      if (source === undefined) {continue;}
+      out = [...out, ...scanTlsConfigText(rel, source)];
+    }
+  }
+  if (browserEnabled()) {
+    for (const rel of ctx.files) {
+      if (!/\.(vue|svelte)$/.test(rel)) {continue;}
+      const source = await readScanSource(ctx.cwd, rel);
+      if (source === undefined) {continue;}
+      out = [...out, ...scanBrowserMarkup(rel, source)];
+    }
+  }
+  if (nextEnabled()) {
+    const texts: Array<{ file: string; source: string }> = [];
+    for (const rel of ctx.files) {
+      const source = await readScanSource(ctx.cwd, rel);
+      if (source !== undefined) {texts.push({ file: rel, source });}
+    }
+    out = [...out, ...nextProjectFindings(texts)];
+  }
+  return out;
+}
+
+async function loadBreadthProject(cwd: string): Promise<void> {
+  let passportVersion: string | undefined;
+  let packageBrowser = false;
+  try {
+    const pkg = JSON.parse(await readFile(join(cwd, 'package.json'), 'utf8')) as { browser?: unknown };
+    packageBrowser = pkg.browser !== undefined;
+  } catch {
+    packageBrowser = false;
+  }
+  for (const name of ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml']) {
+    try {
+      const version = passportVersionFrom(await readFile(join(cwd, name), 'utf8'));
+      if (version !== undefined) {passportVersion = version;}
+    } catch {
+      continue;
+    }
+  }
+  setBreadthProject({
+    ...(passportVersion !== undefined ? { passportVersion } : {}),
+    packageBrowser,
   });
-  return extra.length === 0 ? findings : [...findings, ...extra];
 }
 
 export const sastModule: ScanModule = {
@@ -496,6 +582,7 @@ export const sastModule: ScanModule = {
     clearTaintWalk();
     setActiveModels(modelsEnabled() ? resolveModelPacks(ctx.cwd).active : undefined);
     try {
+    await loadBreadthProject(ctx.cwd);
     const viewEngine = await projectViewEngine(ctx);
     const candidates = ctx.files.filter(
       (rel) => SOURCE_EXT.test(rel) || TEMPLATE_EXT.test(rel) || (viewEngine === 'swig' && /\.(swig|html)$/.test(rel)),
@@ -537,6 +624,7 @@ export const sastModule: ScanModule = {
       );
     }
     setAuthProject(new Map(parsed.map((entry) => [entry.file, entry.ast])));
+    setBreadthSources(new Map(parsed.map((entry) => [entry.file, entry.source])));
     let taintStopped = false;
     for (let index = 0; index < parsed.length; index += 1) {
       if (haltTaint(parsed.length - index)) {
@@ -575,6 +663,7 @@ export const sastModule: ScanModule = {
       setTaintSummaryConfig(undefined);
       setAuthProject(undefined);
       setActiveModels(undefined);
+      clearBreadthProject();
     }
   },
 };
