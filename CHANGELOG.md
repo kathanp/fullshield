@@ -7,6 +7,7 @@ All notable changes to FullShield are documented here.
 ### Experimental
 
 - Phase 105: committed credential files behind `FULLSHIELD_EXPERIMENTAL_CREDFILES` (`SECRET-FILE-002` through `SECRET-FILE-007`). Off by default. Default scan output is unchanged.
+- Phase 95: disabled TLS verification behind `FULLSHIELD_EXPERIMENTAL_TLS` (`SAST-TLS-001`, `SAST-TLS-002`). Off by default. Default scan output is unchanged.
 
 ## 1.0.1 — 2026-10-20
 

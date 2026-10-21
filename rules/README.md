@@ -54,6 +54,8 @@ negative counterpart in `test/fixtures/clean-app`.
 | [SAST-REDIRECT-001](SAST-REDIRECT-001.md) | Tainted `res.redirect` |
 | [SAST-JWT-001](SAST-JWT-001.md) | `jwt.decode` / `algorithms: none` |
 | [SAST-CRYPTO-001](SAST-CRYPTO-001.md) | `Math.random` tokens / md5 passwords |
+| [SAST-TLS-001](SAST-TLS-001.md) | `rejectUnauthorized: false` and a no-op identity check (experimental) |
+| [SAST-TLS-002](SAST-TLS-002.md) | `NODE_TLS_REJECT_UNAUTHORIZED=0` (experimental) |
 | [SAST-PROTO-001](SAST-PROTO-001.md) | Unguarded recursive merge |
 | [SAST-XSS-001](SAST-XSS-001.md) | HTML `res.send` or `<%-` / `{{{` |
 | [SAST-AUTH-001](SAST-AUTH-001.md) | Data route with no auth middleware |

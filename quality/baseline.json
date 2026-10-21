@@ -573,6 +573,8 @@
     "SAST-SQLI-001",
     "SAST-SSRF-001",
     "SAST-TIMING-001",
+    "SAST-TLS-001",
+    "SAST-TLS-002",
     "SAST-UPLOAD-001",
     "SAST-XSS-001",
     "SAST-XXE-001",

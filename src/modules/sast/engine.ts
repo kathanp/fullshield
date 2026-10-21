@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import type { ScanModule } from '../../core/engine.js';
 import { makeFindingId, type Finding } from '../../core/finding.js';
 import { assignedNameOf, walk } from './ast.js';
-import { modelsEnabled } from './experimental.js';
+import { modelsEnabled, tlsEnabled } from './experimental.js';
 import { modelSinkFindings, resolveModelPacks, setActiveModels } from './models.js';
 import { collectRequires, runInterproc, type ParsedSource } from './interproc.js';
 import { crossFileReturnFindings } from './returns.js';
@@ -37,6 +37,7 @@ import { ssrfRule } from './rules/ssrf.js';
 import { TEMPLATE_EXT, xssRule } from './rules/xss.js';
 import { lineHasTracedSwig, mergeSwigViews, swigNamesForFile, taintedSwigViews, type SwigViewTaint } from './swig-render.js';
 import { phase29Rules, sourceHasCsrfGuard } from './rules/phase29.js';
+import { scanTlsConfigText, tlsRules } from './rules/tls.js';
 import type { AstNode, RuleContext, SastRule } from './types.js';
 import { scanPromptInjection } from '../../ai/injection.js';
 import { budgetArmed, budgetExpired, markTaintStopped } from '../../core/budget.js';
@@ -102,18 +103,19 @@ export function findingsFromAst(
     : analyzeFile(ast, extraReturners);
   const findings: Finding[] = [];
 
-  for (const rule of sastRules) {
+  const activeRules = tlsEnabled() ? [...sastRules, ...tlsRules] : sastRules;
+  for (const rule of activeRules) {
     const ctx: RuleContext = {
       filename,
       source,
-      report: ({ node, message, confidence }) => {
+      report: ({ node, message, confidence, severity, context }) => {
         const snippet = snippetOf(source, node);
         findings.push({
           id: makeFindingId(rule.meta.id, filename, `${node.loc?.start.line ?? 0}|${snippet}`),
           ruleId: rule.meta.id,
           module: 'sast',
           title: rule.meta.title,
-          severity: rule.meta.severity,
+          severity: severity ?? rule.meta.severity,
           confidence: confidence ?? 'high',
           cwe: rule.meta.cwe,
           file: filename,
@@ -123,6 +125,7 @@ export function findingsFromAst(
           message,
           remediation: `${rule.meta.title}. See ${rule.meta.docs}`,
           references: [rule.meta.docs, rule.meta.cwe],
+          ...(context !== undefined ? { context } : {}),
         });
       },
       isTainted: (node) => nodeIsTainted(node, facts),
@@ -467,14 +470,25 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
 }
 
 async function withUserSemgrep(ctx: Parameters<ScanModule['run']>[0], findings: Finding[]): Promise<Finding[]> {
-  if (!semgrepRulesEnabled() || ctx.config.semgrepRules === undefined) {return findings;}
-  const extra = await scanUserSemgrepRules({
-    cwd: ctx.cwd,
-    files: ctx.files,
-    rulesPath: ctx.config.semgrepRules,
-    maxFileBytes: ctx.config.sast.maxFileBytes,
-  });
-  return extra.length === 0 ? findings : [...findings, ...extra];
+  let out = findings;
+  if (semgrepRulesEnabled() && ctx.config.semgrepRules !== undefined) {
+    const extra = await scanUserSemgrepRules({
+      cwd: ctx.cwd,
+      files: ctx.files,
+      rulesPath: ctx.config.semgrepRules,
+      maxFileBytes: ctx.config.sast.maxFileBytes,
+    });
+    if (extra.length > 0) {out = [...out, ...extra];}
+  }
+  if (tlsEnabled()) {
+    for (const rel of ctx.files) {
+      if (SOURCE_EXT.test(rel)) {continue;}
+      const source = await readScanSource(ctx.cwd, rel);
+      if (source === undefined) {continue;}
+      out = [...out, ...scanTlsConfigText(rel, source)];
+    }
+  }
+  return out;
 }
 
 export const sastModule: ScanModule = {

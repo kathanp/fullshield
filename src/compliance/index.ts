@@ -30,6 +30,8 @@ export const RULE_MAP: readonly RuleMapping[] = [
   ROW('SAST-XSS-001', 'A03:2021 Injection', 'CWE-79', 'V5.3.3', 'PCI DSS 6.2.4'),
   ROW('SAST-JWT-001', 'A07:2021 Identification Failures', 'CWE-347', 'V3.5.3', 'PCI DSS 6.5.10'),
   ROW('SAST-CRYPTO-001', 'A02:2021 Cryptographic Failures', 'CWE-338', 'V6.2.1', 'PCI DSS 3.6 / 4.2'),
+  ROW('SAST-TLS-001', 'A02:2021 Cryptographic Failures', 'CWE-295', 'V9.2.1', 'PCI DSS 4.2'),
+  ROW('SAST-TLS-002', 'A02:2021 Cryptographic Failures', 'CWE-295', 'V9.2.1', 'PCI DSS 4.2'),
   ROW('SAST-AUTH-001', 'A07:2021 Identification Failures', 'CWE-306', 'V4.1.1', 'PCI DSS 8.2'),
   ROW('SECRET-AWS-001', 'A02:2021 Cryptographic Failures', 'CWE-798', 'V6.4.1', 'PCI DSS 3.2 / 8.3'),
   ROW('SECRET-STRIPE-001', 'A02:2021 Cryptographic Failures', 'CWE-798', 'V6.4.1', 'PCI DSS 3.2'),
