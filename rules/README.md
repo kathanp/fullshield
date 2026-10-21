@@ -54,6 +54,10 @@ negative counterpart in `test/fixtures/clean-app`.
 | [SAST-REDIRECT-001](SAST-REDIRECT-001.md) | Tainted `res.redirect` |
 | [SAST-JWT-001](SAST-JWT-001.md) | `jwt.decode` / `algorithms: none` |
 | [SAST-CRYPTO-001](SAST-CRYPTO-001.md) | `Math.random` tokens / md5 passwords |
+| [SAST-CIPHER-001](SAST-CIPHER-001.md) | ECB, deprecated cipher, literal IV (experimental) |
+| [SAST-CIPHER-002](SAST-CIPHER-002.md) | String-literal key to `createCipheriv` / `createHmac` (experimental) |
+| [SAST-RSA-001](SAST-RSA-001.md) | RSA below 2048 or `secp192*` (experimental) |
+| [SAST-JWT-002](SAST-JWT-002.md) | `jwt.sign` with no expiry or a short HMAC secret (experimental) |
 | [SAST-TLS-001](SAST-TLS-001.md) | `rejectUnauthorized: false` and a no-op identity check (experimental) |
 | [SAST-TLS-002](SAST-TLS-002.md) | `NODE_TLS_REJECT_UNAUTHORIZED=0` (experimental) |
 | [SAST-PROTO-001](SAST-PROTO-001.md) | Unguarded recursive merge |

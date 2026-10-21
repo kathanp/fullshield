@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import type { ScanModule } from '../../core/engine.js';
 import { makeFindingId, type Finding } from '../../core/finding.js';
 import { assignedNameOf, walk } from './ast.js';
-import { modelsEnabled, tlsEnabled } from './experimental.js';
+import { crypto2Enabled, modelsEnabled, tlsEnabled } from './experimental.js';
 import { modelSinkFindings, resolveModelPacks, setActiveModels } from './models.js';
 import { collectRequires, runInterproc, type ParsedSource } from './interproc.js';
 import { crossFileReturnFindings } from './returns.js';
@@ -37,6 +37,7 @@ import { ssrfRule } from './rules/ssrf.js';
 import { TEMPLATE_EXT, xssRule } from './rules/xss.js';
 import { lineHasTracedSwig, mergeSwigViews, swigNamesForFile, taintedSwigViews, type SwigViewTaint } from './swig-render.js';
 import { phase29Rules, sourceHasCsrfGuard } from './rules/phase29.js';
+import { crypto2Rules } from './rules/crypto2.js';
 import { scanTlsConfigText, tlsRules } from './rules/tls.js';
 import type { AstNode, RuleContext, SastRule } from './types.js';
 import { scanPromptInjection } from '../../ai/injection.js';
@@ -103,7 +104,11 @@ export function findingsFromAst(
     : analyzeFile(ast, extraReturners);
   const findings: Finding[] = [];
 
-  const activeRules = tlsEnabled() ? [...sastRules, ...tlsRules] : sastRules;
+  const activeRules = [
+    ...sastRules,
+    ...(tlsEnabled() ? tlsRules : []),
+    ...(crypto2Enabled() ? crypto2Rules : []),
+  ];
   for (const rule of activeRules) {
     const ctx: RuleContext = {
       filename,

@@ -1,3 +1,8 @@
+/** Phase 96 crypto v2. Off unless FULLSHIELD_EXPERIMENTAL_CRYPTO2=1. */
+export function crypto2Enabled(): boolean {
+  return process.env.FULLSHIELD_EXPERIMENTAL_CRYPTO2 === '1';
+}
+
 /** Phase 95 disabled TLS verification. Off unless FULLSHIELD_EXPERIMENTAL_TLS=1. */
 export function tlsEnabled(): boolean {
   return process.env.FULLSHIELD_EXPERIMENTAL_TLS === '1';
