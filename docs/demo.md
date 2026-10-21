@@ -1,11 +1,11 @@
 # Demo
 
-Captured from this checkout on 2026-10-16, when the tree reported **v0.1.3**. The transcript below is that run. It is not rewritten to look like a later version. Commands:
+Captured from this checkout on 2026-10-20 at **v1.0.1**. The transcript below is that run, unedited except that the home directory is shown as `~`. Commands:
 
 ```bash
 npm run build
-NO_COLOR=1 node dist/cli/index.js scan test/fixtures/vulnerable-app
-NO_COLOR=1 node dist/cli/index.js doctor . --offline
+NO_COLOR=1 node dist/cli/index.js scan test/fixtures/vulnerable-app | sed "s#$HOME#~#g"
+NO_COLOR=1 node dist/cli/index.js doctor . --offline | sed "s#$HOME#~#g"
 ```
 
 `scan` exited 1 because the fixture has findings at or above the default fail threshold. `doctor` exited 0.
@@ -13,17 +13,17 @@ NO_COLOR=1 node dist/cli/index.js doctor . --offline
 ## scan test/fixtures/vulnerable-app
 
 ```text
-FullShield v0.1.3 — scanned 12 files in 222.38ms (modules: deps, secrets, sast, config)
+FullShield v1.0.1 — scanned 12 files in 141.77ms (modules: deps, secrets, sast, config)
+2 bumps (lodash 4.17.11 → 4.17.12, minimist 1.2.0 → 1.2.3) resolve 2 findings.
+2 packages are never imported; removing them clears 1 advisory.
 
 CRITICAL (1)
-  [DEPS-VULN-001] Vulnerable dependency lodash@4.17.11 (package.json:9)
-    lodash@4.17.11
-    lodash@4.17.11 is affected by GHSA-jf85-cpcp-j695 (Prototype Pollution in lodash).
-    fix: Upgrade lodash to 4.17.12 or later (data from OSV).
-    reachability: reachable
+  [DEPS-VULN-001] lodash — 1 advisories, critical, reachable
+    versions: 4.17.11
+    package.json:9
     docs: rules/DEPS-VULN-001.md
 
-HIGH (21)
+HIGH (19)
   [SECRET-ENVFILE-001] Committed .env file (.env:1)
     .env is tracked in the repository. .env files hold live credentials and must never be committed.
     fix: Rotate this credential immediately, then load it from an environment variable or a secret manager. Removing it from the code is NOT enough: it remains visible in git history.
@@ -67,19 +67,73 @@ HIGH (21)
     eval / vm.runInNewContext is called with a non-literal argument.
     fix: Dynamic code execution with a non-literal. See https://cwe.mitre.org/data/definitions/95.html
     docs: rules/SAST-EVAL-001.md
+  [SAST-EVAL-001] Dynamic code execution with a non-literal (src/index.js:45)
+    mathjs.eval(req.body.eqn)
+    eval / vm.runInNewContext is called with a non-literal argument.
+    fix: Dynamic code execution with a non-literal. See https://cwe.mitre.org/data/definitions/95.html
+    docs: rules/SAST-EVAL-001.md
+  [SECRET-AWS-001] Hardcoded AWS access key ID (src/index.js:53)
+    AKIA****
+    Hardcoded AWS access key ID (AKIA****).
+    fix: Rotate this credential immediately, then load it from an environment variable or a secret manager. Removing it from the code is NOT enough: it remains visible in git history.
+    docs: rules/SECRET-AWS-001.md
+  [SECRET-STRIPE-001] Hardcoded Stripe secret key (src/index.js:56)
+    sk_t****
+    Hardcoded Stripe secret key (sk_t****).
+    fix: Rotate this credential immediately, then load it from an environment variable or a secret manager. Removing it from the code is NOT enough: it remains visible in git history.
+    docs: rules/SECRET-STRIPE-001.md
+  [SAST-JWT-001] Insecure JWT verification (src/index.js:64)
+    jwt.decode(req.headers.authorization)
+    jwt.decode is used; it does not verify the signature (verify is missing).
+    fix: Insecure JWT verification. See https://cwe.mitre.org/data/definitions/347.html
+    docs: rules/SAST-JWT-001.md
+  [SAST-NOSQLI-001] NoSQL injection via raw request object filter (src/index.js:70)
+    db.find(req.body)
+    req.body/req.query is passed directly into a Mongo-style filter.
+    fix: NoSQL injection via raw request object filter. See https://cwe.mitre.org/data/definitions/943.html
+    docs: rules/SAST-NOSQLI-001.md
+  [SAST-SSRF-001] SSRF via tainted URL (src/index.js:75)
+    fetch(req.query.url)
+    Tainted URL is passed to fetch/axios/http.request.
+    fix: SSRF via tainted URL. See https://cwe.mitre.org/data/definitions/918.html
+    docs: rules/SAST-SSRF-001.md
+  [SAST-SSRF-001] SSRF via tainted URL (src/index.js:82)
+    needle.get(url)
+    Tainted URL is passed to fetch/axios/http.request.
+    fix: SSRF via tainted URL. See https://cwe.mitre.org/data/definitions/918.html
+    docs: rules/SAST-SSRF-001.md
+  [SAST-REDIRECT-001] Open redirect (src/index.js:87)
+    res.redirect(req.query.next)
+    Tainted input is passed to res.redirect.
+    fix: Open redirect. See https://cwe.mitre.org/data/definitions/601.html
+    docs: rules/SAST-REDIRECT-001.md
+  [SAST-PROTO-001] Prototype pollution via recursive merge (src/index.js:93)
+    merge(a[k] || {}, b[k])
+    Recursive merge/assign of a tainted object without a __proto__ guard.
+    fix: Prototype pollution via recursive merge. See https://cwe.mitre.org/data/definitions/1321.html
+    docs: rules/SAST-PROTO-001.md
+  [SAST-PROTO-001] Prototype pollution via recursive merge (src/index.js:99)
+    merge({}, req.body)
+    Recursive merge/assign of a tainted object without a __proto__ guard.
+    fix: Prototype pollution via recursive merge. See https://cwe.mitre.org/data/definitions/1321.html
+    docs: rules/SAST-PROTO-001.md
 
-25 more — use --json
+5 more actionable — use --json
 
-✖ 35 finding(s): 1 critical, 21 high, 8 medium, 3 low, 2 info
+13 more (not directly reachable, or below high confidence) — --all or see JSON
+
+✖ 38 finding(s): 1 critical, 21 high, 11 medium, 3 low, 2 info
 ```
 
 ## doctor . --offline
 
 ```text
-node: 24.21.0 ok
+node: 24.22.0 ok
 lockfile: package-lock.json
-cache: /Users/k244p/.cache/fullshield/osv (1095 files)
+cache: ~/.cache/fullshield/osv (1800 files)
 flags: none
 config: valid (failOn high, offline false)
 osv: network skipped (--offline); reachability uses the local lockfile only
 ```
+
+`config: valid (failOn high, offline false)` is the value in `fullshield.config.json`, not the effective mode. The following line is the mode this command used: `osv: network skipped (--offline)`.

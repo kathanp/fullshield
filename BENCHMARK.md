@@ -3,12 +3,13 @@
 > **UNREVIEWED DRAFT.** Every `bench/*/ground-truth.json` still has `"reviewed": false`.
 > Do not cite precision, recall, or headline counts from this file until the human flips that flag.
 
-- FullShield version: 0.1.1
-- Generated: 2026-10-15T21:52:59.014Z
+- FullShield version: 1.0.1
+- Generated: 2026-10-20T21:43:56.603Z
 - Matching: same class + same file, line within ±3
 - In-scope score: true positives / in-scope ground-truth entries (unreviewed).
 - Line attribution: a file-level (no-line) finding plus a later comment/line number on the same file is **not** counted as a recall gain.
-- Precision: self-triaged, unverified. `realIssue / (realIssue + falsePositive)` on unmatched findings listed in `bench/<app>/triage.json`. `unsure` is excluded from the denominator and counted separately per app.
+- Precision: not measured. `bench/<app>/triage.json` is self-triaged by the tool's author and is not used for any rate. Human sampling: `bench/precision/` (Phase 76).
+- Precision is not sampled until a human labels findings.
 - Holdout apps are scored the same way. A seen holdout was used to find engine gaps or to re-score after an authorized rule change.
 - Scan: `node dist/cli/index.js scan <app> --json --offline-safe`
 
@@ -16,58 +17,58 @@
 
 - Repo: https://github.com/OWASP/NodeGoat.git
 - Commit: `c5cb68a7084e4ae7dcc60e6a98768720a81841e8`
-- Scan time: 1941 ms
+- Scan time: 958 ms
 - Ground truth reviewed: false
 - Ground truth entries: 7 in-scope / 9 out-of-scope
-- Findings emitted: 379
+- Findings emitted: 271
 - In-scope true positives: 5
 - In-scope misses: 1
 - Line-attribution only (not a recall gain): 1 — server.js:10 (config)
-- Unmatched findings (triaged): 374
+- Unmatched findings (triaged): 266
 - In-scope true positives / in-scope truth: 5/7
-- Precision: self-triaged, unverified (368 realIssue / 2 falsePositive; 4 unsure)
+- Precision: not measured. `bench/<app>/triage.json` is self-triaged by the tool's author and is not used for any rate. Human sampling: `bench/precision/` (Phase 76).
 
-| class | in-scope truth | TP | triaged FP | in-scope misses |
-|---|---:|---:|---:|---:|
-| nosqli | 1 | 1 | 0 | 0 |
-| xss | 1 | 0 | 0 | 1 |
-| ssrf | 1 | 1 | 0 | 0 |
-| redirect | 1 | 1 | 0 | 0 |
-| eval | 1 | 1 | 0 | 0 |
-| secrets | 0 | 0 | 2 | 0 |
-| deps | 1 | 1 | 0 | 0 |
-| config | 1 | 0 | 0 | 0 |
+| class | in-scope truth | TP | in-scope misses |
+|---|---:|---:|---:|
+| nosqli | 1 | 1 | 0 |
+| xss | 1 | 0 | 1 |
+| ssrf | 1 | 1 | 0 |
+| redirect | 1 | 1 | 0 |
+| eval | 1 | 1 | 0 |
+| secrets | 0 | 0 | 0 |
+| deps | 1 | 1 | 0 |
+| config | 1 | 0 | 0 |
 
 ## juice-shop
 
 - Repo: https://github.com/juice-shop/juice-shop.git
 - Commit: `e39a3bdb8c61295c31fa4e0a03485e68a8ca12a4`
-- Scan time: 4004 ms
+- Scan time: 22340 ms
 - Ground truth reviewed: false
 - Ground truth entries: 12 in-scope / 104 out-of-scope
-- Findings emitted: 92
+- Findings emitted: 105
 - In-scope true positives: 10
 - In-scope misses: 2
-- Unmatched findings (triaged): 82
+- Unmatched findings (triaged): 95
 - In-scope true positives / in-scope truth: 10/12
-- Precision: self-triaged, unverified (38 realIssue / 5 falsePositive; 39 unsure)
+- Precision: not measured. `bench/<app>/triage.json` is self-triaged by the tool's author and is not used for any rate. Human sampling: `bench/precision/` (Phase 76).
 
-| class | in-scope truth | TP | triaged FP | in-scope misses |
-|---|---:|---:|---:|---:|
-| sqli | 2 | 2 | 0 | 0 |
-| nosqli | 3 | 3 | 0 | 0 |
-| xss | 1 | 0 | 0 | 1 |
-| redirect | 2 | 1 | 0 | 1 |
-| eval | 1 | 1 | 0 | 0 |
-| secrets | 0 | 0 | 5 | 0 |
-| deps | 1 | 1 | 0 | 0 |
-| config | 2 | 2 | 0 | 0 |
+| class | in-scope truth | TP | in-scope misses |
+|---|---:|---:|---:|
+| sqli | 2 | 2 | 0 |
+| nosqli | 3 | 3 | 0 |
+| xss | 1 | 0 | 1 |
+| redirect | 2 | 1 | 1 |
+| eval | 1 | 1 | 0 |
+| secrets | 0 | 0 | 0 |
+| deps | 1 | 1 | 0 |
+| config | 2 | 2 | 0 |
 
 ## dvna
 
 - Repo: https://github.com/appsecco/dvna.git
 - Commit: `9ba473add536f66ac9007966acb2a775dd31277a`
-- Scan time: 849 ms
+- Scan time: 473 ms
 - Ground truth reviewed: false
 - Ground truth entries: 10 in-scope / 7 out-of-scope
 - Findings emitted: 23
@@ -75,74 +76,74 @@
 - In-scope misses: 1
 - Unmatched findings (triaged): 14
 - In-scope true positives / in-scope truth: 9/10
-- Precision: self-triaged, unverified (8 realIssue / 1 falsePositive; 5 unsure)
+- Precision: not measured. `bench/<app>/triage.json` is self-triaged by the tool's author and is not used for any rate. Human sampling: `bench/precision/` (Phase 76).
 
-| class | in-scope truth | TP | triaged FP | in-scope misses |
-|---|---:|---:|---:|---:|
-| sqli | 1 | 1 | 0 | 0 |
-| cmdi | 1 | 1 | 0 | 0 |
-| xss | 2 | 2 | 0 | 0 |
-| redirect | 1 | 1 | 0 | 0 |
-| eval | 1 | 1 | 0 | 0 |
-| crypto | 1 | 1 | 0 | 0 |
-| secrets | 1 | 1 | 1 | 0 |
-| deps | 1 | 1 | 0 | 0 |
-| config | 1 | 0 | 0 | 1 |
+| class | in-scope truth | TP | in-scope misses |
+|---|---:|---:|---:|
+| sqli | 1 | 1 | 0 |
+| cmdi | 1 | 1 | 0 |
+| xss | 2 | 2 | 0 |
+| redirect | 1 | 1 | 0 |
+| eval | 1 | 1 | 0 |
+| crypto | 1 | 1 | 0 |
+| secrets | 1 | 1 | 0 |
+| deps | 1 | 1 | 0 |
+| config | 1 | 0 | 1 |
 
 ## goof (seen holdout)
 
 - Repo: https://github.com/snyk-labs/nodejs-goof.git
 - Commit: `add14ba59e98240d9e00a235dd7d42cd61ae9912`
 - Seen holdout: yes. Engine gaps were taken from this app; do not count this re-run as a recall gain.
-- Scan time: 477 ms
+- Scan time: 662 ms
 - Ground truth reviewed: false
 - Ground truth entries: 11 in-scope / 6 out-of-scope
-- Findings emitted: 111
-- In-scope true positives: 10
-- In-scope misses: 1
-- Unmatched findings (triaged): 101
-- In-scope true positives / in-scope truth: 10/11
-- Precision: self-triaged, unverified (96 realIssue / 1 falsePositive; 4 unsure)
+- Findings emitted: 274
+- In-scope true positives: 11
+- In-scope misses: 0
+- Unmatched findings (triaged): 263
+- In-scope true positives / in-scope truth: 11/11
+- Precision: not measured. `bench/<app>/triage.json` is self-triaged by the tool's author and is not used for any rate. Human sampling: `bench/precision/` (Phase 76).
 
-| class | in-scope truth | TP | triaged FP | in-scope misses |
-|---|---:|---:|---:|---:|
-| nosqli | 1 | 1 | 0 | 0 |
-| cmdi | 1 | 1 | 0 | 0 |
-| path | 1 | 1 | 0 | 0 |
-| xss | 2 | 2 | 0 | 0 |
-| redirect | 1 | 1 | 0 | 0 |
-| proto | 1 | 1 | 0 | 0 |
-| secrets | 1 | 1 | 1 | 0 |
-| deps | 2 | 1 | 0 | 1 |
-| config | 1 | 1 | 0 | 0 |
+| class | in-scope truth | TP | in-scope misses |
+|---|---:|---:|---:|
+| nosqli | 1 | 1 | 0 |
+| cmdi | 1 | 1 | 0 |
+| path | 1 | 1 | 0 |
+| xss | 2 | 2 | 0 |
+| redirect | 1 | 1 | 0 |
+| proto | 1 | 1 | 0 |
+| secrets | 1 | 1 | 0 |
+| deps | 2 | 2 | 0 |
+| config | 1 | 1 | 0 |
 
 ## vulnerable-node (seen holdout)
 
 - Repo: https://github.com/cr0hn/vulnerable-node.git
 - Commit: `d68f2a3c9277ece2c2feb9976052033bdecd7fbe`
 - Seen holdout: yes. Re-scored after an authorized rule change; do not count this as a recall gain.
-- Scan time: 486 ms
+- Scan time: 721 ms
 - Ground truth reviewed: false
 - Ground truth entries: 12 in-scope / 9 out-of-scope
-- Findings emitted: 56
-- In-scope true positives: 9
-- In-scope misses: 3
-- Unmatched findings (triaged): 47
-- In-scope true positives / in-scope truth: 9/12
-- Precision: self-triaged, unverified (16 realIssue / 2 falsePositive; 29 unsure)
+- Findings emitted: 65
+- In-scope true positives: 11
+- In-scope misses: 1
+- Unmatched findings (triaged): 54
+- In-scope true positives / in-scope truth: 11/12
+- Precision: not measured. `bench/<app>/triage.json` is self-triaged by the tool's author and is not used for any rate. Human sampling: `bench/precision/` (Phase 76).
 
-| class | in-scope truth | TP | triaged FP | in-scope misses |
-|---|---:|---:|---:|---:|
-| sqli | 3 | 3 | 0 | 0 |
-| nosqli | 2 | 0 | 0 | 2 |
-| cmdi | 1 | 1 | 0 | 0 |
-| path | 1 | 1 | 0 | 0 |
-| xss | 1 | 1 | 0 | 0 |
-| ssrf | 1 | 1 | 0 | 0 |
-| jwt | 1 | 1 | 0 | 0 |
-| proto | 1 | 1 | 0 | 0 |
-| secrets | 0 | 0 | 2 | 0 |
-| config | 1 | 0 | 0 | 1 |
+| class | in-scope truth | TP | in-scope misses |
+|---|---:|---:|---:|
+| sqli | 3 | 3 | 0 |
+| nosqli | 2 | 2 | 0 |
+| cmdi | 1 | 1 | 0 |
+| path | 1 | 1 | 0 |
+| xss | 1 | 1 | 0 |
+| ssrf | 1 | 1 | 0 |
+| jwt | 1 | 1 | 0 |
+| proto | 1 | 1 | 0 |
+| secrets | 0 | 0 | 0 |
+| config | 1 | 0 | 1 |
 
 ## Known misses (in-scope only)
 
@@ -152,37 +153,10 @@
 | juice-shop | redirect | `lib/insecurity.ts:136` | Redirect allowlist is bypassable via String.includes (redirectChallenge). |
 | juice-shop | xss | `routes/trackOrder.ts:17` | Reflected XSS in track-order id (iframe javascript:alert). |
 | dvna | config | `core/appHandler.js:197` | A6: calculator error path leaks a stack trace; mathjs.eval of attacker input. |
-| goof | deps | `package.json:46` | st@0.2.4 is listed as an exploitable directory-traversal static server. |
-| vulnerable-node | nosqli | `routes/shop.js:41` | NoSQL injection: /api/tags-filter passes req.body.tags into col.find() as the origin value. |
-| vulnerable-node | nosqli | `routes/shop.js:58` | NoSQL injection: /api/meta assigns req.query.origin onto a Mongo filter. |
 | vulnerable-node | config | `views/error.ejs:4` | Debug misconfiguration: error.stack is rendered when DEBUG_ERRORS=1. |
 
-## Holdouts (Phase 37)
+## next.js
 
-Labels follow the benchmark protocol. `reviewed` is false on every ground-truth file. Untouched apps were not scanned, so this section has no recall figure.
+Not produced by `npm run bench:public`. Taken from `bench/perf-baseline.json`.
 
-| app | status | scanned |
-|---|---|---|
-| nodegoat, juice-shop, dvna | tuning | yes, earlier, unreviewed |
-| goof, vulnerable-node | seen | yes, earlier, unreviewed |
-| verademo-javascript, serverless-goat, mongection | untouched | no |
-
-## Precision (Phase 41)
-
-No real-world sample has been labeled. Every stable rule's precision is **not sampled**. There is no rate and no over-budget decision.
-
-Finding counts from `node bench/fp-scan.mjs` on 2026-10-16, default `scan --json --offline-safe`, at the SHAs in `bench/realworld.json`. `FULLSHIELD_EXPERIMENTAL_TAINT_V2=1` produced the same counts on every repo that finished. These counts are not a precision rate.
-
-| repo | findings | critical | high | medium | low | info |
-|---|---|---|---|---|---|---|
-| express | 110 | 0 | 2 | 102 | 5 | 1 |
-| fastify | 5 | 0 | 0 | 4 | 0 | 1 |
-| koa | 8 | 0 | 0 | 2 | 0 | 6 |
-| nest | 72 | 1 | 10 | 30 | 2 | 29 |
-| zod | 20 | 0 | 6 | 1 | 6 | 7 |
-| undici | 28 | 3 | 5 | 17 | 0 | 3 |
-| socket.io | 78 | 3 | 0 | 52 | 0 | 23 |
-| pino | 24 | 0 | 3 | 20 | 0 | 1 |
-| qs | 1 | 0 | 0 | 0 | 0 | 1 |
-
-next.js @ `a6d4c15991fd2f69c14eea4e8b655b596bc162bf` produced no JSON. The default scan aborted after 65.47s: `FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory` (exit 134, heap about 2041 MB). No finding count is recorded for it.
+This is the completed run, not an OOM abort. `finished` is true. `measuredAt` is `2026-10-16T23:07:57.378Z`. Cold p50 is 71746.763708 ms (71.7 s). All five `statuses` are 1.

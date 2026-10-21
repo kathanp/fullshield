@@ -263,8 +263,14 @@ function currentCli() {
   return cli;
 }
 
+function snapshotFile(against) {
+  if (existsSync(against)) return against;
+  const name = against.endsWith('.json') ? against : `${against}.json`;
+  return join(root, 'bench', 'snapshots', name);
+}
+
 function readSnapshot(file) {
-  const parsed = JSON.parse(readFileSync(file, 'utf8'));
+  const parsed = JSON.parse(readFileSync(snapshotFile(file), 'utf8'));
   if (parsed === null || typeof parsed !== 'object' || parsed.apps === undefined) {
     throw new Error(`snapshot ${file} is missing apps`);
   }

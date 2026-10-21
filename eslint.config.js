@@ -4,7 +4,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'coverage/**', 'node_modules/**', 'test/fixtures/**'],
+    ignores: ['dist/**', 'coverage/**', 'node_modules/**', 'test/fixtures/**', 'bench/.cache/**'],
   },
   {
     files: ['**/*.{js,mjs}'],

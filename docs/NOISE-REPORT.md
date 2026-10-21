@@ -1,6 +1,6 @@
 # Noise report
 
-This report explains the pre-grouping snapshot (NodeGoat 379, goof 354). After grouping, `CHANGELOG.md` records NodeGoat 256 and goof 271. Those later counts are still mostly `DEPS-VULN-001`. JSON keeps them. The console fold is Phase 47 and is on `next`. `"reviewed"` is still false. This is not a precision or recall claim.
+Historical. This report explains the pre-grouping snapshot from 0.2.x (NodeGoat 379, goof 354). Grouping shipped in 0.3.0 (NodeGoat 256, goof 271 in JSON). The console fold shipped in 0.4.0. Current counts are in `BENCHMARK.md`. `"reviewed"` is still false. This is not a precision or recall claim.
 
 Counts below are from `bench/snapshots/HEAD.json` before the grouping change. That file was the default `scan --json --offline-safe` snapshot at the time of the report. In-scope ground truth on those apps is 7 and 11 entries.
 
