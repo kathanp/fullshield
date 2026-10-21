@@ -18,6 +18,7 @@ Out of scope: findings in `test/fixtures/**` (intentionally vulnerable), third-p
 
 | Version | Status |
 |---|---|
+| 1.2.0 | This tree. Not yet the published npm release. |
 | 1.0.x | Supported. 1.0.1 is the current npm release (published 2026-10-21, with provenance). |
 | < 1.0.0 | Not the current release. Use 1.0.1. |
 

@@ -100,7 +100,7 @@ function memberIsEnv(node: AstNode, name: string): boolean {
 function devEnvGuard(node: AstNode): boolean {
   let current: AstNode | undefined = node;
   for (let i = 0; i < 40 && current !== undefined; i += 1) {
-    const parent = (current as unknown as NodeWithParent).parent;
+    const parent: AstNode | undefined = (current as unknown as NodeWithParent).parent;
     if (parent?.type === 'IfStatement' && ifTestIsDev(parent.test)) {return true;}
     current = parent;
   }
@@ -121,7 +121,7 @@ function adjusted(filename: string, node: AstNode): TlsSeverity {
   return { severity: 'high' };
 }
 
-export const tlsOptionRule: SastRule = {
+const tlsOptionRule: SastRule = {
   meta: {
     id: 'SAST-TLS-001',
     title: 'TLS certificate verification disabled',
@@ -161,7 +161,7 @@ export const tlsOptionRule: SastRule = {
   },
 };
 
-export const tlsEnvRule: SastRule = {
+const tlsEnvRule: SastRule = {
   meta: {
     id: 'SAST-TLS-002',
     title: 'NODE_TLS_REJECT_UNAUTHORIZED disabled',

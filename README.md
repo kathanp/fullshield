@@ -1,6 +1,6 @@
 # FullShield
 
-**v1.0.1.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
+**v1.2.0.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
 
 **Headline: dependency reachability.** A lockfile CVE is not the same as an unused package. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (lockfile path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), `not-imported` (−2, only when no such path exists), or `reachability-unknown` (severity kept) when the lockfile format has no parsed dependency edges. DevDependency-only vulns are `info` with a `dev-only` note unless production sources import the package. Pair it with `fullshield sbom --format cyclonedx`.
 
@@ -10,7 +10,7 @@ npx fullshield scan --json --fail-on high
 npx fullshield scan --sarif fullshield.sarif
 ```
 
-1.0.1 is the published release. The stable contract is [docs/stability.md](docs/stability.md). 1.0.1 moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. Do not treat a scan as a penetration test. Reviewed recall for untouched apps is not published. The stored Next.js cold scan is 71.7 seconds, above the 60-second target.
+1.2.0 is the version of this tree. The stable contract is [docs/stability.md](docs/stability.md). The 1.0.1 release moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. Do not treat a scan as a penetration test. Reviewed recall for untouched apps is not published. The stored Next.js cold scan is 71.7 seconds, above the 60-second target.
 
 **Supported runtime is Node.js >= 22.13.** `package.json` `engines` and `doctor` enforce that floor. `node:sqlite` runs without `--experimental-sqlite` from 22.13.0 (the module is still experimental and is loaded only by history/confirm, not by `--import` register).
 
@@ -48,7 +48,7 @@ Contributor quality gate: [docs/QUALITY.md](docs/QUALITY.md) (`npm run quality`)
 
 ## Non-goals (honesty is a feature)
 
-- Does **not** find business-logic or authorization bugs (IDOR, CSRF, missing ownership checks). It can flag routes with no auth middleware as *suspicious*, nothing more.
+- Does **not** find business-logic or authorization bugs (CSRF, missing ownership checks). It can flag routes with no auth middleware as *suspicious*. `SAST-IDOR-001` is an experimental low-confidence hint (`FULLSHIELD_EXPERIMENTAL_IDOR=1`) and does not fail CI.
 - Does **not** replace a penetration test.
 - Does **not** auto-delete code. `fix --apply` writes patches on a clean git tree. If project tests fail, each written file is restored from a byte-for-byte snapshot taken before the write — never `git checkout --`. `--force` on a dirty tree still refuses to touch files that have uncommitted changes.
 - v1 is **JS/TS only**. Other languages are out of scope.
@@ -116,6 +116,59 @@ npx fullshield init
 npx fullshield scan --fail-on high
 ```
 
+## Commands you can run
+
+No extra flag. These are the stable commands:
+
+```bash
+npx fullshield scan
+npx fullshield scan --json --fail-on high
+npx fullshield scan --sarif fullshield.sarif
+npx fullshield scan --markdown report.md
+npx fullshield scan --html report.html
+npx fullshield scan --offline
+npx fullshield scan --staged
+npx fullshield fix
+npx fullshield fix --apply
+npx fullshield init
+npx fullshield notify
+npx fullshield sbom --format cyclonedx --out sbom.json
+npx fullshield watch
+npx fullshield edge https://app.example.com
+npx fullshield doctor
+npx fullshield doctor --offline
+```
+
+`scan` runs deps, secrets, sast, and config. `fix` prints patches and writes only with `--apply` on a clean git tree. `init` writes config, CI, and a pre-commit hook. `notify` sends the last scan to Slack, a webhook, or SMTP. `sbom` writes CycloneDX 1.5. `watch` alerts only on a new OSV hit. `edge` checks one URL you pass for a CDN, HTTPS, headers, and `/.env` or `/.git`. `doctor` prints Node, the lockfile, the cache, flags set to `1`, and whether OSV may use the network.
+
+Each command below exits with `FS-E###` until its flag is exactly `1`. None of them run on a default `scan`.
+
+```bash
+FULLSHIELD_EXPERIMENTAL_DIFF=1 npx fullshield diff before.json after.json
+FULLSHIELD_EXPERIMENTAL_INGEST=1 npx fullshield ingest report.sarif
+FULLSHIELD_EXPERIMENTAL_EXPLAIN=1 npx fullshield explain <id> --from .fullshield/last-scan.json
+FULLSHIELD_EXPERIMENTAL_DEPS_DIFF=1 npx fullshield deps-diff origin/main
+FULLSHIELD_EXPERIMENTAL_CAPABILITIES=1 npx fullshield deps --capabilities
+FULLSHIELD_EXPERIMENTAL_SUPPLY=1 npx fullshield install .
+FULLSHIELD_EXPERIMENTAL_CONFIRM=1 npx fullshield confirm
+FULLSHIELD_EXPERIMENTAL_MCP=1 npx fullshield mcp --stdio
+FULLSHIELD_EXPERIMENTAL_HONEY=1 npx fullshield honey init
+FULLSHIELD_EXPERIMENTAL_PLATFORM=1 npx fullshield threat-model
+FULLSHIELD_EXPERIMENTAL_PLATFORM=1 npx fullshield report --serve
+FULLSHIELD_EXPERIMENTAL_COMPLIANCE=1 npx fullshield report --compliance pci
+FULLSHIELD_EXPERIMENTAL_IAC=1 npx fullshield iac
+FULLSHIELD_EXPERIMENTAL_AGENT=1 npx fullshield agent
+FULLSHIELD_EXPERIMENTAL_DEV=1 npx fullshield dev
+FULLSHIELD_EXPERIMENTAL_VEX=1 npx fullshield vex
+FULLSHIELD_EXPERIMENTAL_HOST=1 npx fullshield host --experimental-host
+FULLSHIELD_EXPERIMENTAL_NPM_AUDIT_DIFF=1 npx fullshield npm-audit-diff --file audit.json
+FULLSHIELD_EXPERIMENTAL_SPDX=1 npx fullshield sbom --format spdx --out sbom.spdx.json
+```
+
+`diff` compares two `scan --json` files and does not scan. `ingest` reads local SARIF, npm audit, OSV-Scanner, and Semgrep JSON and does not run those tools. `explain` prints one finding and never a verdict. `deps-diff` compares a lockfile at a git ref with the working tree. `deps --capabilities` profiles installed packages and does not run their scripts. `install` is static. `confirm` sends harmless canaries to localhost only. `mcp` is read-only. `agent` talks to a localhost mock and a local git remote. `host` reports OpenSSH exposure on Linux and does not block, patch, or harden sshd. `npm-audit-diff` compares an `npm audit --json` file you already have with scan findings. It does not run `npm`.
+
+Default `scan` npm coverage is the lockfile `name@version`, one OSV query, import-level reachability, and a Levenshtein-1 typosquat check on direct names. Deeper npm checks are off until you set one `FULLSHIELD_EXPERIMENTAL_NPM_<NAME>=1` flag. A flag reads the lockfile, `package.json`, `.npmrc`, or a cache file already on disk. It does not install the package, run a lifecycle script, or fetch a tarball. Registry packument checks read `cacheDir/registry/` only. Tarball checks read a tarball cache only. The groups are lockfile truth, manifest and project policy, registry metadata, tarball bytes, lifecycle script text, package names, and the dependency graph. Advisory helpers for range type, withdrawn rows, CVSS, alias collapse, and package URLs do not change default OSV findings. Core and breadth rule ids are indexed in [`rules/README.md`](rules/README.md). The npm-depth ids are the `rules/DEPS-*.md` files for those flags.
+
 Library:
 
 ```ts
@@ -177,6 +230,16 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | `scan --experimental-frameworks` | **Experimental** Next.js / NestJS / Hono / Koa taint sources and AUTH (`FULLSHIELD_EXPERIMENTAL_FRAMEWORKS=1`). Default `scan` is unchanged. Runtime adapters: `fullshield/runtime/koa`, `fullshield/runtime/hono` (optional peers). |
 | `scan --experimental-classes` | **Experimental** extra vuln classes: ReDoS, deser, XXE, upload, cookies, CSRF, mass assignment, timing compare, hash cost, GraphQL, trust-proxy (`FULLSHIELD_EXPERIMENTAL_CLASSES=1`). Default `scan` is unchanged. |
 | `scan` crypto v2 | **Experimental** (`FULLSHIELD_EXPERIMENTAL_CRYPTO2=1`). `SAST-CIPHER-001`, `SAST-CIPHER-002`, `SAST-RSA-001`, and `SAST-JWT-002`: ECB and deprecated ciphers, literal IVs, literal symmetric keys, short RSA or secp192 keys, and JWTs with no expiry or a short HMAC secret. Off by default. |
+| `scan` Electron | **Experimental** (`FULLSHIELD_EXPERIMENTAL_ELECTRON=1`). `CONFIG-ELECTRON-001` through `CONFIG-ELECTRON-003`: unsafe `webPreferences`, `shell.openExternal` without an https check, and a remote `loadURL` without navigation guards. Only when `electron` is installed. Off by default. |
+| `scan` vendored JS | **Experimental** (`FULLSHIELD_EXPERIMENTAL_VENDORED=1`). `DEPS-VENDORED-001`: known-vulnerable copies of jquery, bootstrap, lodash, and the other libraries in `models/vendored.json`, matched by banner or `VERSION` only. Off by default. |
+| `scan` template injection | **Experimental** (`FULLSHIELD_EXPERIMENTAL_SSTI=1`). `SAST-SSTI-001`: tainted template source for the engines in `models/ssti.json`. Off by default. |
+| `scan` webhooks | **Experimental** (`FULLSHIELD_EXPERIMENTAL_WEBHOOK=1`). `SAST-WEBHOOK-001`: Stripe, GitHub, Slack, Shopify, and Twilio handlers with no verifier. Off by default. |
+| `scan` session fixation | **Experimental** (`FULLSHIELD_EXPERIMENTAL_SESSION2=1`). `SAST-SESSION-002`: login writes the session without `regenerate`. `req.login` counts only for passport 0.6.0 or newer. Off by default. |
+| `scan` log secrets | **Experimental** (`FULLSHIELD_EXPERIMENTAL_LOGLEAK=1`). `SAST-LOGLEAK-001`: credential headers, auth-route bodies, and secret-named identifiers written to a logger. Off by default. |
+| `scan` Next.js boundary | **Experimental** (`FULLSHIELD_EXPERIMENTAL_NEXT=1`). `SAST-NEXT-001`, `CONFIG-NEXT-001`, `CONFIG-NEXT-002`, and `SECRET-NEXTPUB-001`. Off by default. |
+| `scan` browser JS | **Experimental** (`FULLSHIELD_EXPERIMENTAL_BROWSER=1`). `SAST-DOMXSS-001`, `SAST-REACT-001`, `SAST-POSTMSG-001`, and `SAST-TOKENSTORE-001`. Server taint rules skip browser sources. Off by default. |
+| `scan` unfixed deps | **Experimental** (`FULLSHIELD_EXPERIMENTAL_HEALTH=1`). `DEPS-UNFIXED-001`: a production dependency with no fixed version whose last publish is older than 730 days. Off by default. |
+| `scan` IDOR hints | **Experimental** (`FULLSHIELD_EXPERIMENTAL_IDOR=1`). `SAST-IDOR-001`: a low-confidence hint. `source: rule` does not fail CI. Off by default. |
 | `scan` TLS verification | **Experimental** (`FULLSHIELD_EXPERIMENTAL_TLS=1`). `SAST-TLS-001` and `SAST-TLS-002`: `rejectUnauthorized: false`, `checkServerIdentity` returning undefined, and `NODE_TLS_REJECT_UNAUTHORIZED=0` in source, Docker, compose, package scripts, and `.env` files. Test paths are low. A `NODE_ENV !== 'production'` guard is medium. Off by default. |
 | `scan` credential files | **Experimental** (`FULLSHIELD_EXPERIMENTAL_CREDFILES=1`). `SECRET-FILE-002` through `SECRET-FILE-007`: `.npmrc` auth literals, Docker `config.json` auth, kubeconfig tokens, Terraform state, service-account keys, and private key files. Masked. Off by default. `--staged` includes them. |
 | `scan --history` / `--bundle <dir>` / `--verify-secrets` | **Experimental** secrets advanced (`FULLSHIELD_EXPERIMENTAL_SECRETS_ADV=1` or `scan --experimental-secrets-adv`). History streams `git log -p` (first-introduced commit, still-at-HEAD). Bundle scans `dist/` `.next/static` `build/` for browser-exposed keys including `NEXT_PUBLIC_*`/`VITE_*`. `--verify-secrets` is never default and is **not** in generated CI templates; it needs `--i-own-these-credentials` and only hits read-only identity endpoints (AWS STS GetCallerIdentity, GitHub `GET /user`, Stripe `GET /v1/balance`, Slack `auth.test`). Results: `live` / `revoked` / `unknown`. The key is never logged. |
@@ -185,6 +248,10 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | `scan --experimental-mcpcfg` | **Experimental** MCP client/server config rules `MCP-001`–`MCP-005` (`FULLSHIELD_EXPERIMENTAL_MCPCFG=1`). Default `scan` emits no `MCP-*` IDs. |
 | `scan --include-home` | **Experimental** also scan MCP configs under the user home (`.cursor/mcp.json`, `.vscode/mcp.json`, `.mcp.json`, Claude Desktop). Requires `FULLSHIELD_EXPERIMENTAL_MCPCFG=1`. Never implied. |
 | `host --experimental-host` | **Experimental** Linux-only OpenSSH exposure check (`FULLSHIELD_EXPERIMENTAL_HOST=1`). Reports `HOST-SSH-001`..`003` (version, no `LoginGraceTime 0`, auth timeout attempts). Refuses without `--experimental-host`. Default `scan` is unchanged. Skips with an info message on macOS, Windows, containers without sshd, and PaaS. **What it does NOT do:** FullShield does not stop OS or SSH exploits. |
+| `explain` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_EXPLAIN=1`). `fullshield explain <id> --from <scan.json>` prints one finding. It never shows a verdict. |
+| `deps-diff` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_DEPS_DIFF=1`). Compare the lockfile at a git ref with the working tree. |
+| `npm-audit-diff` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_NPM_AUDIT_DIFF=1`). `fullshield npm-audit-diff --file audit.json --from scan.json` compares a local `npm audit --json` file with scan findings. Without `--from` it reads `.fullshield/last-scan.json`. It does not run `npm audit`. |
+| `scan` npm depth | **Experimental** (`FULLSHIELD_EXPERIMENTAL_NPM_<NAME>=1`). Lockfile, manifest, `.npmrc`, registry cache, tarball cache, lifecycle script text, package names, and graph checks from phases 108–242. Off unless that flag is `1`. No install, no script execution, no tarball download. |
 | `fix --experimental-fix-verify` | **Experimental** fix verification (`FULLSHIELD_EXPERIMENTAL_FIX_VERIFY=1`). Each `fix` patch and each `explain` diff is applied in memory and re-scanned. `introduces-finding` is never written. `does-not-remove` needs `--force-unverified`. Dependency version checks read the OSV cache only. |
 
 Inline ignore (reason required): `// fullshield-ignore SAST-SQLI-001: reviewed`

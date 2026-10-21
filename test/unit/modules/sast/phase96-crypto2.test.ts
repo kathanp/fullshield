@@ -13,7 +13,7 @@ const cleanApp = join(process.cwd(), 'test', 'fixtures', 'clean-app');
 const dirs: string[] = [];
 const LONG = 'a'.repeat(32);
 
-function sig(findings: { ruleId: string; file: string; line?: number; severity: string }[]) {
+function sig(findings: { ruleId: string; file?: string; line?: number; severity: string }[]) {
   return findings.map((f) => `${f.ruleId}|${f.file}|${f.line ?? ''}|${f.severity}`).sort();
 }
 

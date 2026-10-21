@@ -93,6 +93,7 @@ function reachPoints(value: Finding['reachability'] | undefined): { points: numb
     case 'not-imported':
       return { points: -15, detail: value };
     case 'reachability-unknown':
+    case 'vendored':
       return { points: 0, detail: value };
     case undefined:
       return { points: 0, detail: 'absent' };

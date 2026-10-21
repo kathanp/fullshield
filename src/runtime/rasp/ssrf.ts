@@ -1,5 +1,7 @@
 import dns from 'node:dns';
 
+import { dnsPinBlocks } from './dns-pin.js';
+
 export type HostLookup = (host: string) => string[];
 
 let lookupImpl: HostLookup | undefined;
@@ -115,10 +117,11 @@ export function resolveHostAddresses(host: string): string[] {
 
 export function hostIsBlocked(host: string): boolean {
   if (isPrivateOrMetadata(host)) {return true;}
-  for (const addr of resolveHostAddresses(host)) {
+  const addresses = resolveHostAddresses(host);
+  for (const addr of addresses) {
     if (isPrivateOrMetadata(addr)) {return true;}
   }
-  return false;
+  return dnsPinBlocks(host, addresses, isPrivateOrMetadata);
 }
 
 /** Block when user input overlaps the URL hostname and that host (or its resolved IP) is private/metadata. */

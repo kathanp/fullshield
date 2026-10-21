@@ -274,6 +274,7 @@ const REACH_RANK: Record<Reachability, number> = {
   'symbol-not-called': 4,
   'reachability-unknown': 5,
   'not-imported': 6,
+  vendored: 0,
 };
 
 function versionFromSnippet(snippet: string): string {

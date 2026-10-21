@@ -1,3 +1,4 @@
+import diagnosticsChannel from 'node:diagnostics_channel';
 import { createRequire } from 'node:module';
 
 import { currentRaspContext } from './context.js';
@@ -167,6 +168,70 @@ function checkEgress(url: string): void {
     });
     if (ctx) {addThreat(ctx.ip, 'block');}
     if (raspModeFor(ctx?.path ?? '/', 'ssrf') === 'block') {throw new RaspBlockedError('RASP-EGRESS-001');}
+  }
+}
+
+const NOSQL_METHODS = ['find', 'findOne', 'aggregate', 'updateOne', 'updateMany', 'deleteOne', 'deleteMany', 'countDocuments'] as const;
+
+function wrapNosqlMethod(obj: object, method: string): void {
+  patchMethod(obj, method, (orig) => {
+    return function (this: unknown, query: unknown, ...rest: unknown[]) {
+      return applySink('nosql', query ?? {}, undefined, () => orig.call(this, query as never, ...(rest as never[])));
+    };
+  });
+}
+
+function wrapTemplateSource(obj: object, method: string): void {
+  patchMethod(obj, method, (orig) => {
+    return function (this: unknown, source: unknown, ...rest: unknown[]) {
+      const text = typeof source === 'string' ? source : '';
+      return applySink('ssti', text, undefined, () => orig.call(this, source as never, ...(rest as never[])));
+    };
+  });
+}
+
+function axiosUrl(args: unknown[]): string {
+  const a = args[0];
+  if (typeof a === 'string') {return a;}
+  if (a && typeof a === 'object' && 'url' in a && typeof a.url === 'string') {return a.url;}
+  return '';
+}
+
+function wrapAxiosVerbs(ax: object): void {
+  for (const verb of ['request', 'get', 'post', 'put', 'patch', 'delete', 'head', 'options']) {
+    wrapSsrf(ax, verb, axiosUrl);
+  }
+}
+
+function undiciUrl(args: unknown[]): string {
+  const first = args[0];
+  if (typeof first === 'string' || first instanceof URL) {return fetchUrl(first);}
+  if (first && typeof first === 'object') {
+    const rec = first as { origin?: unknown; path?: unknown; href?: unknown };
+    if (typeof rec.href === 'string') {return rec.href;}
+    const origin = typeof rec.origin === 'string' ? rec.origin : '';
+    const path = typeof rec.path === 'string' ? rec.path : '';
+    if (origin || path) {return `${origin}${path}`;}
+  }
+  return fetchUrl(first);
+}
+
+function undiciMessageUrl(message: unknown): string {
+  if (!message || typeof message !== 'object') {return '';}
+  const rec = message as { url?: unknown; request?: { origin?: unknown; path?: unknown } };
+  if (typeof rec.url === 'string') {return rec.url;}
+  const origin = typeof rec.request?.origin === 'string' ? rec.request.origin : '';
+  const path = typeof rec.request?.path === 'string' ? rec.request.path : '';
+  return origin || path ? `${origin}${path}` : '';
+}
+
+function onUndiciCreate(message: unknown): void {
+  try {
+    const url = undiciMessageUrl(message);
+    if (url) {guardSink('ssrf', url);}
+  } catch (err) {
+    if (err instanceof RaspBlockedError) {return;}
+    throw err;
   }
 }
 
@@ -494,11 +559,7 @@ export function wrapKnownPackage(request: string, exported: unknown): unknown {
   if (name === 'mongodb' || name.includes('mongodb')) {
     const col = (exported as { Collection?: { prototype: object } }).Collection?.prototype;
     if (col) {
-      patchMethod(col, 'find', (orig) => {
-        return function (this: unknown, query: unknown, ...rest: unknown[]) {
-          return applySink('nosql', query ?? {}, undefined, () => orig.call(this, query as never, ...(rest as never[])));
-        };
-      });
+      for (const method of NOSQL_METHODS) {wrapNosqlMethod(col, method);}
     }
     wrappedPackages.add(obj);
     return exported;
@@ -506,29 +567,44 @@ export function wrapKnownPackage(request: string, exported: unknown): unknown {
   if (name === 'mongoose' || name.includes('mongoose')) {
     const q = (exported as { Query?: { prototype: object } }).Query?.prototype;
     if (q) {
-      patchMethod(q, 'find', (orig) => {
-        return function (this: unknown, query: unknown, ...rest: unknown[]) {
-          return applySink('nosql', query ?? {}, undefined, () => orig.call(this, query as never, ...(rest as never[])));
-        };
-      });
+      for (const method of NOSQL_METHODS) {wrapNosqlMethod(q, method);}
       wrapNosqlWhere(q, '$where');
     }
-    const model = (exported as { Model?: { prototype?: object } }).Model?.prototype;
+    const modelExport = (exported as { Model?: { aggregate?: unknown; prototype?: object } }).Model;
+    if (modelExport) {wrapNosqlMethod(modelExport, 'aggregate');}
+    const model = modelExport?.prototype;
     if (model) {wrapNosqlWhere(model, '$where');}
     wrappedPackages.add(obj);
     return exported;
   }
   if (name === 'axios') {
-    const ax = exported as { request?: unknown; get?: unknown; post?: unknown };
-    const urlOf = (args: unknown[]) => {
-      const a = args[0];
-      if (typeof a === 'string') {return a;}
-      if (a && typeof a === 'object' && 'url' in a && typeof a.url === 'string') {return a.url;}
-      return '';
-    };
-    wrapSsrf(ax, 'request', urlOf);
-    wrapSsrf(ax, 'get', urlOf);
-    wrapSsrf(ax, 'post', urlOf);
+    wrapAxiosVerbs(obj);
+    patchMethod(obj, 'create', (orig) => {
+      return function (this: unknown, ...args: unknown[]) {
+        const instance = orig.call(this, ...(args as never[]));
+        if (instance !== null && typeof instance === 'object') {wrapAxiosVerbs(instance);}
+        return instance;
+      };
+    });
+    wrappedPackages.add(obj);
+    return exported;
+  }
+  if (name === 'undici') {
+    wrapSsrf(obj, 'request', undiciUrl);
+    const rec = exported as { Dispatcher?: { prototype?: object }; Agent?: { prototype?: object } };
+    if (rec.Dispatcher?.prototype) {wrapSsrf(rec.Dispatcher.prototype, 'request', undiciUrl);}
+    if (rec.Agent?.prototype) {wrapSsrf(rec.Agent.prototype, 'request', undiciUrl);}
+    wrappedPackages.add(obj);
+    return exported;
+  }
+  if (name === 'ejs' || name === 'pug') {
+    wrapTemplateSource(obj, 'render');
+    wrapTemplateSource(obj, 'compile');
+    wrappedPackages.add(obj);
+    return exported;
+  }
+  if (name === 'nunjucks') {
+    wrapTemplateSource(obj, 'renderString');
     wrappedPackages.add(obj);
     return exported;
   }
@@ -555,6 +631,11 @@ export function wrapKnownPackage(request: string, exported: unknown): unknown {
 export function installHooks(): void {
   hooksLive = true;
   wrapBuiltins();
+  const channel = diagnosticsChannel.channel('undici:request:create');
+  channel.subscribe(onUndiciCreate);
+  restorers.push(() => {
+    channel.unsubscribe(onUndiciCreate);
+  });
 }
 
 export function restoreHooks(): void {

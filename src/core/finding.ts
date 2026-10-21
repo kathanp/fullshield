@@ -17,6 +17,7 @@ export const FINDING_SOURCES = [
   'semgrep',
   'osv-scanner',
   'sarif',
+  'rule',
 ] as const;
 export type FindingSource = (typeof FINDING_SOURCES)[number];
 
@@ -68,7 +69,8 @@ export interface Finding {
     | 'not-imported'
     | 'reachability-unknown'
     | 'symbol-reachable'
-    | 'symbol-not-called';
+    | 'symbol-not-called'
+    | 'vendored';
   /** Lockfile path from an imported direct dependency, e.g. express > body-parser > qs. */
   dependencyPath?: string[];
   /** Every retained dependency path for this package+advisory (shortest first). */
@@ -147,7 +149,7 @@ export function meetsThreshold(severity: Severity, threshold: Severity): boolean
 
 /** CI gate: deterministic findings only. `source: 'ai'` never fails a build. */
 export function failsCi(finding: Finding, threshold: Severity): boolean {
-  if (finding.source === 'ai') {return false;}
+  if (finding.source === 'ai' || finding.source === 'rule') {return false;}
   return meetsThreshold(finding.severity, threshold);
 }
 

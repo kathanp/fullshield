@@ -12,7 +12,7 @@ const vulnerableApp = join(process.cwd(), 'test', 'fixtures', 'vulnerable-app');
 const cleanApp = join(process.cwd(), 'test', 'fixtures', 'clean-app');
 const dirs: string[] = [];
 
-function sig(findings: { ruleId: string; file: string; line?: number; severity: string; context?: string }[]) {
+function sig(findings: { ruleId: string; file?: string; line?: number; severity: string; context?: string }[]) {
   return findings.map((f) => `${f.ruleId}|${f.file}|${f.line ?? ''}|${f.severity}|${f.context ?? ''}`).sort();
 }
 

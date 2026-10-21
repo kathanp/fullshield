@@ -16,7 +16,7 @@ function literalValue(raw: string | undefined): string | undefined {
   return value;
 }
 
-export const npmrcRule: SecretsRule = {
+const npmrcRule: SecretsRule = {
   meta: {
     id: 'SECRET-FILE-002',
     title: 'npm credential in .npmrc',
@@ -41,7 +41,7 @@ export const npmrcRule: SecretsRule = {
   },
 };
 
-export const dockerConfigRule: SecretsRule = {
+const dockerConfigRule: SecretsRule = {
   meta: {
     id: 'SECRET-FILE-003',
     title: 'Docker registry credential in config.json',
@@ -65,7 +65,7 @@ export const dockerConfigRule: SecretsRule = {
   },
 };
 
-export const kubeconfigRule: SecretsRule = {
+const kubeconfigRule: SecretsRule = {
   meta: {
     id: 'SECRET-FILE-004',
     title: 'kubeconfig credential',
@@ -89,7 +89,7 @@ export const kubeconfigRule: SecretsRule = {
   },
 };
 
-export const tfstateRule: SecretsRule = {
+const tfstateRule: SecretsRule = {
   meta: {
     id: 'SECRET-FILE-005',
     title: 'Committed Terraform state',
@@ -107,7 +107,7 @@ export const tfstateRule: SecretsRule = {
   },
 };
 
-export const serviceAccountRule: SecretsRule = {
+const serviceAccountRule: SecretsRule = {
   meta: {
     id: 'SECRET-FILE-006',
     title: 'Cloud service-account key',
@@ -130,7 +130,7 @@ export const serviceAccountRule: SecretsRule = {
   },
 };
 
-export const keyFileRule: SecretsRule = {
+const keyFileRule: SecretsRule = {
   meta: {
     id: 'SECRET-FILE-007',
     title: 'Committed private key file',

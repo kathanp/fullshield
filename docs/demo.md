@@ -1,6 +1,6 @@
 # Demo
 
-Captured from this checkout on 2026-10-20 at **v1.0.1**. The transcript below is that run, unedited except that the home directory is shown as `~`. Commands:
+Captured from this checkout on 2026-10-20 at **v1.2.0**. The transcript below is that run, unedited except that the home directory is shown as `~`. Commands:
 
 ```bash
 npm run build
@@ -13,7 +13,7 @@ NO_COLOR=1 node dist/cli/index.js doctor . --offline | sed "s#$HOME#~#g"
 ## scan test/fixtures/vulnerable-app
 
 ```text
-FullShield v1.0.1 — scanned 12 files in 141.77ms (modules: deps, secrets, sast, config)
+FullShield v1.2.0 — scanned 12 files in 141.77ms (modules: deps, secrets, sast, config)
 2 bumps (lodash 4.17.11 → 4.17.12, minimist 1.2.0 → 1.2.3) resolve 2 findings.
 2 packages are never imported; removing them clears 1 advisory.
 

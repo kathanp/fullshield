@@ -60,7 +60,7 @@ function stringLiteral(node: AstNode | undefined): string | undefined {
   return literalString(node);
 }
 
-export const cipherRule: SastRule = {
+const cipherRule: SastRule = {
   meta: {
     id: 'SAST-CIPHER-001',
     title: 'Weak cipher mode or IV',
@@ -99,7 +99,7 @@ export const cipherRule: SastRule = {
   },
 };
 
-export const cipherKeyRule: SastRule = {
+const cipherKeyRule: SastRule = {
   meta: {
     id: 'SAST-CIPHER-002',
     title: 'Hardcoded symmetric key',
@@ -122,7 +122,7 @@ export const cipherKeyRule: SastRule = {
   },
 };
 
-export const rsaRule: SastRule = {
+const rsaRule: SastRule = {
   meta: {
     id: 'SAST-RSA-001',
     title: 'Weak key generation',
@@ -154,7 +154,7 @@ export const rsaRule: SastRule = {
   },
 };
 
-export const jwtExpiryRule: SastRule = {
+const jwtExpiryRule: SastRule = {
   meta: {
     id: 'SAST-JWT-002',
     title: 'JWT without expiry or with a short HMAC secret',

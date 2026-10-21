@@ -1,4 +1,4 @@
-export type SinkKind = 'sql' | 'shell' | 'path' | 'nosql' | 'ssrf' | 'proto';
+export type SinkKind = 'sql' | 'shell' | 'path' | 'nosql' | 'ssrf' | 'proto' | 'ssti';
 
 export interface RaspRequestContext {
   path: string;
@@ -28,6 +28,7 @@ export const RASP_RULE: Record<SinkKind, string> = {
   nosql: 'RASP-NOSQL-001',
   ssrf: 'RASP-SSRF-001',
   proto: 'RASP-PROTO-001',
+  ssti: 'RASP-SSTI-001',
 };
 
 export const RASP_FAIL_OPEN = 'RASP-FAIL-OPEN-001';

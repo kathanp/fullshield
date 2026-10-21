@@ -1,0 +1,15 @@
+{
+  "libraries": [
+    { "package": "jquery", "banner": "jQuery v(\\d+\\.\\d+\\.\\d+)", "version": "jQuery\\.VERSION\\s*=\\s*['\\\"](\\d+\\.\\d+\\.\\d+)" },
+    { "package": "jquery-ui", "banner": "jQuery UI - v(\\d+\\.\\d+\\.\\d+)" },
+    { "package": "bootstrap", "banner": "Bootstrap v(\\d+\\.\\d+\\.\\d+)" },
+    { "package": "angular", "banner": "AngularJS v(\\d+\\.\\d+\\.\\d+)" },
+    { "package": "@angular/core", "banner": "angular v(\\d+\\.\\d+\\.\\d+)" },
+    { "package": "lodash", "banner": "Lodash (\\d+\\.\\d+\\.\\d+)" },
+    { "package": "underscore", "banner": "Underscore\\.js (\\d+\\.\\d+\\.\\d+)" },
+    { "package": "moment", "banner": "Moment\\.js (\\d+\\.\\d+\\.\\d+)" },
+    { "package": "handlebars", "banner": "Handlebars v(\\d+\\.\\d+\\.\\d+)" },
+    { "package": "dompurify", "banner": "DOMPurify (\\d+\\.\\d+\\.\\d+)" },
+    { "package": "knockout", "banner": "Knockout (\\d+\\.\\d+\\.\\d+)" }
+  ]
+}

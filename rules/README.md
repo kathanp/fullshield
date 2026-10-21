@@ -119,3 +119,26 @@ Requires `FULLSHIELD_EXPERIMENTAL_DLP=1` and `shieldGuard({ dlp: { mode } })`. N
 | [HOST-SSH-001](HOST-SSH-001.md) | OpenSSH version in the CVE-2024-6387 range |
 | [HOST-SSH-002](HOST-SSH-002.md) | Vulnerable OpenSSH without `LoginGraceTime 0` |
 | [HOST-SSH-003](HOST-SSH-003.md) | Possible SSH authentication-timeout attempts |
+
+## Breadth 1.2.0 (experimental, off by default)
+
+| ID | What |
+|---|---|
+| [CONFIG-ELECTRON-001](CONFIG-ELECTRON-001.md) | Unsafe Electron `webPreferences` (`FULLSHIELD_EXPERIMENTAL_ELECTRON`) |
+| [CONFIG-ELECTRON-002](CONFIG-ELECTRON-002.md) | `shell.openExternal` without an https check |
+| [CONFIG-ELECTRON-003](CONFIG-ELECTRON-003.md) | Remote `loadURL` without navigation guards |
+| [DEPS-VENDORED-001](DEPS-VENDORED-001.md) | Vendored library matched by banner or VERSION (`FULLSHIELD_EXPERIMENTAL_VENDORED`) |
+| [DEPS-UNFIXED-001](DEPS-UNFIXED-001.md) | Production dependency with no fixed version, last publish over 730 days (`FULLSHIELD_EXPERIMENTAL_HEALTH`) |
+| [SAST-SSTI-001](SAST-SSTI-001.md) | Tainted template source (`FULLSHIELD_EXPERIMENTAL_SSTI`) |
+| [SAST-WEBHOOK-001](SAST-WEBHOOK-001.md) | Known webhook provider with no verifier (`FULLSHIELD_EXPERIMENTAL_WEBHOOK`) |
+| [SAST-SESSION-002](SAST-SESSION-002.md) | Login session write without regenerate (`FULLSHIELD_EXPERIMENTAL_SESSION2`) |
+| [SAST-LOGLEAK-001](SAST-LOGLEAK-001.md) | Secret written to a log (`FULLSHIELD_EXPERIMENTAL_LOGLEAK`) |
+| [SAST-NEXT-001](SAST-NEXT-001.md) | `use server` write without auth (`FULLSHIELD_EXPERIMENTAL_NEXT`) |
+| [CONFIG-NEXT-001](CONFIG-NEXT-001.md) | Auth only in Next.js middleware |
+| [CONFIG-NEXT-002](CONFIG-NEXT-002.md) | Unrestricted Next.js image hosts |
+| [SECRET-NEXTPUB-001](SECRET-NEXTPUB-001.md) | `NEXT_PUBLIC_` name that looks like a secret |
+| [SAST-DOMXSS-001](SAST-DOMXSS-001.md) | DOM XSS sink (`FULLSHIELD_EXPERIMENTAL_BROWSER`) |
+| [SAST-REACT-001](SAST-REACT-001.md) | Unsanitized HTML binding |
+| [SAST-POSTMSG-001](SAST-POSTMSG-001.md) | postMessage without an origin check |
+| [SAST-TOKENSTORE-001](SAST-TOKENSTORE-001.md) | Token written to localStorage |
+| [SAST-IDOR-001](SAST-IDOR-001.md) | Load-by-id hint that never fails CI (`FULLSHIELD_EXPERIMENTAL_IDOR`) |

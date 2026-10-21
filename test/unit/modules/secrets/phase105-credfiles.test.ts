@@ -19,7 +19,7 @@ const KUBE_TOKEN = 'kube' + 'token-fake-value';
 const KEY_B64 = 'LS0t' + 'FAKEPRIVATEKEYDATA';
 const PEM = '-----BEGIN ' + 'OPENSSH PRIVATE KEY-----\n' + 'ZmFr' + 'ZWtleQ==\n-----END OPENSSH PRIVATE KEY-----';
 
-function sig(findings: { ruleId: string; file: string; line: number; severity: string; snippet?: string }[]) {
+function sig(findings: { ruleId: string; file?: string; line?: number; severity: string; snippet?: string }[]) {
   return findings
     .map((f) => `${f.ruleId}|${f.file}|${f.line}|${f.severity}|${f.snippet ?? ''}`)
     .sort();

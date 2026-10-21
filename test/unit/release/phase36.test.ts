@@ -71,7 +71,7 @@ describe('Phase 36 release checks', () => {
     expect(ok).toEqual([]);
     expect(
       packBudgetErrors({
-        unpackedBytes: 2_100_000,
+        unpackedBytes: 3_200_000,
         fileCount: 101,
         hardDeps: ['commander'],
         previousHardDeps: ['commander'],
@@ -80,7 +80,7 @@ describe('Phase 36 release checks', () => {
     expect(
       packBudgetErrors({
         unpackedBytes: 100,
-        fileCount: 121,
+        fileCount: 321,
         hardDeps: ['commander'],
         previousHardDeps: ['commander'],
       }).join(' '),

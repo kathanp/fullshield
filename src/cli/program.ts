@@ -46,6 +46,7 @@ import {
 } from '../capabilities/index.js';
 import { loadConfig } from '../core/config.js';
 import { explainFinding } from '../explain/index.js';
+import { auditDiff, type AuditScanFinding } from '../modules/deps/npm/audit-diff.js';
 import { queryOsv } from '../modules/deps/osv.js';
 import { osvSeverity } from '../modules/deps/semver.js';
 import { buildSbom } from '../sbom/index.js';
@@ -1264,6 +1265,47 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           pollIntervalMs: pollIntervalOption(opts.pollInterval),
         });
         await session.done;
+      } catch (error) {
+        io.err(formatCliError(error));
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('npm-audit-diff')
+    .description('Compare a local npm audit JSON file with scan findings (requires FULLSHIELD_EXPERIMENTAL_NPM_AUDIT_DIFF=1)')
+    .requiredOption('--file <audit.json>', 'npm audit --json file already on disk')
+    .option('--from <scan.json>', 'scan --json file; default is .fullshield/last-scan.json')
+    .action(async (opts: { file: string; from?: string }) => {
+      try {
+        if (process.env.FULLSHIELD_EXPERIMENTAL_NPM_AUDIT_DIFF !== '1') {
+          throw new Error('npm-audit-diff requires FULLSHIELD_EXPERIMENTAL_NPM_AUDIT_DIFF=1');
+        }
+        const auditPath = resolve(opts.file);
+        let auditText: string;
+        try {
+          auditText = await readFile(auditPath, 'utf8');
+        } catch {
+          throw new Error(`cannot read npm audit file ${opts.file} (FULLSHIELD_EXPERIMENTAL_NPM_AUDIT_DIFF)`);
+        }
+        const scanPath = opts.from !== undefined
+          ? resolve(opts.from)
+          : join(process.cwd(), '.fullshield', 'last-scan.json');
+        let scanText: string;
+        try {
+          scanText = await readFile(scanPath, 'utf8');
+        } catch {
+          throw new Error(`cannot read scan JSON ${scanPath} (FULLSHIELD_EXPERIMENTAL_NPM_AUDIT_DIFF)`);
+        }
+        const scanDoc = JSON.parse(scanText) as { findings?: AuditScanFinding[] };
+        const findings = Array.isArray(scanDoc.findings) ? scanDoc.findings : [];
+        let auditJson: unknown;
+        try {
+          auditJson = JSON.parse(auditText) as unknown;
+        } catch {
+          throw new Error(`cannot read npm audit file ${opts.file} (FULLSHIELD_EXPERIMENTAL_NPM_AUDIT_DIFF)`);
+        }
+        io.out(JSON.stringify(auditDiff(auditJson, findings), null, 2));
       } catch (error) {
         io.err(formatCliError(error));
         process.exitCode = 2;

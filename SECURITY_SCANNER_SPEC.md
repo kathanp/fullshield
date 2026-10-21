@@ -1,11 +1,11 @@
-# FullShield — Build Spec for Cursor (full, rev 2026-10-19e)
+# FullShield — Build Spec for Cursor (full, rev 2026-10-21f)
 
 > Package: `fullshield` on npm (owner `kathan2404`). Repo: https://github.com/kathanp/fullshield (public, MIT).
 > Language: TypeScript (strict). Runtime: Node.js ≥ 22.13. Distribution: one npm package (CLI + library + runtime middleware).
 > Live on npm: `1.0.1` is latest (published 2026-10-21T02:43:27Z with provenance). `0.1.3` was **published WITHOUT provenance — must never happen again**. Placeholders `0.0.0-stage`, `0.0.1` deprecated. `0.1.2` was never published.
 > This file is the only spec. The 2026-10-14 draft (`SECURITY_SCANNER_SPEC (1).md`) is deleted. Its design lives here; Section 33 lists the few requirements that draft stated and this file had shortened. Later text wins where the draft disagreed.
 > [X] Complete: phases 1–55 and 57–94. Phase 56 is not in 1.0.1 (blocked on R15). Phase 65 is coded; the 5-second nest/undici target is still unmet. Experimental phases stay off unless their flag is set. Phases 36–45 are reference, not a queue.
-> **Current queue is Section 45** for autopilot runs. The 1.1.0 version scope is there. 1.0.1 is published. Section 43 is the finished 2026-10-19 run; Section 42 adds the quality gate (R24, Phase 94) and the definition of done for every remaining phase. During an autopilot run, Section 45 R26 item 4 overrides Section 40.5: no report file is written. Outside a run, Section 40.5 report-file rules still apply. Earlier queue: Section 40 (2026-10-19, lanes A/B/C). Section 36 is the 2026-10-18 record. Leadership phases 76–93 are in Section 39 and are in this tree behind their flags. Advanced phases 60–75 are in Section 37; Phase 47 has an addendum (47.1) there that is part of its acceptance. Section 38 is the production-reliance stance (not a queue). Section 41 lists human-only work. Phase 56 is not in this release.
+> **Current queue is Section 45** for autopilot runs. The 1.2.0 version scope is there. 1.0.1 is published. Section 47 phases 108–250 are in that same 1.2.0 scope, after 107. Section 43 is the finished 2026-10-19 run; Section 42 adds the quality gate (R24, Phase 94) and the definition of done for every remaining phase. During an autopilot run, Section 45 R26 item 4 overrides Section 40.5: no report file is written. Outside a run, Section 40.5 report-file rules still apply. Earlier queue: Section 40 (2026-10-19, lanes A/B/C). Section 36 is the 2026-10-18 record. Leadership phases 76–93 are in Section 39 and are in this tree behind their flags. Advanced phases 60–75 are in Section 37; Phase 47 has an addendum (47.1) there that is part of its acceptance. Section 38 is the production-reliance stance (not a queue). Section 41 lists human-only work. Phase 56 is not in this release.
 
 ---
 
@@ -404,7 +404,7 @@ Taint: sources `req.body/query/params/headers/cookies`, destructured request par
 - [ X ] No install/postinstall scripts.
 - [ X ] Hard runtime deps ≤ 6 (currently: commander, ignore, picocolors, @typescript-eslint/typescript-estree). Optional peers: express, fastify, koa, hono, zod, @modelcontextprotocol/sdk. Lockfile committed.
 - [ X ] Publish only from CI via trusted publishing with `--provenance`; post-publish attestation gate (S6). No long-lived npm tokens. 2FA on npm and GitHub. Staged approval on.
-- [ X ] Tarball: `dist/` (no `.map`), README, LICENSE, CHANGELOG, templates, rules. Budget: unpacked ≤ 2.0 MB, ≤ 120 files (Phase 36).
+- [ X ] Tarball: `dist/` (no `.map`), README, LICENSE, CHANGELOG, templates, rules. Budget: unpacked ≤ 3.0 MB, ≤ 320 files (Phase 36, raised for 1.2.0).
 - [ X ] Scanned code is never executed. Parse only.
 - [ X ] Network: OSV, registry.npmjs.org (supply-chain features), user-configured webhooks/AI providers, localhost (confirm/agent/dashboard). `--offline` available.
 - [ X ] Dogfood: FullShield scans its own repo in CI.
@@ -669,6 +669,7 @@ For each sink call, collect request input strings (query, body, params, headers,
 | Depth | 36–45 | shipped in 0.2.0 (Section 29 is reference) |
 | Impact | 46–59 | [X] 46–49 and 53. 50–52 and 54–59 are not finished. |
 | Advanced | 60–75 | [X] 61, 64, 66, 74. 60, 62, 63, 65, and 70 are started and still have open items. |
+| npm depth | 108–250 | specified in Section 47; part of the 1.2.0 scope; not started |
 
 | Phase | Build | Acceptance |
 |---|---|---|
@@ -794,6 +795,7 @@ Worm and workflow-tampering indicators; transitive overrides written to `package
 - [  ] Production reliance is Section 38. README and release notes keep that stance. Do not claim FullShield replaces Semgrep, npm audit, OSV-Scanner, or a secrets scanner.
 - [  ] `ingest` (Phase 83) reads local report files only. It does not run Semgrep, npm audit, or OSV-Scanner and does not fetch. It does not set `fullshieldPriority` (Phase 84; KEV/EPSS stay blocked on Phase 56). An npm audit file with no installed version uses `unknown` and will not match an OSV-Scanner row that has a version.
 - [  ] Phase 91 fix verification re-scans the patched file and its direct importers only. A missing OSV cache file for the planned version is `does-not-remove`. It does not run project tests or `npm install`.
+- [  ] Default `scan` npm coverage is lockfile `name@version`, an OSV query, import-level reachability, and a Levenshtein-1 typosquat check on direct dependencies. Non-registry resolved URLs, missing integrity, release cooldown, and install-script heuristics live in the supply helpers (`fullshield install`), not in default `scan`. Nested copies of one package name share one edge set. Tarball bytes are not checked against `dist.integrity`. Phases 108–250 (Section 47) are in the 1.2.0 scope and are not built yet.
 
 ---
 
@@ -806,7 +808,7 @@ Build:
 1. Provenance gate in `publish.yml` (1.4). Root-cause 0.1.3's missing attestation; document in RELEASING.md.
 2. `scripts/default-scan-diff.mjs`: snapshots default-scan findings per target into `bench/snapshots/<version>.json`; diff mode prints added/removed/changed `(ruleId, file, line, severity)`; exit 1 on any diff unless `--approved <file>` matches exactly. Create snapshots for 0.1.1 and 0.1.3 from their published tarballs (`npm pack fullshield@X` into temp, run that CLI).
 3. `scripts/semver-check.mjs`: HEAD vs last tag — new rule IDs, commands, flags, exports, or stable-output diff → minor required; else patch. Fails if the `package.json` bump is smaller than required.
-4. `scripts/pack-budget.mjs`: fails if unpacked > 2.0 MB, files > 120, or hard `dependencies` added vs last tag; prints what grew.
+4. `scripts/pack-budget.mjs`: fails if unpacked > 3.0 MB, files > 320, or hard `dependencies` added vs last tag; prints what grew.
 5. Section 27 items.
 6. CHANGELOG `0.2.0` draft: every stable-output change since 0.1.1 (from default-scan-diff 0.1.1 → HEAD) under the R10 heading, plus every experimental feature with its flag.
 
@@ -900,10 +902,10 @@ Acceptance: workflows green; reproducibility passes or differences documented; S
 
 | Item | State |
 |---|---|
-| Repo `package.json` | 1.0.1, published on npm 2026-10-21T02:43:27Z with provenance. Tag `v1.0.1` is `dc2b719` on `main`. |
+| Repo `package.json` | 1.2.0. npm still serves 1.0.1, published 2026-10-21T02:43:27Z with provenance. Tag `v1.0.1` is `dc2b719` on `main`. |
 | `engines` | `>=22.13` in package.json, doctor, and CI (Node 22 and 24). `main` requires the six checks in `docs/branch-protection.md`. |
 | Built | Phases 1–55 and 57–94 are in this tree. Phase 56 is not (R15). Phase 65 is coded; the 5-second nest and undici target is unmet. |
-| Today's queue | Section 45 autopilot run for 1.1.0. Scope order: 105 → 95 → 96 → 102 → 104 → 97 → 99 → 100 → 98 → 103 → 101 → 106 → 107 (Section 46). Experimental only (R11). No promotion. |
+| Today's queue | Section 45 autopilot run for 1.2.0. Scope order: 105 → 95 → 96 → 102 → 104 → 97 → 99 → 100 → 98 → 103 → 101 → 106 → 107, then 108 through 250 (Section 47). Experimental only (R11). No promotion. One version, `1.2.0`. |
 | Phases 76–93 | in this tree, behind their experimental flags |
 | Precision | Phase 76 writes null labels. No reviewed precision rate is published. |
 | Phase 56 | blocked on R15 amendment (EPSS/KEV hosts) |
@@ -1465,7 +1467,7 @@ These points constrain README, release notes, and later phases (Section 4.4, R7)
 
 1. [  ] **Semgrep still overlaps on injection, and its rule set is larger.** On the same tuning apps, Semgrep Community Edition still reports injection classes that overlap FullShield's SAST rules. Semgrep's public rulesets are much larger and cover more than JavaScript and TypeScript. FullShield is JS/TS only (Section 4.3). The local comparison is `COMPARISON.md` (one run on 2026-10-16, unreviewed, not a recall claim). Do not write that FullShield matches or beats Semgrep.
 
-2. [  ] **npm audit and OSV-Scanner stay the mature dependency databases.** FullShield queries OSV (`https://api.osv.dev`) and can read `npm audit --json` (R6). It does not replace either tool. Reachability is a layer on top of those alerts, not a second advisory database.
+2. [  ] **npm audit and OSV-Scanner stay the mature dependency databases.** FullShield queries OSV (`https://api.osv.dev`) and can read `npm audit --json` (R6). It does not replace either tool. Reachability is a layer on top of those alerts, not a second advisory database. Section 47 is the plan that narrows the npm gap (lockfile truth, packument, tarball bytes, lifecycle scripts, name trust, per-instance graph). This point stays until a human-reviewed comparison says a specific check is no longer a gap.
 
 3. [  ] **The full cycle is not a guarantee.** Runtime blocking, exploit confirmation, and auto-remediation pull requests are experimental and fail-open. The stable runtime piece is a monitor. `monitor` is the production default (Section 5). It does not guarantee that an attack is stopped. `--fail-on` is the CI gate. The agent never merges and never posts to GitHub (Section 22.8, Section 31).
 
@@ -1884,11 +1886,11 @@ scripts/autopilot/guard.mjs. For such a run only:
 6. Everything else in Section 0 applies unchanged, including R1, R3, R3a, R10, R11, R13,
    R15, R16a, R17, R22, R23, R24 and S1-S7.
 
-### Version scope 1.1.0
+### Version scope 1.2.0
 
-This block is the only queue for the autopilot run (R26 item 1). Target `1.1.0`, a minor (R16a): every rule ID in Section 46 is new. Definitions stay in Section 46. This run does not promote any rule (R11). Section 41 items 1–2 on NodeGoat and goof are not done, so nothing moves to stable and default `scan --json` output does not change (no R10).
+This block is the only queue for the autopilot run (R26 item 1). Target `1.2.0`, a minor (R16a): every rule ID in Section 46 and Section 47 is new. Definitions stay in those sections. This run does not promote any rule (R11). Section 41 items 1–2 on NodeGoat and goof are not done, so nothing moves to stable and default `scan --json` output does not change (no R10). Phases 108–250 are in this version, after 107.
 
-Order: 105 → 95 → 96 → 102 → 104 → 97 → 99 → 100 → 98 → 103 → 101 → 106 → 107.
+Order: 105 → 95 → 96 → 102 → 104 → 97 → 99 → 100 → 98 → 103 → 101 → 106 → 107, then 108 through 250 in numeric order.
 
 | Phase | Flag | Stable-output change |
 |---|---|---|
@@ -1905,15 +1907,158 @@ Order: 105 → 95 → 96 → 102 → 104 → 97 → 99 → 100 → 98 → 103 �
 | 101 | `FULLSHIELD_EXPERIMENTAL_BROWSER` | no |
 | 106 | `FULLSHIELD_EXPERIMENTAL_HEALTH` | no |
 | 107 | `FULLSHIELD_EXPERIMENTAL_IDOR` | no |
+| 108 | `FULLSHIELD_EXPERIMENTAL_NPM_SHRINKWRAP` | no |
+| 109 | `FULLSHIELD_EXPERIMENTAL_NPM_LOCKVER` | no |
+| 110 | `FULLSHIELD_EXPERIMENTAL_NPM_MULTLOCK` | no |
+| 111 | `FULLSHIELD_EXPERIMENTAL_NPM_ROOTVER` | no |
+| 112 | `FULLSHIELD_EXPERIMENTAL_NPM_NONSEMVER` | no |
+| 113 | `FULLSHIELD_EXPERIMENTAL_NPM_NORESOLVED` | no |
+| 114 | `FULLSHIELD_EXPERIMENTAL_NPM_RESOLVED_HOST` | no |
+| 115 | `FULLSHIELD_EXPERIMENTAL_NPM_RESOLVED_HTTP` | no |
+| 116 | `FULLSHIELD_EXPERIMENTAL_NPM_NOINTEGRITY` | no |
+| 117 | `FULLSHIELD_EXPERIMENTAL_NPM_WEAKINTEGRITY` | no |
+| 118 | `FULLSHIELD_EXPERIMENTAL_NPM_BADINTEGRITY` | no |
+| 119 | `FULLSHIELD_EXPERIMENTAL_NPM_LINKDEP` | no |
+| 120 | `FULLSHIELD_EXPERIMENTAL_NPM_GITDEP` | no |
+| 121 | `FULLSHIELD_EXPERIMENTAL_NPM_ALIAS` | no |
+| 122 | `FULLSHIELD_EXPERIMENTAL_NPM_BUNDLED` | no |
+| 123 | `FULLSHIELD_EXPERIMENTAL_NPM_PEER` | no |
+| 124 | `FULLSHIELD_EXPERIMENTAL_NPM_OPTIONAL` | no |
+| 125 | `FULLSHIELD_EXPERIMENTAL_NPM_LOCKPATH` | no |
+| 126 | `FULLSHIELD_EXPERIMENTAL_NPM_LOCKOMIT` | no |
+| 127 | `FULLSHIELD_EXPERIMENTAL_NPM_DEVPROD` | no |
+| 128 | `FULLSHIELD_EXPERIMENTAL_NPM_FLOAT` | no |
+| 129 | `FULLSHIELD_EXPERIMENTAL_NPM_GITSPEC` | no |
+| 130 | `FULLSHIELD_EXPERIMENTAL_NPM_FILESPEC` | no |
+| 131 | `FULLSHIELD_EXPERIMENTAL_NPM_URLSPEC` | no |
+| 132 | `FULLSHIELD_EXPERIMENTAL_NPM_TAGSPEC` | no |
+| 133 | `FULLSHIELD_EXPERIMENTAL_NPM_OVERRIDE_VULN` | no |
+| 134 | `FULLSHIELD_EXPERIMENTAL_NPM_OVERRIDE_WIDE` | no |
+| 135 | `FULLSHIELD_EXPERIMENTAL_NPM_OVERRIDE_ALIAS` | no |
+| 136 | `FULLSHIELD_EXPERIMENTAL_NPM_LIFECYCLE` | no |
+| 137 | `FULLSHIELD_EXPERIMENTAL_NPM_NPMRC_REG` | no |
+| 138 | `FULLSHIELD_EXPERIMENTAL_NPM_NPMRC_SCRIPT` | no |
+| 139 | `FULLSHIELD_EXPERIMENTAL_NPM_NPMRC_HOME` | no |
+| 140 | `FULLSHIELD_EXPERIMENTAL_NPM_PACKAGEMANAGER` | no |
+| 141 | `FULLSHIELD_EXPERIMENTAL_NPM_COREPACK` | no |
+| 142 | `FULLSHIELD_EXPERIMENTAL_NPM_ENGINES` | no |
+| 143 | `FULLSHIELD_EXPERIMENTAL_NPM_ENGINE_STRICT` | no |
+| 144 | `FULLSHIELD_EXPERIMENTAL_NPM_TRUSTED` | no |
+| 145 | `FULLSHIELD_EXPERIMENTAL_NPM_PUBLISHCONFIG` | no |
+| 146 | `FULLSHIELD_EXPERIMENTAL_NPM_BINSHADOW` | no |
+| 147 | `FULLSHIELD_EXPERIMENTAL_NPM_OSCPU` | no |
+| 148 | `FULLSHIELD_EXPERIMENTAL_NPM_REG_INTEGRITY` | no |
+| 149 | `FULLSHIELD_EXPERIMENTAL_NPM_REG_TARBALL` | no |
+| 150 | `FULLSHIELD_EXPERIMENTAL_NPM_REG_DEPRECATED` | no |
+| 151 | `FULLSHIELD_EXPERIMENTAL_NPM_REG_UNPUBLISHED` | no |
+| 152 | `FULLSHIELD_EXPERIMENTAL_NPM_REG_NPMUSER` | no |
+| 153 | `FULLSHIELD_EXPERIMENTAL_NPM_REG_MAINTAINER` | no |
+| 154 | `FULLSHIELD_EXPERIMENTAL_NPM_REG_PROV_ABSENT` | no |
+| 155 | `FULLSHIELD_EXPERIMENTAL_NPM_REG_BUILDER` | no |
+| 156 | `FULLSHIELD_EXPERIMENTAL_NPM_REG_REPO` | no |
+| 157 | `FULLSHIELD_EXPERIMENTAL_NPM_REG_SUBJECT` | no |
+| 158 | `FULLSHIELD_EXPERIMENTAL_NPM_REG_TIME` | no |
+| 159 | `FULLSHIELD_EXPERIMENTAL_NPM_REG_TRANSITIVE_AGE` | no |
+| 160 | `FULLSHIELD_EXPERIMENTAL_NPM_REG_INSTALLSCRIPT` | no |
+| 161 | `FULLSHIELD_EXPERIMENTAL_NPM_REG_SIGNATURES` | no |
+| 162 | `FULLSHIELD_EXPERIMENTAL_NPM_REG_ENGINES` | no |
+| 163 | `FULLSHIELD_EXPERIMENTAL_NPM_REG_DRIFT` | no |
+| 164 | `FULLSHIELD_EXPERIMENTAL_NPM_REG_DEPS` | no |
+| 165 | `FULLSHIELD_EXPERIMENTAL_NPM_REG_PEER` | no |
+| 166 | `FULLSHIELD_EXPERIMENTAL_NPM_REG_BIN` | no |
+| 167 | `FULLSHIELD_EXPERIMENTAL_NPM_REG_REPOSITORY` | no |
+| 168 | `FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_HASH` | no |
+| 169 | `FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_ID` | no |
+| 170 | `FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_LIFECYCLE` | no |
+| 171 | `FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_NET` | no |
+| 172 | `FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_SHELL` | no |
+| 173 | `FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_CRED` | no |
+| 174 | `FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_OBFUSC` | no |
+| 175 | `FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_BIN` | no |
+| 176 | `FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_NATIVE` | no |
+| 177 | `FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_HOOK` | no |
+| 178 | `FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_HIDDEN` | no |
+| 179 | `FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_PATH` | no |
+| 180 | `FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_SIZE` | no |
+| 181 | `FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_LICENSE` | no |
+| 182 | `FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_MANIFEST` | no |
+| 183 | `FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_INSTALLJS` | no |
+| 184 | `FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_TOPLEVEL` | no |
+| 185 | `FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_ENV` | no |
+| 186 | `FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_DYNAMIC` | no |
+| 187 | `FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_GATE` | no |
+| 188 | `FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_TRANSITIVE` | no |
+| 189 | `FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_OPTIONAL` | no |
+| 190 | `FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_DEV` | no |
+| 191 | `FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_PREPARE` | no |
+| 192 | `FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_PREPUBLISH` | no |
+| 193 | `FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_CURL` | no |
+| 194 | `FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_BASE64` | no |
+| 195 | `FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_NODEGYP` | no |
+| 196 | `FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_WRITE` | no |
+| 197 | `FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_LOCK` | no |
+| 198 | `FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_GIT` | no |
+| 199 | `FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_TOKEN` | no |
+| 200 | `FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_PUBLISH` | no |
+| 201 | `FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_TRUSTED` | no |
+| 202 | `FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_MISMATCH` | no |
+| 203 | `FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_MULTI` | no |
+| 204 | `FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_BIN` | no |
+| 205 | `FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_SHEBANG` | no |
+| 206 | `FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_COND` | no |
+| 207 | `FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_ROLLUP` | no |
+| 208 | `FULLSHIELD_EXPERIMENTAL_NPM_SCOPE_TYPO` | no |
+| 209 | `FULLSHIELD_EXPERIMENTAL_NPM_HOMOGLYPH` | no |
+| 210 | `FULLSHIELD_EXPERIMENTAL_NPM_BIDI` | no |
+| 211 | `FULLSHIELD_EXPERIMENTAL_NPM_MIXEDSCRIPT` | no |
+| 212 | `FULLSHIELD_EXPERIMENTAL_NPM_SEPARATOR` | no |
+| 213 | `FULLSHIELD_EXPERIMENTAL_NPM_REPEAT` | no |
+| 214 | `FULLSHIELD_EXPERIMENTAL_NPM_SUFFIX` | no |
+| 215 | `FULLSHIELD_EXPERIMENTAL_NPM_SCOPE_NEW` | no |
+| 216 | `FULLSHIELD_EXPERIMENTAL_NPM_SCOPE_SYNTAX` | no |
+| 217 | `FULLSHIELD_EXPERIMENTAL_NPM_TYPES` | no |
+| 218 | `FULLSHIELD_EXPERIMENTAL_NPM_DEPRECATED_REPLACE` | no |
+| 219 | `FULLSHIELD_EXPERIMENTAL_NPM_TYPO_TRANSITIVE` | no |
+| 220 | `FULLSHIELD_EXPERIMENTAL_NPM_NAME_LENGTH` | no |
+| 221 | `FULLSHIELD_EXPERIMENTAL_NPM_NAME_CASE` | no |
+| 222 | `FULLSHIELD_EXPERIMENTAL_NPM_NAME_ENCODED` | no |
+| 223 | `FULLSHIELD_EXPERIMENTAL_NPM_ALIAS_SQUAT` | no |
+| 224 | `FULLSHIELD_EXPERIMENTAL_NPM_SELFNAME` | no |
+| 225 | `FULLSHIELD_EXPERIMENTAL_NPM_WORKSPACE_NAME` | no |
+| 226 | `FULLSHIELD_EXPERIMENTAL_NPM_POPULAR_LIST` | no |
+| 227 | `FULLSHIELD_EXPERIMENTAL_NPM_DISTANCE2` | no |
+| 228 | `FULLSHIELD_EXPERIMENTAL_NPM_GRAPH_INSTANCE` | no |
+| 229 | `FULLSHIELD_EXPERIMENTAL_NPM_GRAPH_OPTIONAL` | no |
+| 230 | `FULLSHIELD_EXPERIMENTAL_NPM_GRAPH_PEER` | no |
+| 231 | `FULLSHIELD_EXPERIMENTAL_NPM_GRAPH_ALIAS` | no |
+| 232 | `FULLSHIELD_EXPERIMENTAL_NPM_REACH_DYNAMIC` | no |
+| 233 | `FULLSHIELD_EXPERIMENTAL_NPM_REACH_EXPORTS` | no |
+| 234 | `FULLSHIELD_EXPERIMENTAL_NPM_REACH_CONDITIONS` | no |
+| 235 | `FULLSHIELD_EXPERIMENTAL_NPM_REACH_BIN` | no |
+| 236 | `FULLSHIELD_EXPERIMENTAL_NPM_REACH_WORKER` | no |
+| 237 | `FULLSHIELD_EXPERIMENTAL_NPM_REACH_SUBPATH` | no |
+| 238 | `FULLSHIELD_EXPERIMENTAL_NPM_REACH_TRY` | no |
+| 239 | `FULLSHIELD_EXPERIMENTAL_NPM_REACH_REEXPORT` | no |
+| 240 | `FULLSHIELD_EXPERIMENTAL_NPM_REACH_TYPEONLY` | no |
+| 241 | `FULLSHIELD_EXPERIMENTAL_NPM_DUALPACKAGE` | no |
+| 242 | `FULLSHIELD_EXPERIMENTAL_NPM_PHANTOM_DEEP` | no |
+| 243 | `FULLSHIELD_EXPERIMENTAL_NPM_OSV_RANGE` | no |
+| 244 | `FULLSHIELD_EXPERIMENTAL_NPM_OSV_WITHDRAWN` | no |
+| 245 | `FULLSHIELD_EXPERIMENTAL_NPM_OSV_CVSS` | no |
+| 246 | `FULLSHIELD_EXPERIMENTAL_NPM_OSV_ALIAS` | no |
+| 247 | `FULLSHIELD_EXPERIMENTAL_NPM_OSV_PURL` | no |
+| 248 | `FULLSHIELD_EXPERIMENTAL_NPM_FIX_NESTED` | no |
+| 249 | `FULLSHIELD_EXPERIMENTAL_NPM_SBOM_PURL` | no |
+| 250 | `FULLSHIELD_EXPERIMENTAL_NPM_AUDIT_DIFF` | no |
 
 ---
 
-## 46. Breadth Phases 95–107 (target: 1.1.0, rev 2026-10-21)
+## 46. Breadth Phases 95–107 (target: 1.2.0, rev 2026-10-21)
 
 ### 46.0 Why these, and the order of work
 Brainstormed ~30 candidates. Kept only gaps that (a) are real vulnerability classes in shipped Node/TS code that FullShield misses today, and (b) can be precise by construction. Rejected list is 46.3.
 
-**Precondition (human, R1):** before any 46.x phase is promoted, Section 41 items 1–2 are done for at least NodeGoat and goof. New rules ship experimental (R11) until then. Every rule ID below is new → 1.1.0 is a **minor** (R16a).
+**Precondition (human, R1):** before any 46.x phase is promoted, Section 41 items 1–2 are done for at least NodeGoat and goof. New rules ship experimental (R11) until then. Every rule ID below is new → 1.2.0 is a **minor** (R16a).
 
 AUTOPILOT runs may build 46.x phases but must not promote any rule out of experimental (R11) until the human precondition (Section 41 items 1–2 on NodeGoat and goof) is recorded as done.
 
@@ -2076,12 +2221,12 @@ All critical except `.tfstate` (high). Masked. Same rotate remediation as 7.2. `
 Order: 105 → 95 → 96 → 102 → 104 → 97 → 99 → 100 → 98 → 103 → 101 → 106 → 107.
 Tier P first because each is small and testable in isolation. 101 last among Tier T because it is the largest and depends on the bundler-entry classifier.
 Report file: `reports/<date>.md`, Section 40.5 rules. Definition of done: 42.1. One flag per phase, one merge at a time, default-scan-diff EMPTY.
-Under AUTOPILOT, this order must be copied into the 1.1.0 version scope; the scope is the only queue autopilot reads.
+Under AUTOPILOT, this order must be copied into the 1.2.0 version scope; the scope is the only queue autopilot reads.
 
-### 46.2 Needs human decision before 1.1.0
+### 46.2 Needs human decision before 1.2.0
 1. **Promotion criterion for pattern rules.** Phase 43 requires an untouched-holdout recall gain for SAST. Tier P rules (95, 96, 102, 105) find config mistakes that holdout apps mostly don't contain, so they can never meet that bar. Proposal: Tier P rules qualify with (a) 0 human-confirmed FPs in a 20-finding sample across `bench/realworld.json`, and (b) clean-app 0. This is an R1 threshold change. Approve, reject, or amend.
-2. Whether 1.1.0 ships with Tier P promoted (stable-output change, R10) or all 13 flagged.
-3. Section 41 items 1–2 completed first (strongly recommended; without them no 1.1.0 number is citable).
+2. Whether 1.2.0 ships with Tier P promoted (stable-output change, R10) or all 13 flagged.
+3. Section 41 items 1–2 completed first (strongly recommended; without them no 1.2.0 number is citable).
 
 ### 46.3 Brainstormed and rejected
 - Header/CRLF injection: Node rejects CR/LF in header values (`ERR_INVALID_CHAR`). Near-zero real yield.
@@ -2095,3 +2240,538 @@ Under AUTOPILOT, this order must be copied into the 1.1.0 version scope; the sco
 - Race-condition / TOCTOU detection: no precise static signal in JS.
 - Prototype-pollution gadget chains through deps: research project, not a phase.
 - Merging CyberShield (IoT network SDK) into FullShield: different buyer, different runtime, would violate Section 31 non-goals.
+
+---
+
+## 47. npm Depth Phases 108–250 (target: 1.2.0)
+
+### 47.0 Why npm is thin
+
+Default `scan` treats npm as a list of `name@version` rows. It asks OSV, classifies reachability from import strings, and flags a direct name that is one edit from a popular package. These facts are not on that scan:
+
+- `npm-shrinkwrap.json` is not a lockfile name. `peerDependencies` are not direct roots. The edge map unions every nested copy of a name into one set (`src/modules/deps/lockfile.ts`).
+- Resolved URL, integrity, cooldown, dependency confusion, and provenance drop exist as supply helpers. They run from `fullshield install`, not from `scan`.
+- Registry `dist.integrity` is not compared with the lockfile. The tarball is not downloaded. Transitive lifecycle scripts are not listed.
+- Typosquat detection is Levenshtein distance 1, direct dependencies only, no homoglyphs, no scope check.
+- OSV range type, withdrawn advisories, and alias dedupe are not handled. A GIT range must not be read as semver.
+
+Section 38 point 2 stays. This section does not claim parity with npm audit or OSV-Scanner. It adds the missing npm facts. Advisory text still comes only from OSV or a user-supplied `npm audit --json` file (R6).
+
+**In the 1.2.0 queue.** Section 45 lists these phases after 107, in numeric order. One phase per commit (R19). No promotion (R11) until Section 41 items 1–2 are done for NodeGoat and goof. Lanes A–H are groups inside that one version.
+
+**R28.** Phases 108–250 live in this file. Do not split them into a second spec.
+
+### 47.1 Rules for every phase in this section
+
+- Experimental. `FULLSHIELD_EXPERIMENTAL_<NAME>=1` or `scan --experimental-<name>`. Off leaves `scan --json` byte-identical on existing fixtures.
+- One new rule ID unless the phase says it emits none. `rules/<ID>.md`, positive fixture, negative fixture, failing test first (R4), compliance row (22.6), mutation target (Q10). Fixtures are written from scratch (B8). Inert: `example.invalid`, no live payload.
+- `clean-app` stays at 0 with the flag on (R12).
+- No new hard dependency (R13). No new host (R15). Registry reads use `https://registry.npmjs.org` only. Advisory reads use OSV only. `--offline` uses the cache; a miss emits nothing and does not guess.
+- Never run `npm install`, `npm audit`, or a lifecycle script. Never execute a tarball file. Never edit a lockfile. Override proposals write `package.json` only and print `run npm install`.
+- Do not reimplement a shipped ID. If a supply helper already describes the same lock line, this phase uses its own ID. When both flags are on, emit the `DEPS-*` row and suppress the older `SUPPLY-*` row for that same package version (one test). `DEPS-MALICIOUS-001` is never suppressed or downgraded.
+- Severity under a flag does not change default `scan`. A phase that would remove or relabel a stable finding stays flagged until an R10 approval.
+- Definition of done is Section 42.1. Shared files are appended to.
+
+### 47.2 One version
+
+Phases 108–250 ship in `1.2.0` with phases 95–107. Section 45 is the order. Lanes below are reading groups, not later releases. New rule IDs stay experimental in this version (R11). Default `scan --json` does not change until a human promotes a flag (R10).
+
+### 47.3 Rejected for this section
+
+- Download counts (`api.npmjs.org/downloads/...`). That host is not in R15. Age comes from the packument `time` field.
+- Socket, deps.dev, Snyk, npms.io, or the GitHub advisory API. OSV and `registry.npmjs.org` only.
+- A sandbox that runs install scripts. R15 forbids executing analyzed packages.
+- Levenshtein distance 2 as a finding. Phase 227 locks the negative test.
+- Editing lockfiles, running the project's tests, or shelling out to `npm audit`.
+- EPSS and KEV. Still Phase 56, still blocked on an R15 amendment.
+
+---
+
+### Lane A — Lockfile truth (108–127)
+
+Read the lockfile the repo already has. No registry call in this lane.
+
+### Phase 108 — npm-shrinkwrap.json [`FULLSHIELD_EXPERIMENTAL_NPM_SHRINKWRAP`]
+`DEPS-SHRINKWRAP-001` (info) when `npm-shrinkwrap.json` is the only lockfile: parse it with the package-lock parser and query OSV as usual under this flag. `DEPS-SHRINKWRAP-002` (high) when both shrinkwrap and `package-lock.json` exist and their name@version sets differ. Negative: only `package-lock.json`, or both files with the same set. Flag off: shrinkwrap is ignored, as today.
+
+### Phase 109 — lockfileVersion [`FULLSHIELD_EXPERIMENTAL_NPM_LOCKVER`]
+`DEPS-LOCKVER-001` (medium) when `lockfileVersion` is missing, 1, or greater than 3. Version 1 still uses the dependencies-tree parser; do not drop packages. Negative: version 2 and version 3. Unknown version sets `edgesKnown: false` rather than inventing edges.
+
+### Phase 110 — multiple lockfiles [`FULLSHIELD_EXPERIMENTAL_NPM_MULTLOCK`]
+`DEPS-MULTLOCK-001` (medium) when two or more of `package-lock.json`, `npm-shrinkwrap.json`, `yarn.lock`, `pnpm-lock.yaml`, `bun.lock` exist at the repo root. The message names the files. Negative: exactly one. Does not choose a winner. Scan continues to use today's single-file picker until Phase 108 is also on, in which case shrinkwrap joins the set.
+
+### Phase 111 — root version drift [`FULLSHIELD_EXPERIMENTAL_NPM_ROOTVER`]
+`DEPS-ROOTVER-001` (medium) when `packages[""].version` is a string and it differs from `package.json` `version`. Negative: equal versions, or no root entry. Do not flag a workspace package here (Phase 54).
+
+### Phase 112 — non-semver locked version [`FULLSHIELD_EXPERIMENTAL_NPM_NONSEMVER`]
+`DEPS-NONSEMVER-001` (medium) when a locked version is not `MAJOR.MINOR.PATCH` with optional prerelease (git sha, `file:`, `*`, empty). Negative: `1.2.3` and `1.2.3-beta.1`. OSV is not queried with a rewritten version.
+
+### Phase 113 — missing resolved [`FULLSHIELD_EXPERIMENTAL_NPM_NORESOLVED`]
+`DEPS-NORESOLVED-001` (medium) when a `packages` entry has a semver version and no `resolved`, excluding the root `""` entry and `link:` workspace rows. Negative: a `resolved` URL, and a `link:` row.
+
+### Phase 114 — resolved host [`FULLSHIELD_EXPERIMENTAL_NPM_RESOLVED_HOST`]
+`DEPS-RESOLVED-HOST-001` (high) when `resolved` is a URL whose host is not `registry.npmjs.org`. Negative: that host. Same fact as `SUPPLY-LOCKURL-001`; under both flags emit only this ID. `http:` URLs are Phase 115, not this one: if the protocol is `http:`, skip here.
+
+### Phase 115 — cleartext tarball URL [`FULLSHIELD_EXPERIMENTAL_NPM_RESOLVED_HTTP`]
+`DEPS-RESOLVED-HTTP-001` (high) when `resolved` uses `http:`. Negative: `https://registry.npmjs.org/...`. A `git+ssh:` URL is Phase 120, not this one.
+
+### Phase 116 — missing integrity [`FULLSHIELD_EXPERIMENTAL_NPM_NOINTEGRITY`]
+`DEPS-NOINTEGRITY-001` (high) when `resolved` is an https registry URL and `integrity` is missing or empty. Negative: `integrity` present. `link:` and `file:` rows are not this finding (they have no registry integrity). Dedupe against `SUPPLY-LOCKINTEGRITY-001` the same way as Phase 114.
+
+### Phase 117 — weak integrity algorithm [`FULLSHIELD_EXPERIMENTAL_NPM_WEAKINTEGRITY`]
+`DEPS-WEAKINTEGRITY-001` (medium) when `integrity` uses `sha1` or `sha256`. npm's registry algorithm is `sha512`. Negative: `sha512-` and a missing integrity (that is Phase 116 only).
+
+### Phase 118 — integrity grammar [`FULLSHIELD_EXPERIMENTAL_NPM_BADINTEGRITY`]
+`DEPS-BADINTEGRITY-001` (high) when `integrity` is non-empty and is not `algo-base64` with algo `sha1`, `sha256`, or `sha512`, or the base64 does not decode. Negative: a well-formed `sha512-` value. A weak but well-formed `sha1-` value is Phase 117 only.
+
+### Phase 119 — link and file dependencies [`FULLSHIELD_EXPERIMENTAL_NPM_LINKDEP`]
+`DEPS-LINKDEP-001` (medium) when `resolved` or the manifest spec is `file:` or `link:`. The message includes the path. Negative: a registry tarball. A path that escapes the repo root with `..` is high, same ID, and the fixture says so.
+
+### Phase 120 — git dependencies [`FULLSHIELD_EXPERIMENTAL_NPM_GITDEP`]
+`DEPS-GITDEP-001` (high) when the spec or `resolved` is `git:`, `git+https:`, `git+ssh:`, `git+http:`, `github:`, `gitlab:`, `bitbucket:`, or `gist:`. Negative: a registry tarball. Do not clone the git URL (R15).
+
+### Phase 121 — npm alias [`FULLSHIELD_EXPERIMENTAL_NPM_ALIAS`]
+`DEPS-NPMALIAS-001` (medium) when a lock key or manifest spec uses `npm:` and the requested name differs from the target name. The finding is attributed to the requested name and records the target `name@version`. Negative: `npm:same-name@1.2.3` where the name matches, and a normal entry. OSV is queried for the target, not the alias, and only under this flag.
+
+### Phase 122 — bundled dependencies [`FULLSHIELD_EXPERIMENTAL_NPM_BUNDLED`]
+`DEPS-BUNDLED-001` (medium) when a lock entry has `inBundle: true` or `bundled: true` and the root `bundleDependencies` / `bundledDependencies` array does not name that package. Negative: the root array names it. Bundled packages are still sent to OSV under this flag. Do not skip them.
+
+### Phase 123 — undeclared peer [`FULLSHIELD_EXPERIMENTAL_NPM_PEER`]
+`DEPS-PEER-UNDECLARED-001` (medium) when production code imports a package that the lock marks `peer: true` and the root `peerDependencies` does not name it. Negative: the peer is declared, or the import is only in a test file. `DEPS-PHANTOM-001` does not currently treat peers as declared; this phase does not change that rule. Flag off, phantom behavior stays.
+
+### Phase 124 — imported optional dependency [`FULLSHIELD_EXPERIMENTAL_NPM_OPTIONAL`]
+`DEPS-OPTIONAL-IMPORT-001` (low) when production code imports a package the lock marks `optional: true` and the import is not inside a `try/catch`. Negative: the import is inside `try/catch`, or the package is not optional. This does not downgrade a vulnerability on that package.
+
+### Phase 125 — lockfile path shape [`FULLSHIELD_EXPERIMENTAL_NPM_LOCKPATH`]
+`DEPS-LOCKPATH-001` (high) when a `packages` key is not `""` and does not start with `node_modules/`. Negative: `node_modules/foo` and `node_modules/foo/node_modules/bar`. A key containing `..` is the same ID.
+
+### Phase 126 — manifest dependency omitted from the lock root [`FULLSHIELD_EXPERIMENTAL_NPM_LOCKOMIT`]
+`DEPS-LOCKOMIT-001` (high) when `package.json` `dependencies` names a package that is absent from `packages[""].dependencies` and from the top-level `dependencies` object. Negative: the name is present. This is not `DEPS-LOCKMISMATCH-001` (that one compares a range to a locked version). A range that does not contain the locked version stays the old rule only.
+
+### Phase 127 — dev edge into production [`FULLSHIELD_EXPERIMENTAL_NPM_DEVPROD`]
+`DEPS-DEV-PROD-EDGE-001` (medium) when a package marked `dev: true` is also required by a package that is not `dev: true`. Negative: dev-only, and a production package with no dev parent. Dev-only vulnerabilities stay `dev-only` info. This finding is the edge, not a second advisory.
+
+---
+
+### Lane B — Manifest and project policy (128–147)
+
+The project's own `package.json` and committed `.npmrc`. Home-directory `.npmrc` only with `scan --include-home`. Token literals in a committed `.npmrc` stay `SECRET-FILE-002` (Phase 105). Do not emit a second secret row.
+
+### Phase 128 — floating specs [`FULLSHIELD_EXPERIMENTAL_NPM_FLOAT`]
+`DEPS-FLOAT-001` (medium) when a direct spec is `*`, `x`, `X`, `latest`, or empty. `DEPS-FLOAT-002` (low) when a direct production spec is `>=` or `>` with no upper bound. Negative: `^1.2.3`, `~1.2.3`, and an exact `1.2.3`.
+
+### Phase 129 — git spec in package.json [`FULLSHIELD_EXPERIMENTAL_NPM_GITSPEC`]
+`DEPS-GITSPEC-001` (high) for a direct spec using the protocols in Phase 120. Negative: a semver range. If the lock `resolved` is also git, emit this ID and not `DEPS-GITDEP-001` when both flags are on.
+
+### Phase 130 — file spec in package.json [`FULLSHIELD_EXPERIMENTAL_NPM_FILESPEC`]
+`DEPS-FILESPEC-001` (medium) for a direct `file:` or `link:` spec. Negative: a semver range. Dedupe with `DEPS-LINKDEP-001` the same way.
+
+### Phase 131 — URL spec in package.json [`FULLSHIELD_EXPERIMENTAL_NPM_URLSPEC`]
+`DEPS-URLSPEC-001` (high) when a direct spec is an `http:` or `https:` URL whose host is not `registry.npmjs.org`. Negative: a semver range and a `https://registry.npmjs.org/` tarball URL.
+
+### Phase 132 — dist-tag spec [`FULLSHIELD_EXPERIMENTAL_NPM_TAGSPEC`]
+`DEPS-TAGSPEC-001` (medium) when a direct spec is a bare dist-tag (`next`, `beta`, `canary`, `latest` is Phase 128) or `name@tag` with no digit. Negative: `1.2.3-beta.1` and `^1.2.3`.
+
+### Phase 133 — override pins a vulnerable version [`FULLSHIELD_EXPERIMENTAL_NPM_OVERRIDE_VULN`]
+`DEPS-OVERRIDE-VULN-001` (high) when `overrides`, `resolutions`, or `pnpm.overrides` pins a single version and the OSV cache says that version is affected. The message cites the OSV id from the cache. No cache entry → no finding. Do not invent an advisory. Negative: the pinned version has an OSV cache file with `vulns: []`. `DEPS-VULN-001` may still exist for the locked copy; this row is about the override. Both may appear.
+
+### Phase 134 — wide override [`FULLSHIELD_EXPERIMENTAL_NPM_OVERRIDE_WIDE`]
+`DEPS-OVERRIDE-WIDE-001` (medium) when an override value is `*`, `latest`, `>=`, or `>`. Negative: an exact version and a `^` range. A `^` range is not this finding.
+
+### Phase 135 — override npm alias [`FULLSHIELD_EXPERIMENTAL_NPM_OVERRIDE_ALIAS`]
+`DEPS-OVERRIDE-ALIAS-001` (high) when an override value is `npm:other@version` and `other` differs from the key. Negative: an exact version. Phase 121 covers lock aliases; this one is the manifest override only.
+
+### Phase 136 — lifecycle script in the root manifest [`FULLSHIELD_EXPERIMENTAL_NPM_LIFECYCLE`]
+`CONFIG-LIFECYCLE-001` (high) when the root `scripts` `preinstall`, `install`, `postinstall`, or `prepare` contains `curl`, `wget`, `Invoke-WebRequest`, or a string that is an `http` URL piped to a shell. Negative: `"postinstall": "node scripts/build.js"` with no URL. This is the application manifest, not a dependency. Lockfile `hasInstallScript` info stays as it is.
+
+### Phase 137 — project .npmrc registry [`FULLSHIELD_EXPERIMENTAL_NPM_NPMRC_REG`]
+`DEPS-NPMRC-REG-001` (high) when a committed `.npmrc` sets `registry=` to a URL whose host is not `registry.npmjs.org`. Negative: that host, and a file with only comments. Scoped registry lines (`@scope:registry=`) that point elsewhere are the same ID. This is not `SUPPLY-CONFUSION-001` (that one also needs a public package of the same name).
+
+### Phase 138 — project .npmrc script settings [`FULLSHIELD_EXPERIMENTAL_NPM_NPMRC_SCRIPT`]
+`DEPS-NPMRC-SCRIPT-001` (info) when a committed `.npmrc` sets `ignore-scripts=false`. Negative: `ignore-scripts=true`, and no such key. Info only. It does not mean the project is compromised.
+
+### Phase 139 — home .npmrc registry [`FULLSHIELD_EXPERIMENTAL_NPM_NPMRC_HOME`]
+`DEPS-NPMRC-HOME-001` (medium) when `scan --include-home` is set and `~/.npmrc` `registry` host is not `registry.npmjs.org`. Without `--include-home`, the home file is not read (test). Negative: the default host. Do not print token values. A token in `~/.npmrc` is out of scope for this phase (it is not a committed file).
+
+### Phase 140 — packageManager field [`FULLSHIELD_EXPERIMENTAL_NPM_PACKAGEMANAGER`]
+`DEPS-PACKAGEMANAGER-001` (low) when `packageManager` is missing and a lockfile exists. `DEPS-PACKAGEMANAGER-002` (medium) when the field is present and is not `<name>@<exact semver>` with name `npm`, `pnpm`, `yarn`, or `bun`. Negative: `npm@10.9.2`. The name must match the lockfile that is present (`package-lock.json` ↔ `npm`); a mismatch is `DEPS-PACKAGEMANAGER-002`.
+
+### Phase 141 — Corepack integrity [`FULLSHIELD_EXPERIMENTAL_NPM_COREPACK`]
+`DEPS-COREPACK-001` (info) when `packageManager` is `name@exact` and has no `+sha512.` hash suffix, and `package.json` has no `devEngines.packageManager` hash. Negative: a field that already contains `+sha512.`. Info only. Do not fetch the manager tarball.
+
+### Phase 142 — engines vs pinned Node [`FULLSHIELD_EXPERIMENTAL_NPM_ENGINES`]
+`CONFIG-ENGINES-001` (medium) when `.nvmrc` or `.node-version` exists and `engines.node` does not include that version. Use the existing semver helper. If the helper cannot parse the range, emit nothing. Negative: the range includes the pinned version, and a repo with no pin file.
+
+### Phase 143 — engine-strict [`FULLSHIELD_EXPERIMENTAL_NPM_ENGINE_STRICT`]
+`DEPS-ENGINE-STRICT-001` (info) when `engines.node` is set and a committed `.npmrc` sets `engine-strict=false`. Negative: `engine-strict=true`, and no engines field.
+
+### Phase 144 — trustedDependencies [`FULLSHIELD_EXPERIMENTAL_NPM_TRUSTED`]
+`DEPS-TRUSTED-001` (medium) when a committed `.npmrc` sets `ignore-scripts=true` and a direct production dependency's lock entry has `hasInstallScript: true` and the name is absent from root `trustedDependencies`. Negative: the name is listed, and `ignore-scripts` is not true. Missing `hasInstallScript` → no finding (do not guess from the packument; that is Phase 160).
+
+### Phase 145 — publishConfig on a private package [`FULLSHIELD_EXPERIMENTAL_NPM_PUBLISHCONFIG`]
+`DEPS-PUBLISHCONFIG-001` (high) when `private` is not `true` and `publishConfig.registry` host is not `registry.npmjs.org`. `DEPS-PUBLISHCONFIG-002` (medium) when `private` is `true` and `publishConfig.access` is `public`. Negative: private package with no publishConfig, and a public package whose publishConfig registry is the npm registry.
+
+### Phase 146 — bin name collision [`FULLSHIELD_EXPERIMENTAL_NPM_BINSHADOW`]
+`DEPS-BIN-SHADOW-001` (medium) when a direct dependency's lock or manifest `bin` name equals a Node builtin (`fs`, `path`, `child_process`, `http`, `https`, `net`, `tls`, `crypto`, `os`, `dns`) or equals a `bin` name of the root package. The dependency `bin` is read from `node_modules/<name>/package.json` when that file exists, otherwise from the packument cache filled by a later lane. No local file and no cache → no finding. Negative: a bin named `my-cli`.
+
+### Phase 147 — os and cpu exclusion [`FULLSHIELD_EXPERIMENTAL_NPM_OSCPU`]
+`DEPS-OSCPU-001` (info) when a direct production lock entry has `os` or `cpu` that excludes `process.platform` or `process.arch`. Negative: the array includes the current platform, and an empty field. Info only. Do not drop the package from OSV.
+
+---
+
+### Lane C — Registry packument (148–167)
+
+Fetch `https://registry.npmjs.org/<name>` only. Cache under `~/.cache/fullshield/npm/` for 24h, same TTL idea as OSV. `--offline` reads that cache only. A miss, a non-200, or a packument without that version emits no finding. Never invent `time`, maintainers, or attestations. Do not follow `dist.tarball` in this lane (Lane D).
+
+### Phase 148 — lock integrity vs registry [`FULLSHIELD_EXPERIMENTAL_NPM_REG_INTEGRITY`]
+`DEPS-REG-INTEGRITY-001` (critical) when both the lock `integrity` and `versions[version].dist.integrity` are present and they differ. Negative: they match. Missing either side → no finding.
+
+### Phase 149 — lock resolved vs registry tarball [`FULLSHIELD_EXPERIMENTAL_NPM_REG_TARBALL`]
+`DEPS-REG-TARBALL-001` (high) when both URLs are present and the URL without query string differs. Negative: equal URLs. Host must already be `registry.npmjs.org` on both; a non-registry lock URL stays Phase 114.
+
+### Phase 150 — registry deprecation [`FULLSHIELD_EXPERIMENTAL_NPM_REG_DEPRECATED`]
+`DEPS-REG-DEPRECATED-001` (info) when the packument version has a non-empty `deprecated` string and the lock entry's `deprecated` is empty. Negative: the lock already carries the same string (`DEPS-DEPRECATED-001` only), and a version that is not deprecated.
+
+### Phase 151 — unpublished version [`FULLSHIELD_EXPERIMENTAL_NPM_REG_UNPUBLISHED`]
+`DEPS-REG-UNPUBLISHED-001` (critical) when the packument exists, `versions` is an object, and `versions[version]` is absent. Negative: the version is present. A failed fetch is not "unpublished".
+
+### Phase 152 — publisher not a maintainer [`FULLSHIELD_EXPERIMENTAL_NPM_REG_NPMUSER`]
+`DEPS-REG-NPMUSER-001` (medium) when `_npmUser.name` is a non-empty string and `maintainers` is a non-empty array and that name is not in it. Negative: the name is listed. Missing `_npmUser` → no finding.
+
+### Phase 153 — maintainer set changed [`FULLSHIELD_EXPERIMENTAL_NPM_REG_MAINTAINER`]
+`DEPS-REG-MAINTAINER-001` (medium) when a previous cache file for that package name exists and the sorted `maintainers[].name` set differs. The first cache fill emits nothing (test). Negative: the same set. This is not `SUPPLY-PROVENANCE-001`.
+
+### Phase 154 — direct dependency has no attestation [`FULLSHIELD_EXPERIMENTAL_NPM_REG_PROV_ABSENT`]
+`DEPS-REG-PROV-ABSENT-001` (info) when a direct production version's packument has no `dist.attestations` and no `dist.signatures`. Direct only. Negative: either field is non-empty. Does not replace `SUPPLY-PROV-001`. Info is not a malicious-package claim. Unknown because of a cache miss emits nothing.
+
+### Phase 155 — attestation builder [`FULLSHIELD_EXPERIMENTAL_NPM_REG_BUILDER`]
+`DEPS-REG-BUILDER-001` (medium) when `dist.attestations` is present and its builder identity is not in the checked-in allowlist `models/npm-builders.json`. The allowlist starts empty of guesses: it may contain only identities copied from npm's own docs in that file, each with a source URL. An identity not in the file is a finding. No attestation → no finding (Phase 154). Do not download a new allowlist.
+
+### Phase 156 — attested source repo changed [`FULLSHIELD_EXPERIMENTAL_NPM_REG_REPO`]
+`DEPS-REG-REPO-001` (medium) when the previous cache recorded an attested source repo and the current attestation names a different repo. First sight emits nothing. Negative: the same repo. Missing attestation → no finding.
+
+### Phase 157 — attestation subject version [`FULLSHIELD_EXPERIMENTAL_NPM_REG_SUBJECT`]
+`DEPS-REG-SUBJECT-001` (high) when an attestation subject version is present and it is not the locked version. Negative: the subject matches. A packument with no subject field → no finding.
+
+### Phase 158 — packument time [`FULLSHIELD_EXPERIMENTAL_NPM_REG_TIME`]
+`DEPS-REG-TIME-001` (medium) when `time[version]` is missing, does not parse, or is after the scan clock. Negative: a past timestamp. Do not flag a young package here (`SUPPLY-COOLDOWN-001` already does age).
+
+### Phase 159 — young transitive release [`FULLSHIELD_EXPERIMENTAL_NPM_REG_TRANSITIVE_AGE`]
+`DEPS-REG-AGE-001` (low) when a transitive production package's `time[version]` is younger than `deps.minReleaseAgeHours` (default 72). Direct packages stay on `SUPPLY-COOLDOWN-001` only, even if that helper did not run: this phase does not emit a second cooldown row for a direct dependency (test). Negative: older than the window, and a direct dependency. Missing `time` → no finding.
+
+### Phase 160 — registry install-script flag [`FULLSHIELD_EXPERIMENTAL_NPM_REG_INSTALLSCRIPT`]
+`DEPS-REG-INSTALLSCRIPT-001` (info) when packument `hasInstallScript` is `true` or that version's `scripts` has `preinstall`, `install`, or `postinstall`. One row per package version. Negative: no such scripts. The root lockfile `hasInstallScript` info remains one row; this phase names the package. Script bodies are Lane E, not this phase.
+
+### Phase 161 — empty registry signatures [`FULLSHIELD_EXPERIMENTAL_NPM_REG_SIGNATURES`]
+`DEPS-REG-SIGNATURES-001` (info) when `dist.signatures` is present and is an empty array. Negative: a non-empty array, and a version with no `signatures` key (old packages are not findings).
+
+### Phase 162 — dependency engines vs project engines [`FULLSHIELD_EXPERIMENTAL_NPM_REG_ENGINES`]
+`DEPS-REG-ENGINES-001` (medium) when both the project `engines.node` and the locked version's `engines.node` parse and they do not intersect. Negative: they intersect. Unparseable range → no finding.
+
+### Phase 163 — locked version is not the newest in range [`FULLSHIELD_EXPERIMENTAL_NPM_REG_DRIFT`]
+`DEPS-REG-DRIFT-001` (info) when the manifest range parses, the packument `versions` object has a greater version that satisfies the range, and the locked version is smaller. Versions come from the packument keys only. Negative: the locked version is the greatest satisfying key. This is drift, not an advisory, and it must not name a version that is absent from the packument.
+
+### Phase 164 — packument dependency range vs lock [`FULLSHIELD_EXPERIMENTAL_NPM_REG_DEPS`]
+`DEPS-REG-DEPS-001` (medium) when packument `versions[version].dependencies[name]` is a range the semver helper understands and the locked version of `name` does not satisfy it. Negative: it satisfies, and a range the helper cannot parse (no finding). Do not rewrite the lock.
+
+### Phase 165 — unmet peer from the packument [`FULLSHIELD_EXPERIMENTAL_NPM_REG_PEER`]
+`DEPS-REG-PEER-001` (medium) when packument `peerDependencies` names a package that is absent from the lock's package set, unless it is also in `peerDependenciesMeta` with `optional: true`. Negative: the peer is locked, and an optional peer that is absent.
+
+### Phase 166 — bin path in the packument [`FULLSHIELD_EXPERIMENTAL_NPM_REG_BIN`]
+`DEPS-REG-BIN-001` (high) when a packument `bin` target contains `..`, is absolute, or contains a backslash-dot-dot segment. Negative: `bin/cli.js`. Phase 146 is a name collision. This one is the path.
+
+### Phase 167 — repository URL changed [`FULLSHIELD_EXPERIMENTAL_NPM_REG_REPOSITORY`]
+`DEPS-REG-REPOSITORY-001` (info) when a previous cache had `repository.url` and the current packument has a different host, or the field disappeared. First sight emits nothing. Negative: the same host. Do not fetch the repository.
+
+---
+
+### Lane D — Tarball bytes (168–187)
+
+Download `dist.tarball` only when its host is `registry.npmjs.org` and the lock integrity matches Phase 148 (or Phase 148's flag is off and the URL host is still that registry). Hash the bytes before opening them. A hash mismatch is Phase 168 and the tarball is not extracted. Cache by integrity under `~/.cache/fullshield/npm/tarballs/`. Cap: one tarball ≤ 20 MB, and this lane fetches direct production dependencies only. A transitive tarball is not downloaded (Phase 187 tests that). `--offline` uses the cache only. Never execute a file from the tarball. Extraction refuses absolute paths and `..` before any other check; that refusal is also the Phase 179 fixture.
+
+### Phase 168 — tarball hash [`FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_HASH`]
+`DEPS-TARBALL-HASH-001` (critical) when the downloaded bytes do not match `dist.integrity`. Negative: a fixture tarball whose sha512 matches. Network is mocked. Mismatch stops extraction for that package.
+
+### Phase 169 — tarball identity [`FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_ID`]
+`DEPS-TARBALL-ID-001` (critical) when the tarball's `package/package.json` `name` or `version` differs from the locked name and version. Negative: both match.
+
+### Phase 170 — lifecycle script the packument hid [`FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_LIFECYCLE`]
+`DEPS-TARBALL-LIFECYCLE-001` (high) when the tarball `scripts` has `preinstall`, `install`, or `postinstall` and the cached packument `hasInstallScript` is `false`. Negative: the packument flag is `true` (Phase 160 already listed it), and a package with no such scripts.
+
+### Phase 171 — lifecycle script network [`FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_NET`]
+`DEPS-TARBALL-NET-001` (high) when a lifecycle script string contains `http://`, `https://`, `fetch(`, or `dns`. Negative: a script that only runs `node scripts/build.js`. Fixture URLs use `example.invalid`.
+
+### Phase 172 — lifecycle script shell [`FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_SHELL`]
+`DEPS-TARBALL-SHELL-001` (high) when a lifecycle script string contains `curl`, `wget`, `bash`, `sh -c`, `powershell`, or `child_process`. Negative: `node scripts/build.js`.
+
+### Phase 173 — lifecycle script credential read [`FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_CRED`]
+`DEPS-TARBALL-CRED-001` (critical) when a lifecycle script string contains `.npmrc`, `.ssh`, `.aws`, `.git-credentials`, `NPM_TOKEN`, `NODE_AUTH_TOKEN`, or `npm_config__auth`. Negative: the same strings only inside a file under the tarball's `test/` directory, which is not a lifecycle script. Do not require a second signal. An install script that reads a credential file is the finding.
+
+### Phase 174 — lifecycle script decode-and-eval [`FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_OBFUSC`]
+`DEPS-TARBALL-OBFUSC-001` (high) when a lifecycle script passes a base64 literal of 32 or more characters to `eval`, `Function`, or `spawn`. Negative: a base64 literal shorter than 32 characters, and a long base64 literal that is only assigned to a string. Distinct from `SUPPLY-OBFUSCATE-001`, which scans installed trees: when both flags are on, emit this ID only for tarball lifecycle scripts.
+
+### Phase 175 — bin target missing [`FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_BIN`]
+`DEPS-TARBALL-BIN-001` (medium) when `package.json` `bin` points at a path that is not a file in the tarball. Negative: the file exists. A path with `..` is Phase 179 as well; emit 179 only for the escape, and 175 only when the path is inside the package and missing.
+
+### Phase 176 — prebuilt native binary [`FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_NATIVE`]
+`DEPS-TARBALL-NATIVE-001` (medium) when the tarball contains a `.node` file. Negative: a `binding.gyp` with no `.node` file. Medium is not a malware claim. The message says a prebuilt binary could not be reviewed as source.
+
+### Phase 177 — git hook or workflow inside a dependency [`FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_HOOK`]
+`DEPS-TARBALL-HOOK-001` (critical) when a tarball path includes `.git/hooks/` or `.github/workflows/`. Negative: a `README.md` that mentions those words. Distinct from `SUPPLY-WORKFLOW-001`, which looks at package source that writes those paths: dedupe to this ID when the path is an archived file.
+
+### Phase 178 — hidden or bidi path [`FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_HIDDEN`]
+`DEPS-TARBALL-HIDDEN-001` (medium) when a path segment contains a bidi override character, or a segment other than `.npmignore`, `.gitignore`, or `.github` starts with `.` and also contains a letter from a non-latin script. Negative: `.gitignore` and a normal `lib/index.js`.
+
+### Phase 179 — tarball path escape [`FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_PATH`]
+`DEPS-TARBALL-PATH-001` (critical) when an entry name is absolute or contains `..` after normalizing separators. The extractor skips that entry. Negative: `package/lib/index.js`. This check runs even when later phases are off, as soon as this flag is on.
+
+### Phase 180 — tarball size [`FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_SIZE`]
+`DEPS-TARBALL-SIZE-001` (info) when the unpacked size would exceed 20 MB or the entry count would exceed 2000. The tarball is not fully extracted past the cap. Negative: a small fixture. The cap is a limit, not a vulnerability count.
+
+### Phase 181 — license field mismatch [`FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_LICENSE`]
+`DEPS-TARBALL-LICENSE-001` (info) when both the tarball `license` and the packument `license` are strings and they differ. Negative: they match, and either side missing. This is not `DEPS-LICENSE-001` and it does not judge the license.
+
+### Phase 182 — manifest swap [`FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_MANIFEST`]
+`DEPS-TARBALL-MANIFEST-001` (high) when the tarball `dependencies` object differs from the packument version's `dependencies` object (key set or any range string). Negative: they match. Name and version mismatches stay Phase 169.
+
+### Phase 183 — loose install.js [`FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_INSTALLJS`]
+`DEPS-TARBALL-INSTALLJS-001` (medium) when the tarball contains `package/install.js`, `package/preinstall.js`, or `package/postinstall.js` and `scripts` has no matching key. Negative: the script key exists, and no such file.
+
+### Phase 184 — top-level network or process in the entry [`FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_TOPLEVEL`]
+`DEPS-TARBALL-TOPLEVEL-001` (high) when `main` or an `exports` target that is a file contains a `fetch(`, `http.request`, `https.request`, or `child_process` call that is not inside a function. Negative: the same call inside a function declaration. Parse with the existing parser. A file that does not parse emits nothing for this rule.
+
+### Phase 185 — entry exfiltrates the environment [`FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_ENV`]
+`DEPS-TARBALL-ENV-001` (critical) when a `main` or `exports` file passes `process.env` (the whole object) to `fetch`, `http.request`, or `https.request`. Negative: `process.env.NODE_ENV` only. Fixture hosts are `example.invalid`.
+
+### Phase 186 — top-level dynamic import [`FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_DYNAMIC`]
+`DEPS-TARBALL-DYNAMIC-001` (medium) when `main` or an exports file contains `require(` or `import(` whose argument is not a string literal, and the call is not inside a function. Negative: the call is inside a function, and a literal `require('fs')`.
+
+### Phase 187 — direct-only fetch gate [`FULLSHIELD_EXPERIMENTAL_NPM_TARBALL_GATE`]
+`DEPS-TARBALL-SKIP-001` (info) when a direct production dependency has no `integrity`, so its tarball is refused. One row. A test counts HTTP calls and asserts a transitive package produced zero. Negative: every direct production dependency has integrity and no skip row is emitted. This phase does not download transitive tarballs.
+
+---
+
+### Lane E — Lifecycle scripts (188–207)
+
+Use the lock `hasInstallScript` bit and, when a Lane D cache entry exists, the script text. Do not run scripts. Do not download a tarball from this lane. No cache and no `hasInstallScript` bit → no finding, except phases that say they read only the lock bit.
+
+### Phase 188 — transitive install script [`FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_TRANSITIVE`]
+`DEPS-SCRIPT-TRANSITIVE-001` (medium) one row per transitive production package whose lock entry has `hasInstallScript: true`. Negative: the bit is false, and a direct dependency (Phase 160 or the existing lock info covers direct; this ID is transitive only).
+
+### Phase 189 — optional install script [`FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_OPTIONAL`]
+`DEPS-SCRIPT-OPTIONAL-001` (medium) when an `optional: true` package has `hasInstallScript: true`. Negative: optional without the bit. If Phase 188 would also match, emit only this ID.
+
+### Phase 190 — dev install script [`FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_DEV`]
+`DEPS-SCRIPT-DEV-001` (info) when a `dev: true` package has `hasInstallScript: true` and Phase 127 did not mark it as also production. Negative: a production install script.
+
+### Phase 191 — prepare script [`FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_PREPARE`]
+`DEPS-SCRIPT-PREPARE-001` (high if the package is a git dependency from Phase 120, otherwise medium) when `scripts.prepare` is a non-empty string. Negative: no prepare script. `prepare` runs on local `npm install` for git dependencies; the message says that.
+
+### Phase 192 — prepublish script [`FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_PREPUBLISH`]
+`DEPS-SCRIPT-PREPUBLISH-001` (high) when `scripts.prepublish` is set. `prepublishOnly` is medium, same ID, and the message names which key. Negative: only `prepublishOnly` is not high; the fixture expects medium. No such keys → no finding. Old npm runs `prepublish` on install. The message says that.
+
+### Phase 193 — pipe to a shell [`FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_CURL`]
+`DEPS-SCRIPT-CURL-001` (critical) when a lifecycle script matches `curl` or `wget` and a pipe to `sh`, `bash`, or `node`. Negative: `curl` written to a file with no pipe, and a script with neither command. Fixture URL host is `example.invalid`.
+
+### Phase 194 — base64 to eval in a script [`FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_BASE64`]
+`DEPS-SCRIPT-BASE64-001` (high) same condition as Phase 174, applied to lock-known script text when the tarball was not fetched. If Phase 174 already fired for that package, emit nothing here (test).
+
+### Phase 195 — node-gyp URL [`FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_NODEGYP`]
+`DEPS-SCRIPT-NODEGYP-001` (medium) when `binding.gyp` contains a URL whose host is not `registry.npmjs.org`. Negative: no URL, and a `registry.npmjs.org` URL. Read the file only from a cached tarball or from `node_modules/<name>/binding.gyp` if present. Do not compile.
+
+### Phase 196 — script writes outside the package [`FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_WRITE`]
+`DEPS-SCRIPT-WRITE-001` (high) when a lifecycle script contains a write path that starts with `..`, `/`, `~/`, or an env var expansion of `HOME` or `USERPROFILE`. Negative: a relative path `lib/out.js` with no `..`.
+
+### Phase 197 — script mentions writing the lockfile [`FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_LOCK`]
+`DEPS-SCRIPT-LOCK-001` (high) when a lifecycle script contains `package-lock.json` or `npm-shrinkwrap.json` next to `write`, `>`, or `fs.write`. Negative: a comment in a non-script file, and a script that does not name the lockfile.
+
+### Phase 198 — script touches git [`FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_GIT`]
+`DEPS-SCRIPT-GIT-001` (high) when a lifecycle script contains `git ` or `.git/hooks`. Negative: the word `digital` and a script that does not call git.
+
+### Phase 199 — script reads an npm token [`FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_TOKEN`]
+`DEPS-SCRIPT-TOKEN-001` (critical) when a lifecycle script contains `NPM_TOKEN`, `NODE_AUTH_TOKEN`, or `npm_config__auth`. If Phase 173 already fired for that package, emit nothing here.
+
+### Phase 200 — script publishes [`FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_PUBLISH`]
+`DEPS-SCRIPT-PUBLISH-001` (high) when a lifecycle script contains `npm publish` or `npm whoami`. Negative: neither string. `SUPPLY-WORM-001` stays the combination of token read plus publish. This ID is the publish string alone. When both would match, emit `SUPPLY-WORM-001` only if its flag is on and its combination is present; otherwise emit this ID. Do not emit both (test).
+
+### Phase 201 — trusted dependency still has a dangerous script [`FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_TRUSTED`]
+`DEPS-SCRIPT-TRUSTED-001` (medium) when the name is in root `trustedDependencies` and its script text matches Phase 193, 196, 197, 198, 199, or 200. The trust list does not clear those IDs. This row is additional and says the package was trusted. Negative: a trusted package whose script is `node scripts/build.js`.
+
+### Phase 202 — hasInstallScript disagrees with scripts [`FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_MISMATCH`]
+`DEPS-SCRIPT-MISMATCH-001` (medium) when the lock or packument says `hasInstallScript: true` and the tarball `scripts` object has none of `preinstall`, `install`, `postinstall`. Negative: the key exists. No tarball cache → no finding.
+
+### Phase 203 — several lifecycle scripts [`FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_MULTI`]
+`DEPS-SCRIPT-MULTI-001` (info) when a package has two or more of `preinstall`, `install`, `postinstall`. Negative: exactly one.
+
+### Phase 204 — bin file is the install script [`FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_BIN`]
+`DEPS-SCRIPT-BIN-001` (medium) when a `bin` target path equals the path named by `scripts.install` or `scripts.preinstall` after stripping `node `. Negative: different paths.
+
+### Phase 205 — install script shebang [`FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_SHEBANG`]
+`DEPS-SCRIPT-SHEBANG-001` (medium) when the install script file's first line is a shebang and the interpreter is not `node`, `sh`, or `bash`. Negative: `#!/usr/bin/env node`. No shebang → no finding. Read only from a cached tarball or `node_modules`.
+
+### Phase 206 — environment-gated script [`FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_COND`]
+`DEPS-SCRIPT-COND-001` (medium) when a lifecycle script branches on `process.env.CI` or `NODE_ENV` and the non-CI or production branch contains a Phase 193–200 pattern. Negative: the branch only changes a log string. If the pattern is unconditional, the earlier phase fires and this one does not.
+
+### Phase 207 — install-script rollup [`FULLSHIELD_EXPERIMENTAL_NPM_SCRIPT_ROLLUP`]
+`DEPS-SCRIPT-ROLLUP-001` (info) one row for the repo when more than 25 production packages have `hasInstallScript: true`. The count is printed. Negative: 25 or fewer. Per-package rows stay on Phase 188. The threshold is 25 and is not a vulnerability count.
+
+---
+
+### Lane F — Package names (208–227)
+
+`DEPS-TYPOSQUAT-001` stays distance 1, direct dependencies, length ≥ 4. Phases here add other IDs. They do not change that rule's fixtures. The popular list for new IDs is Phase 226's file once that phase has landed; until then a phase reads the existing `POPULAR_PACKAGES` list and must not widen it inside the same commit.
+
+### Phase 208 — scope edit [`FULLSHIELD_EXPERIMENTAL_NPM_SCOPE_TYPO`]
+`DEPS-SCOPE-TYPO-001` (medium) when a direct dependency `@scope/name` has a scope at Levenshtein distance 1 from a scope on the popular list, and `name` equals a popular package's basename in the real scope. Negative: the real scope, and a distance-1 scope whose basename is not on the list. Unscoped names are not this rule.
+
+### Phase 209 — homoglyph [`FULLSHIELD_EXPERIMENTAL_NPM_HOMOGLYPH`]
+`DEPS-HOMOGLYPH-001` (high) when a dependency name is not ASCII and its NFKC form equals a popular package name, or it contains a character from the Unicode confusable set for `a`, `e`, `o`, `p`, `c`, `x`, `y` (Cyrillic and Greek lookalikes only; the set is a literal in source, not fetched). Negative: an ASCII name, and a non-ASCII name that does not map to a popular package.
+
+### Phase 210 — bidi in a name [`FULLSHIELD_EXPERIMENTAL_NPM_BIDI`]
+`DEPS-BIDI-001` (critical) when a dependency name contains `U+202A`–`U+202E`, `U+2066`–`U+2069`, or `U+200B`–`U+200F`. Negative: an ASCII name.
+
+### Phase 211 — mixed script [`FULLSHIELD_EXPERIMENTAL_NPM_MIXEDSCRIPT`]
+`DEPS-MIXEDSCRIPT-001` (high) when a name contains both a Latin letter and a Cyrillic or Greek letter. Negative: Latin only, and Cyrillic only that did not match Phase 209. If Phase 209 matches, emit 209 only.
+
+### Phase 212 — separator twin [`FULLSHIELD_EXPERIMENTAL_NPM_SEPARATOR`]
+`DEPS-SEPARATOR-001` (medium) when a direct name equals a popular name after treating `.`, `-`, and `_` as the same character, and the names are not equal. Negative: the exact popular name, and a name that differs by a letter. If Levenshtein distance is also 1, emit `DEPS-TYPOSQUAT-001` only.
+
+### Phase 213 — repeated token [`FULLSHIELD_EXPERIMENTAL_NPM_REPEAT`]
+`DEPS-REPEAT-001` (medium) when a direct name is `foo-foo` or `@foo/foo` and `foo` is a popular package basename. Negative: `foo` itself, and a distance-1 name (that stays the old rule only).
+
+### Phase 214 — suffix squat [`FULLSHIELD_EXPERIMENTAL_NPM_SUFFIX`]
+`DEPS-SUFFIX-001` (low) when a direct name is a popular name plus `-js`, `-node`, `-npm`, or `-lib` and is not itself on the popular list. Low confidence. Negative: the popular name, and a suffix that is not in that list. May stay experimental. The message says to confirm intent. It does not say the package is malicious.
+
+### Phase 215 — new scope [`FULLSHIELD_EXPERIMENTAL_NPM_SCOPE_NEW`]
+`DEPS-SCOPE-NEW-001` (medium) when a direct scoped dependency's packument `time` for its earliest version is younger than 7 days and the scope is not the root package's scope. Missing packument → no finding. Negative: an older first publish, and the project's own scope. Age uses packument `time` only.
+
+### Phase 216 — scope syntax [`FULLSHIELD_EXPERIMENTAL_NPM_SCOPE_SYNTAX`]
+`DEPS-SCOPE-SYNTAX-001` (high) when a dependency name starts with `@` and does not match `@[a-z0-9-~][a-z0-9-._~]*/[a-z0-9-~][a-z0-9-._~]*`. Negative: `@scope/name`. This catches a missing slash and a second slash.
+
+### Phase 217 — redundant @types [`FULLSHIELD_EXPERIMENTAL_NPM_TYPES`]
+`DEPS-TYPES-001` (info) when the project depends on both `foo` and `@types/foo` and `foo`'s packument has a non-empty `types` or `typings` field. Negative: `foo` has neither field. No packument → no finding.
+
+### Phase 218 — deprecation names a replacement [`FULLSHIELD_EXPERIMENTAL_NPM_DEPRECATED_REPLACE`]
+`DEPS-DEPRECATED-REPLACE-001` (info) when a `deprecated` string contains `use <name>` or `replaced by <name>` and `<name>` matches the package-name grammar, and the root manifest does not depend on `<name>`. The name is taken from that sentence only. If the sentence does not contain a name, do not invent one (no finding beyond the existing deprecation row). Negative: the replacement is already a direct dependency.
+
+### Phase 219 — transitive name checks [`FULLSHIELD_EXPERIMENTAL_NPM_TYPO_TRANSITIVE`]
+Apply Phases 208–212 to transitive names as `DEPS-TYPO-TRANSITIVE-001` (info). One row per package, message names which check. Direct names do not use this ID. Negative: a direct typosquat still uses only `DEPS-TYPOSQUAT-001` or the direct-phase ID. `DEPS-MALICIOUS-001` is unchanged.
+
+### Phase 220 — name length [`FULLSHIELD_EXPERIMENTAL_NPM_NAME_LENGTH`]
+`DEPS-NAME-LENGTH-001` (high) when a dependency name is empty or longer than 214 characters. Negative: a normal name. npm's documented limit is 214.
+
+### Phase 221 — case collision [`FULLSHIELD_EXPERIMENTAL_NPM_NAME_CASE`]
+`DEPS-NAME-CASE-001` (high) when two locked names differ only by ASCII case. Negative: distinct names. One row naming both.
+
+### Phase 222 — percent-encoding in a name [`FULLSHIELD_EXPERIMENTAL_NPM_NAME_ENCODED`]
+`DEPS-NAME-ENCODED-001` (high) when a dependency name contains `%`. Negative: a name without `%`.
+
+### Phase 223 — alias looks like a popular package [`FULLSHIELD_EXPERIMENTAL_NPM_ALIAS_SQUAT`]
+`DEPS-ALIAS-SQUAT-001` (high) when an `npm:` alias's requested name is on the popular list and the target name is not. Negative: the target is the same popular package. Phase 121 still fires for a differing alias; this ID is additional only when the requested name is popular. Test asserts both IDs when both flags are on, because the facts differ (alias exists vs alias impersonates a popular name).
+
+### Phase 224 — dependency name is the project name [`FULLSHIELD_EXPERIMENTAL_NPM_SELFNAME`]
+`DEPS-SELFNAME-001` (medium) when a dependency name equals the root `package.json` `name` and it is not a workspace path (`file:` or `workspace:`). Negative: a workspace spec of the same name, and a different name.
+
+### Phase 225 — workspace name resolved from the registry [`FULLSHIELD_EXPERIMENTAL_NPM_WORKSPACE_NAME`]
+`DEPS-WORKSPACE-NAME-001` (high) when a workspace package name also appears as a registry `resolved` URL (host `registry.npmjs.org`) rather than `link:` or `file:`. Negative: `link:` to the workspace path. Requires the workspace flag's parser only as a reader; do not change Phase 54 output. Flag off, Phase 54 behavior stays.
+
+### Phase 226 — popular-name list file [`FULLSHIELD_EXPERIMENTAL_NPM_POPULAR_LIST`]
+No new finding ID. Move the names already in `POPULAR_PACKAGES` into `models/npm-popular.json` without adding names in this phase. Each entry is `{ "name": "<ascii package name>" }`. A test fails if a name is duplicated, contains uppercase, or is not valid package-name grammar. `DEPS-TYPOSQUAT-001` fixtures stay green. Adding a name is a later human edit to that file, not part of this phase.
+
+### Phase 227 — distance 2 stays silent [`FULLSHIELD_EXPERIMENTAL_NPM_DISTANCE2`]
+No new finding ID. A fixture name at Levenshtein distance 2 from a popular package produces no `DEPS-*` name finding under this flag and under `DEPS-TYPOSQUAT-001`. The test is the acceptance. This locks the 47.3 rejection in code.
+
+---
+
+### Lane G — Graph and reachability (228–242)
+
+Flag off, reachability classes and `DEPS-PHANTOM-001` stay as they are today. Flag on, new classes may appear in JSON. They must not change `(ruleId, file, line, severity)` for `DEPS-VULN-001` until an R10 promotion. A new class is carried on `reachability` only when the flag is on. `DEPS-MALICIOUS-001` is never downgraded.
+
+### Phase 228 — per-path edges [`FULLSHIELD_EXPERIMENTAL_NPM_GRAPH_INSTANCE`]
+Keep edges by lockfile path (`node_modules/a/node_modules/b`), not by a union of names. A vulnerable nested copy stays `reachable-via-dependency` when that path is required, even if another copy of the same name is unused. Negative: one copy, behavior matches today. Acceptance fixture: two copies, only the nested one is vulnerable, and the unused top copy is not used to mark the nested one `not-imported`.
+
+### Phase 229 — broken optional edge [`FULLSHIELD_EXPERIMENTAL_NPM_GRAPH_OPTIONAL`]
+A missing optional dependency does not make its parent `not-imported`. `DEPS-GRAPH-OPTIONAL-001` (info) names the missing optional package. Negative: the optional package is present. Parent reachability is unchanged.
+
+### Phase 230 — peer edge [`FULLSHIELD_EXPERIMENTAL_NPM_GRAPH_PEER`]
+`DEPS-PEER-MISSING-001` (medium) when a non-optional peer is absent from the lock. When the root provides it, the dependency path may go through the root. Negative: the peer is present. Does not change Phase 123's ID; a package can be missing (this phase) or imported without a root declaration (Phase 123). Tests use different fixtures.
+
+### Phase 231 — alias edges [`FULLSHIELD_EXPERIMENTAL_NPM_GRAPH_ALIAS`]
+Imports of the alias name resolve to the target package's findings. `DEPS-GRAPH-ALIAS-001` (info) records alias → target. Negative: a non-alias import. OSV findings stay on the target version.
+
+### Phase 232 — dynamic import and createRequire [`FULLSHIELD_EXPERIMENTAL_NPM_REACH_DYNAMIC`]
+A literal `import('name')`, `require.resolve('name')`, or `createRequire(...)('name')` counts as an import. A non-literal argument does not count as `not-imported`; that specifier is `reachability-unknown`. Negative: a literal import already counted by the current walker, which must not produce a second finding.
+
+### Phase 233 — exports map [`FULLSHIELD_EXPERIMENTAL_NPM_REACH_EXPORTS`]
+Read `exports` from `node_modules/<name>/package.json` or the packument cache. A deep import blocked by `exports` is not a reach. A deep import allowed by `exports` is a reach. No `exports` field → today's behavior. Negative: a package with no `exports`. Do not mark `not-imported` solely because `exports` exists.
+
+### Phase 234 — export conditions [`FULLSHIELD_EXPERIMENTAL_NPM_REACH_CONDITIONS`]
+Honor `import`, `require`, `default`, and `node`. An export that exists only under `browser` is not a Node reach. Negative: a `default` export that still reaches the file. `react-native` and `electron` conditions are ignored unless that runtime is already a dependency (Electron reuses the Phase 102 detector only to decide the condition; it does not copy Electron rules).
+
+### Phase 235 — script bin reachability [`FULLSHIELD_EXPERIMENTAL_NPM_REACH_BIN`]
+A package named in a root `scripts` value as a bare command, whose `bin` matches that command, gets reachability `reachable-via-script` under this flag. It is not `not-imported`. The class is new and flag-only. Negative: a script that does not name the package. Severity of an existing advisory is unchanged.
+
+### Phase 236 — worker and fork [`FULLSHIELD_EXPERIMENTAL_NPM_REACH_WORKER`]
+`new Worker('name/...')` and `child_process.fork('name/...')` with a literal specifier count as a call, not only an import. Negative: a string that is not a call. Non-literal specifiers follow Phase 232.
+
+### Phase 237 — subpath imports [`FULLSHIELD_EXPERIMENTAL_NPM_REACH_SUBPATH`]
+`import 'pkg/subpath'` uses that `exports` target for symbol reachability when the advisory names a file. No symbol data → import-level only, as today. Negative: a subpath the package does not export, which is not a reach under Phase 233 when that flag is also on.
+
+### Phase 238 — require in try/catch [`FULLSHIELD_EXPERIMENTAL_NPM_REACH_TRY`]
+A `require` inside `try/catch` still counts as imported. Add `optionalImport: true` on the evidence object when Phase 61's flag is also on. Do not downgrade severity. Negative: a require outside `try/catch` has `optionalImport` absent. `DEPS-OPTIONAL-IMPORT-001` remains the separate finding from Phase 124.
+
+### Phase 239 — re-exports [`FULLSHIELD_EXPERIMENTAL_NPM_REACH_REEXPORT`]
+`export * from 'pkg'` and `export { x } from 'pkg'` count as imports of `pkg`. Depth stays 5. Negative: a type-only export, which is Phase 240 when that flag is on; with only this flag, `export type` is not an import (same negative).
+
+### Phase 240 — type-only import [`FULLSHIELD_EXPERIMENTAL_NPM_REACH_TYPEONLY`]
+`import type` and `export type { } from` are not runtime imports. A value import of the same module still counts. Negative: `import { x } from 'pkg'` remains a reach. This removes a false runtime reach under the flag only.
+
+### Phase 241 — ESM-only package required from CJS [`FULLSHIELD_EXPERIMENTAL_NPM_DUALPACKAGE`]
+`DEPS-DUALPACKAGE-001` (medium) when a CJS `require('pkg')` targets a package whose packument `type` is `module` and whose `exports` has no `require` condition. Negative: a `require` condition exists, and an ESM `import`. No packument → no finding.
+
+### Phase 242 — phantom literals in dynamic import [`FULLSHIELD_EXPERIMENTAL_NPM_PHANTOM_DEEP`]
+Under this flag only, also report `DEPS-PHANTOM-002` for a literal `import()`, `require.resolve`, or `createRequire` package name that is not in dependencies, devDependencies, optionalDependencies, or peerDependencies. Do not change `DEPS-PHANTOM-001`. Negative: the name is declared, and a non-literal import (no finding).
+
+---
+
+### Lane H — Advisory fidelity, fix, SBOM, audit diff (243–250)
+
+OSV remains the only advisory source. These phases change how a cached OSV document is read. They do not add advisories the cache does not contain.
+
+### Phase 243 — OSV range type [`FULLSHIELD_EXPERIMENTAL_NPM_OSV_RANGE`]
+Honor `affected[].ranges[].type`. `SEMVER` uses the semver helper. `ECOSYSTEM` and `GIT` do not. A `GIT` range produces no `minFixedVersion` and no bump suggestion. Negative: a `SEMVER` range still suggests the fixed version already in the cache. A test feeds a `GIT` range and asserts no invented semver.
+
+### Phase 244 — withdrawn advisory [`FULLSHIELD_EXPERIMENTAL_NPM_OSV_WITHDRAWN`]
+Do not emit `DEPS-VULN-001` for an OSV object with a non-empty `withdrawn` timestamp, under this flag. Negative: no `withdrawn` field, the advisory still emits. Flag off, current behavior stays, including a withdrawn fixture if one is added only under the flag's test.
+
+### Phase 245 — CVSS when OSV has no severity word [`FULLSHIELD_EXPERIMENTAL_NPM_OSV_CVSS`]
+When `database_specific.severity` is absent and a `severity[]` entry has `type` `CVSS_V3` or `CVSS_V4` and a `score` string, map the numeric score with the documented cuts: 9.0–10 critical, 7.0–8.9 high, 4.0–6.9 medium, 0.1–3.9 low. A score that does not parse leaves today's severity. Do not invent a vector. Negative: a `database_specific.severity` of `HIGH` wins over a low CVSS score. Flag off, CVSS is ignored, as today. Promotion would be R10 because severity is part of the finding key.
+
+### Phase 246 — alias dedupe [`FULLSHIELD_EXPERIMENTAL_NPM_OSV_ALIAS`]
+When two OSV ids share an alias and affect the same `name@version`, emit one `DEPS-VULN-001`. The surviving id is the `MAL-` id if present, otherwise the `GHSA-` id, otherwise the `CVE-` id, otherwise the lexicographic id. The other ids sit on `references`. Negative: two advisories with no shared alias stay two findings. Flag off, both rows remain. Promotion would be R10 because a row disappears.
+
+### Phase 247 — OSV package URL [`FULLSHIELD_EXPERIMENTAL_NPM_OSV_PURL`]
+Also send `purl` `pkg:npm/<name>@<version>` (scoped names percent-encode `/` as `%2F` per the purl spec) on the existing OSV querybatch. Same host `api.osv.dev`. Cache key gains the purl. Results that duplicate an id already returned for the name query are deduped by id. Negative: a mocked batch that returns the same id twice yields one finding. `--offline` does not call the network.
+
+### Phase 248 — nested override proposal [`FULLSHIELD_EXPERIMENTAL_NPM_FIX_NESTED`]
+When a direct bump cannot clear a transitive advisory, the proposed `package.json` override uses npm's nested key (`parent>child`) for npm, `pnpm.overrides` for pnpm, and `resolutions` for yarn. The version is `minFixedVersion` from the OSV cache only. No fixed version → no proposal. Still unsafe, still does not edit the lockfile, still prints `run npm install`. Negative: a same-major direct bump stays the existing safe proposal and does not add a nested key.
+
+### Phase 249 — SBOM purl qualifier [`FULLSHIELD_EXPERIMENTAL_NPM_SBOM_PURL`]
+With the flag on, CycloneDX components for npm packages set `purl` to `pkg:npm/<name>@<version>` and, when integrity is known, add the `checksum` the CycloneDX spec already allows. Scoped purls follow Phase 247's encoding. Flag off, SBOM bytes are unchanged. Negative: a package with no integrity omits the checksum and still has the purl. Validation uses the existing CycloneDX check. This does not add a new finding ID.
+
+### Phase 250 — local npm audit diff [`FULLSHIELD_EXPERIMENTAL_NPM_AUDIT_DIFF`]
+`fullshield npm-audit-diff --file <audit.json>` reads a file the user already produced. It does not run `npm`, does not install, and does not fetch. It compares advisory ids in that file with `DEPS-VULN-001` ids from a local `--from` scan JSON, or from the last scan file if `--from` is omitted. It prints ids only in the audit file and ids only in the scan. Exit 0. It does not create findings and does not invent ids that are in neither file. Negative: two files with the same ids print both sets empty. A missing file exits 2 with a new `FS-E` code appended in `docs/errors.md`. An audit file with no version matches nothing and is listed as `unmatched`, not as a new advisory.
+
+---
+
+### 47.4 Order
+
+Build 108 through 250 in numeric order, after phase 107, as Section 45 lists them. Lane D may read Lane C's cache after those phases are merged. It must not fetch a packument itself. Lane E may read Lane D's cache the same way.
+
+### 47.5 Needs human decision before any 108–250 phase is promoted
+
+1. Section 41 items 1–2 on NodeGoat and goof, same precondition as Section 46.
+2. Whether any Lane A ID is allowed to become stable. Several of them (missing integrity, non-registry host) will fire on real registries' older lockfiles. Promotion needs a 20-finding sample on `bench/realworld.json` with 0 confirmed false positives, or the ID stays experimental.
+3. Phase 245 and Phase 246 change finding keys if promoted. They need an R10 review. Until then they stay flagged.
+4. Phase 226's popular list is frozen at the names already in source. Adding names is a human edit.
+5. Implementation follows the 1.2.0 order in Section 45. These phases are already in that scope.

@@ -3,6 +3,56 @@ export function crypto2Enabled(): boolean {
   return process.env.FULLSHIELD_EXPERIMENTAL_CRYPTO2 === '1';
 }
 
+/** Phase 102 Electron window settings. Off unless FULLSHIELD_EXPERIMENTAL_ELECTRON=1. */
+export function electronEnabled(): boolean {
+  return process.env.FULLSHIELD_EXPERIMENTAL_ELECTRON === '1';
+}
+
+/** Phase 104 vendored JS. Off unless FULLSHIELD_EXPERIMENTAL_VENDORED=1. */
+export function vendoredEnabled(): boolean {
+  return process.env.FULLSHIELD_EXPERIMENTAL_VENDORED === '1';
+}
+
+/** Phase 97 server-side template injection. Off unless FULLSHIELD_EXPERIMENTAL_SSTI=1. */
+export function sstiEnabled(): boolean {
+  return process.env.FULLSHIELD_EXPERIMENTAL_SSTI === '1';
+}
+
+/** Phase 99 webhook verifiers. Off unless FULLSHIELD_EXPERIMENTAL_WEBHOOK=1. */
+export function webhookEnabled(): boolean {
+  return process.env.FULLSHIELD_EXPERIMENTAL_WEBHOOK === '1';
+}
+
+/** Phase 100 session fixation. Off unless FULLSHIELD_EXPERIMENTAL_SESSION2=1. */
+export function session2Enabled(): boolean {
+  return process.env.FULLSHIELD_EXPERIMENTAL_SESSION2 === '1';
+}
+
+/** Phase 98 secret logging. Off unless FULLSHIELD_EXPERIMENTAL_LOGLEAK=1. */
+export function logLeakEnabled(): boolean {
+  return process.env.FULLSHIELD_EXPERIMENTAL_LOGLEAK === '1';
+}
+
+/** Phase 103 Next.js boundary. Off unless FULLSHIELD_EXPERIMENTAL_NEXT=1. */
+export function nextEnabled(): boolean {
+  return process.env.FULLSHIELD_EXPERIMENTAL_NEXT === '1';
+}
+
+/** Phase 101 browser JS. Off unless FULLSHIELD_EXPERIMENTAL_BROWSER=1. */
+export function browserEnabled(): boolean {
+  return process.env.FULLSHIELD_EXPERIMENTAL_BROWSER === '1';
+}
+
+/** Phase 106 unfixed dependencies. Off unless FULLSHIELD_EXPERIMENTAL_HEALTH=1. */
+export function healthEnabled(): boolean {
+  return process.env.FULLSHIELD_EXPERIMENTAL_HEALTH === '1';
+}
+
+/** Phase 107 IDOR hints. Off unless FULLSHIELD_EXPERIMENTAL_IDOR=1. */
+export function idorEnabled(): boolean {
+  return process.env.FULLSHIELD_EXPERIMENTAL_IDOR === '1';
+}
+
 /** Phase 95 disabled TLS verification. Off unless FULLSHIELD_EXPERIMENTAL_TLS=1. */
 export function tlsEnabled(): boolean {
   return process.env.FULLSHIELD_EXPERIMENTAL_TLS === '1';
