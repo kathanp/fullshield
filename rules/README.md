@@ -21,6 +21,12 @@ negative counterpart in `test/fixtures/clean-app`.
 | [SECRET-SESSION-001](SECRET-SESSION-001.md) | Hardcoded express-session secret |
 | [SECRET-ENTROPY-001](SECRET-ENTROPY-001.md) | High-entropy assignment (low confidence) |
 | [SECRET-ENVFILE-001](SECRET-ENVFILE-001.md) | Committed `.env` file |
+| [SECRET-FILE-002](SECRET-FILE-002.md) | `.npmrc` `_authToken` / `_auth` literal (experimental) |
+| [SECRET-FILE-003](SECRET-FILE-003.md) | Docker `config.json` `auths` auth value (experimental) |
+| [SECRET-FILE-004](SECRET-FILE-004.md) | kubeconfig `token` or `client-key-data` (experimental) |
+| [SECRET-FILE-005](SECRET-FILE-005.md) | Committed Terraform state (experimental) |
+| [SECRET-FILE-006](SECRET-FILE-006.md) | JSON service-account `private_key` (experimental) |
+| [SECRET-FILE-007](SECRET-FILE-007.md) | `id_rsa`, `id_ed25519`, `*.p12`, `*.pfx`, `*.keystore` (experimental) |
 | [SECRET-BUNDLE-001](SECRET-BUNDLE-001.md) | Secret-shaped `NEXT_PUBLIC_`/`VITE_` value in a client bundle (experimental) |
 
 ## Dependencies

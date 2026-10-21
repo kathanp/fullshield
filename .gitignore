@@ -1,4 +1,7 @@
 node_modules/
+.autopilot/
+AUTOPILOT.md
+
 bench/.cache/
 .quality-tmp-*/
 .fullshield-verify.lock

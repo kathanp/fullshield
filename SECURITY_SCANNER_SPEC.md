@@ -2,10 +2,10 @@
 
 > Package: `fullshield` on npm (owner `kathan2404`). Repo: https://github.com/kathanp/fullshield (public, MIT).
 > Language: TypeScript (strict). Runtime: Node.js ≥ 22.13. Distribution: one npm package (CLI + library + runtime middleware).
-> Live on npm: `1.0.0` is latest. `0.1.3` was **published WITHOUT provenance — must never happen again**. Placeholders `0.0.0-stage`, `0.0.1` deprecated. `0.1.2` was never published.
+> Live on npm: `1.0.1` is latest (published 2026-10-21T02:43:27Z with provenance). `0.1.3` was **published WITHOUT provenance — must never happen again**. Placeholders `0.0.0-stage`, `0.0.1` deprecated. `0.1.2` was never published.
 > This file is the only spec. The 2026-10-14 draft (`SECURITY_SCANNER_SPEC (1).md`) is deleted. Its design lives here; Section 33 lists the few requirements that draft stated and this file had shortened. Later text wins where the draft disagreed.
-> [X] Complete: phases 1–55 and 57–94. Phase 56 is not in 1.0.0 (blocked on R15). Phase 65 is coded; the 5-second nest/undici target is still unmet. Experimental phases stay off unless their flag is set. Phases 36–45 are reference, not a queue.
-> **Current queue is Section 43 (Finish-All Run)**; Section 42 adds the quality gate (R24, Phase 94) and the definition of done for every remaining phase. Section 40.5 report-file rules still apply. Earlier queue: Section 40 (2026-10-19, lanes A/B/C). Section 36 is the 2026-10-18 record. Leadership phases 76–93 are in Section 39 and are in this tree behind their flags. Advanced phases 60–75 are in Section 37; Phase 47 has an addendum (47.1) there that is part of its acceptance. Section 38 is the production-reliance stance (not a queue). Section 41 lists human-only work. Phase 56 is not in this release.
+> [X] Complete: phases 1–55 and 57–94. Phase 56 is not in 1.0.1 (blocked on R15). Phase 65 is coded; the 5-second nest/undici target is still unmet. Experimental phases stay off unless their flag is set. Phases 36–45 are reference, not a queue.
+> **Current queue is Section 45** for autopilot runs. The 1.1.0 version scope is there. 1.0.1 is published. Section 43 is the finished 2026-10-19 run; Section 42 adds the quality gate (R24, Phase 94) and the definition of done for every remaining phase. During an autopilot run, Section 45 R26 item 4 overrides Section 40.5: no report file is written. Outside a run, Section 40.5 report-file rules still apply. Earlier queue: Section 40 (2026-10-19, lanes A/B/C). Section 36 is the 2026-10-18 record. Leadership phases 76–93 are in Section 39 and are in this tree behind their flags. Advanced phases 60–75 are in Section 37; Phase 47 has an addendum (47.1) there that is part of its acceptance. Section 38 is the production-reliance stance (not a queue). Section 41 lists human-only work. Phase 56 is not in this release.
 
 ---
 
@@ -900,16 +900,16 @@ Acceptance: workflows green; reproducibility passes or differences documented; S
 
 | Item | State |
 |---|---|
-| Repo `package.json` | 1.0.1 (docs-only: stability.md correction). 1.0.0 tagged 2026-10-20 before the main matrix was confirmed; 1.0.1 is tagged only after all six required checks pass on `main`. |
-| `engines` | `>=22.13` in package.json, doctor, and CI (Node 22 and 24). Branch protection still needs a human after the new jobs report. |
+| Repo `package.json` | 1.0.1, published on npm 2026-10-21T02:43:27Z with provenance. Tag `v1.0.1` is `dc2b719` on `main`. |
+| `engines` | `>=22.13` in package.json, doctor, and CI (Node 22 and 24). `main` requires the six checks in `docs/branch-protection.md`. |
 | Built | Phases 1–55 and 57–94 are in this tree. Phase 56 is not (R15). Phase 65 is coded; the 5-second nest and undici target is unmet. |
-| Today's queue | 1.0.1 docs release (Section 44). No new phases. |
+| Today's queue | Section 45 autopilot run for 1.1.0. Scope order: 105 → 95 → 96 → 102 → 104 → 97 → 99 → 100 → 98 → 103 → 101 → 106 → 107 (Section 46). Experimental only (R11). No promotion. |
 | Phases 76–93 | in this tree, behind their experimental flags |
 | Precision | Phase 76 writes null labels. No reviewed precision rate is published. |
 | Phase 56 | blocked on R15 amendment (EPSS/KEV hosts) |
 | Ground truth reviewed | none (all `reviewed: false`). Human only |
 | Untouched holdouts in reserve | 3 (verademo-javascript, serverless-goat, mongection), not scanned |
-| Provenance gate | in publish.yml. `0.1.3` was published without provenance and must not be repeated |
+| Provenance gate | in publish.yml. `1.0.1` published with provenance. `0.1.3` was published without provenance and must not be repeated |
 | Section 27 open items | COOKIE/CSRF already covered; BaseEntity negative test added; Juice Shop codefixes documented |
 | Comparison / precision / promotion | comparison run in COMPARISON.md; precision not sampled; nothing promoted |
 | Human decisions 2026-10-18 | D1: doctor test treats Node 20.11 as too old (Phase 46). D2: console-cap test expects 20 rows (Phase 47). D3: Phase 47 shown rule replaced; see Phase 47 and 47.1. D4: the 2026-10-18 grouped-row counts are accepted and the 40-row stop is removed. D6: published 0.3.0 is approved and is not a stop; git must match it. D7: restoring that source onto next is an approved R10 change only if the R1 proofs pass. D8: the restore commit was 0.3.0. On 2026-10-18 the human set 0.4.0 and asked to publish it. |
@@ -1857,3 +1857,241 @@ Docs-only. No change under `src/`, `rules/*.md` detection text, `test/fixtures/`
 7. Mark experimental exports in `api/fullshield.api.json` (Q5 snapshot) without changing any export.
 8. Dev-only: `scripts/doc-version-check.mjs` fails when a doc names a FullShield version as current that is not `package.json` `version`. Wired into `npm run verify`. Not packed.
 9. PR `next` → `main`. Six required checks green. Human sets branch protection. Human tags `v1.0.1`.
+
+Done. Pull request #18 merged as `dc2b719`. Tag `v1.0.1` is that commit. The six checks are required on `main`. npm published `1.0.1` at 2026-10-21T02:43:27Z with provenance: https://github.com/kathanp/fullshield/actions/runs/39529799316
+
+---
+
+## 45. Autopilot runs (R26)
+
+**R26. AUTOPILOT runs.** A version may be built by the local AUTOPILOT.md playbook with
+scripts/autopilot/guard.mjs. For such a run only:
+
+1. Queue. The version scope the human writes into this SPEC for the run is the only queue
+   (amends R25 for the run; Section 43 is history).
+2. Branches. Work happens on a local run/<name> branch off `next`, with phase worktrees
+   wk/test/phase-N and wk/code/phase-N in ../fullshield-wt/ (amends R18 and R21 for
+   location only; integration is still one phase at a time, in table order, verify and
+   default-scan-diff after each).
+3. Commits. run/<name> keeps one `phase-N: <summary>` commit per phase (R19). The finished
+   run is squashed into one commit `release: <x.y.z>` on release/<x.y.z>, which the human
+   fast-forwards onto `next`; `main` still moves only by PR from `next` (R18). R19's
+   "never mix phases in one commit" does not apply to that release commit.
+4. Records. No report file, run log, or PROGRESS.md entry is written (replaces Section
+   40.5 for the run). R8 still applies: real output is pasted in the chat summary.
+5. Approval. A person approves this SPEC for the run with `guard.mjs --approve-spec`.
+   After approval the SPEC is frozen for the run; a change needs a new approval.
+6. Everything else in Section 0 applies unchanged, including R1, R3, R3a, R10, R11, R13,
+   R15, R16a, R17, R22, R23, R24 and S1-S7.
+
+### Version scope 1.1.0
+
+This block is the only queue for the autopilot run (R26 item 1). Target `1.1.0`, a minor (R16a): every rule ID in Section 46 is new. Definitions stay in Section 46. This run does not promote any rule (R11). Section 41 items 1–2 on NodeGoat and goof are not done, so nothing moves to stable and default `scan --json` output does not change (no R10).
+
+Order: 105 → 95 → 96 → 102 → 104 → 97 → 99 → 100 → 98 → 103 → 101 → 106 → 107.
+
+| Phase | Flag | Stable-output change |
+|---|---|---|
+| 105 | `FULLSHIELD_EXPERIMENTAL_CREDFILES` | no |
+| 95 | `FULLSHIELD_EXPERIMENTAL_TLS` | no |
+| 96 | `FULLSHIELD_EXPERIMENTAL_CRYPTO2` | no |
+| 102 | `FULLSHIELD_EXPERIMENTAL_ELECTRON` | no |
+| 104 | `FULLSHIELD_EXPERIMENTAL_VENDORED` | no |
+| 97 | `FULLSHIELD_EXPERIMENTAL_SSTI` | no |
+| 99 | `FULLSHIELD_EXPERIMENTAL_WEBHOOK` | no |
+| 100 | `FULLSHIELD_EXPERIMENTAL_SESSION2` | no |
+| 98 | `FULLSHIELD_EXPERIMENTAL_LOGLEAK` | no |
+| 103 | `FULLSHIELD_EXPERIMENTAL_NEXT` | no |
+| 101 | `FULLSHIELD_EXPERIMENTAL_BROWSER` | no |
+| 106 | `FULLSHIELD_EXPERIMENTAL_HEALTH` | no |
+| 107 | `FULLSHIELD_EXPERIMENTAL_IDOR` | no |
+
+---
+
+## 46. Breadth Phases 95–107 (target: 1.1.0, rev 2026-10-21)
+
+### 46.0 Why these, and the order of work
+Brainstormed ~30 candidates. Kept only gaps that (a) are real vulnerability classes in shipped Node/TS code that FullShield misses today, and (b) can be precise by construction. Rejected list is 46.3.
+
+**Precondition (human, R1):** before any 46.x phase is promoted, Section 41 items 1–2 are done for at least NodeGoat and goof. New rules ship experimental (R11) until then. Every rule ID below is new → 1.1.0 is a **minor** (R16a).
+
+AUTOPILOT runs may build 46.x phases but must not promote any rule out of experimental (R11) until the human precondition (Section 41 items 1–2 on NodeGoat and goof) is recorded as done.
+
+Three tiers:
+- **Tier P (pattern rules, near-zero FP by construction):** 95, 96, 102, 105. Candidates for fast promotion (see 46.2).
+- **Tier T (taint rules, need precision sampling):** 97, 98, 99, 100, 101, 103, 104.
+- **Tier H (heuristic, may never be stable):** 106, 107.
+
+All Section 0, 37 header, 39.1, and 42.1 rules apply. Every rule: `rules/<ID>.md`, positive + negative fixture written from scratch (B8), failing test first (R4), compliance row (22.6), mutation target (Q10), flag-off byte-identical test, clean-app 0 with flag on.
+
+---
+
+### Phase 95 — Disabled TLS verification [`FULLSHIELD_EXPERIMENTAL_TLS`] (Tier P)
+| ID | Detects | Sev | CWE |
+|---|---|---|---|
+| SAST-TLS-001 | `rejectUnauthorized: false` in options passed to `https.request/get`, `tls.connect`, `new https.Agent`, axios `httpsAgent`, undici `Agent({ connect })`, got `https.rejectUnauthorized`, `pg`/`mysql2`/`mongodb` `ssl`/`tls` options; `checkServerIdentity: () => undefined` | high | CWE-295 |
+| SAST-TLS-002 | `process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'` in source; same var set to 0 in `Dockerfile ENV`, `package.json` scripts, compose `environment`, committed `.env*` | high | CWE-295 |
+
+- Files under `test/`, `__tests__/`, `*.test.*`, `*.spec.*`, `scripts/dev*` → severity low, `context: "test"`.
+- A value guarded by `process.env.NODE_ENV !== 'production'` in the same `if` → medium, not dropped.
+- Negative fixtures: `rejectUnauthorized: true`, a variable whose value can't be resolved (not flagged), a `ca:` option set.
+
+FP risk: dev-only scripts in non-test folders. Covered by the NODE_ENV-guard fixture and the scripts/dev* rule.
+
+### Phase 96 — Crypto v2 [`FULLSHIELD_EXPERIMENTAL_CRYPTO2`] (Tier P)
+| ID | Detects | Sev | CWE |
+|---|---|---|---|
+| SAST-CIPHER-001 | `createCipheriv('*-ecb', ...)`; deprecated `crypto.createCipher`/`createDecipher`; IV that is a string/Buffer literal or `Buffer.alloc(n)` (all zeros) | high | CWE-327/329 |
+| SAST-CIPHER-002 | Symmetric key passed as a string literal to `createCipheriv`/`createHmac` | high | CWE-321 |
+| SAST-RSA-001 | `generateKeyPair('rsa', { modulusLength < 2048 })`; `ec` with `secp192*` | medium | CWE-326 |
+| SAST-JWT-002 | `jwt.sign` with no `expiresIn`/`exp`; or HMAC secret literal shorter than 32 bytes | medium | CWE-613/326 |
+
+- `SAST-CIPHER-002` must not duplicate `SECRET-JWT-*` / generic-entropy findings on the same line (test asserts exactly one).
+- Negative: `randomBytes(16)` IV, `aes-256-gcm`, key from `process.env`, `expiresIn: '1h'`.
+
+FP risk: test vectors in crypto test files → test-context rule from 95.
+
+### Phase 97 — Server-side template injection [`FULLSHIELD_EXPERIMENTAL_SSTI`] (Tier T)
+| ID | Detects | Sev | CWE |
+|---|---|---|---|
+| SAST-SSTI-001 | Tainted value used as the **template source** (not data) in `ejs.render/compile`, `pug.render/compile`, `handlebars.compile`, `nunjucks.renderString`, `_.template`, `doT.template`, `Mustache.render` (arg 0), `new Function`-backed engines | critical | CWE-1336 |
+
+- Argument role (template vs data) comes from Phase 81 model packs. No pack entry → no finding.
+- Tainted data in the data argument is never SSTI (negative fixture). That remains XSS's job.
+- RASP (experimental): add template-source hook to Phase 71 list only after static rule is merged.
+
+### Phase 98 — Secrets written to logs [`FULLSHIELD_EXPERIMENTAL_LOGLEAK`] (Tier T)
+| ID | Detects | Sev | CWE |
+|---|---|---|---|
+| SAST-LOGLEAK-001 | `console.*`, winston, pino, bunyan, debug, morgan custom tokens logging: `req.headers.authorization`, `req.headers.cookie`, whole `req.body` on routes matching auth names, or an identifier named `password|passwd|secret|token|apiKey|authorization` | medium | CWE-532 |
+
+- pino/winston `redact` config covering the path clears it.
+- Negative: logging `user.id`, logging `req.body` on a non-auth route (not flagged in this phase; noise).
+
+FP risk: identifiers like `tokenCount`. Name match is whole-word on camelCase segments; `tokenCount` fixture is negative.
+
+### Phase 99 — Unverified webhooks [`FULLSHIELD_EXPERIMENTAL_WEBHOOK`] (Tier T)
+| ID | Detects | Sev | CWE |
+|---|---|---|---|
+| SAST-WEBHOOK-001 | Route whose handler reads a provider event shape (Stripe `event.type` from body, `x-github-event`, Slack `x-slack-signature` route, Shopify `x-shopify-hmac-sha256`, Twilio) and never calls that provider's verifier (`stripe.webhooks.constructEvent`, `@octokit/webhooks` verify, HMAC + `timingSafeEqual` on the signature header, Slack signing check) on any path in the handler | high | CWE-345 |
+
+- Only providers with a model-pack entry. Unknown provider → no finding.
+- Verifier in app-level middleware mounted on that path counts (reuse Phase 75 mount resolution).
+- Negative: verifier present; `===` comparison of signature → reported as `SAST-TIMING-001` (existing), not here.
+
+### Phase 100 — Session fixation [`FULLSHIELD_EXPERIMENTAL_SESSION2`] (Tier T)
+| ID | Detects | Sev | CWE |
+|---|---|---|---|
+| SAST-SESSION-002 | Login handler (route name/auth heuristics) that writes `req.session.<user|userId|uid|auth*>` without `req.session.regenerate` earlier on the same path | medium | CWE-384 |
+
+- passport `req.login`/`req.logIn` counts as regenerate **only** when locked passport version ≥ 0.6.0 (read from lockfile). Older passport → finding, message names the version.
+- Negative: regenerate callback wraps the write; passport ≥ 0.6.
+
+### Phase 101 — Browser-side JS [`FULLSHIELD_EXPERIMENTAL_BROWSER`] (Tier T, largest phase)
+FullShield is server-only today. Many Node repos ship the frontend in the same repo.
+
+| ID | Detects | Sev | CWE |
+|---|---|---|---|
+| SAST-DOMXSS-001 | Sources `location.hash/search/href`, `document.URL`, `document.referrer`, `window.name`, `URLSearchParams(location.*)`, message `event.data` → sinks `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write`, `eval`, string `setTimeout/setInterval`, `el.src/href` assignment without scheme check, jQuery `$(tainted)`/`.html()` | high | CWE-79 |
+| SAST-REACT-001 | `dangerouslySetInnerHTML={{ __html: x }}` where `x` is not a literal and not passed through DOMPurify/sanitize-html; Vue `v-html`; Svelte `{@html}` | medium | CWE-79 |
+| SAST-POSTMSG-001 | `addEventListener('message', h)` where `h` uses `event.data` with no `event.origin` comparison; `postMessage(secretNamed, '*')` | medium | CWE-346 |
+| SAST-TOKENSTORE-001 | Writing an identifier named token/jwt/accessToken to `localStorage` | low | CWE-922 |
+
+- A file is "browser" only if: under a bundler entry graph (vite/webpack/next `app|pages|components`), or imports react/vue/svelte, or `package.json` `browser` field. Server taint rules never run browser sources (test).
+- Next.js `'use client'` files are browser; `'use server'` are not.
+
+FP risk: React `__html` from a trusted CMS sanitized server-side. Medium severity, fixture with server-side sanitize documents it stays reported (cannot see across the network boundary).
+
+### Phase 102 — Electron hardening [`FULLSHIELD_EXPERIMENTAL_ELECTRON`] (Tier P)
+Runs only when `electron` is in the dependency graph.
+
+| ID | Detects | Sev |
+|---|---|---|
+| CONFIG-ELECTRON-001 | `webPreferences` with `nodeIntegration: true`, `contextIsolation: false`, `sandbox: false`, `webSecurity: false`, `allowRunningInsecureContent: true` | high |
+| CONFIG-ELECTRON-002 | `shell.openExternal(x)` where `x` is not a literal and has no `https:` scheme check | high |
+| CONFIG-ELECTRON-003 | `BrowserWindow` loading remote URL with no `setWindowOpenHandler` and no `will-navigate` guard | medium |
+
+Each option is a separate fixture. No new hard dep.
+
+### Phase 103 — Next.js server boundary [`FULLSHIELD_EXPERIMENTAL_NEXT`] (Tier T)
+| ID | Detects | Sev |
+|---|---|---|
+| SAST-NEXT-001 | Exported `'use server'` function that writes to a DB/model-pack sink with no auth call (`auth()`, `getServerSession`, `currentUser`, `cookies()` + verify, or a user-configured name) in its body or called helper (depth 2) | medium, low confidence |
+| CONFIG-NEXT-001 | Auth enforced only in `middleware.ts` (matcher covers route, handler has no auth call) → one info per app, message points to the 2025 middleware-bypass class and says enforce in the handler | info |
+| CONFIG-NEXT-002 | `images.remotePatterns` with hostname `'**'` or `domains: ['*']` | medium |
+| SECRET-NEXTPUB-001 | `NEXT_PUBLIC_*` env name containing `SECRET|PRIVATE|KEY` (except `PUBLISHABLE`) | high |
+
+Next.js version vulns stay `DEPS-VULN-001` from OSV (R6). This phase never encodes a CVE range.
+
+### Phase 104 — Vendored library versions [`FULLSHIELD_EXPERIMENTAL_VENDORED`] (Tier T)
+deps reads lockfiles only. A `public/js/jquery-1.8.3.min.js` is invisible today.
+
+| ID | Detects | Sev |
+|---|---|---|
+| DEPS-VENDORED-001 | JS file under `public/`, `static/`, `assets/`, `vendor/`, `lib/`, or any `*.min.js` whose header banner or exported `VERSION` constant identifies one of: jquery, jquery-ui, bootstrap, angular, lodash, underscore, moment, handlebars, dompurify, knockout. Mapped to `npm:<pkg>@<version>` and queried in OSV | per OSV |
+
+- Banner regexes live in `models/vendored.json`, one per library, each with a fixture. No banner match → nothing. Never guess a version from file size or hash.
+- `reachability: 'vendored'`. Shown in Phase 47 console (served to browsers = exposed). Fix: replace file; never edited automatically.
+- `--offline` uses the OSV cache.
+
+### Phase 105 — Committed credential files [`FULLSHIELD_EXPERIMENTAL_CREDFILES`] (Tier P)
+| ID | File | Detected when |
+|---|---|---|
+| SECRET-FILE-002 | `.npmrc` | `_authToken=` or `_auth=` with a literal (not `${...}`) |
+| SECRET-FILE-003 | `.docker/config.json`, `config.json` with `auths` | `auth` value present |
+| SECRET-FILE-004 | kubeconfig (`apiVersion: v1` + `kind: Config`) | `token:` or `client-key-data:` |
+| SECRET-FILE-005 | `*.tfstate`, `*.tfstate.backup` | any committed file (state holds secrets) |
+| SECRET-FILE-006 | JSON with `"type": "service_account"` + `private_key` | present |
+| SECRET-FILE-007 | `id_rsa`, `id_ed25519`, `*.p12`, `*.pfx`, `*.keystore` without `.pub` | present |
+
+All critical except `.tfstate` (high). Masked. Same rotate remediation as 7.2. `--staged` covers them (pre-commit).
+
+### Phase 106 — Unmaintained + unfixed dependencies [`FULLSHIELD_EXPERIMENTAL_HEALTH`] (Tier H)
+| ID | Detects | Sev |
+|---|---|---|
+| DEPS-UNFIXED-001 | Production dependency with an OSV advisory that has **no fixed version**, and whose last registry publish is > 730 days ago | medium |
+
+- registry.npmjs.org only (R15), shares Phase 87 cache. Unknown publish date → no finding.
+- Remediation lists replacement as a human decision; never names a replacement package.
+- Folded in console unless reachable.
+
+### Phase 107 — Ownership-check hints [`FULLSHIELD_EXPERIMENTAL_IDOR`] (Tier H, may never promote)
+| ID | Detects | Sev |
+|---|---|---|
+| SAST-IDOR-001 | Authenticated route with a `:id`-style param whose handler loads by that param (`findById`, `findByPk`, `findUnique({ where: { id } })`, `WHERE id =`) and never references `req.user`, `req.session.user*`, `ctx.state.user`, or a configured owner name anywhere in the handler or called helper (depth 2) | low, low confidence |
+
+- `source: 'rule'`, `confidence: 'low'`, never affects `--fail-on` (test). Section 4.3 non-goal stands: this is a hint.
+- Admin-guarded routes (middleware name contains `admin|role|permission|authorize`) → no finding.
+- Promotion requires human-sampled precision ≥ 70% with n ≥ 30 (R1 decides). If not reached, it stays experimental permanently.
+
+---
+
+### 46.0a File rule for this section (R27)
+- **R27.** Section 46 lives inside `SECURITY_SCANNER_SPEC.md`. Cursor never renames that file, never splits it, and never creates a second spec, plan, queue, or run-prompt file (R25 still applies). Status updates are edits to this file and to the day's report file only.
+- Cursor never renames or moves an existing file in the repo (source, rule doc, fixture, script, doc) as part of a 46.x phase. A rename needs the human's "go" (R1).
+- The only new files a 46.x phase may create are the ones its definition of done requires: `rules/<ID>.md`, its fixtures under `test/fixtures/`, its tests under `test/`, its model-pack entry under `models/`, and the day's `reports/<date>.md`. Anything else new → stop that phase and list it under "Needs human decision".
+- Precedence: during an AUTOPILOT run (Section 45), R26 item 4 overrides R27 and Section 40.5. No report file is written for that run.
+
+### 46.1 Work order (Cursor)
+Order: 105 → 95 → 96 → 102 → 104 → 97 → 99 → 100 → 98 → 103 → 101 → 106 → 107.
+Tier P first because each is small and testable in isolation. 101 last among Tier T because it is the largest and depends on the bundler-entry classifier.
+Report file: `reports/<date>.md`, Section 40.5 rules. Definition of done: 42.1. One flag per phase, one merge at a time, default-scan-diff EMPTY.
+Under AUTOPILOT, this order must be copied into the 1.1.0 version scope; the scope is the only queue autopilot reads.
+
+### 46.2 Needs human decision before 1.1.0
+1. **Promotion criterion for pattern rules.** Phase 43 requires an untouched-holdout recall gain for SAST. Tier P rules (95, 96, 102, 105) find config mistakes that holdout apps mostly don't contain, so they can never meet that bar. Proposal: Tier P rules qualify with (a) 0 human-confirmed FPs in a 20-finding sample across `bench/realworld.json`, and (b) clean-app 0. This is an R1 threshold change. Approve, reject, or amend.
+2. Whether 1.1.0 ships with Tier P promoted (stable-output change, R10) or all 13 flagged.
+3. Section 41 items 1–2 completed first (strongly recommended; without them no 1.1.0 number is citable).
+
+### 46.3 Brainstormed and rejected
+- Header/CRLF injection: Node rejects CR/LF in header values (`ERR_INVALID_CHAR`). Near-zero real yield.
+- Log injection (CWE-117): low impact, high noise.
+- Python/Go support: breaks "JS/TS only" positioning; Semgrep already wins there.
+- More `--verify-secrets` providers: each one adds a network host (R15) for marginal value.
+- Container/OS scanning, VS Code extension, PR comment bot: already rejected (Section 31).
+- AI triage revival: Section 18.3 smoke results were not good enough; no new evidence.
+- Auto-generated fix PRs to GitHub: violates 22.8 / Section 31.
+- License-compliance expansion: not a security feature; dilutes positioning.
+- Race-condition / TOCTOU detection: no precise static signal in JS.
+- Prototype-pollution gadget chains through deps: research project, not a phase.
+- Merging CyberShield (IoT network SDK) into FullShield: different buyer, different runtime, would violate Section 31 non-goals.

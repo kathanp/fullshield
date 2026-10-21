@@ -119,6 +119,6 @@
     "zod": "^4.6.7"
   },
   "knip": {
-    "ignore": ["test/fixtures/**", "scripts/doc-version-check.mjs"]
+    "ignore": ["test/fixtures/**", "scripts/doc-version-check.mjs", "scripts/autopilot/guard.mjs"]
   }
 }

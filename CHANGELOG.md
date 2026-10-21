@@ -2,6 +2,12 @@
 
 All notable changes to FullShield are documented here.
 
+## Unreleased
+
+### Experimental
+
+- Phase 105: committed credential files behind `FULLSHIELD_EXPERIMENTAL_CREDFILES` (`SECRET-FILE-002` through `SECRET-FILE-007`). Off by default. Default scan output is unchanged.
+
 ## 1.0.1 — 2026-10-20
 
 Documentation-only release. Scanner behavior, default `scan --json` output, and exit
@@ -56,7 +62,11 @@ If you depended on a moved value, it still works in 1.0.1. It may change in a la
 1.0.0 was tagged before the six-job matrix was confirmed green on `main`.
 The six required checks in `docs/branch-protection.md` passed on pull request #18:
 https://github.com/kathanp/fullshield/actions/runs/39514123297
-1.0.1 is tagged only after those checks pass on `main`.
+The same six checks passed on the changelog commit:
+https://github.com/kathanp/fullshield/actions/runs/39521633354
+`v1.0.1` is `dc2b719` on `main`. Publish succeeded:
+https://github.com/kathanp/fullshield/actions/runs/39529799316
+npm published `1.0.1` at 2026-10-21T02:43:27Z with SLSA provenance.
 
 ## 1.0.0 — 2026-10-20
 
