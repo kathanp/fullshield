@@ -1,0 +1,62 @@
+/**
+ * Phase 400. WebSocket message cap.
+ * Off unless FULLSHIELD_EXPERIMENTAL_WSGUARD=1.
+ * Drops the message. Does not close the process and does not open a socket.
+ */
+export const FLAG = 'FULLSHIELD_EXPERIMENTAL_WSGUARD';
+export const DEFAULT_MAX_BYTES = 65536;
+export const DEFAULT_MAX_DEPTH = 32;
+
+export function enabled(): boolean {
+  return process.env[FLAG] === '1';
+}
+
+export interface WsDecision {
+  drop: boolean;
+  delivered: boolean;
+  event: boolean;
+}
+
+function jsonDepth(value: unknown, depth: number): number {
+  if (typeof value !== 'object' || value === null) {
+    return depth;
+  }
+  let max = depth;
+  const entries = Array.isArray(value) ? value : Object.values(value as Record<string, unknown>);
+  for (const entry of entries) {
+    max = Math.max(max, jsonDepth(entry, depth + 1));
+  }
+  return max;
+}
+
+export function guardMessage(
+  message: string,
+  config?: { maxBytes?: number; maxDepth?: number; schema?: Readonly<Record<string, string>> },
+): WsDecision {
+  if (!enabled()) {
+    return { drop: false, delivered: true, event: false };
+  }
+  const maxBytes = config?.maxBytes ?? DEFAULT_MAX_BYTES;
+  const maxDepth = config?.maxDepth ?? DEFAULT_MAX_DEPTH;
+  if (Buffer.byteLength(message) > maxBytes) {
+    return { drop: true, delivered: false, event: true };
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(message) as unknown;
+  } catch {
+    return { drop: false, delivered: true, event: false };
+  }
+  if (jsonDepth(parsed, 0) > maxDepth) {
+    return { drop: true, delivered: false, event: true };
+  }
+  if (config?.schema !== undefined && typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+    const record = parsed as Record<string, unknown>;
+    for (const key of Object.keys(record)) {
+      if (config.schema[key] === undefined) {
+        return { drop: true, delivered: false, event: true };
+      }
+    }
+  }
+  return { drop: false, delivered: true, event: false };
+}

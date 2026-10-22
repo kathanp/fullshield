@@ -4,6 +4,7 @@ import { relative, resolve, join } from 'node:path';
 import type { Confidence, Finding, Severity } from '../../../core/finding.js';
 import { registryCachePath } from '../../../provenance/index.js';
 import { POPULAR_PACKAGES } from '../popular.js';
+import { currentFacts } from './facts.js';
 import { npmFinding, npmFlag, npmRow, type NpmDepthInput, type NpmDepthRow } from './types.js';
 
 /**
@@ -547,6 +548,8 @@ function packumentBody(raw: unknown): Record<string, unknown> | undefined {
 }
 
 async function readPackument(cacheDir: string, name: string): Promise<Record<string, unknown> | undefined> {
+  const held = currentFacts()?.packuments.get(name);
+  if (held !== undefined) {return packumentBody(held);}
   try {
     return packumentBody(JSON.parse(await readFile(registryCachePath(cacheDir, name), 'utf8')) as unknown);
   } catch {

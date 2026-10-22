@@ -1,0 +1,80 @@
+import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+
+import { afterEach, describe, expect, it } from 'vitest';
+
+import { loadAdvisorySymbols, symbolReach, ADVSYMBOLS_FLAG } from '../../../src/engine/advisory-symbols.js';
+import { functionReachable, upgradeReach, DEPGRAPH_FLAG } from '../../../src/engine/depgraph.js';
+import { dropsStringInjection, resolveImplementor, sqlFindingForType, IRTYPES_FLAG } from '../../../src/engine/irtypes.js';
+
+afterEach(() => {
+  delete process.env[ADVSYMBOLS_FLAG];
+  delete process.env[DEPGRAPH_FLAG];
+  delete process.env[IRTYPES_FLAG];
+});
+
+describe('phase 257 types', () => {
+  it('drops string-injection labels for number and not for string or any', () => {
+    expect(dropsStringInjection('number')).toBe(true);
+    expect(dropsStringInjection('boolean')).toBe(true);
+    expect(dropsStringInjection("'a'|'b'")).toBe(true);
+    expect(dropsStringInjection('string')).toBe(false);
+    expect(dropsStringInjection('any')).toBe(false);
+    expect(sqlFindingForType('number', 'sqli')).toBe(false);
+    process.env[IRTYPES_FLAG] = '1';
+    expect(sqlFindingForType('number', 'sqli')).toBe(false);
+    expect(sqlFindingForType('string', 'sqli')).toBe(true);
+    expect(sqlFindingForType('any', 'sqli')).toBe(true);
+    expect(resolveImplementor([{ iface: 'Repo', method: 'find', className: 'SqlRepo' }], 'Repo', 'find')).toBe('SqlRepo');
+    expect(resolveImplementor([
+      { iface: 'Repo', method: 'find', className: 'A' },
+      { iface: 'Repo', method: 'find', className: 'B' },
+    ], 'Repo', 'find')).toBeUndefined();
+  });
+});
+
+describe('phase 259 dep graph', () => {
+  it('upgrades a called vulnerable export and never downgrades', () => {
+    process.env[DEPGRAPH_FLAG] = '1';
+    const edges = new Map([
+      ['app.main', ['a.handle']],
+      ['a.handle', ['b.parse']],
+    ]);
+    const read: string[] = [];
+    const hit = functionReachable('reachable-via-dependency', 'app.main', 'b.parse', edges, new Set(), (name) => {
+      read.push(name);
+    });
+    expect(hit.reachability).toBe('function-reachable-via-dependency');
+    expect(hit.path).toEqual(['app.main', 'a.handle', 'b.parse']);
+    const missed = functionReachable('reachable-via-dependency', 'app.main', 'b.parse', new Map([['app.main', ['a.handle']]]), new Set(), () => undefined);
+    expect(missed.reachability).toBe('reachable-via-dependency');
+    const kept = functionReachable('function-reachable-via-dependency', 'app.main', 'b.parse', new Map(), new Set(), () => undefined);
+    expect(kept.reachability).toBe('function-reachable-via-dependency');
+    expect(upgradeReach('function-reachable-via-dependency', 'reachable-via-dependency')).toBe('function-reachable-via-dependency');
+  });
+
+  it('does not read a malicious package', () => {
+    process.env[DEPGRAPH_FLAG] = '1';
+    const read: string[] = [];
+    functionReachable('reachable-via-dependency', 'app.main', 'b.parse', new Map([['app.main', ['b.parse']]]), new Set(['b']), (name) => {
+      read.push(name);
+    });
+    expect(read).not.toContain('b');
+  });
+});
+
+describe('phase 260 advisory symbols', () => {
+  it('rejects a row without a source and does not mark the fixture reviewed', () => {
+    const raw = JSON.parse(readFileSync('models/advisory-symbols.json', 'utf8')) as { rows: { reviewed: boolean }[] };
+    expect(raw.rows.every((row) => row.reviewed === false)).toBe(true);
+    expect(() => loadAdvisorySymbols({ rows: [{ osvId: 'X', package: 'p', affectedExports: [], reviewed: false }] })).toThrow(/source/);
+    const script = readFileSync('scripts/advisory-symbols-candidates.mjs', 'utf8');
+    expect(script.includes('reviewed: true')).toBe(false);
+    const rows = loadAdvisorySymbols(raw);
+    process.env[ADVSYMBOLS_FLAG] = '1';
+    expect(symbolReach(rows[0]!, [])).toMatchObject({ reachability: 'symbol-not-called', label: 'unreviewed' });
+    expect(symbolReach(rows[0]!, ['parse'])).toMatchObject({ reachability: 'symbol-reachable', label: 'unreviewed' });
+    const listed = spawnSync(process.execPath, ['scripts/advisory-symbols-candidates.mjs', '--write'], { encoding: 'utf8' });
+    expect(listed.status).not.toBe(0);
+  });
+});

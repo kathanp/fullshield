@@ -1,4 +1,4 @@
-# FullShield — Build Spec for Cursor (full, rev 2026-10-21f)
+# FullShield — Build Spec for Cursor (full, rev 2026-10-21l)
 
 > Package: `fullshield` on npm (owner `kathan2404`). Repo: https://github.com/kathanp/fullshield (public, MIT).
 > Language: TypeScript (strict). Runtime: Node.js ≥ 22.13. Distribution: one npm package (CLI + library + runtime middleware).
@@ -6,6 +6,7 @@
 > This file is the only spec. The 2026-10-14 draft (`SECURITY_SCANNER_SPEC (1).md`) is deleted. Its design lives here; Section 33 lists the few requirements that draft stated and this file had shortened. Later text wins where the draft disagreed.
 > [X] Complete: phases 1–55 and 57–94. Phase 56 is not in 1.0.1 (blocked on R15). Phase 65 is coded; the 5-second nest/undici target is still unmet. Experimental phases stay off unless their flag is set. Phases 36–45 are reference, not a queue.
 > **Current queue is Section 45** for autopilot runs. The 1.2.0 version scope is there. 1.0.1 is published. Section 47 phases 108–250 are in that same 1.2.0 scope, after 107. Section 43 is the finished 2026-10-19 run; Section 42 adds the quality gate (R24, Phase 94) and the definition of done for every remaining phase. During an autopilot run, Section 45 R26 item 4 overrides Section 40.5: no report file is written. Outside a run, Section 40.5 report-file rules still apply. Earlier queue: Section 40 (2026-10-19, lanes A/B/C). Section 36 is the 2026-10-18 record. Leadership phases 76–93 are in Section 39 and are in this tree behind their flags. Advanced phases 60–75 are in Section 37; Phase 47 has an addendum (47.1) there that is part of its acceptance. Section 38 is the production-reliance stance (not a queue). Section 41 lists human-only work. Phase 56 is not in this release.
+> Section 48 is a category index of phases 1–250 (reference, not a queue). Section 49 holds phases 251–500, specified in full.
 
 ---
 
@@ -670,6 +671,7 @@ For each sink call, collect request input strings (query, body, params, headers,
 | Impact | 46–59 | [X] 46–49 and 53. 50–52 and 54–59 are not finished. |
 | Advanced | 60–75 | [X] 61, 64, 66, 74. 60, 62, 63, 65, and 70 are started and still have open items. |
 | npm depth | 108–250 | specified in Section 47; part of the 1.2.0 scope; not started |
+| Future | 251–500 | Section 49, specified in full |
 
 | Phase | Build | Acceptance |
 |---|---|---|
@@ -1869,8 +1871,7 @@ Done. Pull request #18 merged as `dc2b719`. Tag `v1.0.1` is that commit. The six
 **R26. AUTOPILOT runs.** A version may be built by the local AUTOPILOT.md playbook with
 scripts/autopilot/guard.mjs. For such a run only:
 
-1. Queue. The version scope the human writes into this SPEC for the run is the only queue
-   (amends R25 for the run; Section 43 is history).
+1. Queue. Section 43 is history for an autopilot run (amends R25).
 2. Branches. Work happens on a local run/<name> branch off `next`, with phase worktrees
    wk/test/phase-N and wk/code/phase-N in ../fullshield-wt/ (amends R18 and R21 for
    location only; integration is still one phase at a time, in table order, verify and
@@ -1881,14 +1882,12 @@ scripts/autopilot/guard.mjs. For such a run only:
    "never mix phases in one commit" does not apply to that release commit.
 4. Records. No report file, run log, or PROGRESS.md entry is written (replaces Section
    40.5 for the run). R8 still applies: real output is pasted in the chat summary.
-5. Approval. A person approves this SPEC for the run with `guard.mjs --approve-spec`.
-   After approval the SPEC is frozen for the run; a change needs a new approval.
-6. Everything else in Section 0 applies unchanged, including R1, R3, R3a, R10, R11, R13,
+5. Everything else in Section 0 applies unchanged, including R1, R3, R3a, R10, R11, R13,
    R15, R16a, R17, R22, R23, R24 and S1-S7.
 
 ### Version scope 1.2.0
 
-This block is the only queue for the autopilot run (R26 item 1). Target `1.2.0`, a minor (R16a): every rule ID in Section 46 and Section 47 is new. Definitions stay in those sections. This run does not promote any rule (R11). Section 41 items 1–2 on NodeGoat and goof are not done, so nothing moves to stable and default `scan --json` output does not change (no R10). Phases 108–250 are in this version, after 107.
+Target `1.2.0`, a minor (R16a): every rule ID in Section 46 and Section 47 is new. Definitions stay in those sections. This run does not promote any rule (R11). Section 41 items 1–2 on NodeGoat and goof are not done, so nothing moves to stable and default `scan --json` output does not change (no R10). Phases 108–250 are in this version, after 107.
 
 Order: 105 → 95 → 96 → 102 → 104 → 97 → 99 → 100 → 98 → 103 → 101 → 106 → 107, then 108 through 250 in numeric order.
 
@@ -2221,7 +2220,7 @@ All critical except `.tfstate` (high). Masked. Same rotate remediation as 7.2. `
 Order: 105 → 95 → 96 → 102 → 104 → 97 → 99 → 100 → 98 → 103 → 101 → 106 → 107.
 Tier P first because each is small and testable in isolation. 101 last among Tier T because it is the largest and depends on the bundler-entry classifier.
 Report file: `reports/<date>.md`, Section 40.5 rules. Definition of done: 42.1. One flag per phase, one merge at a time, default-scan-diff EMPTY.
-Under AUTOPILOT, this order must be copied into the 1.2.0 version scope; the scope is the only queue autopilot reads.
+Under AUTOPILOT, this order is the 1.2.0 order.
 
 ### 46.2 Needs human decision before 1.2.0
 1. **Promotion criterion for pattern rules.** Phase 43 requires an untouched-holdout recall gain for SAST. Tier P rules (95, 96, 102, 105) find config mistakes that holdout apps mostly don't contain, so they can never meet that bar. Proposal: Tier P rules qualify with (a) 0 human-confirmed FPs in a 20-finding sample across `bench/realworld.json`, and (b) clean-app 0. This is an R1 threshold change. Approve, reject, or amend.
@@ -2775,3 +2774,3619 @@ Build 108 through 250 in numeric order, after phase 107, as Section 45 lists the
 3. Phase 245 and Phase 246 change finding keys if promoted. They need an R10 review. Until then they stay flagged.
 4. Phase 226's popular list is frozen at the names already in source. Adding names is a human edit.
 5. Implementation follows the 1.2.0 order in Section 45. These phases are already in that scope.
+
+---
+
+## 48. Category Index (reference — not a queue)
+
+This section groups phases 1–250 by what they do. It does not define order, scope, or status. Section 45 is still the only queue (R25, R26). Each phase is listed once, under its primary category. Phases that span two areas name the other area in a note. Status lives in Section 30 and in each phase's own heading. This index does not record status.
+
+### 48.0 Summary
+
+| # | Category | Phases | Count | Share |
+|---|---|---|---|---|
+| 1 | Core engine, platform, performance | 1, 22, 25, 42, 46, 65, 78, 79, 88 | 9 | 3.6% |
+| 2 | SAST (code vulnerabilities) | 4, 5, 13, 27, 28, 29, 40, 50, 51, 53, 57, 64, 75, 80, 81, 90, 95–101, 103, 107 | 25 | 10.0% |
+| 3 | Secrets | 2, 30, 69, 82, 105 | 5 | 2.0% |
+| 4 | Dependencies & reachability | 3, 11, 39, 52, 54, 55, 56, 61, 62, 63, 104, 106, 108–147, 228–247 | 72 | 28.8% |
+| 5 | Supply-chain defense | 19, 31, 70, 86, 87, 148–227 | 85 | 34.0% |
+| 6 | Config, IaC, edge, host | 12, 23, 33, 35, 102 | 5 | 2.0% |
+| 7 | Runtime protection & live testing | 8, 17, 18, 20, 32, 71, 72 | 7 | 2.8% |
+| 8 | AI & LLM-app security | 14, 15, 16, 21 | 4 | 1.6% |
+| 9 | Fix & remediation | 7, 24, 48, 49, 91, 248 | 6 | 2.4% |
+| 10 | Reporting, CI, integrations, SBOM | 6, 9, 34, 44, 47, 58, 59, 60, 66, 74, 83, 84, 85, 89, 249, 250 | 16 | 6.4% |
+| 11 | Evidence, benchmarks, governance | 26, 37, 38, 41, 43, 67, 68, 73, 76, 77, 93 | 11 | 4.4% |
+| 12 | Release, quality, self-security | 10, 36, 45, 92, 94 | 5 | 2.0% |
+| | **Total** | | **250** | |
+
+Sub-phases 26b, 26c and the NoSQL change (Section 25) belong to category 2 and are not counted separately.
+
+---
+
+### 48.1 Core engine, platform, performance (9)
+What the scan runs on: file walking, orchestration, platforms, speed, and the dev loop.
+
+| Phase | Name | Flag |
+|---|---|---|
+| 1 | Scaffold, Finding model, config, walker | stable |
+| 22 | Threat model, incremental, workspaces, dashboard | `PLATFORM` |
+| 25 | Windows + lazy SQLite | stable |
+| 42 | Performance harness, worker parse pool | stable |
+| 46 | Supported runtime floor (Node ≥ 22.13) | stable |
+| 65 | Taint function summaries (5 s target unmet) | `TAINT_SUMMARIES` |
+| 78 | Cold-scan performance v2 | `PERF2` |
+| 79 | Time budget and partial results | `BUDGET` |
+| 88 | `fullshield dev` watch loop | `DEV` |
+
+### 48.2 SAST — code vulnerabilities (25)
+Taint engine, rule classes, framework sources, and precision work on code findings.
+
+| Phase | Name | Flag |
+|---|---|---|
+| 4 | SAST engine + SQLI, CMDI, PATH, EVAL, JWT, CRYPTO | stable |
+| 5 | Remaining SAST rules (+ config module) | stable |
+| 13 | Cross-file taint (also reachability + SBOM) | stable |
+| 27 | ORM raw SQL, template-literal shell gaps | `SAST_GAPS` |
+| 28 | Next.js / NestJS / Hono / Koa sources | `FRAMEWORKS` |
+| 29 | New classes (ReDoS, deser, XXE, CSRF, …) | `CLASSES` |
+| 40 | Taint engine v2 | `TAINT_V2` |
+| 50 | Template-engine-aware XSS (Swig) | R10 |
+| 51 | Cross-file returns | R10 |
+| 53 | Validation inference (zod/joi/class-validator) | `VALIDATION` |
+| 57 | Custom rules (schema) | `CUSTOM_RULES` |
+| 64 | Config-declared sources and sanitizers | `CUSTOM_SANITIZERS` |
+| 75 | Router-level auth inheritance | R10 |
+| 80 | Type-aware receiver resolution | `TYPES` |
+| 81 | Library model packs | `MODELS` |
+| 90 | User-supplied Semgrep-style rules | `SEMGREP_RULES` |
+| 95 | Disabled TLS verification | `TLS` |
+| 96 | Crypto v2 (ECB, IVs, RSA, JWT expiry) | `CRYPTO2` |
+| 97 | Server-side template injection | `SSTI` |
+| 98 | Secrets written to logs | `LOGLEAK` |
+| 99 | Unverified webhooks | `WEBHOOK` |
+| 100 | Session fixation | `SESSION2` |
+| 101 | Browser-side JS (DOM XSS, React, postMessage) | `BROWSER` |
+| 103 | Next.js server boundary (also config + secret) | `NEXT` |
+| 107 | Ownership-check (IDOR) hints | `IDOR` |
+
+### 48.3 Secrets (5)
+
+| Phase | Name | Flag |
+|---|---|---|
+| 2 | Secrets module, masking, `--staged` | stable |
+| 30 | History, bundle, `--verify-secrets` | `SECRETS_ADV` |
+| 69 | Rotation playbooks (docs only) | — |
+| 82 | Offline structure/checksum checks | `SECRET_CHECK` |
+| 105 | Committed credential files | `CREDFILES` |
+
+### 48.4 Dependencies & reachability (72)
+Lockfiles, OSV, reachability, the dependency graph, and advisory handling.
+
+| Phase | Name | Flag |
+|---|---|---|
+| 3 | Lockfile parsers, OSV batch, cache, offline | stable |
+| 11 | `watch` (new OSV only) | stable |
+| 39 | Reachability v2 (symbol-level) | stable |
+| 52 | Phantom and mismatched deps | R10 |
+| 54 | Per-workspace lockfiles | `WORKSPACES` |
+| 55 | Runtime-observed reachability | `OBSERVED_REACH` |
+| 56 | Exploit prioritization (EPSS/KEV) — **blocked on R15** | `EXPLOIT_INTEL` |
+| 61 | Reachability evidence | `REACH_EVIDENCE` |
+| 62 | Lockfile PR diff | `DEPS_DIFF` |
+| 63 | Modern lockfile formats (yarn berry, pnpm v9, bun) | `LOCKFILES` |
+| 104 | Vendored library versions | `VENDORED` |
+| 106 | Unmaintained + unfixed deps | `HEALTH` |
+| 108–127 | npm Lane A — lockfile truth (20) | `NPM_*` |
+| 128–147 | npm Lane B — manifest and project policy (20; 136 and 142 are `CONFIG-*` IDs) | `NPM_*` |
+| 228–242 | npm Lane G — graph and reachability (15) | `NPM_*` |
+| 243–247 | npm Lane H — advisory fidelity (OSV range, withdrawn, CVSS, alias, purl) (5) | `NPM_*` |
+
+### 48.5 Supply-chain defense (85)
+Signals that a package itself is hostile or tampered with, beyond known advisories.
+
+| Phase | Name | Flag |
+|---|---|---|
+| 19 | Supply-chain defense + install-guard | `SUPPLY` |
+| 31 | Worm/workflow indicators, overrides, VEX | `VEX` |
+| 70 | Stealer, chain-C2, platform-gate, security-placeholder | `SUPPLY` |
+| 86 | Dependency capability profile and diff | `CAPABILITIES` |
+| 87 | Provenance and maintainer change signals | `PROVENANCE` |
+| 148–167 | npm Lane C — registry packument (20) | `NPM_REG_*` |
+| 168–187 | npm Lane D — tarball bytes (20) | `NPM_TARBALL_*` |
+| 188–207 | npm Lane E — lifecycle scripts (20) | `NPM_SCRIPT_*` |
+| 208–227 | npm Lane F — package names (20; 226 and 227 emit no finding) | `NPM_*` |
+
+### 48.6 Config, IaC, edge, host (5)
+
+| Phase | Name | Flag |
+|---|---|---|
+| 12 | `edge` posture check | stable |
+| 23 | Compliance mapping + light IaC | `COMPLIANCE` / `IAC` |
+| 33 | MCP client/server config | `MCPCFG` |
+| 35 | Host OpenSSH exposure | `HOST` |
+| 102 | Electron hardening | `ELECTRON` |
+
+Config rules in the stable `config` module were built in Phase 5 (category 2).
+
+### 48.7 Runtime protection & live testing (7)
+
+| Phase | Name | Flag |
+|---|---|---|
+| 8 | Express/Fastify middleware, rate limiter | stable (monitor) |
+| 17 | RASP sink hooks + `--import` | `RASP` |
+| 18 | Virtual patches, egress, honeytokens, threat response | `VPATCH` / `HONEY` |
+| 20 | Exploit confirm + fuzz + IDOR (localhost only) | `CONFIRM` |
+| 32 | Response DLP | `DLP` |
+| 71 | RASP sink coverage | `RASP` |
+| 72 | RASP DNS pin store | `RASP` |
+
+### 48.8 AI & LLM-app security (4)
+
+| Phase | Name | Flag |
+|---|---|---|
+| 14 | AI provider layer, redaction, cost cap | `--ai` |
+| 15 | AI explain + verified fix | `--ai` |
+| 16 | AI logic hunter + anomaly baseline (internal only) | `AI_INTERNAL` |
+| 21 | MCP server + LLM-app rules | `MCP` / `LLM` |
+
+### 48.9 Fix & remediation (6)
+
+| Phase | Name | Flag |
+|---|---|---|
+| 7 | Fix engine (`fix`, `fix --apply`) | stable |
+| 24 | Remediation agent (localhost only) | `AGENT` |
+| 48 | Unused dependency removal | stable |
+| 49 | Upgrade plan | stable |
+| 91 | Fix verification | `FIX_VERIFY` |
+| 248 | Nested override proposal | `NPM_FIX_NESTED` |
+
+### 48.10 Reporting, CI, integrations, SBOM (16)
+
+| Phase | Name | Flag |
+|---|---|---|
+| 6 | SARIF/MD/HTML, `--fail-on`, baseline, suppression | stable |
+| 9 | `init`, notifiers | stable |
+| 34 | Policy-as-code + PR summary | `POLICY` |
+| 44 | Developer experience (console, doctor, FS-E codes) | stable |
+| 47 | Actionable console view | stable |
+| 58 | Route security map | `ROUTES` |
+| 59 | GitHub Action wrapper | — |
+| 60 | Offline finding explainer | `EXPLAIN` |
+| 66 | Reachability in SBOM and VEX | `SBOM_REACH` |
+| 74 | SARIF v2 fields | `SARIF_V2` |
+| 83 | External findings ingest and dedupe | `INGEST` |
+| 84 | Deterministic priority score | `PRIORITY` |
+| 85 | Attack paths | `PATHS` |
+| 89 | SPDX SBOM | `SPDX` |
+| 249 | SBOM purl qualifier | `NPM_SBOM_PURL` |
+| 250 | Local npm audit diff | `NPM_AUDIT_DIFF` |
+
+### 48.11 Evidence, benchmarks, governance (11)
+Dev tooling only. Not in the tarball unless the phase says so.
+
+| Phase | Name |
+|---|---|
+| 26 | Public benchmark harness |
+| 37 | Benchmark governance (holdouts, review sheets) |
+| 38 | Competitive benchmark |
+| 41 | Precision pass (real-world corpus) |
+| 43 | Experimental → stable promotion criteria |
+| 67 | Human review CLI |
+| 68 | Holdout freeze and one-shot run |
+| 73 | Promotion evidence batch 1 |
+| 76 | Precision sampling harness |
+| 77 | Real-world precision regression gate |
+| 93 | Promotion evidence batch 2 |
+
+### 48.12 Release, quality, self-security (5)
+
+| Phase | Name |
+|---|---|
+| 10 | README, rule docs, CHANGELOG, publish config |
+| 36 | Release integrity (provenance gate, diff, semver, pack budget) |
+| 45 | Self-security hardening (pinned actions, Scorecard, CodeQL) |
+| 92 | Repository hygiene (issue templates, branch-protection doc) |
+| 94 | Quality gate (R24) |
+
+### 48.13 Notes on the distribution
+- Categories 4 and 5 hold 157 of 250 phases. 143 of them (108–250) are in the 1.2.0 scope.
+- Secrets, config/IaC, and release each have 5 phases.
+- Category 11 has 11 phases, but the human-only items in Section 41 still decide whether any number in it can be cited.
+
+---
+
+## 49. Phases 251–500
+
+Phases 1–250 mostly add rules on top of a few engines: taint, reachability, the registry/tarball cache, and the finding pipeline. A rule cannot be more precise than the engine under it. Phases 251–500 deepen those engines and the work built on them.
+
+Phases 251–500 are specified in full in this section.
+
+**Autopilot rule:** autopilot does not rewrite, shorten, or replace a phase in this section. A phase whose text is still missing a flag, an acceptance check, or a false-positive paragraph is not buildable, and autopilot parks it instead of inventing the missing text.
+
+**Precondition (R1):** Section 41 items 1–2 are done for NodeGoat and goof before any phase here is promoted. Phases may be built before that, behind their flags. Without reviewed numbers, none of them can claim a gain.
+
+**Rules for every phase from 251 to 500** (on top of Section 0, 39.1 and 42.1):
+- Each phase sits behind its own `FULLSHIELD_EXPERIMENTAL_<NAME>` flag. With the flag off, `scan --json` is byte-identical on every fixture, bench app and realworld repo.
+- **Replacement phases (251, 252, 253, 254, 256, 257, 269) first reach byte-identical output against the old engine with the flag on, before any behavior change.** A behavior change is a second, separately reviewed step that produces a `DIFF.txt` (R10). The same applies to any later phase that changes findings: prove byte-identical output with the new code present but disabled, then change behavior in a second step.
+- A phase that needs the IR (251) is not started before 251 reaches byte-identical output.
+- No new hard dependency (R13). No new network host (R15). No ML scoring, no telemetry, no LLM in the request path, nothing that attacks a non-local host (Section 31).
+- JS/TS only (Section 4.3).
+- No new finding rule ID unless the phase says so.
+- Every number goes into `bench/deep/<phase>.json` from a stored run, labeled reviewed or unreviewed (R7).
+- Fixtures are written from scratch (B8). Malware-shaped fixtures are inert and use `example.invalid`.
+- Phases that read npm data reuse `NpmFacts` (261) and its cache. They never fetch on their own.
+
+**Dependency order:**
+
+```
+251 IR ─┬─ 252 heap ── 253 context ── 254 async
+        ├─ 256 labels ── 258 guards
+        ├─ 257 types (needs 80)
+        ├─ 255 routes
+        ├─ 262 evidence ── 263 diff-testing
+        └─ 269 incremental ── 270 scale
+259 dep call graph (needs 228, 233) ── 260 advisory symbols
+261 npm engine unify (independent)
+264 metamorphic (needs 251) ── 265 precision gate (needs 76 labels)
+266 corpus (independent)
+267 shared sink catalog (needs 251, 71) ── 268 runtime feedback (needs 55, 259)
+```
+
+Build order for the specified phases: 261, 266, 251, 256, 252, 253, 254, 255, 257, 258, 262, 264, 259, 260, 263, 265, 267, 268, 269, 270, then 271 through 290 in numeric order. Phases 271–290 need 251–258.
+
+Phases 291–310 lower frameworks into the 251 IR and the 255 route model. They do not start before 251 is byte-identical. Phases 311–330 need 255 and 307. Phases 331–345 need 256. Phases 346–380 need 261 and read only `NpmFacts` or local files. Phases 381–405 need 267, ship in the runtime entry, and import no scanner code (R14). Phases 406–425 need 262. Phases 426–450 add experimental output fields and do not change the default finding key. Phases 451–465 read text the repo already contains. Phases 466–500 are dev tooling, are not packed (Q12), and do not scan a holdout app inside the phase commit (B3).
+
+### 49.0 Analysis contract (binds 251–500)
+
+Later phases are transfer functions on three objects. A phase that walks the AST on its own, keeps a private taint bit, or prints a score is wrong.
+
+1. **IR (251).** One SSA-like representation of the program. A framework, ORM, template, queue, or CI file becomes IR edges: sources, sinks, calls, route records, and auth predicates. After 251 is on, stable SAST rules are queries. They do not reimplement flow.
+2. **Witness (262).** A finding carries a replayable witness: files, lines, IR ops, labels at the sink, sanitizers that removed labels, and guards that failed to. `scripts/verify-proof.mjs` re-derives the witness from the cited files and does not import the engine. A finding whose witness fails is a bug, not a result. Phases before 262 still attach the witness object; the checker runs when 262 is on.
+3. **Fuel and soundness (271).** Fixpoints, points-to, and partial evaluation spend fuel. Exhaustion writes `unsoundEvent { kind, file, line, reason }` from the closed enum and over-approximates in `sound` mode. It does not call `eval`, `vm`, or `Function`. It does not execute the program and it does not open a network connection (R15).
+
+The value domain is a product, not a boolean and not a learned score (Section 31, Phase 84):
+
+```
+Effect = Origin × LabelSet × CharClass × AccessPath × MustMay × Privilege
+```
+
+Join is union on may-facts and intersection on must-facts. Severity stays the documented table for that rule. Origins used below: `request`, `stored`, `session`, `cache`, `queue`, `event`, `cli`, `environment`, `principal`, `tenant`, `secret`, `jwt-header`, `gha-event`. A new origin is added only by the phase that names it.
+
+Queries from 272 on are demand-driven from sinks (tabulation over the IR). A scan that asks about SQL does not build the HTML context.
+
+Flag off, `scan --json` is byte-identical. A phase that can change a finding key first lands with the new code disabled and output identical, then changes behavior in a separately reviewed step that writes `DIFF.txt` (R10). That split is part of the phase, not a follow-up someone might skip.
+
+Shipped files do not claim exclusivity, rank, or completeness (Section 4.4, Section 31). The mechanism is the spec. The measurement is a stored run labeled `unreviewed` until a human reviews it (R7).
+
+### Phase 251 — Unified dataflow IR [`FULLSHIELD_EXPERIMENTAL_IR`]
+Today taint is spread across several AST walkers: intra-function taint, cross-file taint, taint v2, and the Phase 65 summaries. Replace them with one intermediate representation.
+
+Build:
+1. Lower each function to an IR of `assign`, `call`, `return`, `phi`, `property-load`, `property-store`, `await`, and `branch(cond)`. Values are SSA-numbered. Source location is kept on every node.
+2. A module-level IR links imports to exports through the existing resolver: TS paths, barrels, exports maps.
+3. All stable SAST rules are re-expressed as `source → sink` queries over the IR. Rule files declare sources, sinks, and sanitizers as data, using the Phase 81 schema.
+4. The IR is cached per file under the parse cache, keyed by content hash + version + config hash. A corrupt entry is discarded.
+
+Acceptance: with the flag on, default `scan --json` is byte-identical to the flag-off engine on vulnerable-app, clean-app, all bench apps, and all realworld repos. Every SAST rule has a test that runs it once on the old engine and once on the IR. Mutation smoke (Q10) passes on IR-backed rules. Peak RSS and cold time on the Next.js sample are no worse than 110% of the stored Phase 78 run.
+
+FP risk: none by construction while the output is identical. This phase changes architecture, not findings.
+
+### Phase 252 — Field-sensitive heap model [`FULLSHIELD_EXPERIMENTAL_HEAP`]
+Track taint per access path (`obj.a.b`, `arr[*]`, `map.get(k)`) instead of per variable, with a configurable path depth limit (default 3, then collapse to the base).
+
+Build: path-indexed taint sets on `property-load` / `property-store`. Spread, `Object.assign`, destructuring, and rest/spread arguments copy paths. Array methods (`map`, `filter`, `find`, `reduce`, `forEach`) carry element taint. `Map`/`Set` use a coarse `*` key.
+
+Acceptance: positive fixture: `const o = { safe: 1, bad: req.query.x }; db.query(sql + o.bad)` → finding. Negative fixture: same object with `db.query(sql + o.safe)` → no finding, where the old engine reported one. Report every removed key on tuning apps as `seen`, unreviewed, in `DIFF.txt` (R10 step).
+
+FP risk: under-taint when the path limit collapses. A fixture at depth 4 documents that the collapse keeps the taint (sound side), not drops it.
+
+### Phase 253 — Context-sensitive summaries [`FULLSHIELD_EXPERIMENTAL_CONTEXT`]
+Replace the hard depth-5 hop limit with function summaries computed to a fixpoint, using one level of call-site sensitivity (k=1).
+
+Build: each function gets a summary `param_i → return`, `param_i → sink(class)`, `param_i → param_j.field`. Summaries are computed bottom-up over the call graph with a worklist. Recursion and strongly connected components iterate to a fixpoint with a cap of 10 rounds; past the cap, the summary is "all params flow everywhere" (sound). Call-site sensitivity distinguishes `helper(req.body.x)` from `helper("literal")` at the same callee.
+
+Acceptance: a fixture with a 7-hop chain across 4 files is found (the old engine stops at 5). A fixture where one callee is called with a tainted and a literal argument reports only the tainted call site. A recursive fixture terminates. The time budget on nest/undici is no worse than the Phase 65 stored run.
+
+### Phase 254 — Async and event flow [`FULLSHIELD_EXPERIMENTAL_ASYNCFLOW`]
+Model flows that the IR otherwise breaks at.
+
+Build: `await` and `.then(cb)` pass the resolved value. `EventEmitter.emit(name, v)` → `on(name, (x) => …)` when the emitter object and event name are both statically resolvable. Streams: `pipe` and `pipeline` carry taint from a readable built from request input. Callbacks into known library APIs (from model packs) pass arguments to the callback's parameters. `setImmediate` / `queueMicrotask` / `process.nextTick` carry closure taint.
+
+Acceptance: positive fixture per construct. Negative: emit and listen on different event names; an emitter whose identity cannot be resolved produces no cross-handler flow (documented gap, not a guess).
+
+### Phase 255 — Unified route model [`FULLSHIELD_EXPERIMENTAL_ROUTEMODEL`]
+Today route knowledge is split across AUTH (75), routes (58), IDOR (107), attack paths (85), webhooks (99), and frameworks (28). Build one model all of them read.
+
+Build: a `Route` record of `{ method, fullPath, file, line, handlerFn, middlewareChain[], authState: present|absent|unknown, validators[], framework }` built once per scan from Express, Fastify, Koa, Hono, Nest, and Next. Mount prefixes, router nesting, and cross-file routers are resolved through the IR module graph.
+
+Acceptance: each consumer phase gets a test asserting it reads the shared model, and each consumer's existing tests pass unchanged. A fixture with three nested routers across three files produces the correct `fullPath` and the inherited auth state.
+
+### Phase 256 — Per-class taint labels [`FULLSHIELD_EXPERIMENTAL_LABELS`]
+Replace boolean taint with a set of labels: `{sqli, nosqli, cmdi, path, xss, ssrf, redirect, eval, ssti, log}`. Sources carry all labels. Sanitizers remove only the labels they handle. Validators refine the value type: `isInt`, `Number()`, and `z.number()` remove every string-injection label at once.
+
+Build: sanitizer and validator semantics move into model packs as `removes: [labels]` / `refines: type`. The Section 6.2 rules become data: `encodeURIComponent` removes `redirect`/`ssrf-path` only, and `DOMPurify` removes `xss` only.
+
+Acceptance: table-driven tests run every sanitizer against every sink class (a matrix of about 30 sanitizers × 10 classes), each cell asserting the expected kept or removed result. Fixture: an HTML-escaped value reaching SQL still reports. Fixture: `Number(req.query.id)` into SQL concatenation does not report. Removed or added keys go to a `DIFF.txt` (R10).
+
+### Phase 257 — Types on the IR [`FULLSHIELD_EXPERIMENTAL_IRTYPES`]
+Move Phase 80's type checker results onto IR values so every rule uses them, not only receiver resolution.
+
+Build: attach the TS type to each IR value when a program is available. Uses: (a) sink receiver resolution (Phase 80); (b) a value typed `number`, `boolean`, or a literal union drops string-injection labels (256); (c) the interface method a call targets resolves to the implementing class when there is exactly one implementation in the program.
+
+Acceptance: the Phase 80 fixtures pass through the IR path. A new fixture: `function get(id: number) { db.query("… " + id) }` called from a route with `Number(req.params.id)` → no finding. Same with `id: string` → finding. `any` keeps today's behavior.
+
+### Phase 258 — Guard recognition [`FULLSHIELD_EXPERIMENTAL_GUARDS`]
+Prune flows that a dominating guard makes safe. This is not full path sensitivity, just a fixed set of recognized guard shapes.
+
+Build: recognize a dominating guard on the same value before the sink, where the failing branch returns or throws. Shapes:
+- `allowlist.includes(x)` with a literal array
+- `x === 'a' || x === 'b'`
+- `/^[a-z0-9_-]+$/.test(x)` with an anchored regex that excludes the dangerous characters for that sink class
+- `path.resolve(base, x).startsWith(base + path.sep)`
+- `typeof x === 'number'`
+
+Guards clear only the labels they make impossible. An unanchored regex is not a guard.
+
+Acceptance: positive and negative fixture per guard shape. The negative cases are: a guard on a different variable, a guard in a non-dominating branch, an unanchored regex, and `startsWith(base)` without `path.sep` (the known prefix bug, still reported).
+
+FP risk: a guard that looks safe but is not. The anchored-regex check is conservative: any character class that admits a sink metacharacter keeps the label.
+
+### Phase 259 — Call graph into node_modules [`FULLSHIELD_EXPERIMENTAL_DEPGRAPH`]
+Extend reachability across the dependency boundary: does the app's call into `express` eventually reach the vulnerable function in `qs`?
+
+Build: parse installed packages statically (never execute, R15), lazily, only along paths from an imported direct dependency to a package with an advisory that names functions (OSV `affected_functions` or Phase 260 data). Build package-level summaries `export → reaches(pkg.fn)` with a depth cap of 3 packages, cached by package integrity. New reachability class `function-reachable-via-dependency`, flag-only.
+
+Acceptance: a fixture `node_modules` with app → `a.handle()` → `b.parse()` (vulnerable) reports `function-reachable-via-dependency` with the full call path. The same tree where `a` never calls `b.parse` reports `reachable-via-dependency` (today's class), not a downgrade. A test asserts no downgrade is ever made from this phase. It only upgrades confidence or adds evidence. Malicious packages are never touched.
+
+### Phase 260 — Advisory symbol data [`FULLSHIELD_EXPERIMENTAL_ADVSYMBOLS`]
+Most OSV npm advisories do not list affected functions, so symbol reachability (39) rarely runs.
+
+Build: `models/advisory-symbols.json` with rows `{ osvId, package, affectedExports[], source: <patch commit URL>, reviewed: false }`. Only the human sets `reviewed: true`. Rows with `reviewed: false` are used only under this flag and are labeled `unreviewed` on the finding. A script `scripts/advisory-symbols-candidates.mjs` lists the top 100 advisories by hit count across the bench and realworld corpus for the human to fill in. It never fills a row itself (R6: never invent vulnerability data).
+
+Acceptance: a schema test rejects rows without a `source`. A test asserts Cursor-authored commits never set `reviewed: true` (same guard as Phase 67). One hand-written fixture row drives a `symbol-not-called` result in a fixture app.
+
+### Phase 261 — npm check engine and flag collapse [`FULLSHIELD_EXPERIMENTAL_NPM_GROUPS`]
+Phases 108–250 add 143 flags and repeat the same fetch, cache, and parse code.
+
+Build: one `NpmFacts` layer computed once per scan: lock rows, manifest, `.npmrc`, packument cache, tarball cache, script text, names, graph. Every 108–250 check becomes a pure function `(NpmFacts) → Finding[]`. Add 8 group flags, one per Section 47 group (`NPM_LOCK`, `NPM_MANIFEST`, `NPM_REGISTRY`, `NPM_TARBALL`, `NPM_SCRIPTS`, `NPM_NAMES`, `NPM_GRAPH`, `NPM_ADVISORY`). Each per-phase flag stays as an alias for one minor release with a deprecation note.
+
+Acceptance: for every 108–250 rule ID, its output under its old flag equals its output under its group flag (generated test). A counter test asserts each packument and each tarball is fetched at most once per scan. Q5 API snapshot diff listed. Minor bump (R16a).
+
+### Phase 262 — Machine-checkable evidence [`FULLSHIELD_EXPERIMENTAL_PROOF`]
+Each finding carries enough data to re-check it without trusting the engine.
+
+Build: `proof: { source: {file,line,col,kind}, sink: {file,line,col,class}, steps: [{file,line,op}], labelsAtSink: [...], sanitizersSeen: [{fn, removed: [...]}], guardsSeen: [...] }`. `scripts/verify-proof.mjs` re-parses only the cited files and checks each step exists and connects (each step's value is used by the next). A finding whose proof fails verification is a bug, not a result.
+
+Acceptance: every SAST finding on vulnerable-app and all bench apps has a proof that verifies. A deliberately corrupted proof fails. The verifier imports no engine code (separate implementation, so it can catch engine bugs).
+
+### Phase 263 — Differential testing against Semgrep CE (dev tooling)
+Turn disagreements with another engine into a triage queue.
+
+Build: on tuning apps and the realworld corpus, run pinned local Semgrep CE with public rulesets (no account, R15 not involved since it runs locally; never bundle its rules, Section 31). Map findings to B4 classes. Export three sets: both-found, only-FullShield, only-Semgrep. Each disagreement gets the cited code and both traces into `bench/diff/<app>.todo.json` with `label: null`.
+
+Acceptance: deterministic export for a fixed pin. Labels stay null (human-only). No claim about Semgrep accuracy in any shipped file.
+
+### Phase 264 — Metamorphic testing [`dev tooling`]
+Semantically equal code must give the same finding.
+
+Build: `scripts/metamorph.mjs` takes each positive SAST fixture and generates variants. Transforms:
+- rename variables
+- split the flow across 2 or 3 files
+- wrap it in a helper
+- convert the callback to async/await
+- inline or extract a constant
+- swap string concat for a template literal
+- add dead code
+- re-export through a barrel
+
+Each variant must report the same class at the moved sink line. Each failure is written to `bench/metamorph/failures.json` as an engine gap with the transform name.
+
+Acceptance: a gap report exists for every SAST rule. The test suite runs a fixed seed subset in CI (non-blocking at first). A transform that changes semantics is a test bug, documented and removed. Variants never enter the default fixture set (R3).
+
+### Phase 265 — Precision gate per rule (CI)
+Once humans have labeled samples (Phase 76), stop rules from silently getting worse.
+
+Build: `scripts/precision-gate.mjs` reads human labels and computes the Wilson 95% lower bound per rule. The rule's committed floor lives in `quality/precision-floors.json`, which is human-owned (R1). A rule whose bound drops below its floor fails CI on `next`. A rule with fewer than 20 labels is `ungated` and listed.
+
+Acceptance: fixture labels drive pass, fail, and ungated cases. A test asserts the script never writes the floors file. Note: this gate is inactive until Section 41 item 2 is done, and says so on every run.
+
+### Phase 266 — Real-world corpus v2 (dev tooling)
+10 repos are too few to measure false positives.
+
+Build: `bench/realworld.json` grows to 50 pinned repos, stratified by Express, Fastify, Nest, Next, Koa/Hono, monorepos, and Electron, plus 5 TS-heavy and 5 JS-only. Per repo, record crashes, time, peak RSS, and finding count per rule, with all flags off and then each group flag on. Store in `bench/realworld-v2.json`.
+
+Acceptance: repos are cloned at their pins, never executed, never installed. Any crash is a P0 issue logged with the repo and file. The finding-count table feeds Phase 76 sampling.
+
+### Phase 267 — Shared sink catalog [`FULLSHIELD_EXPERIMENTAL_SINKCATALOG`]
+Static rules and RASP hooks describe the same sinks in two places.
+
+Build: `models/sinks.json`, the single catalog `{ package, member, argIndex, class, staticSupported, runtimeHook }`. SAST sink matching and RASP hook installation both read it. A consistency test fails when a static sink has no runtime hook and no documented `runtimeGap` reason, or the reverse.
+
+Acceptance: RASP corpus results are unchanged. Static output is byte-identical. The gap list is generated into `RASP-SINKS.md`.
+
+### Phase 268 — Runtime-confirmed reachability [`FULLSHIELD_EXPERIMENTAL_RUNTIMEREACH`]
+Combine Phase 55's observed loads with the 259 graph.
+
+Build: when the local `observed-reach.json` shows a vulnerable function's module loaded and its export was called (a call counter in the register hook, names only, no arguments), mark the finding `runtime-observed`. The file stays local and never leaves the machine (R15, test asserts no network). Absence of an observation never downgrades a finding, because a test run is not full coverage.
+
+Acceptance: a fixture app run through the hook in a test produces `runtime-observed` for the called path and nothing for the uncalled one. Hook failure fails open.
+
+### Phase 269 — Incremental IR with dependency tracking [`FULLSHIELD_EXPERIMENTAL_INCR2`]
+Build: a query-based engine (Salsa-style). Each derived fact (file IR, function summary, route model, reachability edge) records which inputs it read. A file edit invalidates only the facts that depend on it. Summaries whose output hash did not change stop invalidation from spreading further.
+
+Acceptance: output identical to a cold scan after a sequence of 20 scripted edits on a bench app. Stored `--changed` p50 on nest and undici at or under 2 s (the Phase 42 target was 5 s). If unmet, store the numbers and update Section 28.
+
+### Phase 270 — Memory-bounded monorepo mode [`FULLSHIELD_EXPERIMENTAL_SHARDS`]
+Build: for repos above a configurable size (default 500k LOC), split IR construction by workspace into shards on disk. Summaries cross shard boundaries through exported-function summaries only. Peak RSS is capped by `scan.maxMemoryMb` (default 1536); above the cap, shards are evicted least-recently-used.
+
+Acceptance: a synthetic 1M-LOC fixture (generated at test time, not committed) completes under the cap with output identical to an unsharded run on a smaller sample. Next.js realworld peak RSS goes down versus the stored Phase 78 run.
+
+### Phase 271 — Soundness mode and report [`FULLSHIELD_EXPERIMENTAL_SOUNDNESS`]
+Every analysis makes approximations. Today they are silent. Make them visible.
+
+Build:
+1. Every place the engine gives up records an `unsoundEvent { kind, file, line, reason }`. Places include dynamic property names, `eval`'d code, unresolved imports, depth caps, fixpoint caps, unknown callees, and `Proxy`. Kinds come from a closed enum in `src/engine/unsound.ts`.
+2. `scan --soundness-report` writes `.fullshield/soundness.json` with counts per kind and per file, plus the top 50 files by event count.
+3. `scan.mode: "precise" | "sound"`. `precise` keeps today's behavior: an unknown callee drops taint. `sound` keeps taint through unknown callees. `sound` is expected to add findings and is never the default.
+
+Acceptance: a fixture per event kind produces exactly that event. `precise` mode output is byte-identical to the flag off. `sound` mode on vulnerable-app reports a superset of `precise` findings (test asserts the subset relation). The report lists file paths only, never code snippets.
+
+FP risk: `sound` mode is noisy by design. It is documented as a research and audit mode.
+
+### Phase 272 — Points-to analysis [`FULLSHIELD_EXPERIMENTAL_POINTSTO`]
+Know which objects a variable can hold, so that `db.query`, `this.repo.find` and `service[method]()` resolve to real targets.
+
+Build:
+1. Inclusion-based (Andersen-style) points-to on the IR, field-sensitive to the Phase 252 path limit, context-insensitive in the first version.
+2. Abstract objects are allocation sites: `new X()`, object literals, `require()` results, factory-call return sites.
+3. Constraint solving uses a worklist with cycle collapsing. There is a node budget (default 2M constraints). Past the budget, affected variables point to `unknown` and log a 271 event.
+4. Library objects come from model packs (81). `require('pg')` → `Pool` allocation; `pool.query` → sink.
+
+Acceptance: fixtures where a SQL client is passed through two constructors and stored on `this` resolve to the sink. A plain object with a `query` method does not. Budget overflow produces `unknown` plus an event and no crash. Nest and undici cold time stays within 120% of the stored Phase 78 run, measured and stored.
+
+FP risk: merged allocation sites (one factory returning both a safe and an unsafe object). The fixture documents it. 274 and later context sensitivity reduce it.
+
+### Phase 273 — Points-to call graph [`FULLSHIELD_EXPERIMENTAL_CGPT`]
+Replace name-based callee guessing with targets from 272.
+
+Build: for each call site, targets = functions in the points-to set of the callee expression. Handles `obj.method()`, `fn.call/apply/bind`, callbacks stored in arrays or maps, handler tables (`handlers[type](req)` when the key set is a finite literal union) and default exports. An unresolved call with no targets is a 271 event, not a silent skip.
+
+Acceptance: a handler-table fixture with a literal key set resolves every entry. A computed key from request input resolves to all entries and logs an event. Call-graph edge counts on the bench apps are stored before and after. Every SAST finding gained or lost goes to `DIFF.txt`.
+
+### Phase 274 — Class hierarchy and prototype chains [`FULLSHIELD_EXPERIMENTAL_CHA`]
+Build:
+1. ES classes: `extends`, `super` calls, overridden methods, static methods and class fields.
+2. Prototype-based code: `Fn.prototype.m = …`, `Object.create(proto)`, `util.inherits` and `Object.setPrototypeOf` with static arguments.
+3. A virtual call on a receiver whose points-to set is a class resolves to the most-derived implementations in that set only.
+4. Mixins via `Object.assign(Target.prototype, mixin)`.
+
+Acceptance: fixtures cover a base repository class with a safe `find` and a subclass that overrides with raw SQL, called through a base-typed variable holding the subclass (finding) and holding the base (no finding). The `util.inherits` and mixin fixtures each resolve.
+
+### Phase 275 — Closure capture [`FULLSHIELD_EXPERIMENTAL_CLOSURES`]
+Nested closures are a documented miss (README Known limitations).
+
+Build: closures capture the enclosing environment by reference. Captured variables become heap cells, so a write in the outer function after the closure is created is visible inside it. Covers immediately-invoked functions, returned closures, closures stored on objects, and closures passed to `setTimeout` or event handlers (with 254). Loop-variable capture follows `let` versus `var` scoping.
+
+Acceptance: fixtures cover
+- a closure created before the outer variable is tainted, then called (finding);
+- a closure capturing a variable that is reassigned to a literal before the call (no finding when flow-sensitive ordering proves it, otherwise a finding plus a 271 event);
+- `var` in a loop versus `let` in a loop.
+
+The README Known-limitations line is updated only after `DIFF.txt` approval.
+
+### Phase 276 — Generators and iterators [`FULLSHIELD_EXPERIMENTAL_GENERATORS`]
+Build: `yield v` flows to the `next().value` and `for…of` binding at call sites of that generator. `yield*` delegates. Async generators combine with 254. Built-in iterators: `Array.from`, spread, `Object.entries` / `values` / `keys` (keys carry key taint from objects whose keys came from input), `Map` / `Set` iteration and destructuring from iterators.
+
+Acceptance: a generator that yields `req.query` fields consumed by `for await` into a SQL sink gives a finding. A generator that yields literals gives none. `Object.keys(req.body)` used as a column name reaches SQL with the `sqli` label (identifier position, see 279).
+
+### Phase 277 — Proxy, Reflect, defineProperty [`FULLSHIELD_EXPERIMENTAL_REFLECT`]
+These are the main ways JS hides flows. The goal is to model the static cases and report the rest, not to resolve everything.
+
+Build:
+1. `Reflect.get/set/apply/construct` with static arguments map to normal IR operations.
+2. `Object.defineProperty(o, 'k', { get })` with a static key maps to a getter call on load.
+3. `new Proxy(target, handler)` with handler traps declared inline is modeled. Any other proxy marks the object `opaque` and logs a 271 event.
+4. `with` statements and `Function.prototype.toString` tricks are always events.
+
+Acceptance: fixtures per modeled construct. An opaque-proxy fixture produces an event and keeps taint in `sound` mode only. No crash on any construct in the Phase 266 corpus.
+
+### Phase 278 — String abstract domain [`FULLSHIELD_EXPERIMENTAL_STRDOMAIN`]
+Today taint says only that tainted data is in the string. Injection depends on where it sits.
+
+Build: an abstract string value is a sequence of segments: `literal("…")`, `tainted(labels, charClass)` and `unknown`. Concat, template literals, `join`, `replace` with literal patterns, `slice` / `substring` (to a widened result) and `toLowerCase` / `toUpperCase` update the segments. `charClass` tightens through validators (`/^\d+$/` → digits) and coercions (`Number()` → numeric). Widening after N=8 segments merges into `unknown` with labels kept. Loops widen at the loop head.
+
+Acceptance: unit tests per string operation, with the abstract result compared to a table. A loop that concatenates input terminates and keeps labels. This phase changes no findings by itself; 279–283 consume it. Output byte-identical.
+
+### Phase 279 — SQL template reconstruction [`FULLSHIELD_EXPERIMENTAL_SQLCTX`]
+Build:
+1. At SQL sinks, render the 278 abstract string into a template with holes, then tokenize it with a SQL lexer that has dialect hints from the client package (pg, mysql2, sqlite, mssql).
+2. Classify each tainted hole as one of:
+   - value inside a quoted literal
+   - numeric value position
+   - identifier (table, column, `ORDER BY`)
+   - keyword or operator position
+   - whole-query control
+3. Map to severity. A numeric position with digits-only `charClass` → no finding. A quoted-literal value whose `charClass` excludes the quote and backslash → no finding. Identifier position → finding with `sqlContext: "identifier"`, and the message says parameterization cannot fix it (an allowlist is required). Anything else → finding.
+4. The finding gains `sqlContext` and a rendered template snippet with holes shown as `?{label}`.
+
+Acceptance: fixtures cover each context, including `ORDER BY ${req.query.sort}` (identifier finding), `WHERE id = ${Number(x)}` (no finding), `LIKE '%${x}%'` (quoted-literal finding unless `charClass` is safe), and a multi-statement whole-query string. Gained and lost keys go to `DIFF.txt`. RASP SQL tokenizers (383) share the lexer, which the test asserts.
+
+FP risk: the dialect may be unknown (generic `query` on an unrecognized client). In that case, fall back to today's behavior, never to "safe".
+
+### Phase 280 — Shell command reconstruction [`FULLSHIELD_EXPERIMENTAL_SHELLCTX`]
+Build: at `exec` / `execSync` / `spawn` with `shell: true` and the 27 shell sinks, render the template and tokenize it with POSIX shell rules (quotes, escapes, `$()`, backticks, redirections, `;`, `|`, `&&`). Classify each tainted hole:
+- inside single quotes with no `'` possible in `charClass`
+- inside double quotes (`$` and backtick still active)
+- bare word
+- option position (a leading `-` is possible, which is argument injection)
+
+`execFile` / `spawn` without a shell get checked for argument injection only, when the hole is the first argument after the program and `charClass` allows a leading `-`.
+
+Acceptance: fixtures for each context. `execFile('git', ['log', userRef])` with no `--` separator and `charClass` allowing `-` → `SAST-CMDI-001` with `shellContext: "option"` (an R10 change, `DIFF.txt`). The same with `'--'` before it → no finding.
+
+### Phase 281 — URL abstract domain for SSRF [`FULLSHIELD_EXPERIMENTAL_URLCTX`]
+Build: parse the 278 abstract string at SSRF sinks into scheme, authority, path, query and fragment, by where the literal prefix ends. Results:
+- Tainted scheme or authority → finding as today.
+- Taint only in the path after a literal `https://api.example.invalid/` → `ssrfContext: "path"`, severity lowered one step, still reported, because path traversal on internal APIs (`../admin`) is real.
+- Taint only in the query or fragment → `ssrfContext: "query"`, severity low.
+- `new URL(input, base)` and `url.resolve` are modeled: an absolute input overrides the base, so it counts as a tainted authority.
+
+Acceptance: fixtures for each position, including the `new URL(req.query.u, base)` override case (finding with `authority`). Every severity change is listed in `DIFF.txt`.
+
+### Phase 282 — HTML output context for XSS [`FULLSHIELD_EXPERIMENTAL_HTMLCTX`]
+Build: at HTML sinks (`res.send` HTML, template raw outputs, DOM sinks from 101), parse the literal template around each hole with an HTML5 tokenizer state machine. Contexts:
+- text node
+- quoted attribute value
+- unquoted attribute value
+- URL attribute (`href`, `src`, `action`, `formaction`)
+- event-handler attribute
+- `<script>` body
+- `<style>` body
+- comment
+
+Sanitizers clear only matching contexts (256 data):
+- HTML escape clears text and quoted attributes, not URL attributes (`javascript:`), not script bodies.
+- `encodeURIComponent` clears only the URL query component.
+- `JSON.stringify` in a script body is not safe unless `<` is escaped.
+
+Acceptance: a matrix test of 8 contexts × 6 sanitizers. `<a href="${escapeHtml(x)}">` gives a finding with `htmlContext: "url-attr"`. `<p>${escapeHtml(x)}</p>` gives none. `<script>var d = ${JSON.stringify(x)}</script>` gives a finding.
+
+### Phase 283 — Path abstract domain [`FULLSHIELD_EXPERIMENTAL_PATHCTX`]
+Build: at file-system sinks, render the path and track whether a tainted segment can contain `..`, `/`, `\`, `\0` or a leading `/`, using `charClass`. `path.join` / `resolve` / `normalize` are modeled, including that `path.join(base, '/etc/passwd')` keeps `base` but `path.resolve(base, '/etc/passwd')` drops it. `path.basename(x)` removes separators (it clears traversal but not a hidden-file read). A Windows mode applies when the project targets win32 (engines `os` or Electron).
+
+Acceptance: fixtures cover `path.basename` (no traversal finding), `path.resolve` with an absolute input (finding), and the 258 `startsWith(base + sep)` guard (none). An `upload/${req.file.originalname}` fixture gives a finding unless `basename` is applied.
+
+### Phase 284 — Static ReDoS analysis [`FULLSHIELD_EXPERIMENTAL_REDOS2`]
+Upgrades `SAST-REDOS-001` (Phase 29), which only checks quantifier shapes.
+
+Build:
+1. Parse each regex literal (and `new RegExp` with a static pattern) into an NFA, supporting the JS regex syntax subset without backreferences. Backreferences and lookbehind → `unknown`, which is not a finding.
+2. Detect exponential ambiguity (EDA: two distinct paths through one loop on the same string) and polynomial ambiguity (IDA) using the standard ambiguity checks on the NFA.
+3. Report only when a tainted value reaches `.test` / `.match` / `.replace` / `.split` / `.exec` with that regex, and the 278 `charClass` permits the attack alphabet.
+4. The finding includes the ambiguous sub-pattern and a generated attack-string shape (prefix, pump, suffix) built from the NFA. The regex is never executed.
+
+Acceptance: fixtures `^(a+)+$` (exponential), `^\d*\d*$` (polynomial), and `^[a-z]+$` (none). A digits-only `charClass` on the input suppresses an attack that needs letters. Literal regexes never reached by taint are not reported (only under a separate audit flag). Old `SAST-REDOS-001` keys removed or added are listed in `DIFF.txt`.
+
+FP risk: regexes with length guards before them (`if (s.length > 100) return`). 258 adds a length-guard shape; until then, the fixture documents a residual FP.
+
+### Phase 285 — Control-flow type narrowing in plain JS [`FULLSHIELD_EXPERIMENTAL_NARROW`]
+Phase 257 needs TypeScript. Plain JS projects get none of it.
+
+Build: flow-sensitive refinement from runtime checks:
+- `typeof x === 'number'`, `Number.isInteger(x)`, `Array.isArray(x)`, `x instanceof Date`, `x === true/false`, and `/^\d+$/.test(x)` in a dominating condition.
+- `if (!checks) return/throw` patterns.
+- `switch (x)` over literal cases.
+
+Refinements update `charClass` and drop string-injection labels when the type is not a string. They merge at join points (intersection of refinements).
+
+Acceptance: fixtures per check, plus a negative where the check is on another variable, and one where the refinement is lost after a reassignment. Results feed 279–283. Changes to findings go to `DIFF.txt`.
+
+### Phase 286 — Taint through serialization round-trips [`FULLSHIELD_EXPERIMENTAL_ROUNDTRIP`]
+Build: `JSON.stringify` → `JSON.parse`, `structuredClone`, `querystring` / `URLSearchParams` stringify-parse, `Buffer.from(x).toString()`, `atob(btoa(x))`, `encodeURIComponent` → `decodeURIComponent`, and `zlib` round trips in the same function all keep labels. Field paths keep labels where the structure is preserved (`JSON.parse(JSON.stringify(o)).a`). Today `JSON.parse` never clears taint (Section 6.2), and that stays. This phase adds field precision, not clearing.
+
+Acceptance: a round-trip fixture keeps the finding, with field paths where the structure is known. A decode after a sanitize (`decodeURIComponent(encodeURIComponent(x))`) restores the dangerous labels, so the finding is kept.
+
+### Phase 287 — Second-order sources from the database [`FULLSHIELD_EXPERIMENTAL_STORED`]
+Values read from a database can hold attacker data written earlier.
+
+Build: results of reads on model-pack data stores (`find*`, `query` result rows, `get` on Redis) become sources with the label set `stored` (a distinct origin). They are reported only when the value reaches a sink class where stored data is dangerous: SQL built by concatenation (second-order SQLi), HTML (stored XSS), shell, and template source. Severity is one step below direct request taint, confidence medium, `origin: "stored"` on the finding.
+
+Acceptance: fixtures cover a username read from the DB concatenated into a second SQL query (finding, `origin: "stored"`), and the same value used only in a parameterized query (none). On by flag only. This is expected to add findings, so the realworld FP sample (76) is required before any promotion.
+
+FP risk: high on apps that store only trusted data. That is why it stays a medium-confidence, separate origin, and why 288 links it to a real write path.
+
+### Phase 288 — Stored XSS write→read linking [`FULLSHIELD_EXPERIMENTAL_STOREDLINK`]
+Make 287 precise by requiring a matching untrusted write.
+
+Build: from the route model (255), find routes where request input is written to a model field (`create` / `update` / `save` / `INSERT` with that column). From 287, find reads of that same model and field reaching an HTML sink. Link them into one path (85) with both routes. Only linked pairs get `confidence: high`. Unlinked 287 findings stay medium.
+
+Acceptance: a fixture with a comment-post route writing `body` and a page route rendering `comment.body` raw gives a high-confidence finding with two routes. A field written only from a constant keeps its finding medium, not high. Field matching uses model names from packs (298, 299) or schema files. Unknown models are not linked.
+
+### Phase 289 — Cross-request flow via session and cache [`FULLSHIELD_EXPERIMENTAL_XREQ`]
+Build: writes of request input to `req.session.<k>`, `res.locals` persisted via session, signed cookies set by the server, and app-level caches (`cache.set(k, v)` from model packs, Redis via packs) become stored sources for reads of the same key in other routes. Key matching requires literal keys or a shared constant. Dynamic keys log a 271 event. Origin `session` or `cache`.
+
+Acceptance: a fixture where `/set` stores `req.query.theme` in the session and `/page` renders it raw gives a finding with two routes. Different keys give none. A dynamic key gives an event only.
+
+### Phase 290 — Environment and config sources [`FULLSHIELD_EXPERIMENTAL_ENVSRC`]
+`process.env` is not request input, but it reaches sinks in ways that matter in multi-tenant and CI contexts.
+
+Build: `process.env.*`, config files loaded via `dotenv` / `config` / `convict`, and `process.argv` (already a source) get origin `environment` with a separate severity table. They are reported only for the `cmdi`, `eval` and `ssti` sink classes, where operator-controlled values still create code execution in shared runners. `info` by default. With `scan.trustEnvironment: false` (config), they are raised to medium. Never a high finding.
+
+Acceptance: `exec('deploy ' + process.env.BRANCH)` gives an info finding with `origin: "environment"`. `db.query('… ' + process.env.TABLE)` gives nothing (not in the listed classes). clean-app stays at 0 with the flag on, so no env-to-cmd pattern may exist there. Verify, don't assume.
+
+### Lane I — Framework lowerings (291–310)
+
+A framework phase is a compiler into the IR. It does not own a taint flag, a route list, or a sanitizer. It emits sources, sinks, calls, and route records that 251, 255, and 256 already understand. Version selection is phase 310. A phase that special-cases one library inside a SAST rule is sent back.
+
+### Phase 291 — Express 5 semantics [`FULLSHIELD_EXPERIMENTAL_EXPRESS5`]
+Express 5 is a separate lowering, chosen by the locked major, not a patch on the Express 4 model. A rejected promise or a throw inside an `async` handler is an IR edge to the error-handling middleware; Express 4 does not create that edge. Route strings compile with path-to-regexp v8: named wildcards (`/*splat`), optional `{...}` groups, and no inline regex. `req.query` is a getter. Its abstract value follows `app.set('query parser')`: `simple` is a flat string map, `extended` is nested objects and arrays (the operator-injection key set). A missing setting uses that major's documented default. An unknown parser value keeps every label and writes a 271 event.
+
+Depends on: 251, 254, 255. Flag off: byte-identical.
+
+Build:
+1. Read the Express major from the lock row that the app's `require('express')` resolves to. Do not use the highest Express version in the tree.
+2. Lower async rejection onto the error-middleware stack (307 fills the order; until 307, the edge targets the function with arity 4).
+3. Compile v8 route strings into `Route.fullPath`. A v4-only inline regex in a v5 app is a 271 event, not a guessed path.
+4. Lower `req.query` into CharClass plus a key set, `Finite` or nested `Unknown`.
+
+Acceptance: the same routes in an Express 4 fixture and an Express 5 fixture. Only v5 has the rejection edge, the splat path, and nested query keys. v4 output matches today's route model. clean-app stays at 0.
+
+FP risk: a monorepo with both majors. The lowering follows the `require` that built that app object. A wrong copy is a bug in the require edge, and the witness names the file that imported Express.
+
+### Phase 292 — Fastify JSON-schema refinement [`FULLSHIELD_EXPERIMENTAL_FASTIFYSCHEMA`]
+A Fastify `schema` is a transfer function on Effect, applied at the handler parameter, not a comment that the route is "validated." `type: integer|number|boolean` and a finite `enum` drop string-injection labels on that field only. A string `pattern` compiles into the same CharClass domain as 278; an unanchored pattern or a class that still admits a sink metacharacter drops nothing. `$ref` resolves inside the encapsulation scope (308) through `addSchema`. `coerceTypes: true` is an explicit cast in the IR, so the witness shows the coercion instead of a vanished taint bit. `removeAdditional` deletes unknown keys from the must-set and does not make the remaining keys safe.
+
+Depends on: 251, 256, 278. Flag off: byte-identical.
+
+Build:
+1. Read `schema.body`, `querystring`, `params`, and `headers` from the route options object, including schemas shared through `$ref`.
+2. Compile each field schema to a transfer function. Fail closed: a schema the compiler does not understand leaves the field tainted and writes a 271 event naming the keyword.
+3. Record ajv options set in code (`coerceTypes`, `removeAdditional`). Options that are only in a comment do not count.
+
+Acceptance: an integer `id` into SQL is not a finding; a sibling string field with no pattern still is. An unanchored `pattern` still is. A `$ref` to a shared integer schema behaves as if it were inline. A schema keyword outside the implemented set keeps the finding and emits one event.
+
+FP risk: a schema that is replaced at runtime (`route.schema = …` from input). That assignment is not a static schema; the phase leaves the field tainted.
+
+### Phase 293 — NestJS DI and pipes [`FULLSHIELD_EXPERIMENTAL_NESTDI`]
+Nest providers are allocation sites. The injection token is the points-to key. Constructor parameters resolve to those sites, so `this.repo.query` is the repository method, not an unknown callee. `REQUEST`-scoped providers are context-sensitive: one abstract object per route (253's k=1), because a singleton would merge two requests' taint. Global, controller, and route `ValidationPipe` insert a transfer function on the edge into the handler argument. `whitelist` and `forbidNonWhitelisted` cut the key set down to decorated properties. class-validator decorators (`@IsInt`, `@IsUUID`, `@IsEnum`, `@Matches`) are the same transfer functions as 292, on fields, not on the whole object. A raw `@Body()` object with no pipe keeps `keys: Unknown`.
+
+Depends on: 251, 253, 255, 272 when points-to is on; without 272, resolution is lexical and a failed lookup is a 271 event, not a guess.
+
+Build:
+1. Build the module graph from `@Module` providers, imports, and exports. A circular module iterates to a fixpoint with fuel; exhaustion marks the token `unknown`.
+2. Attach pipes in Nest's documented order (global, then controller, then method).
+3. Lower `@Body`, `@Query`, `@Param` to sources whose fields pass through the pipe transfer function before the method body.
+
+Acceptance: a DTO field with `@IsInt()` reaching SQL is not a finding. The same handler forwarding raw `@Body()` to a repository string query is a finding. Two request-scoped providers do not share taint across routes (a fixture asserts the witness path stays on one route).
+
+FP risk: a custom pipe whose class is not in source. It is an unknown transfer function, so it clears nothing.
+
+### Phase 294 — Next.js App Router model [`FULLSHIELD_EXPERIMENTAL_NEXTAPP`]
+The App Router is a pure function of the file tree, not a list of framework calls. A segment `(group)` adds no URL piece. An `@slot` is a parallel route. `[id]` and `[...slug]` are parameters and sources. A route group and an intercepting route `(.)` are distinguished by the parentheses grammar, not by a regex on the whole path. Exported `GET`/`POST`/`PUT`/`PATCH`/`DELETE` in `route.ts` are route records; the `Request` argument is origin `request`. Page and layout `params` and `searchParams` are sources, and the Promise form is an await edge (254): using them without `await` is a 271 event and still a source, because the Promise's resolved value is the tainted one. `headers()` and `cookies()` are sources. Server Components that read those sources and reach a sink are route records whose path is the folder function.
+
+Depends on: 251, 254, 255. Flag off: byte-identical.
+
+Build:
+1. Implement the path grammar as a parser with an explicit rejection list (duplicate groups, a slot that is also a dynamic segment in an illegal position). A rejected file is a 271 event and is not given a made-up URL.
+2. Lower handlers and server components into `Route` records, including the auth state already detected by phase 103's names, without copying phase 103's rules.
+3. Model the Promise form as `await`. A `.then` on `params` uses 254.
+
+Acceptance: one route handler, one page with `searchParams`, one `[...slug]` segment, and one `(group)` that does not appear in `fullPath`. The Promise form without `await` still reports, and the witness contains the event. A Pages Router file is not parsed by this grammar.
+
+FP risk: a folder that happens to look like `app/` but is not the App Router root. The root is the `app` directory next to the Next config or the lockfile package that depends on `next`, not the first `app` folder in the repo.
+
+### Phase 295 — Next.js server actions and form data [`FULLSHIELD_EXPERIMENTAL_NEXTACTION`]
+A Server Action is a POST route whose body is not a function name. Arguments and `FormData.get` / `getAll` are origin `request`. The action is linked to the form or caller that references it, so the witness names the page. A string action id that is a literal ties the call. A computed id is a 271 event and the action stays a route with caller `unknown`, which does not drop the source. Auth is a dominating guard inside the action or on the route that renders the form, using the same auth names as phase 103. The action is `authState: absent` when neither exists. Inline actions and `'use server'` files both lower. The closure's bound values are effects, so a server action that forwards a client argument into SQL is an ordinary taint query after lowering.
+
+Depends on: 251, 255, 294. Flag off: byte-identical.
+
+Build:
+1. Find `'use server'` modules and inline server actions. Treat exported async functions in those modules as actions.
+2. Link callers by lexical reference and by a literal action id. Do not invent a link from a matching function name in another file.
+3. Add a POST `Route` per action. `FormData` keys that are literals become field names; a dynamic key makes that read `keys: Unknown`.
+
+Acceptance: an action writing form data into a string query with no auth guard is a finding whose witness includes the page. The same action with a dominating auth call is not an auth finding and is still an injection finding if the query is built by concatenation. A client component that never calls the action does not appear in the witness.
+
+FP risk: a shared helper marked `'use server'` that is also called from a server component with a constant. The constant argument has no request origin, so the injection finding requires the request-labeled argument. The helper being a server action is not itself a finding.
+
+### Phase 296 — GraphQL resolvers [`FULLSHIELD_EXPERIMENTAL_GRAPHQL`]
+Each field resolver is a route record `GRAPHQL <Parent>.<field>`, not one route for the whole endpoint. Resolver `args` are origin `request`. `context` carries the auth predicate (311) and is not a general source. Parent object fields are origin `stored` when the parent was loaded from a data store (287), so a field resolver that concatenates `parent.name` into SQL is second-order, not a fresh request source. Apollo, Yoga, and type-graphql (`@Resolver`, `@Query`, `@Mutation`, `@FieldResolver`) lower into the same records. A query document that sits in the repo limits which fields are demanded; a document that arrives only at runtime does not, and every resolver stays live. Depth limits and complexity are phase 399, not this phase.
+
+Depends on: 251, 255, 287. Flag off: byte-identical.
+
+Build:
+1. Lower resolver maps and decorator classes to one route record per field. The witness carries parent type and field name.
+2. Args flow into the resolver body. Context flows only into the auth predicate unless the resolver reads an unsanitized context field and that field was assigned from a request source.
+3. If an in-repo document selects a subset of fields, record the demand set. Missing documents do not clear unused resolvers.
+
+Acceptance: a query resolver concatenating an arg into SQL is a finding. A mutation whose arg passed a finite enum schema (292-style, when that lowering is on) is not. A field that is not in an in-repo document is still analyzed. Two resolvers on the same parent do not share args.
+
+FP risk: a resolver that loads its own id from `args` but the SQL uses a constant table. The finding follows the arg, not the fact that the file imports a database client.
+
+### Phase 297 — tRPC procedures [`FULLSHIELD_EXPERIMENTAL_TRPC`]
+A tRPC procedure is a route record whose path is the router path (`post.byId`). `.input(zod)` lowers to the same field transfer functions as 292: `z.number()`, `z.enum`, and `z.string().regex` with an anchor. `.input` that is a `z.any()` or a passthrough object clears nothing. Middleware order is the builder order. A procedure built from `protectedProcedure` (or any base created with `.use` of an auth middleware) inherits that auth predicate, including across `mergeRouters` in other files. A later `.use` does not retroactively protect procedures already created. Subscriptions are routes with origin `request` on the input and origin `stored` on payloads the procedure yields from a store.
+
+Depends on: 251, 255, 292's transfer-function shape. Flag off: byte-identical.
+
+Build:
+1. Resolve router objects across files through the module IR, including `mergeRouters`.
+2. Record the middleware prefix on the builder at each `.query` / `.mutation` / `.subscription` call.
+3. Compile zod objects field by field. An unrecognized zod method is a 271 event and clears nothing.
+
+Acceptance: a public procedure and a protected procedure reach the same sink. Only the public one has `authState: absent`. A `z.number()` id into SQL is not an injection finding. `z.string()` into SQL still is. A merged router keeps the prefix that created the procedure.
+
+FP risk: an auth check written inside one procedure body and then copied by convention into others. Only the procedure whose IR shows the dominating guard is authenticated. The others stay absent, which is the point of the phase.
+
+### Phase 298 — Prisma typed model [`FULLSHIELD_EXPERIMENTAL_PRISMA`]
+`schema.prisma` lowers to a relation IR: models, fields, relations, and which fields are ids. Typed client calls (`findMany`, `create`, `update`, tagged `$queryRaw`) are not SQL-injection sinks. They are sinks for a different fact: a filter or `data` object whose key set is `Unknown` or intersects a privilege field (316). Tagged `$queryRaw` and `Prisma.sql` fragments are SQL templates in the 279 domain, with a hole at each interpolation. `$queryRawUnsafe`, `$executeRawUnsafe`, and `Prisma.raw` are raw SQL sinks. A whole request object passed to `where` is operator injection because its keys are `Unknown`. The model IR is what 288 and 316 read so they do not guess column names.
+
+Depends on: 251, 278, 279. Flag off: byte-identical.
+
+Build:
+1. Parse `schema.prisma` with an in-tree parser. A file that fails to parse yields no model IR and a 271 event. Do not half-parse.
+2. Lower typed calls and raw calls into different sink classes. The witness names which.
+3. Compose `Prisma.sql` fragments in the string domain before classification.
+
+Acceptance: a tagged template with a trusted literal is not a finding. An unsafe raw query of request input is. `where: req.body` is a finding even though the call is `findMany`. `where: { id: req.params.id }` with a string id is not operator injection (the key is finite) and is not SQL injection. A `data` object that can set `role` is phase 316's finding, not this one, when both flags are on; this phase still records the key set.
+
+FP risk: a raw query whose only hole is a numeric CharClass inside a value position. 279 clears it. This phase must not report it a second time under a Prisma-specific id.
+
+### Phase 299 — Sequelize, TypeORM, Mongoose, and Drizzle [`FULLSHIELD_EXPERIMENTAL_ORM2`]
+The four libraries lower into one query-object domain: `{ keys: Finite|Unknown, values: Effect, operators: Set, rawFragments: StringDomain }`. Sequelize `query` and `literal`, TypeORM `query` and `createQueryBuilder().where(string)`, Mongoose `$where`, and Drizzle `sql.raw` are raw fragments and use 279 when the fragment is SQL. A filter object built from a request object is operator injection when keys are `Unknown`. `Model.create(req.body)` and the equivalent update keep the key set for 316. Packs are keyed by `appliesTo` ranges (310). A library version outside every range does not use a nearer major's semantics; it emits a 271 event and falls back to "raw string in, tainted string out," which never clears a label.
+
+Depends on: 251, 279, 310. Flag off: byte-identical.
+
+Build:
+1. One lowering module per library, selected by the locked version.
+2. Map the calls above into the shared domain. Do not copy their taint rules into the SAST files.
+3. Ship one positive and one negative fixture per library: raw fragment, whole-object filter, and a literal query.
+
+Acceptance: each library's raw API reports, each library's parameterized or tagged form does not, and a whole-object `where` reports once. An unsupported major reports the raw-string fallback and the event, and does not report a typed-query false positive from the previous major's rules.
+
+FP risk: a query builder whose `.where('id = ?', id)` binds the value. The hole is a value position. Reporting it is a bug in the lowering, and the negative fixture is that call.
+
+### Phase 300 — Socket.io and ws handlers [`FULLSHIELD_EXPERIMENTAL_WS`]
+A socket handler is a route `WS <event>` only when the event name is a finite set of literals. `onAny`, a computed event name, or `socket.on(req.params.e, …)` makes the payload a source and writes a 271 event, and it does not invent one route per possible string. The payload is origin `request`. Connection auth is the middleware that dominates the connection object before the first listener (`io.use`, `verifyClient`, an upgrade check). A check inside one event handler does not authenticate the other events. `ws` `message` is a single route `WS message` because the protocol has one data event; the bytes are a source, and `JSON.parse` keeps field paths (286).
+
+Depends on: 251, 254, 255. Flag off: byte-identical.
+
+Build:
+1. Collect literal `socket.on` names and the `ws` message handler.
+2. Attach the connection-level auth predicate to every event on that server object. A different `io` instance does not inherit it.
+3. Lower the payload argument to a source. Binary frames stay tainted strings; the phase does not decode application protocols.
+
+Acceptance: an event payload reaching SQL is a finding. A second event on the same server without its own check inherits connection auth if `io.use` ran, and does not inherit auth from the sibling handler. A computed event name produces one source plus one event, not a finding titled with a guessed name.
+
+FP risk: a broadcast of a server-generated literal on the same connection. The literal has no request origin. Only the client payload does.
+
+### Phase 301 — Serverless handlers [`FULLSHIELD_EXPERIMENTAL_SERVERLESS`]
+The trigger is part of the type of the event. AWS Lambda `event.body`, `queryStringParameters`, `pathParameters`, and `headers` are origin `request` when the manifest (SAM, serverless.yml, function URL) says the trigger is HTTP. An S3 or cron trigger on the same handler shape is origin `event`, one severity step lower, because the caller is not an HTTP client of this app. Vercel and Netlify `(req, res)` and Web `Request` handlers are HTTP. Cloudflare Workers `fetch(request, env)` is HTTP; `env` bindings are origin `environment` and follow 290's class limits. The path comes from the manifest. A handler with no manifest is origin `event` and the witness says the trigger is unknown, which does not upgrade it to HTTP.
+
+Depends on: 251, 255, 290. Flag off: byte-identical.
+
+Build:
+1. Parse the manifest formats with in-tree parsers. A parse failure is a 271 event and the HTTP upgrade does not happen.
+2. Lower only the fields the trigger type documents. Do not treat the whole `event` object as a request body.
+3. One fixture per platform, plus one Lambda that is cron-triggered and must not be origin `request`.
+
+Acceptance: an HTTP Lambda body reaching `exec` is a request finding. The cron fixture reaching `exec` is origin `event` at the lower severity. A Worker `env.API_HOST` used as a fetch URL is environment-origin and follows 281, not this phase's HTTP source.
+
+FP risk: a monorepo manifest that names a function the file does not export. No route record is created for a name that does not resolve.
+
+### Phase 302 — Queue consumers [`FULLSHIELD_EXPERIMENTAL_QUEUE`]
+A consumer payload is origin `queue`: BullMQ `job.data`, kafkajs `message.value`, amqplib `msg.content`, SQS `Body`. Severity is one step below the same sink fed by `request`, and the witness carries the queue name when it is a literal. `JSON.parse` of the body keeps field paths (286). When a producer in the same repo enqueues a request-labeled value on that same literal queue name, the consumer's origin becomes the pair `request → queue`, confidence high, using the same link shape as 288. A dynamic queue name does not link. A producer that enqueues a constant does not promote the origin. The phase does not connect to a broker.
+
+Depends on: 251, 286, 288's link shape. Flag off: byte-identical.
+
+Build:
+1. Lower the four consumer APIs to sources.
+2. Find `add` / `send` / `publish` calls and link them only on literal queue names and literal routing keys.
+3. Decode step: a `JSON.parse` of the payload is a field-preserving cast, not a sanitizer.
+
+Acceptance: a consumer reaching `exec` is a finding with origin `queue`. The same payload reaching a parameterized query is not an injection finding. An in-repo producer of `req.body` on queue `jobs` promotes the matching consumer. A different queue name does not.
+
+FP risk: two queues that share a helper named `enqueue`. The link uses the queue-name argument, not the helper name.
+
+### Phase 303 — Remix, SvelteKit, and Nuxt loaders [`FULLSHIELD_EXPERIMENTAL_METAFRAME`]
+Each framework has a file-system route grammar, version-keyed by 310, compiled by a real parser the way 294 parses the App Router. Remix `loader` and `action` see `request`, `params`, and form data. SvelteKit `load`, form actions, and `+server` see `url`, `params`, and `request`. Nuxt `defineEventHandler` sees `getQuery`, `readBody`, and `getRouterParam`. `event.locals` and Remix `context` are request-scoped heap cells (289's shape, lifetime one request, not the session). A write of request input to `locals` is visible to later middleware and loaders on that request only. A layout loader's data is an argument effect into the page, not a global.
+
+Depends on: 251, 255, 310. Flag off: byte-identical.
+
+Build:
+1. One grammar per framework. A file that matches two grammars is a 271 event and is not given two routes.
+2. Lower the documented source APIs. A framework helper that is not in the lowering stays an ordinary call.
+3. Thread `locals` as a heap cell with request lifetime.
+
+Acceptance: one fixture per framework shows the route path and a source reaching a sink. A `locals` write on the request is visible later on that request and not on a sibling request fixture. A version outside the grammar's range emits an event and does not reuse the previous major's path rules.
+
+FP risk: a `+server.ts` that is not under `src/routes` or `app/routes` as the config names the routes directory. The config value wins. A guessed directory is a bug.
+
+### Phase 304 — Electron IPC handlers [`FULLSHIELD_EXPERIMENTAL_ELECTRONIPC`]
+An IPC channel is a route `IPC <channel>` when the channel name is a literal. Arguments of `ipcMain.handle` and `ipcMain.on` are origin `renderer`, which is request-equivalent for sink purposes and is named separately so a finding does not say "HTTP." The preload `contextBridge.exposeInMainWorld` is the export map: the witness says whether the channel is exposed and to which API object. A channel that is not on the bridge is still a source when phase 102 says `nodeIntegration` is on or `sandbox` is off, because the renderer can require `electron` directly. When the bridge is the only exposure and the channel is absent from it, the route exists but the finding's confidence drops to low and the witness says "no bridge entry." Sinks are the main-process file, shell, and `child_process` calls. The renderer process is not scanned with Node sink rules except through this boundary.
+
+Depends on: 102, 251, 255. Flag off: byte-identical.
+
+Build:
+1. Collect literal channels and handle signatures, including the argument index.
+2. Parse the preload's `contextBridge` object literal. A computed expose is a 271 event.
+3. Combine with phase 102's integration facts. Do not re-detect `webPreferences` here.
+
+Acceptance: a channel writing a renderer-supplied path is a finding. The same channel that runs the path through `path.basename` and the 283 guard is not a traversal finding. A channel missing from the bridge while sandbox is on is low confidence. A channel missing from the bridge while `nodeIntegration` is on stays high.
+
+FP risk: a main-process handler invoked by `ipcMain.emit` from the main process itself with a constant. The constant is not origin `renderer`. The witness's origin field is the check.
+
+### Phase 305 — CLI argument sources [`FULLSHIELD_EXPERIMENTAL_CLI`]
+Commander and yargs values are origin `cli`. They are reported only at `cmdi`, `path`, and `eval` sinks, at low severity, because the operator already has a shell. A package is a CLI when its `package.json` has `bin` or its entry file builds a commander/yargs parser. A library that mentions `process.argv` in a test file is not a CLI. `execFile` with an array is argument injection only when 280 says the hole can be an option. A subcommand callback's positional args are sources. Default values that are literals are not.
+
+Depends on: 251, 280. Flag off: byte-identical.
+
+Build:
+1. Detect the CLI entry. Do not mark every package that depends on `yargs`.
+2. Lower option and positional values to origin `cli`.
+3. Restrict the sink classes. An SQL sink fed only by `cli` emits nothing in this phase.
+
+Acceptance: a flag passed to `exec` is a low finding. The same value passed as an `execFile` array element after `--` is not. A library fixture with no `bin` and no parser construction emits nothing. clean-app stays at 0.
+
+FP risk: a CLI that shells out to a fixed command and appends a user path as a quoted argument. 280 decides. This phase must not report a second id when 280 already classified the hole as safely quoted.
+
+### Phase 306 — Template engines [`FULLSHIELD_EXPERIMENTAL_TEMPLATES`]
+EJS, Pug, Nunjucks, Handlebars, and Marko lower to functions whose output is an HTML context stack (282), not a string. Each construct has a documented output kind: escaped text, raw HTML, attribute, or script. Handlebars `SafeString` and Nunjucks `| safe` push `raw`. A helper's return value uses the helper's effect. Partials and includes are calls: the argument object flows into the partial's parameters, and the partial's output context is the context at the include site, not "HTML" in general. A raw include inside a `<script>` stays a script-body context. The template file is parsed by that engine's grammar subset. A construct outside the subset is a 271 event and is treated as raw, which is the sound direction.
+
+Depends on: 251, 282. Flag off: byte-identical.
+
+Build:
+1. One grammar subset per engine, with an explicit raw-output list.
+2. Lower includes as calls through the module resolver (template path aliases included).
+3. Hand the output stack to 282. Do not keep a second XSS rule here.
+
+Acceptance: one raw and one escaped fixture per engine. An escaped interpolation in a text node is not a finding. The same helper returning `SafeString` is. A partial that receives `req.query.q` and prints it raw is a finding whose witness includes both files. An unknown tag is an event and is raw.
+
+FP risk: a helper that HTML-escapes and also returns `SafeString`, which double-encodes. The lowering trusts `SafeString` as raw because that is what the engine does. The negative fixture is an escaped construct that does not use `SafeString`.
+
+### Phase 307 — Express middleware order [`FULLSHIELD_EXPERIMENTAL_MWORDER`]
+Registration order is a sequence of IR statements. A middleware covers a route only when three things hold: it was registered earlier, its path pattern matches the route (the same compiler as 291), and the passing branch calls `next` or otherwise continues. A middleware registered after the route does not cover it, even if the source reads top to bottom in another file that was imported earlier. Error handlers (arity 4, or Express 5 rejection edges) are a separate stack and do not count as auth. Router mounts prefix the pattern. `app.use` on `/` is not a wildcard for a router that was mounted on its own app unless the mount is in the sequence.
+
+Depends on: 251, 255, 291 for v5 patterns. Flag off: byte-identical.
+
+Build:
+1. Record each `use`, `route`, and mount as an ordered statement, across files, in evaluation order of the module IR.
+2. Match patterns with the version's route compiler.
+3. A middleware that does not call `next` on the success path covers nothing past it (it ends the chain).
+
+Acceptance: the same auth middleware before a route, after a route, and on a sibling path. Only the first covers the route. An error handler registered before the route does not cover it. The witness lists the statement index.
+
+FP risk: auth inside a factory invoked at the wrong time. Evaluation order follows the IR, not the textual order of function declarations. A factory called after the route is the "after" case, and the fixture says so.
+
+### Phase 308 — Fastify plugin encapsulation [`FULLSHIELD_EXPERIMENTAL_FASTIFYSCOPE`]
+Fastify's encapsulation is a lexical scope tree on the IR. A hook or decorator registered inside `register` applies to routes in that subtree only. `fastify-plugin` is an explicit scope break: the hook applies to the parent. A child plugin does not protect a sibling plugin. Decorators shadow. `onRequest` and `preHandler` are ordered inside the scope. A hook added in a parent after the child was registered still wraps the child, matching Fastify's documented encapsulation, and the witness records parent versus child so a reader can see why.
+
+Depends on: 251, 255. Flag off: byte-identical.
+
+Build:
+1. Build the `register` tree. A dynamic plugin function that is not a local function is a 271 event and is treated as a scope break (sound: it might use `fastify-plugin`).
+2. Attach hooks to routes in the subtree.
+3. Resolve `$ref` schemas (292) in the same tree.
+
+Acceptance: an auth hook in a child plugin does not cover a sibling's route. The same hook wrapped in `fastify-plugin` does cover the sibling. A decorator override in the child does not change the parent route's witness.
+
+FP risk: a plugin that calls `fastify-plugin` under a computed condition. The condition is not evaluated (R15). The plugin is a scope break plus a 271 event.
+
+### Phase 309 — Koa and Hono [`FULLSHIELD_EXPERIMENTAL_KOAHONO`]
+Koa middleware is an onion: each `app.use` receives the downstream chain as its continuation. A middleware covers a route only if the route is downstream of it and the middleware awaits `next` on the passing branch. `ctx.request.body`, `ctx.query`, and `ctx.params` are sources. Hono is a sequence, like 307, and `c.req.query()`, `param()`, `json()`, and `parseBody()` are sources. Validators in a Hono chain are transfer functions when they match the 292 shape; a validator the compiler does not know clears nothing. Both frameworks emit the same `Route` record as Express. They do not get a private finding id for "uses Koa."
+
+Depends on: 251, 255, 307's cover rule. Flag off: byte-identical.
+
+Build:
+1. Lower Koa as a continuation chain and Hono as a statement sequence.
+2. Sources are the APIs above. A custom `ctx.body` parser is a source only when its argument is the raw request body.
+3. Feed both into the route model.
+
+Acceptance: one fixture per framework with a source reaching a sink, and one Koa middleware that does not await `next` and therefore does not cover the downstream route. A Hono validator of type number removes string-injection labels; a missing validator does not.
+
+FP risk: Koa middleware that assigns `ctx.state.user` after `await next()`. That assignment is not a dominating guard for the downstream route. The fixture is the auth check on the wrong side of `next`.
+
+### Phase 310 — Version-keyed framework semantics [`FULLSHIELD_EXPERIMENTAL_VERKEY`]
+Every framework and library lowering carries `appliesTo`, a node-semver range, on the model row. The selected row is the one whose range contains the locked version of the package the `require` resolves to. No lockfile entry: use the newest row and set `version-assumed` on the witness. Two rows matching one version is a test failure, not a runtime pick. A version in a gap between rows uses the raw fallback from 299 and a 271 event. This phase is the selector. It does not contain Express rules of its own. Later lowerings call it and do not read `node_modules/*/package.json` version fields ad hoc.
+
+Depends on: 261's lock view when present; the lockfile parser otherwise. Flag off: byte-identical.
+
+Build:
+1. Add `appliesTo` to the model schema and reject rows without it.
+2. Implement the selector. Cache the choice per resolved package path.
+3. Fixtures: Express 4 and 5, Next 14 and 15, each forced to the matching row. A lockfile with the version deleted yields `version-assumed` and still analyzes.
+
+Acceptance: the selector test feeds two versions and asserts two different row ids. A gap version asserts the event and the fallback. A model row without `appliesTo` fails the schema test. Default scan with the flag off does not read the field.
+
+FP risk: a package whose lockfile version is a git dep without a semver (phase 120). The selector emits `version-assumed` and does not pretend the tag is a version.
+
+### Lane J — Auth predicates and access edges (311–330)
+
+Authentication and authorization are predicates on route records. A finding is a missing edge when a later rule requires that edge. Section 4.3 still holds: these phases report an IR edge and a stated confidence. They do not claim a deterministic proof that an attacker can read an object.
+
+### Phase 311 — Authentication mechanism model [`FULLSHIELD_EXPERIMENTAL_AUTHMECH`]
+Each route gets an auth predicate from a lattice: `none`, `session`, `jwt`, `apikey`, `passport:<strategy>`, `framework:<name>`, or `unknown`. The predicate is the middleware or guard that dominates the handler in 307, 308, or 309 order, not a name that merely appears in the file. Options are part of the predicate: passport `session: false`, a JWT `algorithms` list, an API key read from a header rather than a query (326). A route is authenticated only when every path that reaches the handler has a known mechanism. One path of `none` means not uniform, and the witness lists that path. `unknown` is a call that looks like auth but is not in the catalog or the config. It is not `none` and it is not authenticated. This phase emits no finding.
+
+Depends on: 255, 307, 308, 309. Flag off: byte-identical.
+
+Build:
+1. Join the lattice as specified. Do not collapse `unknown` into `none`.
+2. Read project function names from config as `framework:custom` plus the name.
+3. Store the predicate on the route record.
+
+Acceptance: fixtures for passport, JWT middleware, session, API key, NextAuth, a Nest guard, and a Fastify auth plugin. Middleware registered after the route leaves `none`. A function named `authenticate` that is not in the catalog is `unknown`, and a test asserts it is not stored as `session`.
+
+FP risk: a function named `login` that only renders a form. It is not a mechanism. The negative fixture is that function.
+
+### Phase 312 — Authorization check recognition [`FULLSHIELD_EXPERIMENTAL_AUTHZ`]
+Authorization is a second predicate: `none`, `role`, `permission`, `policy`, `ownership`, or `unknown`. A check counts only when it dominates the sink, using the same return-or-throw shape as 258. Catalog entries are `hasRole`, `can`, `authorize`, CASL, and casbin, plus config names. A computed permission string is `unknown` and does not satisfy a later rule that requires `role`. A check after the sink does not count. This phase emits no finding.
+
+Depends on: 251, 311. Flag off: byte-identical.
+
+Build:
+1. Mark catalog calls with their lattice kind.
+2. Require dominance on the IR before the sink.
+3. Attach the predicate to the sink instruction and the route.
+
+Acceptance: the same check before the sink sets the predicate; after the sink it does not. A config-named function works. An unlisted `can` helper stays `none`.
+
+FP risk: a helper named `can` that parses input. Without a catalog or config entry it stays `none`. The schema requires `kind` to be a lattice member, so a row cannot be added as a vague match.
+
+### Phase 313 — Route, auth, and data-access matrix [`FULLSHIELD_EXPERIMENTAL_ACLMATRIX`]
+The matrix is a pure function of route records. One row is method, path, auth predicate, authz predicate, owner-scope, and sink classes. Rows sort by method, path, then file. `explain --matrix` prints them. With the flag on, `scan --json` gains an experimental `matrix` array and the finding list is unchanged. No row is a finding. `unknown` is not printed as `none`.
+
+Depends on: 311, 312. Owner-scope is `not-computed` until 314 is on. Flag off: byte-identical, and the JSON has no `matrix` key.
+
+Build:
+1. Implement the pure function.
+2. Snapshot a fixture with public, authenticated, and admin routes.
+3. Fail the test if a matrix row contains a finding-rule message string.
+
+Acceptance: three routes produce three rows with the matching predicates. Flag off, findings are unchanged. An `unknown` auth cell stays `unknown`.
+
+FP risk: a consumer treating `unknown` as safe. The schema description says it is not safe, and 315 is not allowed to skip on `unknown` by calling it safe.
+
+### Phase 314 — Ownership data flow [`FULLSHIELD_EXPERIMENTAL_OWNERFLOW`]
+The principal is origin `principal`: `req.user.id`, the session user id, `ctx.state.user`, and the user object the auth lowering names. It is not a general XSS source. A data access is `owner-scoped` only when a must-alias of that value reaches a filter key the model IR marks as the owner field. A may-alias is `unknown`, not scoped. With no model IR, the cell is `unknown`. `not-scoped` is only a query the model understands, whose finite filter keys omit the owner field, while the lookup key is origin `request`.
+
+Depends on: 251. Must-alias uses 272 when it is on; otherwise only a same-variable syntactic flow is must, and every other flow is `unknown`. Flag off: byte-identical.
+
+Build:
+1. Mark principal reads.
+2. Track them into filter keys.
+3. Compare with the model's owner field name, not a hard-coded `userId`.
+
+Acceptance: a query filtered by the principal is `owner-scoped`. The same model filtered only by `req.params.id` with a finite key set is `not-scoped`. An unresolved alias is `unknown`. A test asserts `unknown` is not stored as `not-scoped`.
+
+FP risk: any numeric id being treated as the principal. The phase follows the principal origin, not the number type. The negative fixture filters only by `req.params.id`.
+
+### Phase 315 — IDOR from the ownership edge [`FULLSHIELD_EXPERIMENTAL_IDOR2`]
+Emit `SAST-IDOR-002` (medium) only when the auth predicate is a known mechanism, the authz predicate is not `role` or `policy`, the access is `not-scoped`, and the lookup key is origin `request`. `unknown` scope emits nothing. An unauthenticated route emits nothing from this id. The message cites the route, the id source, and the missing owner edge. It does not say the object is exposed. Confidence stays medium. Phase 107's id is unchanged. This is an edge report, not the deterministic authorization proof Section 4.3 refuses.
+
+Depends on: 312, 314. Flag off: byte-identical.
+
+Build:
+1. Read the predicates. Do not re-detect auth.
+2. Emit one finding per access instruction.
+3. Skip `unknown`, admin-shaped checks, and unauthenticated routes.
+
+Acceptance: a scoped update emits nothing. An authenticated unscoped update by `req.params.id` emits one medium finding. An admin route with the same query emits nothing. An unauthenticated route emits nothing from this id.
+
+FP risk: a raw SQL `EXISTS` owner check the model IR does not see. That access stays `unknown` because 314 will not mark a raw query `not-scoped` without a model. The forbidden outcome is a finding from `unknown`.
+
+### Phase 316 — Role-field mass assignment [`FULLSHIELD_EXPERIMENTAL_MASSASSIGN`]
+Privilege fields are schema fields tagged `privilege`, plus the config list (`role`, `isAdmin`, `permissions`, `tenantId`, and user-added names). Emit `SAST-MASSASSIGN-001` (high) when a create or update `data` object has `keys: Unknown`, or a finite key set intersecting that privilege set, and no dominating allowlist removes those keys. A DTO transfer function that dropped the field is safe. Spread of `req.body` is `keys: Unknown`. A finite set names the fields in the witness. An unknown key set says "unknown keys" and does not invent property names.
+
+Depends on: 298 or 299, or the config list alone for the default names. Flag off: byte-identical.
+
+Build:
+1. Build the privilege set from tags and config.
+2. Read the key set at create and update sinks.
+3. Treat `pick`, a DTO, and `removeAdditional` as transfer functions that run first.
+
+Acceptance: whole-body update and object spread report. A pick that drops `role` does not. A pick that keeps `role` does. A body that only sets `title` on a tagged model does not.
+
+FP risk: a non-user model with a field literally named `role`. Tags win. The default name list applies only when the model has no tags, and the message says the match was by name.
+
+### Phase 317 — JWT verification edges [`FULLSHIELD_EXPERIMENTAL_JWTDEEP`]
+Verification options are an abstract record. Algorithm confusion is `algorithms` containing both an HMAC name and an asymmetric name, or `algorithms` missing while the key is a PEM public key or a certificate. An explicit `none` algorithm is critical. `kid` flowing into a path or SQL is a normal taint query with origin `jwt-header`. `jku` or `x5u` reaching `fetch` is SSRF with that origin. Missing `audience` or `issuer` is a finding only when the model row says the issuer is third-party. A locally issued HMAC session token with an explicit algorithm does not need an issuer finding. The phase does not verify a token and does not fetch JWKS (R15).
+
+Depends on: 251, 281. Flag off: byte-identical.
+
+Build:
+1. Abstract the options object. An unknown spread element in `algorithms` counts as dangerous.
+2. Classify key material by PEM headers or by a `readFileSync` of the public half. Unknown key type plus missing `algorithms` reports.
+3. Reuse path, SQL, and SSRF queries for `kid` and `jku`. Do not add a second SQL rule.
+
+Acceptance: HMAC plus RSA in one list reports. A single `RS256` with a public PEM does not. `kid` concatenated into a filename is a path finding with origin `jwt-header`. A `jku` fetch is SSRF. A local HMAC verify with an explicit algorithm and no `audience` does not report an issuer finding.
+
+FP risk: sign and verify in one function with two keys. Only the verify call's key argument is judged. The fixture contains both calls.
+
+### Phase 318 — OAuth and OIDC client flow [`FULLSHIELD_EXPERIMENTAL_OAUTH`]
+Extract a two-step machine from the IR: the authorize redirect and the callback. `state` counts only when the start writes a nonce onto the session or a cookie and the callback's dominating branch compares the returned state to it. Generating `state` and never reading it reports. PKCE is required when the client is public (no client secret in the lowering, or a SPA, mobile, or CLI flag). A confidential client with a secret does not get the PKCE finding. `redirect_uri` taken from the request carries the redirect label. OIDC `nonce` must be compared on the callback before the id token is accepted. Rule id `SAST-OAUTH-001`; the witness names the missing edge. The phase does not perform a login.
+
+Depends on: 251, 255, 289. Flag off: byte-identical.
+
+Build:
+1. Recognize passport OAuth strategies and `openid-client` as the machine. Other libraries are model rows.
+2. Check state compare, PKCE for public clients, redirect_uri provenance, and nonce compare.
+3. Emit one finding per missing edge so the witnesses do not merge into "OAuth is wrong."
+
+Acceptance: each missing edge has a fixture that reports that edge and not the others. A complete flow reports nothing. A confidential client without PKCE reports nothing for PKCE. `redirect_uri: req.query.next` reports. A literal redirect URI does not.
+
+FP risk: a state compare inside a helper. It counts when the call dominates the token exchange. A helper that is never called does not.
+
+### Phase 319 — Session configuration [`FULLSHIELD_EXPERIMENTAL_SESSIONCFG`]
+Cookie and session options are an abstract record: `httpOnly`, `secure`, `sameSite`, `signed`, secret source, `saveUninitialized`, `resave`. Missing `httpOnly` or `sameSite` on a session cookie reports. Missing `secure` is low when no dominating literal sets the environment to development, and is not dropped. A literal secret shorter than 32 characters reports even if 333 is off. A literal secret also takes origin `secret` for 331. `saveUninitialized: true` is info. The existence of a session is not a finding.
+
+Depends on: 251. Flag off: byte-identical.
+
+Build:
+1. Abstract `express-session`, `cookie-session`, and `res.cookie`, including a function that returns a literal object.
+2. Apply that table.
+3. Exclude cookie names `csrf` and `_csrf` from the `httpOnly: false` check. Other exceptions come from config.
+
+Acceptance: `httpOnly`, `sameSite: 'lax'`, and a long `process.env` secret emit nothing. Omitting `httpOnly` reports. A 4-character secret reports. `saveUninitialized: true` is info.
+
+FP risk: a non-session cookie that script must read. Only the default csrf names and config entries are excluded. A cookie named `token` is not assumed to be a CSRF token.
+
+### Phase 320 — Password storage and reset tokens [`FULLSHIELD_EXPERIMENTAL_PASSWORD`]
+A field tagged `password` must pass through a catalog hash (`bcrypt`, `scrypt`, `argon2`) before the store. Direct assignment is the missing-hash finding. `sha1` or `md5` is a different finding, weak hash, not missing hash. A reset token must come from `crypto.randomBytes` of length at least 32. `randomUUID` is medium because the space is smaller. The stored reset token must be hashed, and the compare must be `timingSafeEqual` or a catalog compare. A reset token in a query string is its own finding. The user's password length is not judged.
+
+Depends on: 251 and a field tag or config list. Flag off: byte-identical.
+
+Build:
+1. Tag password and reset-token fields.
+2. Require the catalog hash on the store path and a constant-time compare on the check path.
+3. Flag query-string placement separately.
+
+Acceptance: `bcrypt.hash` before save emits nothing. Direct assignment reports the missing-hash id. `sha1` reports the weak-hash id and not the missing-hash id. A 16-byte token reports. `===` reports. `timingSafeEqual` does not. `?token=` reports.
+
+FP risk: an importer that writes already-hashed passwords. Config on that function skips the missing-hash finding and still reports a visible weak algorithm. The witness names the config skip.
+
+### Phase 321 — Brute-force protection on sensitive routes [`FULLSHIELD_EXPERIMENTAL_BRUTE`]
+Sensitive routes are login, reset, and MFA, from the auth lowering plus config paths. A path is not sensitive because it contains the substring `auth`. Coverage requires a rate-limit middleware that dominates the route in 307 order, whose key includes the principal, the username field, or the client address. A limiter registered later does not count. A constant key does not count, and the witness says the bucket is shared. Emit `CONFIG-BRUTE-001` (medium). This phase does not block requests.
+
+Depends on: 307, 311. Flag off: byte-identical.
+
+Build:
+1. Mark the sensitive set.
+2. Abstract the dominating limiter's key.
+3. Emit when the limiter is missing or the key is constant.
+
+Acceptance: a login route limited by username emits nothing. The same limiter registered after the route reports. Key `'all'` reports. A health route does not.
+
+FP risk: a limiter inside the handler. It counts when it dominates the credential check. A limiter on a non-dominating branch still reports.
+
+### Phase 322 — CSRF and cookie-authenticated mutations [`FULLSHIELD_EXPERIMENTAL_CSRF2`]
+A `POST`, `PUT`, `PATCH`, or `DELETE` (plus methods added in config) whose auth predicate is cookie-backed needs a dominating CSRF check. Bearer and header API-key auth do not. The check is catalog middleware or a dominating compare of a request token to a session token. A custom header counts when its name is a literal and the check dominates. GET is not reported. `SameSite=Lax` is recorded in the witness and is not a substitute. Emit `CONFIG-CSRF-001` (high).
+
+Depends on: 307, 311, 319. Flag off: byte-identical.
+
+Build:
+1. Select routes by method and cookie-backed auth.
+2. Recognize catalog middleware and explicit compares.
+3. Keep `SameSite` in the witness without clearing the finding.
+
+Acceptance: cookie session, POST, no check, reports. Dominating CSRF middleware does not report. Bearer-only does not. GET does not. `SameSite=Lax` alone still reports.
+
+FP risk: a JSON API that checks a custom header the catalog does not know. Config adds the name. Until then the finding's message says the check was not in the catalog.
+
+### Phase 323 — CORS origin abstract value [`FULLSHIELD_EXPERIMENTAL_CORSV2`]
+The origin option lowers to literal, reflect-request, regex, function, or `null`. Reflect plus `credentials: true` is critical. An allowed `null` origin is high. A regex is searched, under fuel, for one concrete string the regex accepts that is not a boundary match of the intended host (`notevil.com` versus `evil.com`, or a missing anchor). That string goes in the witness. It is not found by contacting a network. A backreference the automaton cannot represent is `unknown` and low, never "safe." A function that is not the identity echo is low. The phase does not send a preflight.
+
+Depends on: 278. Flag off: byte-identical.
+
+Build:
+1. Abstract the option, including arrays of literals.
+2. Search the bounded automaton. Exhaustion is a 271 event and a low finding.
+3. Pair the result with `credentials`.
+
+Acceptance: a literal origin emits nothing. Reflect with credentials is critical. The suffix regex's witness contains the counterexample string. An anchored single-host regex emits nothing. `origin: 'null'` reports.
+
+FP risk: a regex intended to allow two hosts that the automaton flags. The witness shows the string. If that string is a host the user wanted, they add it as a literal. The phase does not maintain a second allowlist inside the regex.
+
+### Phase 324 — Account enumeration branches [`FULLSHIELD_EXPERIMENTAL_ENUM`]
+On login and reset handlers, the unknown-user arm and the known-user arm must not differ in status code or in returned literal message. The comparison is the IR's return arguments. Timing is not measured and is not claimed. A difference that is only a log line is info. Echoing `user.email` is not given this id. Emit `SAST-ENUM-001` (low) with the two literals in the witness.
+
+Depends on: 251 and the sensitive-route set from 321. Flag off: byte-identical.
+
+Build:
+1. Find the branch on the user-lookup result, not the branch on password correctness.
+2. Compare status and literal payload.
+3. Leave the password-wrong arm out.
+
+Acceptance: 404 versus 200 on reset reports. The same 200 and the same literal do not. A log-only difference is info. A fixture that returns `user.email` does not get this id.
+
+FP risk: the ordinary wrong-password branch. It is excluded by the arm definition, and the fixture includes it so a regression that flags it fails.
+
+### Phase 325 — Multi-tenant isolation edge [`FULLSHIELD_EXPERIMENTAL_TENANT`]
+Tenant id is origin `tenant`, from the auth predicate or config (`req.tenant.id`). On a model tagged `tenantOwned`, reuse 314's must-flow against the tenant field. Emit `SAST-TENANT-001` (high) when the scope is `not-scoped` and the route is authenticated. `unknown` emits nothing. One literal relation hop is walked; if that relation is not tenant-owned, a second finding says the edge stopped there. A dynamic include is a 271 event and `unknown`. The message does not say another tenant's row was returned.
+
+Depends on: 314, 298 or 299. Flag off: byte-identical.
+
+Build:
+1. Mark tenant reads.
+2. Reuse the owner-flow query with the tenant field.
+3. Walk one literal relation. Config `tenantBypass` on a function skips it and the witness records the bypass.
+
+Acceptance: a tenant-filtered query emits nothing. The same model loaded only by `req.params.id` reports. A nested untagged include reports the stopped edge. An unresolved alias emits nothing.
+
+FP risk: a maintenance job that intentionally scans every tenant. It needs `tenantBypass`. The default is no bypass, so the job reports until the config names it.
+
+### Phase 326 — API keys in query strings [`FULLSHIELD_EXPERIMENTAL_APIKEYQUERY`]
+A read of an API key from `req.query`, a URL search param, or a Web `request.url` query is `SAST-APIKEY-QUERY-001` (medium): the value then sits in access logs and `Referer`. The same read from a header emits nothing. Identity comes from the 311 predicate or from config names, not from the substring `key` on every parameter. A default-name match that never reaches a compare is low, and the message says the match was by name.
+
+Depends on: 255, 311. Flag off: byte-identical.
+
+Build:
+1. Find query reads that flow into an API-key compare, plus the default name list.
+2. Exclude header reads.
+3. Leave cloud signed-URL parameter names off the default list. Config adds them.
+
+Acceptance: `req.query.apiKey` used as auth reports medium. `Authorization` does not. A parameter `q` does not. A name-only match is low.
+
+FP risk: a single-use signed URL. Config marks that parameter `signedUrl`. The default list does not contain vendor signature names.
+
+### Phase 327 — GraphQL field authorization [`FULLSHIELD_EXPERIMENTAL_GQLAUTHZ`]
+Each field route from 296 needs an authz predicate or a catalog schema directive such as `@auth`. Emit `SAST-GQL-AUTHZ-001` (medium) when the parent is public, the field has neither, and the resolver reaches a data-store sink or returns a field tagged sensitive. A resolver that returns only a literal is not a finding. Introspection is not a finding here. An unknown directive still reports, and the witness quotes the directive name so it can become a model row.
+
+Depends on: 296, 312. Flag off: byte-identical.
+
+Build:
+1. Join field routes to predicates and directives.
+2. Restrict to store sinks and tagged fields.
+3. Do not let a query-level check count unless it dominates the field resolver.
+
+Acceptance: a public parent, a sensitive field, no guard, reports. `@auth` on that field does not. A literal field does not. Middleware that does not dominate the resolver still reports.
+
+FP risk: a directive that means auth but is not catalogued. The finding stays until a model row names it. That is intended, and the witness is the way out.
+
+### Phase 328 — WebSocket connection auth [`FULLSHIELD_EXPERIMENTAL_WSAUTH`]
+A message handler that reaches a sink needs the connection-level predicate from 300 or its own dominating check. A check on one event does not cover siblings. Listeners registered before auth runs are not covered. Listeners added inside the auth success continuation are covered. Emit `SAST-WS-AUTH-001` (high) with the event name. Do not rediscover `socket.on`.
+
+Depends on: 300, 311. Flag off: byte-identical.
+
+Build:
+1. Read the connection predicate and the per-event predicate.
+2. Apply 307's earlier-and-dominating rule.
+3. Skip handlers that reach no sink.
+
+Acceptance: a SQL-reaching handler behind connection auth emits nothing. A sibling without auth reports. An ack-only handler does not. Auth registered after `on` reports.
+
+FP risk: a public echo socket. It has no store sink, so it does not report. The negative fixture is that echo.
+
+### Phase 329 — Debug and docs routes [`FULLSHIELD_EXPERIMENTAL_DEBUGROUTE`]
+Paths on a closed catalog (`/metrics`, GraphQL playground paths, `/docs`, `/swagger`, `/debug`, stack-dump handlers) with auth predicate `none` are `CONFIG-DEBUG-ROUTE-001`. Severity is medium unless a dominating literal sets the environment to `development` or `test`, in which case it is info. Unknown environment stays medium. Match `fullPath` after mounts, using the route compiler. `/documentation` does not match `/docs`. A playground middleware mount is the same finding.
+
+Depends on: 255, 311. Flag off: byte-identical.
+
+Build:
+1. Compare compiled paths to the catalog. Do not use `includes`.
+2. Read environment literals from assignments.
+3. Emit one finding per route.
+
+Acceptance: unauthenticated `/metrics` is medium. Authenticated `/metrics` emits nothing. `/docs` under a literal `development` environment is info. `/documentation` does not match.
+
+FP risk: metrics protected only by a proxy. Until 459 links that proxy to the route, the finding stays, and the message says only in-app auth was considered.
+
+### Phase 330 — Access-control matrix report [`FULLSHIELD_EXPERIMENTAL_ACLREPORT`]
+`--access-report <path>` writes the 313 matrix plus finding ids from 315, 316, 322, 325, and 327. It adds no findings and does not upload. Unknown cells use the token `unknown` or `not-computed`, never `safe`. The header says the cells are IR edges, not a proof of exposure. Sort is deterministic. Flag off, the option fails with a new `FS-E` code and scan output is unchanged.
+
+Depends on: 313. Flag off: byte-identical scan JSON.
+
+Build:
+1. Assemble the document from route records and existing findings.
+2. Schema-check the header sentence and the allowed tokens.
+3. Write the file only when the option is passed.
+
+Acceptance: the fixture report matches a snapshot. An unknown auth cell is the token `unknown`. Flag off, `scan --json` is unchanged and the file is not created.
+
+FP risk: a reader treating the file as a pentest. The header is in the schema, and the test asserts the sentence is present.
+
+### Lane K — Secret labels (331–345)
+
+A secret is origin `secret` plus a format id from 332, or `none` when only entropy matched. The raw value is never written to a report, a fixture expectation, or a log. Reports show a prefix and a suffix of at most 4 characters and a sha256 fingerprint (340). Fixtures use synthetic values the format registry marks `synthetic: true`, so a test can match the shape without embedding a live credential.
+
+### Phase 331 — Secret flow tracking [`FULLSHIELD_EXPERIMENTAL_SECRETFLOW`]
+Once a literal, an env read of a sensitive name, or a file read matches 332, the value carries origin `secret`. Sinks are: a log call, a response body, a client-bundle define (461), an error object returned to a client (345), and a child-process argument. A server-side read of the same value for a signature is not a sink. The witness names the format id and the sink class. It does not contain the secret. Flow uses the IR, so a secret copied through a helper still reaches the sink. `process.env.NODE_ENV` is not a secret. Names come from the format registry and from config, not from the substring `key` on every variable.
+
+Depends on: 251, 256, 332. Flag off: byte-identical.
+
+Build:
+1. Attach origin `secret` at the match site.
+2. Query the sink classes above. Do not add a second regex scanner in this phase.
+3. Redact the witness. A test fails if the JSON value contains the fixture's synthetic secret.
+
+Acceptance: a matched token interpolated into `logger.info` reports. The same token passed only to an HMAC function does not. A copy through a helper still reports. The JSON does not contain the token.
+
+FP risk: a short fixture string that matches a prefix by accident. 332 requires the length and the alphabet, not the prefix alone. The negative fixture is the prefix followed by `example`.
+
+### Phase 332 — Provider format registry [`FULLSHIELD_EXPERIMENTAL_SECRETFORMAT`]
+`models/secret-formats.json` holds only formats with a published grammar: prefix, alphabet, length, and a checksum when the vendor documents one. A row has `id`, `source` (a public doc URL the human pasted; the scanner does not fetch it), and `synthetic` examples used by tests. Rows without `source` fail the schema test. The scanner does not invent a vendor pattern from a sample. A format without a documented checksum stays prefix plus length plus alphabet, and 333 may still reject it. Adding a row is a human edit. Cursor does not add rows from memory in a phase commit.
+
+Depends on: none. Flag off: today's secret rules are unchanged.
+
+Build:
+1. Validate the schema, including `synthetic: true` on every example.
+2. Match the grammar on literals and on assignments. Do not run the examples against the network.
+3. A test asserts no example string appears in source outside the registry and the fixtures that cite the id.
+
+Acceptance: a synthetic example of a documented format matches. The same prefix with the wrong length does not. A row missing `source` fails the schema test. Flag off, the existing secret rule ids behave as they do today.
+
+FP risk: a format whose published grammar collides with a commit hash or a fixture id. The row must set `notBeforeLength` high enough that the collision fixture does not match, and that fixture is part of the row's tests.
+
+### Phase 333 — Entropy model v2 [`FULLSHIELD_EXPERIMENTAL_ENTROPY2`]
+Entropy is a documented function, not a trained model. On a candidate span that survived 332's alphabet, compute Shannon entropy over the span, reject spans that are a dictionary word, a hex color, a UUID, or the sha256 of the empty string, and compare to committed thresholds in `quality/entropy-thresholds.json`. The file is human-owned (R1). The phase does not tune the thresholds to make a bench app quiet. A span that 332 already matched does not also need entropy. A span that fails the dictionary reject emits nothing. The witness stores the entropy number and the threshold id, not the span.
+
+Depends on: 332. Flag off: byte-identical.
+
+Build:
+1. Implement the function and pin the thresholds.
+2. Dictionary is a committed word list in the repo, not a download.
+3. A test locks one accepted span and one rejected span per reject reason.
+
+Acceptance: a long random synthetic span reports. `deadbeef` as a color-length hex does not. A UUID does not. Changing a threshold without a human edit to the JSON fails the ownership test the way Phase 67's reviewed-bit test does: Cursor-authored commits in the phase do not edit the threshold file. The phase may add the file once with the initial constants; later edits are human.
+
+FP risk: a high-entropy minified string in application source. Minified files matched by 363's density test are excluded from entropy. The exclusion is the negative fixture.
+
+### Phase 334 — Secrets in structured text [`FULLSHIELD_EXPERIMENTAL_SECRETDOCS`]
+YAML, TOML, INI, Java properties, and Jupyter notebooks are parsed and then handed to 332 and 333. Comments are scanned. Notebook output cells are scanned. The parsers are in-tree and do not execute notebook code (R15). A parse failure on one file is a 271 event and the file is scanned as text, so a secret is not hidden by a deliberate syntax error. Keys that 332 marks as sensitive (`password`, `secret`, `token`, plus config) promote the value even when the value would not match a prefix, if the value also passes 333. A key named `password` whose value is `changeme` fails 333 and does not report as a high-entropy secret; it can still match a separate committed denylist of placeholder values at info, and that denylist is finite and in the repo.
+
+Depends on: 332, 333. Flag off: byte-identical.
+
+Build:
+1. Parse each format. On failure, fall back to the text scanner and record the event.
+2. Feed values and comments to 332 and 333.
+3. Do not execute notebook cells.
+
+Acceptance: a synthetic token in a YAML comment reports. The same token in a notebook output cell reports. A broken YAML file with the token still reports, plus the event. `password: changeme` is info only if `changeme` is on the placeholder list.
+
+FP risk: an example value in a schema file that is a synthetic token from the registry. Those files live under `models/` and `test/fixtures/` and are excluded by path. A schema file outside those paths is not excluded.
+
+### Phase 335 — Local git objects [`FULLSHIELD_EXPERIMENTAL_GITOBJECTS`]
+Scan loose objects, pack files, stash commits, and the reflog that are already in `.git`, by reading the files. Do not spawn `git`. Do not execute hooks. Object parsing is in-tree, fuel-capped per object, and a corrupt object is a 271 event rather than a crash. Blobs are handed to 332. The finding's file field is the object id and the ref name, not a working-tree path that does not contain the secret. Packed refs are included. Alternates that point outside the repo are not followed (that would be another project's files). Severity matches the working-tree rule. The witness says `git-object`.
+
+Depends on: 332. Flag off: byte-identical.
+
+Build:
+1. Parse `.git` enough to list blobs reachable from refs, the stash ref, and the reflog.
+2. Cap bytes read. Exhaustion records an event and does not claim the repo is clean.
+3. Never spawn a process.
+
+Acceptance: a blob reachable only from the reflog reports when it contains a synthetic token, and the working tree does not. A blob only in an alternate is not read. A corrupt object emits the event and the scan continues. A test asserts `child_process` is not used by this phase's module.
+
+FP risk: a secret in a file the user deleted and can no longer rotate from the path in the finding. The object id is the right location. The message says the blob is not in the working tree.
+
+### Phase 336 — Secrets in test snapshots [`FULLSHIELD_EXPERIMENTAL_SECRETSNAP`]
+Jest and Vitest snapshot files are in scope for 332. Severity is info, because the usual case is a recorded fixture, unless the format's checksum matches, in which case severity stays the format's normal severity: a checksummed live-shaped token is not "just a snapshot." 341 can allowlist the fingerprint. Snapshots are not skipped by default. Inline snapshots in test files are the same rule.
+
+Depends on: 332, 341. Flag off: byte-identical.
+
+Build:
+1. Detect snapshot files by the framework's filename and by `toMatchInlineSnapshot` arguments.
+2. Run 332. Checksummed formats keep their severity. Prefix-only formats drop to info inside snapshots.
+3. Apply 341 after the finding exists.
+
+Acceptance: a prefix-only synthetic value in a snapshot is info. A checksummed synthetic value in a snapshot keeps high. An allowlisted fingerprint emits nothing. A snapshot that contains no match emits nothing.
+
+FP risk: a snapshot of a public sample token that has a valid checksum because the vendor's sample does. The registry's `synthetic` examples are allowlisted by id inside `test/` and `examples/`. Other checksum hits stay high.
+
+### Phase 337 — Dockerfile build arguments [`FULLSHIELD_EXPERIMENTAL_DOCKERARG`]
+This phase reads Dockerfile text. It does not pull an image, run a build, or scan OS packages (Section 31). `ARG` and `ENV` values that match 332 are secrets. An `ARG` used only in a stage that is not copied into the final stage is info. The same `ARG` copied into the final stage with `COPY --from` or used in a `RUN` that writes a file in the final stage is high. `RUN echo $SECRET` is a log sink (331) at high. BuildKit `--mount=type=secret` is the negative: the value is not in the file.
+
+Depends on: 332, 331. Flag off: byte-identical.
+
+Build:
+1. Parse stages and `COPY --from` edges.
+2. Track which ARG names reach the final stage.
+3. Do not resolve variables by executing the Dockerfile.
+
+Acceptance: an ARG secret that dies with an intermediate stage is info. The same ARG copied forward is high. A BuildKit secret mount emits nothing. `RUN echo` of the ARG is high.
+
+FP risk: a multi-stage file the parser cannot connect. The ARG is treated as reaching the final stage, which is the sound direction, and a 271 event says the stage graph was incomplete.
+
+### Phase 338 — Literal secrets in CI configs [`FULLSHIELD_EXPERIMENTAL_CISECRET`]
+GitHub Actions, GitLab CI, CircleCI, Azure Pipelines, and Jenkinsfiles are scanned with 332. `${{ secrets.NAME }}`, GitLab masked variables, and other documented indirection forms are not literals and emit nothing. A literal next to those forms still reports. `echo` of a secret expression is 331's log sink when the expression is a literal; an echo of `${{ secrets.NAME }}` is info, because the runner may redact and this phase does not claim the log is clean. The phase does not call the CI vendor.
+
+Depends on: 332, 331. Flag off: byte-identical.
+
+Build:
+1. Parse the YAML and the Jenkinsfile enough to find literal scalars and `sh`/`run` strings.
+2. Recognize each vendor's secret indirection and do not flag it as a literal.
+3. Feed real literals to 332.
+
+Acceptance: a synthetic token in a workflow `env:` reports. `${{ secrets.TOKEN }}` does not. A literal beside a secrets expression reports. Echo of the expression is info.
+
+FP risk: a sample workflow under `docs/` that uses a synthetic example from the registry. The registry synthetic allowlist applies only under `test/fixtures/` and `models/`. A docs sample reports, which is acceptable; the message names the file.
+
+### Phase 339 — Source maps that ship original text [`FULLSHIELD_EXPERIMENTAL_SRCMAPSECRET`]
+Parse a source map the repo contains, or a `sourceMappingURL` that points at a file in the repo. Do not fetch a remote map (R15). If `sourcesContent` contains a 332 match, report it at the original path when the map gives one, else at the map file. Also report, at info, a map whose sources are absolute paths outside the repo, because that leaks a developer machine layout. Do not execute the generated JavaScript. A map larger than the fuel cap records a 271 event and is not called clean.
+
+Depends on: 332. Flag off: byte-identical.
+
+Build:
+1. Find maps and `sourceMappingURL` comments that resolve inside the repo.
+2. Parse JSON. On failure, record the event and do not throw away a sibling map.
+3. Scan `sourcesContent` and source path strings.
+
+Acceptance: `sourcesContent` with a synthetic token reports, and the working-tree file without the token is not required. An external `https://` sourceMappingURL emits nothing from a fetch; it emits info that the URL was not fetched. An absolute path in `sources` is info.
+
+FP risk: a map of a test fixture that intentionally contains the synthetic token. Path exclusion for `test/fixtures/` applies.
+
+### Phase 340 — Fingerprint dedupe [`FULLSHIELD_EXPERIMENTAL_SECRETFINGERPRINT`]
+The dedupe key is sha256 of the secret bytes plus the rule id. The path is not part of the key, so two files with the same secret are one finding with two locations. The report stores the hash, a prefix, and a suffix. It does not store the secret. Line drift does not create a second finding. A different secret in the same file does. The hash is not reversible in the report. Logs of the scanner must not print the preimage; a test greps the scanner's own log lines.
+
+Depends on: 332. Flag off: byte-identical, including one finding per location as today.
+
+Build:
+1. Compute the fingerprint after redaction is decided, on the original bytes.
+2. Group locations. Sort them.
+3. Forbid the preimage in every output channel the phase touches.
+
+Acceptance: two files, one synthetic secret, one finding, two locations. Two secrets in one file, two findings. The JSON does not contain the secret. Flag off, the two files are two findings as today, and that difference is behind the flag (`DIFF.txt` only if this is ever promoted).
+
+FP risk: two different secrets that truncate to the same prefix and suffix. They remain two findings because the hash differs. The test uses a pair with the same four-character edges and different middles.
+
+### Phase 341 — Fingerprint allowlist [`FULLSHIELD_EXPERIMENTAL_SECRETALLOW`]
+`.fullshield/secret-allow.json` contains fingerprints, an optional `until` date, a reason, and a rule id. It must not contain a value that 332 matches; the loader rejects the file with `FS-E` if it does. An entry past `until` is ignored and `SUPPRESS-EXPIRED` is phase 429's job if that phase is on; this phase itself just stops honoring it. A fingerprint that matches no current finding is kept and not reported as a secret. The file is local. It is not sent anywhere.
+
+Depends on: 340. Flag off: the allow file is not read.
+
+Build:
+1. Parse the file. Reject raw secrets and unknown rule ids.
+2. Drop expired entries.
+3. Remove matching findings from the flag-on result only.
+
+Acceptance: an allow entry for the fixture fingerprint removes that finding. A raw token in the allow file fails the load and does not suppress anything. An expired entry does not suppress. Flag off, the finding remains and the file is not read.
+
+FP risk: a hash collision suppressing a different secret. The entry also stores the prefix and suffix, and all three must match. The test is two secrets with the same hash truncated in a broken file; a full sha256 collision is not the test, the prefix check is.
+
+### Phase 342 — Pre-commit budget [`FULLSHIELD_EXPERIMENTAL_PRECOMMIT`]
+The hook scans the staged added lines with 332 and the cheap intra-procedural query, not the whole-program IR. Budget is 1 second of wall time, measured, after which the hook prints what it found and exits 0, with a line that the budget stopped the scan. It does not fail closed on budget, because a stuck hook trains people to skip it. A finding found before the budget still exits 1 when `--fail-on` is set. The diff parser is 446's parser when that phase exists; until then the hook shells out to `git diff --cached` and does not execute the project. Paths come from git, and the scanner reads those files itself.
+
+Depends on: 332. Flag off: no hook behavior change.
+
+Build:
+1. Parse the cached diff. Scan only added lines plus enough surrounding function for the cheap query, fuel-capped.
+2. Enforce the budget with a timer that stops new files. In-flight file results are kept.
+3. Exit policy as above. A test uses a large fixture and a stub timer.
+
+Acceptance: a synthetic token on an added line exits 1. The same token on an unchanged line exits 0. A budget trip exits 0 and the output contains the budget line. The project is not executed.
+
+FP risk: a partial line that becomes a secret only after the whole line is assembled. The hook is allowed to miss that until the full scan. The message in the hook template says it is not the full scan.
+
+### Phase 343 — Encrypted secret recognition [`FULLSHIELD_EXPERIMENTAL_ENCRYPTED`]
+sops `ENC[` blocks, git-crypt's binary header, and age armored blocks are recognized and are not passed to 333. A checksummed 332 match inside a file that also has an encrypted block still reports if the match sits outside the encrypted span. The phase does not decrypt. It does not shell out to `sops`. Span parsing is in-tree. An unrecognized armor header is scanned as text.
+
+Depends on: 332, 333. Flag off: byte-identical.
+
+Build:
+1. Mark encrypted spans.
+2. Run 332 and 333 on the complement of those spans.
+3. Do not invoke a decryptor.
+
+Acceptance: a file whose only high-entropy span is an `ENC[` block emits nothing. A synthetic token beside the block reports. A git-crypt header file emits nothing from entropy. A normal source file is unchanged.
+
+FP risk: a string that happens to start with `ENC[` in application source. The recognizer also requires sops's documented metadata keys in the same file. The prefix alone is the negative fixture.
+
+### Phase 344 — Secret-manager calls [`FULLSHIELD_EXPERIMENTAL_SECMGR`]
+Calls on the catalog (`getSecretValue`, the AWS and GCP secret clients, Vault read) produce origin `secret-manager`. That origin may flow to server sinks and must not flow to a client bundle (461) or a response body. A literal fallback beside the call (`getSecret() || 'hardcoded'`) is a 332/331 finding on the literal, and the manager call does not launder it. The phase does not contact the manager (R15). Missing credentials are not a finding.
+
+Depends on: 251, 331, 461's sink list even if 461 is off: the client-bundle sink names are shared data. Flag off: byte-identical.
+
+Build:
+1. Mark catalog calls as that origin.
+2. Forbid the origin at response and client-bundle sinks.
+3. Keep analyzing the literal fallback as a normal secret.
+
+Acceptance: a manager value used to sign a request emits nothing. The same value placed in `res.json` reports. `getSecret() || 'synthetic-token'` reports the literal. No network call is made, asserted by the host allowlist test.
+
+FP risk: a wrapper the catalog does not know. It is an ordinary call, so a literal inside it still reports and a returned env value follows 331's env rules. The wrapper is not assumed safe.
+
+### Phase 345 — Secrets in error responses [`FULLSHIELD_EXPERIMENTAL_ERRSECRET`]
+An error object that may carry origin `secret`, or `err.stack` sent in a response when the environment is not a development literal, is `SAST-ERRSECRET-001`. A dominating redaction that deletes `stack` and the secret field clears it. A generic `res.status(500).json({ error: 'failed' })` emits nothing. The stack finding is medium. A secret field on the response is high. The phase does not turn off stack traces in development fixtures where the literal environment is `development`.
+
+Depends on: 251, 331. Flag off: byte-identical.
+
+Build:
+1. Find response sinks whose value is an error object or a spread of one.
+2. Apply the environment literal the way 329 does.
+3. Honor a dominating redaction transfer function.
+
+Acceptance: `res.json(err)` with no environment literal reports the stack finding. The same handler under literal `development` does not. An error that includes a secret-labeled field reports high even in development. A redaction that deletes `stack` clears the stack finding.
+
+FP risk: a log of `err.stack` on the server. Logging is 331's log sink only when a secret reaches it. A stack log without a secret is not this finding. The negative fixture is `logger.error(err)`.
+
+### Lane L — Advisory, lock, and package facts (346–380)
+
+These phases read `NpmFacts` (261), the OSV cache, or a file the user passed. They do not add a network host. They do not invent advisory ids (R6). A numeric "score" in an old title is a deterministic table or a count, never a learned model (Section 31, Phase 84).
+
+### Phase 346 — Reviewed vulnerable-function database [`FULLSHIELD_EXPERIMENTAL_ADVDB`]
+`models/advisory-symbols.json` grows a review state machine on top of 260. States are `candidate`, `reviewed`, and `rejected`. Only a human commit may set `reviewed` or `rejected`; the same guard as Phase 67 fails the build if the commit author is the automation and the state changed to `reviewed`. `candidate` rows are used only under this flag and the finding says `unreviewed`. `rejected` rows are never used. A row still needs `osvId`, `package`, `affectedExports`, and `source`. The source is a URL or a local path the human supplied. The scanner does not fetch it.
+
+Depends on: 260. Flag off: byte-identical, and `candidate` rows are not read.
+
+Build:
+1. Enforce the state machine in the schema.
+2. Teach the symbol query to read `reviewed` always when the human has promoted the rule, and `candidate` only under the flag. Promotion is R1 and is not this phase.
+3. Keep the author guard.
+
+Acceptance: a `candidate` row produces a flag-on symbol result labeled `unreviewed`. Flag off, it produces nothing. A `rejected` row produces nothing even with the flag on. A commit that flips `reviewed` fails the author guard in the test by running the guard on a fixture commit metadata, not by rewriting git history.
+
+FP risk: a reviewed row whose export name is too generic (`handler`). The schema requires the export path to have at least two segments (`pkg.fn`) or an explicit `generic: true` that forces medium confidence. The short name without that bit fails the schema.
+
+### Phase 347 — Patch-diff candidate symbols [`FULLSHIELD_EXPERIMENTAL_PATCHDIFF`]
+`fullshield advisory-symbols --diff <file>` reads a unified diff the user already has. It does not clone and does not fetch. Changed function names and export names become `candidate` rows with `source` set to the local file path and `reviewed` unset. The command prints the rows. It does not write `models/advisory-symbols.json` unless `--write` is passed, and `--write` still writes `candidate` only. A hunk that does not parse as a function writes no row for that hunk. The command does not decide that the diff is a security fix.
+
+Depends on: 346. Flag off: the command fails with `FS-E` and does not read the diff.
+
+Build:
+1. Parse the diff. Extract names with the existing parser on the new side of each hunk.
+2. Emit candidate rows. Never set `reviewed`.
+3. Refuse `--write` if the destination row already exists at `reviewed`.
+
+Acceptance: a fixture diff that renames nothing and changes `parse` emits one candidate for `parse`. A comment-only hunk emits nothing. `--write` on a reviewed row exits non-zero and leaves the file. No network.
+
+FP risk: a mechanical rename of an unrelated function in the same diff. The row is `candidate`, so it cannot change default findings. The message says candidate.
+
+### Phase 348 — Deprecation text linked to cached advisories [`FULLSHIELD_EXPERIMENTAL_DEPLINK`]
+If a `deprecated` string contains a `GHSA-`, `CVE-`, or `MAL-` id and that id is in the OSV cache for the same package, the deprecation finding gains `linkedAdvisory`. The id is copied from the string. It is not completed from a prefix and it is not fetched. An id-shaped token that is not in the cache sets `linkedAdvisory: unresolved` and does not create `DEPS-VULN-001`. The deprecation severity is unchanged.
+
+Depends on: 261, the OSV cache. Flag off: byte-identical.
+
+Build:
+1. Extract id-shaped tokens with a fixed grammar.
+2. Look them up in the cache for that package name.
+3. Attach the field. Do not emit a new vulnerability row.
+
+Acceptance: a deprecation string containing a cached GHSA links it. A string containing `GHSA-0000-0000-0000` that is not in the cache is `unresolved` and is not a vuln finding. A string with no id is unchanged.
+
+FP risk: an id mentioned as "not GHSA-…" in the text. The grammar accepts the token anyway, and the link is still just a cache lookup. If the cache contains it, linking it is acceptable; the message quotes the deprecation sentence so a human can see the negation. The phase does not parse negation.
+
+### Phase 349 — Minimal transitive upgrade proposal [`FULLSHIELD_EXPERIMENTAL_MINUPGRADE`]
+For each vulnerable lock entry, search the cached packument for the lowest version that is outside every cached OSV range and, if one exists, inside the parent's declared range. If none exists, emit the nested override proposal from 248 using `minFixedVersion` from the cache only. The search is a bounded loop over cached versions, not a new solver dependency and not a network call. No version in the cache means no proposal. The command does not edit the lockfile. Output stays the existing unsafe proposal channel.
+
+Depends on: 248, 261. Flag off: today's proposal is unchanged.
+
+Build:
+1. Filter cached versions with the semver helper and the OSV ranges.
+2. Prefer a version inside the parent range. Otherwise use 248's override text.
+3. Deterministic tie break: lowest version, then the existing order.
+
+Acceptance: a fixture cache with 1.0.0 vulnerable and 1.0.1 fixed, parent range `^1.0.0`, proposes 1.0.1. A parent range that excludes every fix proposes a nested override and not a direct bump. An empty cache proposes nothing and does not invent 1.0.2.
+
+FP risk: a fixed version that is yanked. If the packument marks it unpublished (151), skip it. If 151 is off, the proposal can name it, and the witness says unpublished state was not computed.
+
+### Phase 350 — Bump compatibility table [`FULLSHIELD_EXPERIMENTAL_BUMPRISK`]
+Replace any notion of a risk score with a closed table. A proposal is `review` when the bump crosses a major, or when an import in the app names an export that the target version's type declarations or `exports` map no longer has (376's import list, if on). Otherwise the proposal is `mechanical`. The words are the table. There is no weight, no probability, and no ML. The table is printed next to 349's proposal. It does not block the proposal.
+
+Depends on: 349. Flag off: proposals have no compatibility field.
+
+Build:
+1. Compare the current version and the proposed version with the semver helper.
+2. If type declarations or an exports map are in the cached tarball metadata, test the app's import specifiers against them. If they are not cached, the field is `not-computed`, not `mechanical`.
+3. Print the table result.
+
+Acceptance: a major bump is `review`. A patch bump with no missing export is `mechanical`. A missing export on a minor bump is `review`. No cached metadata yields `not-computed`.
+
+FP risk: an export used only through a dynamic specifier. Dynamic specifiers stay `not-computed`. They are not called `mechanical`.
+
+### Phase 351 — Lockfile reproducibility check [`FULLSHIELD_EXPERIMENTAL_REPROLOCK`]
+Recompute the resolved version of each direct dependency from the cached packument and the manifest range, and compare it to the lock. A mismatch is `DEPS-REPRO-001` (medium) with both versions in the witness. Do not run `npm ci`. Do not install. `--offline` uses the cache only; a missing packument skips that package with a 271 event and is not a mismatch. Transitive mismatches are listed only when the lock's own integrity edges disagree with the cached packument's dependency ranges (164's data). This phase does not change those edges.
+
+Depends on: 261. Flag off: byte-identical.
+
+Build:
+1. Evaluate the manifest range against cached versions.
+2. Compare to the locked version.
+3. Skip rather than fail when the cache lacks the packument.
+
+Acceptance: a lock version outside the range reports. A lock version equal to the cached resolution emits nothing. A missing cache entry emits the event and no `DEPS-REPRO-001`. No `npm` process is spawned, asserted in the test.
+
+FP risk: a range that uses a dist-tag. The tag is not a version. The package is skipped with an event, matching 132's treatment, and is not called unreproducible.
+
+### Phase 352 — Pull-request dependency flags [`FULLSHIELD_EXPERIMENTAL_DEPRFLAGS`]
+On a manifest or lock diff, list added and bumped packages and attach facts already computed: advisory ids, install-script bits, and registry host. The output field is `riskFlags`, an array of closed tokens (`advisory-critical`, `install-script`, `non-registry-host`, `new-direct`). It is not a number and not a score (Section 31). Tokens sort lexicographically. A package with no token is omitted, not given `none`. The command reads the diff and `NpmFacts`. It does not post a comment (Section 31).
+
+Depends on: 261. Flag off: the command fails with `FS-E`.
+
+Build:
+1. Parse the diff for dependency changes.
+2. Attach tokens from existing facts only.
+3. Refuse to emit a numeric score field. A schema test fails if the JSON contains `score`.
+
+Acceptance: a fixture diff that adds a package with an install script yields `install-script` and no number. A bump with no facts yields no row. The schema rejects a `score` key.
+
+FP risk: a lockfile reordering with no version change. Those hunks produce no row. The fixture is a reorder.
+
+### Phase 353 — Lifecycle-script abstract interpreter [`FULLSHIELD_EXPERIMENTAL_SCRIPTABS`]
+Interpret install-script text in a tiny domain: string constants, concatenation, `exec` of a constant, `fs` writes of a constant path, and reads of `process.env`. Fuel is 10k steps per script. The interpreter implements the abstract steps; it does not call the script. Findings are the same ids as phases 193–200 when the abstract value shows the dangerous pattern, and the witness is the step list. A script that exceeds fuel or uses `eval` emits a 271 event and falls back to the textual rules, so the textual finding is not lost. 354's folded constants are inputs when that flag is on.
+
+Depends on: 193–200's id list, 261. Flag off: those rules stay textual.
+
+Build:
+1. Write the interpreter for the statement subset. Anything else is `unknown` and stops that branch.
+2. Feed the resulting constants to the existing rule predicates.
+3. Attach the step witness.
+
+Acceptance: a script that builds `curl` by concatenation reports `DEPS-SCRIPT-CURL-001` with a witness of the concat steps. A script that only runs `node scripts/build.js` does not. An `eval` script emits the event and still uses the textual rule. The test asserts the script file was not executed.
+
+FP risk: a constant URL in a comment the interpreter treats as code. The interpreter runs on the parsed statements, not on comments. The comment fixture must not report.
+
+### Phase 354 — Static string folding [`FULLSHIELD_EXPERIMENTAL_DEOBFUSC`]
+Fold string operations in lifecycle scripts and package entry files: `+`, `\x` escapes, `String.fromCharCode` of numeric literals, `.split('').reverse().join('')`, and one `Buffer.from(lit, 'base64'|'hex')`. Depth and output length are fuel-capped. Folding that would require `eval` or `Function` stops and emits a 271 event. The folded form is what 353 and 332 see. The original source is not rewritten on disk. A folded string that is not a dangerous pattern is not a finding by itself.
+
+Depends on: 353 for scripts; 332 for secrets. Flag off: no folding.
+
+Build:
+1. Implement the fold on the AST subset.
+2. Cap length. Exhaustion keeps the unfolded form and records the event.
+3. Never call `eval`.
+
+Acceptance: `fromCharCode` of the codes for `curl | sh` reaches the 353 rule when both flags are on. A fold that needs `eval` does not produce a guessed string. A long benign base64 README is capped and is not a secret finding unless 332 matches the unfolded prefix that fitted in the cap, and the witness says the fold was partial.
+
+FP risk: folding a test vector in a package's own test file. Test paths under the package are excluded, matching phase 173's exclusion of `test/`.
+
+### Phase 355 — Local malware-shaped signatures [`FULLSHIELD_EXPERIMENTAL_MALSIG`]
+`models/malware-shapes.json` is a list of AST shapes: for example, an install script that reads `.npmrc` and also builds a URL. A shape has an id, a human `source` note, and `reviewed`. Unreviewed shapes emit info only. Reviewed shapes can emit high, and only a human sets `reviewed` (the 346 guard). Fixtures are inert and use `example.invalid`. A shape match is not named as a known campaign. The message says which shape id matched. The phase does not download signatures.
+
+Depends on: 353. Flag off: the file is not read.
+
+Build:
+1. Match shapes against the abstract script, not against an executed process.
+2. Honor `reviewed` for severity.
+3. Schema-reject a shape whose fixture URL is not `example.invalid`.
+
+Acceptance: the npmrc-plus-URL fixture reports info while `reviewed` is false. The same row marked reviewed in a human-owned fixture reports high. A script that only reads `.npmrc` does not match the two-part shape. No network.
+
+FP risk: a legitimate script that reads npm config and posts a log line to an internal host. Unreviewed stays info. Promoting the shape is the human's R1 action, and the FP paragraph in the shape row is required by the schema before `reviewed` can be true.
+
+### Phase 356 — Install-script network destinations [`FULLSHIELD_EXPERIMENTAL_NETDEST`]
+Extract hosts from URL literals and from 354-folded strings in lifecycle scripts. Emit `DEPS-SCRIPT-HOST-001` (medium) per host that is not `registry.npmjs.org` and not on the policy allowlist (378). Do not resolve DNS and do not connect. `example.invalid` in fixtures is allowed and does not report when the fixture flag `testFixture` is set; real scans have no such flag. The witness is the host and the script key.
+
+Depends on: 354, 378's allowlist shape. Flag off: byte-identical.
+
+Build:
+1. Collect hosts from the abstract strings.
+2. Compare to the allowlist. An absent policy file means the allowlist is only `registry.npmjs.org`.
+3. Do not fetch.
+
+Acceptance: a script URL on `registry.npmjs.org` emits nothing. A script URL on `downloads.example.invalid` reports the host. No socket is opened, asserted by the test.
+
+FP risk: a documentation URL in a string that is not executed. 353 only hands strings that reach a network or shell API. A URL in a `console.log` is not in that set. The log fixture must not report.
+
+### Phase 357 — Capability policy [`FULLSHIELD_EXPERIMENTAL_CAPPOLICY2`]
+When a policy file is present, compare the abstract effects from 353 and 356 (`net`, `fs-write`, `env`, `shell`) to the policy's allowed set for that package or for `*`. An effect outside the set is `DEPS-CAP-POLICY-001` (high). When the policy file is absent, emit nothing. The phase does not create a policy by scanning once and blessing the result. `fullshield policy --init` may print a draft from the current effects, marked `draft: true`, and that draft is not enforced until the human removes the bit.
+
+Depends on: 353, 356, 378. Flag off: the policy is not enforced.
+
+Build:
+1. Load the allowed set.
+2. Diff effects. One finding per package per effect.
+3. Ignore drafts.
+
+Acceptance: a policy that allows `fs-write` and a script that also opens a socket reports the socket only. No policy file, no finding. A draft file is not enforced. The init output contains `draft: true`.
+
+FP risk: an effect in a script branch that is dead. The abstract interpreter is may-analysis, so the dead branch still counts, and the message says may. Tightening to must is not this phase.
+
+### Phase 358 — Packument age buckets [`FULLSHIELD_EXPERIMENTAL_POPPROXY`]
+From the cached packument `time` field only, assign a closed bucket: `younger-than-7d`, `younger-than-30d`, or `older`. Version count is printed as a count, not a popularity rank. Download counts are not read, because they are not in the packument this scanner is allowed to store and no new host is added. The bucket is info on direct dependencies. It is not a malware finding and the message says so. Missing `time` yields no bucket.
+
+Depends on: 261. Flag off: byte-identical.
+
+Build:
+1. Read `time` from the cache.
+2. Apply the two thresholds. They are constants in the phase, not tuned per repo.
+3. Emit info with the bucket token.
+
+Acceptance: a packument whose earliest version is 1 day old is `younger-than-7d`. A 40-day-old package emits nothing. A missing `time` emits nothing. The JSON does not contain a field named `popularity` or `score`.
+
+FP risk: a new package the team intentionally published. The finding is info and names the bucket. It does not say the package is untrusted.
+
+### Phase 359 — Publish-cadence buckets [`FULLSHIELD_EXPERIMENTAL_CADENCE`]
+From packument `time` entries, compute two documented shapes: more than N versions in the last 7 days, or a gap of at least 180 days followed by a version in the last 7 days. N is 10 and is a constant. Emit info with the shape name. Do not call it an anomaly score. Do not claim compromise. One row per package.
+
+Depends on: 261. Flag off: byte-identical.
+
+Build:
+1. Sort the cached timestamps.
+2. Match the two shapes.
+3. Emit the shape token.
+
+Acceptance: 11 versions in 7 days matches the first shape. A single recent version after years matches the second. A steady monthly release matches neither. The message contains the token and not the word "malicious."
+
+FP risk: a monorepo publish bot that versions 11 packages. The count is per package name, not per day across the registry. The fixture is one package.
+
+### Phase 360 — Repository URL mismatch [`FULLSHIELD_EXPERIMENTAL_REPOMISMATCH`]
+Compare the repository URL on the cached packument, the repository URL in the cached tarball `package.json`, and the URL of a git dependency if one exists. A difference after normalizing `git+https`, trailing `.git`, and `ssh` versus `https` is `DEPS-REPO-MISMATCH-001` (medium). The finding lists the two URLs. It does not mention stars, followers, or any count this scanner did not collect. Do not fetch the repository (R15). This is the check behind the old "star-jacking" title: a URL mismatch, nothing else.
+
+Depends on: 261 and the tarball cache. No cache, no finding. Flag off: byte-identical.
+
+Build:
+1. Normalize the three URL forms.
+2. Compare. Missing tarball cache skips with an event.
+3. Keep the word "stars" out of the message. A test asserts that.
+
+Acceptance: two different hosts report. `git+https://github.com/a/b.git` and `https://github.com/a/b` do not. A missing tarball emits the event and no finding. The message does not contain "star."
+
+FP risk: a monorepo package whose repository URL points at the meta-repo while the tarball says the same repo with a directory fragment. Normalize by stripping `#` directory fragments before compare. The fragment fixture must not report.
+
+### Phase 361 — Manifest field mismatch [`FULLSHIELD_EXPERIMENTAL_MANIFESTCONF`]
+Compare name, version, `scripts`, and dependency ranges across the lock entry, the cached packument version object, and the cached tarball `package.json`. Each differing field is `DEPS-MANIFEST-MISMATCH-001` (high for name or version, medium for scripts, low for a dependency range) and the witness names the field and both values. Name and version mismatches that 169 already reports are not duplicated; this phase adds `scripts` and dependency-range fields. No tarball cache means those fields are skipped.
+
+Depends on: 169, 261. Flag off: byte-identical.
+
+Build:
+1. Diff the fields that are present in the cache.
+2. Suppress name and version if 169 fired for that package.
+3. Do not install the package to "see what would happen."
+
+Acceptance: a tarball `scripts.install` absent from the packument reports medium. Matching scripts emit nothing. A name mismatch emits only the 169 id when 169 is on, and emits this id when 169 is off, so the bug is not silent. The test covers both flag combinations.
+
+FP risk: a dependency range that npm normalizes (`1.0` versus `1.0.0`). Compare with the semver canonical form. The fixture is that pair and must not report.
+
+### Phase 362 — Time and locale gates [`FULLSHIELD_EXPERIMENTAL_TIMEGATE`]
+In a lifecycle script or a package entry file, a branch on `Date`, `process.env.TZ`, `process.env.LANG`, or `Intl` that dominates a sink already in 353's set (net, fs write, process exit, shell) is `DEPS-TIMEGATE-001` (medium). The witness quotes the condition's shape and the sink class. The message does not say the package is protestware. A branch that only changes a log string emits nothing. The phase does not run the branch.
+
+Depends on: 353. Flag off: byte-identical.
+
+Build:
+1. Find dominating conditions of the listed shapes.
+2. Require a 353 sink in the branch.
+3. Emit one row per package.
+
+Acceptance: `if (new Date().getUTCFullYear() > 2020) fetch(...)` reports. The same condition around `console.log` does not. A locale check that exits the process reports. A script with no date API does not.
+
+FP risk: a legitimate "skip on old Node" check that uses `process.version`, which is not in the condition list. The negative fixture uses `process.version` and must not report.
+
+### Phase 363 — Source-less package files [`FULLSHIELD_EXPERIMENTAL_MINIFIED`]
+A file in a dependency that is over 50 KB, has a newline ratio below the committed constant, and has no accompanying `.map` in the package is `DEPS-MINIFIED-001` (info). The message says the file could not be reviewed as source. It does not say the file is hostile. The constants live next to the entropy thresholds and are not tuned per repo. Files under `dist/` that also ship `src/` in the same package are info still, one row per package, not per file, listing the count.
+
+Depends on: the tarball cache or `node_modules` already present. Do not install. Flag off: byte-identical.
+
+Build:
+1. Measure size and newline ratio on JS files in the cached package.
+2. Collapse to one row per package.
+3. Exclude the package's own test directory.
+
+Acceptance: one large minified file produces one info row with a count. A package of small files emits nothing. A `.map` beside the file emits nothing for that file. The message does not contain "malicious."
+
+FP risk: a package that ships a browser bundle on purpose. The severity is info. The phase does not fail the build unless a user policy says info fails, which is the user's `--fail-on`.
+
+### Phase 364 — Prebuilt binary hosts [`FULLSHIELD_EXPERIMENTAL_BINHOST`]
+From `binding.gyp`, `node-pre-gyp` configuration, and 356's hosts, list download hosts for native binaries. A host other than the package's resolved registry host is `DEPS-BINHOST-001` (medium). Do not download the binary. A `binding.gyp` with no URL emits nothing. The witness is the host and the file.
+
+Depends on: 356's extractor, used here on gyp files even when 356's flag is off; the extractor is shared code. Flag off: byte-identical.
+
+Build:
+1. Parse URL literals out of those files. Do not execute gyp.
+2. Compare hosts to the registry host on the lock entry.
+3. Emit one row per host.
+
+Acceptance: a gyp URL on `registry.npmjs.org` emits nothing. A URL on `files.example.invalid` reports. No download is performed.
+
+FP risk: a GitHub release URL for a well-known optional binary. It still reports, because the phase does not keep a vendor allowlist beyond the registry host. Policy 378 can allow the host. The message says allow it in policy if it is intended.
+
+### Phase 365 — Git dependency commit pin [`FULLSHIELD_EXPERIMENTAL_GITPIN`]
+A git dependency whose specifier is a branch, a tag, or a semver range is `DEPS-GITPIN-001` (medium). A 40-hex commit id emits nothing. `semver:` tags are not a pin. The existing 120 id for "is a git dependency" stays; this id is specifically "not pinned." When both would fire, both fire, because the facts differ. The test asserts both ids under both flags.
+
+Depends on: 120's parser. Flag off: 120's output is unchanged and this id is absent.
+
+Build:
+1. Classify the specifier.
+2. Accept only a full object id.
+3. Do not resolve the branch to a commit (that would be a network fetch).
+
+Acceptance: `#main` reports. `#semver:^1.0.0` reports. A 40-hex id does not. A non-git dependency does not.
+
+FP risk: a short SHA. It reports, because it is not a full id. The message says the id is not 40 hex characters.
+
+### Phase 366 — Scoped names that resolve to the public registry [`FULLSHIELD_EXPERIMENTAL_INTERNALPUB`]
+If the root package is `private: true` or the dependency name's scope equals the root scope, and the lock `resolved` URL is `https://registry.npmjs.org/...`, emit `DEPS-PUBLIC-SCOPE-001` (medium). The finding says the locked tarball host is the public registry. It does not say the package should not exist, and it does not query npm to find out (the URL is already in the lock). A `resolved` URL on a host in the policy's private-registry list emits nothing. `link:` and `file:` workspace copies emit nothing.
+
+Depends on: 261, 378's host list. Flag off: byte-identical.
+
+Build:
+1. Compare scope and privacy to the resolved host.
+2. Allow hosts from the policy. With no policy, only non-registry hosts count as private, so a public URL reports.
+3. Skip `link:` and `file:`.
+
+Acceptance: a private root depending on `@root/pkg` resolved at `registry.npmjs.org` reports. The same dependency with `link:./packages/pkg` does not. A policy host match does not.
+
+FP risk: a public scope the team publishes on purpose from a private meta-repo. Policy allowlists the scope. The default reports, and the message names the policy key.
+
+### Phase 367 — Private registry configuration [`FULLSHIELD_EXPERIMENTAL_PRIVREG`]
+Project `.npmrc` registry URLs must be `https`. An `http://` registry is high. A token embedded in the URL is a secret finding through 332/331 and is also this rule at high, with the token redacted. If a policy allowlist of registry hosts exists, a host outside it is medium. The home-directory `.npmrc` is read only when the existing 139 flag is on; this phase does not widen that read. No login is attempted.
+
+Depends on: 137, 332. Flag off: byte-identical.
+
+Build:
+1. Parse registry URLs in the project file.
+2. Check the scheme, the embedded userinfo, and the optional allowlist.
+3. Redact userinfo in the finding.
+
+Acceptance: `https://registry.example.invalid/` with no userinfo emits nothing when it is allowlisted or when no allowlist exists. `http://` reports. `https://token@host/` reports and the JSON does not contain `token`.
+
+FP risk: a localhost registry over HTTP used in development. Config `allowInsecureRegistryHosts` can include `localhost` and `127.0.0.1` only. Other hosts cannot use that key. The schema rejects other hosts under that key.
+
+### Phase 368 — SBOM field completeness [`FULLSHIELD_EXPERIMENTAL_SBOMFIELDS`]
+For each npm component, require name, version, and purl. When the lock has integrity, require the hash (249). The command prints the count of components missing each field. It does not print a grade, a percentage score, or a pass/fail derived from a weight. Exit 0. A missing field is a row in the JSON. This does not add `DEPS-VULN` rows. Flag off, SBOM bytes are unchanged.
+
+Depends on: 249. Flag off: byte-identical SBOM.
+
+Build:
+1. Generate the SBOM as today when the flag is off.
+2. When the flag is on, fill purl and hash as 249 specifies, then count holes.
+3. Schema-ban a `score` field.
+
+Acceptance: a package with integrity has zero missing-hash rows. A package without integrity has a missing-hash row and still has a purl. The output has `counts` and no `score`.
+
+FP risk: none as a vulnerability finding. The risk is a consumer dividing the counts into a percentage and publishing it. The command's stdout header says the counts are not a grade. The test asserts the header.
+
+### Phase 369 — VEX justified by reachability evidence [`FULLSHIELD_EXPERIMENTAL_VEX2`]
+A VEX statement this tool emits for "not affected" must cite a reachability class the scanner actually computed: `symbol-not-called`, or `not-imported`, with the witness. A statement without that evidence is not emitted. The tool does not emit "not affected" for `reachability-unknown`. `function-reachable-via-dependency` cannot be "not affected." The user can still write their own VEX; this phase only constrains FullShield's emitter. Validation rejects a file the emitter itself just wrote if a row lacks the evidence field.
+
+Depends on: 259 or the existing reachability classes. Flag off: today's VEX output is unchanged.
+
+Build:
+1. Gate the emitter on the class.
+2. Copy the witness into the VEX justification detail.
+3. Round-trip the file through the validator in the test.
+
+Acceptance: a `not-imported` advisory can be "not affected" with the witness. An `unknown` advisory is omitted from "not affected" and remains in the scan. A reachable advisory is not "not affected." Flag off, the previous emitter's bytes remain.
+
+FP risk: `not-imported` being wrong because of a dynamic import 232 has not seen. When 232 is off, the justification names the reachability engine version and the classes it does not understand, including dynamic import. The text is fixed, and the test asserts it.
+
+### Phase 370 — Fix list ordered by reachability [`FULLSHIELD_EXPERIMENTAL_FIXORDER`]
+Sort 349's proposals by a fixed key: runtime-observed if 268 ran, then `function-reachable-via-dependency`, then `reachable`, then `reachability-unknown`, then `not-imported`, then package name. The sort is the feature. No finding is added or removed. The key is documented next to the command. A user who wants advisory severity first can pass `--order severity`, which is the other documented key. There is no third key and no weighted blend.
+
+Depends on: 349. Flag off: the existing order is unchanged.
+
+Build:
+1. Implement the two keys.
+2. Stable-sort equals by package name.
+3. Test both keys on a fixture of five proposals.
+
+Acceptance: the fixture order matches the reachability key exactly. `--order severity` matches severity then name. Flag off, the order matches the previous snapshot.
+
+FP risk: a reader assuming the first row is the most dangerous in a sense the key does not state. The command prints the key name on the first line. The test asserts that line.
+
+### Phase 371 — Pinning policy audit [`FULLSHIELD_EXPERIMENTAL_PINPOLICY`]
+If the policy file says `exact` for production dependencies, a manifest range that is not an exact version is `DEPS-PIN-POLICY-001` (info, or the severity the policy sets from a closed list). If the policy is absent, emit nothing. This is distinct from 128, which flags floating ranges as a general rule. When both are on, a range that violates both emits 128's id and this id only if the policy exists; the messages differ (general float versus this policy). The policy cannot set severity to a word outside `info|low|medium`.
+
+Depends on: 378. Flag off: 128 is unchanged and this id is absent.
+
+Build:
+1. Read the policy pin mode.
+2. Compare manifest ranges for production dependencies.
+3. Clamp severity to the closed list.
+
+Acceptance: no policy, no finding. Policy `exact` and range `^1.0.0` reports. Policy `exact` and version `1.2.3` emits nothing. A policy severity of `critical` fails to load.
+
+FP risk: a workspace protocol `workspace:*` that is exact by construction. It is treated as exact. The fixture must not report.
+
+### Phase 372 — Copied vulnerable snippets [`FULLSHIELD_EXPERIMENTAL_SNIPPET`]
+Hash a normalized AST of each `reviewed` function body in 346, when the body was supplied by the human in the row (`bodyHash` computed from a local file path on the row, not fetched). Match that hash against function bodies in the application and in vendored files. A match of a function whose AST has at least 40 nodes is `SAST-COPIED-SNIPPET-001` (info). Smaller functions are not hashed, because collisions on tiny helpers are expected. The message says the AST matched a reviewed advisory body and names the osv id. It does not say the copy is exploitable. The body file is the human's. The scanner does not download it.
+
+Depends on: 346. Flag off: no matching.
+
+Build:
+1. Normalize identifiers and literals, then hash. The normalization rules are listed in the phase test so they do not drift.
+2. Enforce the 40-node minimum.
+3. Search app and vendored ASTs. Do not search `node_modules` except paths phase 104 already calls vendored.
+
+Acceptance: a copied body at 40 nodes reports info. A 10-node function with the same hash algorithm applied in the test does not enter the index. A non-matching function emits nothing. No fetch.
+
+FP risk: a familiar idiom that survives normalization. The node minimum and the `reviewed` gate are the controls. Unreviewed rows are not indexed.
+
+### Phase 373 — CDN script tags without SRI [`FULLSHIELD_EXPERIMENTAL_SRITAG`]
+In HTML and in JSX, a `<script>` or `<link rel="stylesheet">` whose URL is `https:` and whose tag has no `integrity` attribute is `CONFIG-SRI-001` (low). A same-origin relative URL emits nothing. `http:` is the existing cleartext finding if one exists, and also this id. Do not fetch the URL (R15). A `nonce` without `integrity` still reports, because a nonce is not SRI.
+
+Depends on: the HTML parser used by 282 when on; a tag scanner otherwise. Flag off: byte-identical.
+
+Build:
+1. Find the tags.
+2. Require `integrity` on cross-origin URLs.
+3. Do not connect.
+
+Acceptance: a cross-origin script without `integrity` reports. The same tag with `integrity` does not report this id (374 may still speak about the algorithm). A relative script does not. No socket.
+
+FP risk: a script on a host the team controls. It still reports at low. Policy can allow the host. The default is to report.
+
+### Phase 374 — SRI algorithm grammar [`FULLSHIELD_EXPERIMENTAL_SRICHECK`]
+When `integrity` is present, parse the attribute. An unknown algorithm or `sha1` / `sha256` below the documented floor (`sha384` or `sha512`) is `CONFIG-SRI-WEAK-001` (low). Do not download the target to recompute the hash. An optional `--sri-from <dir>` hashes files the user already saved and compares, and that mode never takes a URL. A malformed attribute is medium. The phase does not claim the bytes at the URL match.
+
+Depends on: 373's tag finder. Flag off: byte-identical.
+
+Build:
+1. Parse the attribute grammar.
+2. Apply the algorithm floor.
+3. Implement `--sri-from` on local files only.
+
+Acceptance: `sha512-...` well formed emits nothing. `sha1-...` reports low. A broken attribute reports medium. `--sri-from` on a matching file emits nothing and on a mismatched file reports. A test asserts no HTTP client is constructed.
+
+FP risk: a correctly strong hash of the wrong file. Without `--sri-from`, this phase cannot see that, and the message says the bytes were not checked.
+
+### Phase 375 — Import maps and URL imports [`FULLSHIELD_EXPERIMENTAL_IMPORTMAP`]
+An import map in HTML and a specifier that is an `https:` URL in source or in the map are `DEPS-URL-IMPORT-001` (medium) unless that specifier also has an integrity in the import map. A relative specifier emits nothing. Do not fetch the URL. A `data:` URL import is high because the code is inline and unsigned. The witness is the specifier with the query string stripped.
+
+Depends on: none beyond the parser. Flag off: byte-identical.
+
+Build:
+1. Parse import maps as JSON. A parse error is a 271 event and the map is not treated as empty of risk: the file still gets a medium finding that the map did not parse.
+2. Check specifiers.
+3. Do not fetch.
+
+Acceptance: an `https:` specifier without integrity reports. The same specifier with integrity does not. A relative specifier does not. `data:` reports high. A broken map reports medium and the event.
+
+FP risk: a specifier that is `https://registry.npmjs.org` used as a package name string and not as an import. Only import and import-map positions count. A string in a comment does not.
+
+### Phase 376 — Symbol-level unused dependencies [`FULLSHIELD_EXPERIMENTAL_DEADSYM`]
+A direct dependency imported by at least one static specifier, whose imported names are all unused and whose import is not a side-effect import (`import 'pkg'`), is `DEPS-UNUSED-SYMBOLS-001` (info). Type-only imports (240) do not count as runtime use and do not by themselves make the dependency used. The phase does not remove the dependency and does not edit the manifest. A dynamic import of the package is `unknown` and emits nothing for that package. The witness lists the unused names.
+
+Depends on: 240 when distinguishing type imports; otherwise type imports count as uses, which avoids a false unused result. Flag off: byte-identical.
+
+Build:
+1. Collect static imports and their binding uses in the IR.
+2. Ignore side-effect imports.
+3. Emit info. Do not propose a deletion in this phase.
+
+Acceptance: `import { a } from 'pkg'` with `a` unused reports info. `import 'pkg'` does not. A type-only import with 240 on does not count as use. A dynamic `import(name)` emits nothing for that package.
+
+FP risk: a package used only for its types in a JSDoc that 240 does not see. Without 240, the import counts as use. The phase prefers the false negative.
+
+### Phase 377 — Duplicate versions with different advisory sets [`FULLSHIELD_EXPERIMENTAL_DUPADV`]
+When the lock contains two versions of one name and the cached OSV set for those versions differs, emit `DEPS-DUP-ADVISORY-001` (medium) naming both versions, both lock paths, and the advisory ids that apply to only one. Do not downgrade or drop `DEPS-VULN-001` on the affected version. If the sets are equal, emit nothing. If either set is unknown because the cache is missing, emit nothing and record a 271 event.
+
+Depends on: 261, OSV cache. Flag off: byte-identical.
+
+Build:
+1. Group lock entries by name.
+2. Diff the cached advisory id sets.
+3. Leave vuln rows untouched.
+
+Acceptance: 1.0.0 affected and 1.1.0 not, both locked, reports this id and still reports `DEPS-VULN-001` for 1.0.0. Two clean versions emit nothing. A missing cache emits the event only.
+
+FP risk: two versions that are both affected by different ids. The row lists the symmetric difference. It does not say one of them is safe.
+
+### Phase 378 — Supply-chain policy file [`FULLSHIELD_EXPERIMENTAL_SCPOLICY`]
+`fullshield.policy.json` is the schema for allowed registries, allowed script capabilities, pin mode, secret-allow pointers, and private registry hosts. This phase is the loader and the schema. Checks live in the phases that read the policy. An invalid file fails the scan with `FS-E` and no partial enforcement. Unknown keys are errors, not ignored. The loader does not fetch a remote policy URL. A missing file means every consumer behaves as that phase's "no policy" branch specifies.
+
+Depends on: none. Flag off: the file is not read, even if present.
+
+Build:
+1. Publish the JSON Schema next to 441's config schema.
+2. Fail closed on unknown keys and wrong types.
+3. Expose a typed object to later phases.
+
+Acceptance: a valid file loads. An unknown key exits with `FS-E` and no findings from policy consumers. Flag off, a broken policy file does not change scan exit code. A `https://` policy location in config is rejected by the schema.
+
+FP risk: a policy typo that fails the whole scan. That is the chosen behavior, and the error names the key. It is not a vulnerability false positive.
+
+### Phase 379 — Offline OSV file [`FULLSHIELD_EXPERIMENTAL_OSVFILE`]
+`--osv-file <path>` reads one JSON document the user already has, in the OSV batch or array shape. Those advisories are the only vulnerability source for that run. The command does not merge them with a silent network refresh. `--offline` is implied. Ids in the file are used as written. Ids not in the file are not invented to fill gaps. A malformed file exits `FS-E` and produces no `DEPS-VULN-001` from memory. The existing network path is unchanged when the option is absent.
+
+Depends on: the OSV parser. Flag off: not applicable; the option requires the flag, else `FS-E`.
+
+Build:
+1. Parse the file with the cache parser.
+2. Disable the network client for that run. A test asserts no socket.
+3. Match packages the same way as the cache.
+
+Acceptance: a file with one GHSA produces that id and no other. An empty list produces no vuln findings even if the network would have some; the test proves the client was not constructed. A malformed file exits `FS-E`.
+
+FP risk: a stale file the user trusts. The output names the file path and the run is marked `advisorySource: file`. It does not say the data is current.
+
+### Phase 380 — Advisory cache age [`FULLSHIELD_EXPERIMENTAL_CACHEAGE`]
+Read the mtime of the newest OSV cache object. If it is older than `scan.advisoryMaxAge` (default 48 hours), emit one info row `DEPS-ADVISORY-STALE-001` with the age in hours. Do not refresh in this phase. The existing refresh path is the only refresh. A missing cache emits the same id with `age: null` and does not perform a fetch as a side effect of the check. The row is not a vulnerability.
+
+Depends on: the cache directory. Flag off: byte-identical.
+
+Build:
+1. Stat the cache. Do not GET.
+2. Compare to the config duration.
+3. Emit one row.
+
+Acceptance: a cache touched 1 hour ago emits nothing. A cache touched 72 hours ago emits info with the hours. No cache emits info with null age. A test asserts the HTTP client was not used.
+
+FP risk: a clock skew. The age is computed from the file mtime and `Date.now()`. The message prints both timestamps so a skewed clock is visible. It does not adjust the clock.
+
+### Lane M — Runtime, sharing the catalog (381–405)
+
+Runtime phases live under the runtime entry. They import no scanner module (R14). Shared knowledge is `models/sinks.json` and other JSON the runtime may read. A hook that throws fails open and increments the local counter from 403. Nothing in this lane opens a socket unless the phase says the destination is the user's configured endpoint.
+
+### Phase 381 — RASP hooks generated from the sink catalog [`FULLSHIELD_EXPERIMENTAL_RASPV2`]
+Hook installation reads `models/sinks.json` (267): package, member, argument index, class. A hand-written hook file that is not a catalog row fails the consistency test. Adding a sink is a catalog row plus a corpus case, not a new ad hoc wrapper. The attack corpus results stay the ones 267 already requires. The runtime still does not import the scanner; it reads the JSON. Unknown catalog classes are not installed and are logged locally once.
+
+Depends on: 267. Flag off: today's hooks remain.
+
+Build:
+1. Generate the install list from the catalog at runtime start.
+2. Fail the build if a static sink has no hook and no `runtimeGap`.
+3. Keep the corpus green.
+
+Acceptance: a catalog row for a new inert sink installs a hook in the test process and blocks or monitors the corpus payload for that class. Removing the row uninstalls it. A scanner import from `src/runtime` fails the R14 test.
+
+FP risk: a catalog row with the wrong argument index blocking a benign argument. The corpus includes a benign call for each row. A wrong index fails that benign case.
+
+### Phase 382 — Runtime string labels [`FULLSHIELD_EXPERIMENTAL_RTAINT`]
+Research mode, off by default. At catalog sources, wrap the string in a boxed value that carries the label set from 256's names. Propagation exists only for catalog functions that declare a transfer (for example, concatenation and template literals inside the hooked `Function` is not done; only explicit catalog transfers). This is not a full interpreter of the process. Unboxed strings lose the label, which is a false negative the phase accepts, and a local counter records the unbox. No payload bytes are stored, only the label bit set and the sink id. Fail open. The box must not change `typeof` in a way that breaks the benign corpus; if it would, the phase stays parked rather than shipping a box that changes application behavior. A test asserts stored events contain no request body.
+
+Depends on: 381. Flag off: no wrapping.
+
+Build:
+1. Box at sources. Unbox at sinks with the label check.
+2. Propagate only through catalog transfers.
+3. Store labels and sink ids only.
+
+Acceptance: a corpus payload that passes through one catalog transfer still blocks. A payload that passes through an uncatalogued helper does not block, and the unbox counter increments. The benign corpus still passes. The event record has no body field.
+
+FP risk: a boxed string rejected by an application `instanceof String` check. If the benign corpus or a dedicated compatibility fixture fails, the phase is parked (S3), not patched by weakening the check.
+
+### Phase 383 — SQL tokenizers at the hook [`FULLSHIELD_EXPERIMENTAL_SQLTOK`]
+The runtime SQL hook uses the same lexer as 279, selected by the sink package's dialect row (`pg`, `mysql2`, `sqlite`, `mssql`). A tainted hole that the lexer says is outside a literal, or a literal that the token stream shows is closed early, is the event. A numeric hole stays allowed when 382's label says the char class is digits; without 382, the hook treats every interpolated string as tainted and uses the lexical rule only. The lexer is a JS port shipped as data plus a small interpreter, not a native module. Vectors are shared with 279's tests so the two cannot drift: one file, two runners.
+
+Depends on: 381. 279's vectors are shared data. Flag off: the previous SQL hook remains.
+
+Build:
+1. Share the vector file.
+2. Select the dialect from the catalog row.
+3. Emit an event when the token stream shows a breakout.
+
+Acceptance: a fixture `' OR '1` inside a quote that closes is an event. A bound parameter is not. The same vectors pass in the static 279 test and the runtime test. An unknown dialect uses the generic lexer and records which dialect was missing.
+
+FP risk: a dialect the generic lexer mis-tokenizes, blocking a benign literal. The benign corpus includes one literal query per dialect. A block on that query fails the phase.
+
+### Phase 384 — Mongo operator keys [`FULLSHIELD_EXPERIMENTAL_MONGOOP`]
+At catalog Mongo sinks, a filter object whose key set includes `$where`, `$function`, `$accumulator`, or a `$`-key that arrived from a request-labeled field is the event. A static pipeline literal is not. Operator keys copied from a constant object are not. The hook looks at keys, not at a string search of the whole query, so a value that happens to contain the characters `$where` is not an event. Static analysis of the same shape stays in 299; this phase is the runtime backstop when the key set was `Unknown` statically.
+
+Depends on: 381. Flag off: no Mongo key hook beyond what already exists.
+
+Build:
+1. Inspect enumerable keys at the sink.
+2. Treat request-origin `$` keys as the event.
+3. Ignore constant objects.
+
+Acceptance: `req.body` passed as the filter, with a `$where` key in the test request, is an event. A constant `{ status: 'open' }` is not. A value string `$where` under the key `title` is not.
+
+FP risk: a tenant who is allowed to send a `$gt` operator on one field. Config lists allowed operators per route. The default allows none from request-origin keys.
+
+### Phase 385 — `cmd.exe` metacharacters [`FULLSHIELD_EXPERIMENTAL_CMDTOK`]
+When the sink is `shell: true` on win32, or the program is `cmd.exe` with `/c`, tokenize with `cmd.exe` rules: `%`, `^`, `&`, `|`, newlines, and quotes. Do not use the POSIX tokenizer from 280 on those sinks. A hole that can introduce those characters is the event. `execFile` without a shell is the 280 option-injection rule only. The tokenizer is shared as vectors so Windows-specific cases are tested on Linux CI by calling the tokenizer directly, and the process-spawn test is `skipIf` not win32 with the reason recorded (R22).
+
+Depends on: 381. Flag off: today's command hook remains.
+
+Build:
+1. Implement the cmd tokenizer and its vectors.
+2. Select it for the win32 shell sinks.
+3. Keep POSIX for the others.
+
+Acceptance: a `%` expansion hole is an event under the cmd tokenizer and is not required to be an event under POSIX. A fixed `execFile` argument list is not an event. The Linux CI runs the tokenizer unit tests.
+
+FP risk: a percent sign in a benign argument that is not passed through `cmd.exe`. The tokenizer is not selected for `execFile`. The negative fixture is `execFile` with an argument that contains `%`.
+
+### Phase 386 — Windows path forms [`FULLSHIELD_EXPERIMENTAL_WINPATH`]
+Extend 283's path domain with UNC (`\\server\share`), `\\?\` prefixes, drive-relative paths, alternate data streams (`file:stream`), and 8.3 short names. These survive a naive `path.normalize` and are traversal or escape findings when the abstract path can produce them from a tainted segment. POSIX mode does not emit them. The runtime hook on win32 rejects a resolved path that is UNC or escapes the base. The static half runs on every OS; the hook's process test is skipped off win32 with an R22 comment.
+
+Depends on: 283, 381. Flag off: 283's output is unchanged.
+
+Build:
+1. Add the forms to the path abstract domain.
+2. Reject them in the win32 hook when they leave the base.
+3. Keep POSIX fixtures free of these ids.
+
+Acceptance: a tainted segment that can be `\\server\share` is a finding in the static fixture. `path.basename` still clears it. A POSIX scan of that fixture still reports, because the static domain does not depend on the host OS; the finding's message says the form is a Windows path. The hook test runs on win32.
+
+FP risk: a UNC path that is the application's configured base. If the base itself is UNC, paths under that base are allowed. The fixture sets a UNC base and a child path and must not report.
+
+### Phase 387 — SSRF hook on resolved addresses [`FULLSHIELD_EXPERIMENTAL_SSRF2`]
+Static side: 281 plus literals that are IP forms (decimal, hex, octal, IPv6-mapped). A hostname that is not a literal IP is a 271 event statically, because rebinding is not a static fact. Runtime side, only when RASP is on: before the socket connects, resolve the name locally and refuse loopback, link-local, and the cloud metadata address range, using a fixed table in the runtime. The hook does not connect to the address to test it. The hook does not scan the remote host. A redirect is followed only up to the catalog's existing redirect policy; the redirect target is checked with the same table. This is the application checking its own outbound call, not an attack against another machine (Section 31).
+
+Depends on: 281, 381. Flag off: today's SSRF hook remains.
+
+Build:
+1. Extend the static URL domain with the IP spellings.
+2. Add the runtime resolved-address table. The table is data.
+3. Check redirect targets the same way, bounded by the existing redirect cap.
+
+Acceptance: `http://2130706433` is a static finding. `http://169.254.169.254` is a runtime event even if the static string is a hostname that the test resolver maps there (the resolver is injected; no real DNS). A literal `https://example.invalid/x` with a tainted query and a safe host is not a metadata event. The test opens no external socket.
+
+FP risk: an allowed internal host. Config lists hosts that skip the table. The default table has no allows. The metadata address cannot be added to the allow list; the schema rejects it.
+
+### Phase 388 — Deserialization sinks [`FULLSHIELD_EXPERIMENTAL_DESER`]
+Catalog sinks: `node-serialize`, `js-yaml` `load` with a schema that constructs functions, and `vm` / `eval` of a value that came from `JSON.parse` or a request body. A yaml load with the safe schema is not a sink. The static finding is the tainted string reaching the sink. The runtime hook refuses the catalog call when the argument is request-labeled (382) or, without 382, when the call is on the catalog and the config says `blockUnknown`. Default is monitor. Pickle and other non-JS formats are out of scope (Section 4.3). The phase does not deserialize the payload in the scanner.
+
+Depends on: 381. Flag off: no new sink.
+
+Build:
+1. Add the catalog rows and the safe-schema negative.
+2. Static query: tainted string to the sink.
+3. Runtime: monitor by default.
+
+Acceptance: `node-serialize` of `req.body` is a finding and a runtime event. `yaml.load` with the safe schema is not. `eval(JSON.parse(req.body))` is a finding. A constant yaml document is not.
+
+FP risk: a yaml parser wrapper the catalog does not mark safe. It stays a sink until a model row says the schema is safe. That is the false-positive control: explicit rows only.
+
+### Phase 389 — Template source as the template [`FULLSHIELD_EXPERIMENTAL_TPLSRC`]
+`ejs.render`, `pug.render`, and the other 306 engines are SSTI sinks when the template source string is origin `request`, even if the engine would escape data. Escaping data does not make attacker-controlled template source safe. The static query treats the template argument, not the data argument. The runtime hook refuses a request-labeled template string. A template loaded from a file path under a fixed views directory is not this finding (path traversal is 283). The witness names the argument index.
+
+Depends on: 306, 381. Flag off: today's SSTI rule is unchanged.
+
+Build:
+1. Mark the template-source argument on each engine.
+2. Query request origin into that argument.
+3. Hook the same argument at runtime.
+
+Acceptance: `ejs.render(req.body.tpl, data)` is a finding. `ejs.renderFile('views/a.ejs', { name: req.query.n })` is not this id. A runtime request with a template body is an event. A file render is not.
+
+FP risk: a template string built from a constant plus a user word, where the user word is data. If the user word is interpolated into the template source, it is still source and still reports. The negative fixture passes user data only in the data object.
+
+### Phase 390 — Prototype writes [`FULLSHIELD_EXPERIMENTAL_PROTOFREEZE`]
+Static: a write of a tainted key to an object, or a write of `__proto__`, `constructor`, or `prototype`, is the existing prototype finding, and this phase adds the path context when 283-style key classes say the key can be one of those names. Runtime, opt-in: freeze the listed builtins at startup (`Object.prototype`, `Array.prototype`, `Function.prototype`). The freeze is off by default because it breaks packages that patch prototypes. The scanner process is not frozen. The finding lists that freeze is opt-in and can break the app. A test proves `src/` does not call `freeze` on prototypes at import time.
+
+Depends on: 381. Flag off: no freeze, static output unchanged.
+
+Build:
+1. Tighten the static key check with the char class when 278 is on; otherwise keep today's key check.
+2. Add the opt-in freeze in the runtime, default off.
+3. Keep the scanner process unfrozen.
+
+Acceptance: `{}.__proto__` assignment from a request key is a finding. A freeze config of `true` in the runtime fixture prevents a prototype write and the benign corpus for that fixture does not need to patch prototypes. Default config does not freeze. Importing the runtime does not freeze the test process.
+
+FP risk: freezing breaks a dependency. That is why the default is off and the finding text says so. The phase does not flip the default.
+
+### Phase 391 — Credential stuffing shape [`FULLSHIELD_EXPERIMENTAL_CREDSTUFF`]
+In the runtime only, count failed logins per source key (the limiter key from 321's catalog, or the client address if no key is configured). More than the config count of failures across more than the config count of distinct usernames in the window is a local event. The response is the application's own 429 from this middleware, not an OS firewall rule and not an IP ban list on the host (Section 31). Counters are process memory unless 392 is on. No event is sent off-box. The static half only checks that a login route has some limiter (that is 321); this phase does not duplicate it.
+
+Depends on: 381. Flag off: no counter.
+
+Build:
+1. Count failures in memory.
+2. Emit a local event and a 429 when both thresholds are crossed.
+3. Reset on the window. Do not persist the counter to disk.
+
+Acceptance: a fixture sequence of failures under the threshold is not a 429. The sequence that crosses both thresholds is a 429. A single username failing many times is 321's limiter, not this event, when the distinct-username count is not met. No socket is opened.
+
+FP risk: a NAT where many users share an address. The threshold defaults are documented and high enough that the test's benign shared-address fixture does not trip. Operators set the numbers. The phase does not learn them.
+
+### Phase 392 — Optional Redis counter store [`FULLSHIELD_EXPERIMENTAL_REDISRL`]
+When config selects Redis, the 391 counter may use the `redis` or `ioredis` package if it is installed, as an optional peer (R13). If it is not installed, startup fails with a clear error only when config selects Redis; otherwise the memory counter remains and this package is not imported. The runtime entry does not import the scanner (R14). Keys are the limiter key only. Values are counts. No request body is written to Redis. The host is the user's config, which is an allowed user-configured host (R15), and there is no default host.
+
+Depends on: 391. Flag off: Redis is not imported.
+
+Build:
+1. Dynamic `import()` of the client only on the Redis config path.
+2. Store counts. Schema-limit the value to an integer.
+3. Fall back only when Redis is not selected.
+
+Acceptance: config without Redis does not import the client (test mocks the loader). Config with Redis and no package fails with the install message. A selected client receives the count and not the request body. Scanner modules are absent from the runtime import graph.
+
+FP risk: a Redis key collision with the application's own keys. The key prefix is `fullshield:rl:` and the test asserts the prefix. It is not configurable to empty.
+
+### Phase 393 — Local OpenTelemetry export [`FULLSHIELD_EXPERIMENTAL_OTELLOCAL`]
+Optional peer `@opentelemetry/api`. When the user sets an endpoint in config, runtime events may be exported there. The endpoint is a user-configured host (R15), the same class as a webhook. There is no default endpoint and no FullShield-operated endpoint. If the endpoint is unset, the exporter is not constructed and no socket is opened. This is the user's log pipeline. It is not product telemetry, and a test fails if a host literal other than the config value appears in this module (Q8). Flag off, the peer is not imported.
+
+Depends on: 381. Flag off: no export code path.
+
+Build:
+1. Import the peer only when the endpoint is set.
+2. Send the same local event fields 391 already stores. No source text, no secrets.
+3. Assert the unset path opens nothing.
+
+Acceptance: unset endpoint, no import, no socket. Set endpoint, the mock server receives one event without a body or a secret field. A hard-coded host in the module fails Q8.
+
+FP risk: the user pointing the endpoint at a server they did not mean. The endpoint is printed at startup at info. The phase does not discover an endpoint from the environment unless the config names that variable.
+
+### Phase 394 — Per-hook overhead harness [`FULLSHIELD_EXPERIMENTAL_HOOKPERF`]
+Dev tooling, not shipped. The harness runs the benign corpus with hooks on and records p50, p95, and p99 per hook into `bench/rasp-overhead.json`, labeled `unreviewed`. It does not change hook behavior. It does not fail CI on a number (that would be a new threshold, R1). It fails CI only if a hook throws. Numbers are whatever the run produced.
+
+Depends on: 381. Not packed (Q12).
+
+Build:
+1. Time each hook around the benign corpus.
+2. Write the JSON with `unreviewed: true`.
+3. Do not edit hook source in this phase.
+
+Acceptance: the file exists after a run and contains one row per catalog hook. A thrown hook fails the harness. A slow hook does not fail it. The file's reviewed bit is false.
+
+FP risk: none for users. The risk is publishing the numbers as a claim. R7 already forbids that until a human reviews them. The harness prints the label.
+
+### Phase 395 — Block-mode canary [`FULLSHIELD_EXPERIMENTAL_CANARY`]
+Block mode can apply to a fraction of requests. The fraction is config, default 0, which means monitor for everyone. The choice is a documented hash of the request id the user configures (header name). No request id, no block, monitor only, so the canary cannot be bypassed by omitting the id in order to get a different security decision than a present id: omitting the id never blocks. The hash is not a secret. There is no remote config. The decision is recorded locally.
+
+Depends on: 381. Flag off: block mode is unchanged from the existing config.
+
+Build:
+1. Hash the configured request-id header with the documented algorithm.
+2. Compare to the fraction.
+3. Default 0. Absent header monitors.
+
+Acceptance: fraction 0 never blocks. Fraction 1 blocks the corpus payload. A missing header with fraction 1 monitors and does not block. The same request id always gets the same decision in a test of 20 repeats.
+
+FP risk: a user setting fraction 1 and believing it is a sample. The startup log prints the fraction. The schema rejects a fraction outside 0 to 1.
+
+### Phase 396 — Field-level virtual patches [`FULLSHIELD_EXPERIMENTAL_FIELDPATCH`]
+A virtual patch can name a route and a field path (`body.user.role`). The action is `strip` or `block`, from config, not from a downloaded rule. `strip` removes the field before the handler. `block` returns 403. The patch is data. It does not edit source. A path that matches nothing logs locally once and does not block the request. Patches apply only in the runtime. The scanner does not push patches to a client.
+
+Depends on: 381. Flag off: no field patches.
+
+Build:
+1. Compile field paths to a walker.
+2. Apply `strip` or `block` before the route handler.
+3. Ignore unknown paths with one local log line.
+
+Acceptance: a patch stripping `body.role` removes it in the fixture request and leaves `body.name`. A block patch returns 403. An unknown path does not 403. No source file changes.
+
+FP risk: a path that strips a field the handler requires, turning one bug into a 500. The action default is `block`, not `strip`, so the handler does not see a half object unless the user asked to strip. The schema default is `block`.
+
+### Phase 397 — CSP suggestion from literals [`FULLSHIELD_EXPERIMENTAL_CSPBUILD`]
+From the route model and from script URLs that are literals in HTML and JSX, print a suggested `Content-Security-Policy` in the report. The suggestion is a comment. It is not installed as a header. Hosts are only literals found in the repo. A dynamic script URL becomes `'strict-dynamic'` left unset and a note that the host was not static. Inline event handlers (282) cause the suggestion to omit `'unsafe-inline'` and to say the inline handler blocks a strict policy. The phase does not claim the policy is complete.
+
+Depends on: 255, 373. Flag off: the report has no CSP block.
+
+Build:
+1. Collect literal script and style hosts.
+2. Render the suggestion text.
+3. Do not set a header in the user's app.
+
+Acceptance: a fixture with one literal CDN script suggests that host. A fixture with an inline handler does not suggest `'unsafe-inline'`. Flag off, the report snapshot has no CSP section. No header is written into the fixture app.
+
+FP risk: a suggested host that is attacker-controlled in a way the literal scan missed. The text says the suggestion is the set of literals, not a policy that was tested. The test asserts that sentence.
+
+### Phase 398 — Upload path and content type [`FULLSHIELD_EXPERIMENTAL_UPLOAD`]
+A multipart filename reaching a filesystem sink is a 283 path query. A file later served with a content type taken from the upload is `SAST-UPLOAD-TYPE-001` (high) when the type can be `text/html` or `image/svg+xml`, because that is same-origin script. A serving path that forces `application/octet-stream` or an image type from a finite allowlist is not the finding. The runtime hook rejects a filename that 386/283 says escapes the upload directory, and rejects the two dangerous types unless config allowlists them. The hook does not inspect file bytes for malware.
+
+Depends on: 283, 381. Flag off: no upload hook.
+
+Build:
+1. Static query on the filename and on the served type.
+2. Runtime reject for escape and for the two types.
+3. Do not parse the file body for exploits.
+
+Acceptance: `originalname` inside `path.join(uploadDir, name)` without basename is a path finding. Serving the file with the request's content type `text/html` is the type finding. Forcing `application/octet-stream` is not. The hook rejects `../` in the fixture request.
+
+FP risk: an SVG host that intentionally serves SVG. Config can allow `image/svg+xml`. The default does not. HTML is not allow-listable; the schema rejects `text/html` in the allow list.
+
+### Phase 399 — GraphQL depth and field-count cap [`FULLSHIELD_EXPERIMENTAL_GQLDEPTH`]
+The runtime counts selection-set depth and field count using a fixed cost of 1 per field. The caps are config. Over the cap, the request is rejected with the application's error. There is no learned cost model. Introspection fields count. The static phase reports a schema with no limit middleware when 296 sees a GraphQL route and the runtime config is present in the repo and shows no cap. If the runtime config is absent, the static finding is info, not high, because the cap may live in another repo. The phase does not execute the user's resolvers.
+
+Depends on: 296, 381. Flag off: no cap.
+
+Build:
+1. Count depth and fields on the parsed document.
+2. Compare to config. Default cap is documented (depth 12, fields 200) and applied only when the user turns the hook on. The hook's own default, when the flag is on and no numbers are set, is those constants.
+3. Static info when no config is visible.
+
+Acceptance: a document deeper than the cap is rejected in the runtime fixture. A shallow document is not. Cost is 1 per field in the test, not a weighted table. A schema with no visible cap is an info finding.
+
+FP risk: a persisted-query allowlist that is deeper than the cap on purpose. Config can exempt a hash of a persisted query. Unlisted documents still face the cap.
+
+### Phase 400 — WebSocket message cap [`FULLSHIELD_EXPERIMENTAL_WSGUARD`]
+The runtime limits message byte size and JSON depth on catalog WebSocket sinks. Over the cap, the message is dropped and a local event is written. A schema on the handler (the 292 shape, if the app passes one into the hook config) validates keys; it does not clear static taint by itself. Caps are config, with documented defaults when the flag is on. The phase does not fuzz a remote socket and does not open one (Section 31).
+
+Depends on: 300, 381. Flag off: no message cap.
+
+Build:
+1. Enforce size and depth.
+2. Optionally validate against a schema object the user passed.
+3. Drop the message. Do not close the process.
+
+Acceptance: a message over the size cap is dropped. A message under it reaches the handler. A JSON depth over the cap is dropped. No outbound socket exists in the test.
+
+FP risk: a binary frame that is large on purpose. Config sets the cap per route. The default is the documented byte count, and the startup log prints it.
+
+### Phase 401 — Response field masking [`FULLSHIELD_EXPERIMENTAL_RESPMASK`]
+Config lists field names that must not appear on response objects (`password`, `resetToken`, `secret`, plus user names). The static query reports `res.json(obj)` when the object's must-set or may-set contains such a field from a model IR. The runtime hook, when config `strip: true`, deletes those keys one level deep and in documented nested paths. Default is report-only, `strip: false`, so the hook does not change responses until asked. The hook does not log the stripped value.
+
+Depends on: 298 or a config list, 381. Flag off: no mask.
+
+Build:
+1. Static query on response sinks.
+2. Runtime strip only when config says so.
+3. Never log the value.
+
+Acceptance: `res.json(user)` where the model has `password` reports. A DTO that omitted `password` does not. With `strip: true`, the fixture response has no `password` key and the log line does not contain the password. Default `strip: false` leaves the body unchanged.
+
+FP risk: a field named `password` that is a password-policy enum the client must see. Config can remove the name per route. The default list applies when the route has no override.
+
+### Phase 402 — Hook integrity at startup [`FULLSHIELD_EXPERIMENTAL_HOOKTAMPER`]
+At runtime start, hash the hook installer source that shipped in the package and compare it to a constant written at package build time. A mismatch logs a critical line locally and, if config says so, refuses to start. The default is to start anyway and log, so a package manager rewrite does not become an outage without the user opting in. The hash is not sent anywhere. The build constant is updated by the release build, not by a network lookup.
+
+Depends on: 381. Flag off: no hash check.
+
+Build:
+1. Compute the hash at build time into a generated file that is packed.
+2. Recompute at startup.
+3. Log locally. Optional refuse-to-start.
+
+Acceptance: the shipped constant matches a fresh hash in the test. A mutated fixture file logs critical. Default config still resolves the listen callback. `refuseOnMismatch: true` does not listen. No socket except the user's app listen in the success case.
+
+FP risk: a pack step that rewrites whitespace and changes the hash. The hash is over the built file in the tarball, and the release test computes it the same way. A mismatch fails the release test, not the user's first request.
+
+### Phase 403 — Fail-open counters [`FULLSHIELD_EXPERIMENTAL_FAILOPEN`]
+Each hook has a local counter of thrown exceptions. After N throws in a window (config, default 50), that hook fail-opens for the rest of the window and a local line is logged. The counter is memory. It is not exported unless 393 is on. A test forces throws and asserts the next request reaches the handler and the log line exists. N is not tuned from production traffic, because there is no telemetry to tune from.
+
+Depends on: 381. Flag off: a throw still fail-opens immediately, which is today's behavior; this phase makes the threshold explicit when the flag is on. Document that split in the phase report so the behavior change is not silent. The flag-on default of 50 is the behavior change and stays behind the flag.
+
+Build:
+1. Count throws per hook.
+2. Trip fail-open at N.
+3. Log locally.
+
+Acceptance: throw 49 times, the hook still runs. The 50th opens it, and the following request is not blocked by that hook. The log line names the hook. No network.
+
+FP risk: an attacker forcing throws to open the hook. The log line is the detection, and 402's integrity check does not cover this. The message in the log says fail-open tripped. The phase does not pretend otherwise.
+
+### Phase 404 — Runtime config validation [`FULLSHIELD_EXPERIMENTAL_RUNCFG`]
+Validate the runtime options object against the JSON Schema from 441 at startup. Unknown keys throw `FS-E` with the key name. Contradictions (`block` mode with fraction 0 and no monitor logger, a Redis mode with no URL, a metadata address on the SSRF allowlist) are errors. The process does not listen until validation returns. The schema is the same file the scanner uses for `fullshield config --check` so the two cannot drift.
+
+Depends on: 441's schema file. Flag off: today's option checks remain.
+
+Build:
+1. Load the schema. Do not fetch it.
+2. Reject unknown keys and the contradictions listed.
+3. Refuse to listen on failure.
+
+Acceptance: an unknown key throws `FS-E` and does not listen. A valid object listens. The metadata address on the allowlist throws. The same schema file validates a scanner config fixture and a runtime config fixture.
+
+FP risk: a typo failing startup. That is the intended failure. The error names the key and does not start the server half-configured.
+
+### Phase 405 — Runtime compatibility matrix [`FULLSHIELD_EXPERIMENTAL_RUNTIMECOMPAT`]
+A dev test matrix runs the runtime hook's public API on Node 22 and Node 24 against fixture servers of Express, Fastify, and Koa, and against a plain `http.Server`. Next's server is included only if the fixture can run without a network install beyond the existing dev dependencies; otherwise it is listed as not-in-matrix with a reason, not skipped silently. Each cell is pass or a named failure. The matrix file is committed with the versions. A failure is a test failure, not a skip, except the R22 Windows cases already called out by other phases.
+
+Depends on: 381. Not a user-facing flag. The test is the phase.
+
+Build:
+1. One fixture server per framework.
+2. Run the benign corpus and one attack payload through the hook.
+3. Commit `bench/runtime-matrix.json` with versions and results from the run that landed the phase. Later CI re-runs the tests; it does not trust the JSON as a skip list.
+
+Acceptance: the matrix tests pass on the CI Node versions. A framework that throws on the benign corpus fails CI. The JSON is labeled with the date of the run and `unreviewed: true` until a human says otherwise.
+
+FP risk: none for the scanner's users. The risk is skipping a red cell to land the phase. The instruction is to park (S3), not to skip.
+
+### Lane N — Fixes as IR rewrites (406–425)
+
+A fix is an AST edit whose witness no longer verifies (262) after the edit. Text search-and-replace is not a fix. `--apply` still requires a clean git tree. The tool does not run the application to see if the fix worked (Section 31, R15). It re-scans. A rewrite that cannot prove the hole class is safe refuses and leaves the file.
+
+### Phase 406 — Codemod engine [`FULLSHIELD_EXPERIMENTAL_CODEMOD`]
+All later fix phases emit edits through one engine: parse, transform, print, re-parse, and require the printed file to parse. The printer is in-tree or an optional peer; it is not a hard dependency (R13). Each edit carries the finding fingerprint and the witness id it claims to kill. The engine does not apply an edit whose re-parse fails. It does not apply an edit when the git status is dirty, unless `--allow-dirty` is absent, which is the default. `--allow-dirty` does not exist. Dirty trees refuse.
+
+Depends on: 262 for the kill check when that flag is on; the engine still refuses an unparsed result without 262. Flag off: `fullshield fix` is unchanged.
+
+Build:
+1. Implement parse, transform, print, re-parse.
+2. Record the witness id on the edit.
+3. Refuse dirty trees and print failures.
+
+Acceptance: a fixture edit that produces unbalanced syntax is refused and the file is unchanged. A clean edit is reported in the dry-run diff. A dirty git status refuses. The test does not use a network.
+
+FP risk: a printer that changes unrelated lines. The diff must be empty outside the edit's range, and a test plants a comment on another line and asserts it survives byte for byte.
+
+### Phase 407 — SQL value holes to placeholders [`FULLSHIELD_EXPERIMENTAL_SQLPARAM`]
+When 279 says the hole is a value position, rewrite the concatenation or template into the client library's placeholder form (`$1`, `?`) and move the expression to the parameter list. When 279 says the hole is an identifier, refuse. The refusal message says an allowlist is required and does not emit a patch that quotes the identifier. A hole 279 cannot classify is a refusal. The rewrite is dry-run by default.
+
+Depends on: 279, 406. Flag off: no SQL rewrite.
+
+Build:
+1. Require a value-position classification.
+2. Emit the placeholder edit for the client the sink catalog names.
+3. Refuse identifier and unknown holes.
+
+Acceptance: `db.query('select * from t where id = ' + req.params.id)` with a numeric class becomes a placeholder and the witness no longer verifies as injection. `ORDER BY ${req.query.sort}` is refused and the file is unchanged. An unknown client is refused rather than printed as `?` on a library that uses `$1`.
+
+FP risk: a value hole that is still a second statement because the literal already contains `;`. 279's whole-query class refuses. The fixture is `q; ${x}` and must not be rewritten as safe.
+
+### Phase 408 — Shell string to `execFile` [`FULLSHIELD_EXPERIMENTAL_EXECFILE`]
+When 280 splits the command into a static program and argument vector, and no literal contains a shell metacharacter, rewrite `exec` to `execFile` with the array form. A hole that 280 calls a bare word or an option is a refusal unless the edit can insert a `--` before a positional and 280 then says the hole is safe. If the insertion is not enough, refuse. Redirections and pipes in the literal are refusals. The rewrite does not keep `shell: true`.
+
+Depends on: 280, 406. Flag off: no shell rewrite.
+
+Build:
+1. Require a 280 split.
+2. Emit `execFile(program, argv)`.
+3. Refuse shell syntax in the literal.
+
+Acceptance: `exec('git show ' + rev)` is refused or becomes `execFile('git', ['show', '--', rev])` only if 280's fixture for `--` is clean. `exec('ls ' + name)` without a safe split is refused. `exec('cat a | wc')` is refused. A clean `execFile` already in source is not rewritten.
+
+FP risk: a program that treats `--` as a real argument. The edit uses `--` only when the catalog row for that program says it supports end-of-options. `git` is in the catalog. An unknown program is a refusal, not a guess.
+
+### Phase 409 — Path prefix guard [`FULLSHIELD_EXPERIMENTAL_PATHGUARD`]
+Insert `path.resolve(base, input)` and the 258 prefix check (`base + path.sep`) when the base is a string literal or a const binding of one. If the base is not that, refuse. Do not invent a base directory. The edit uses `path.basename` only when 283 says the intended operation is a single segment (the upload filename case). A multi-segment relative path does not get `basename`, because that would change the program's meaning; it gets the prefix check or a refusal.
+
+Depends on: 258, 283, 406. Flag off: no path edit.
+
+Build:
+1. Require a static base.
+2. Choose basename only for the single-segment class.
+3. Refuse otherwise.
+
+Acceptance: `path.join(root, req.query.p)` with `root` a literal becomes the prefix-checked form and the witness no longer verifies as a traversal. A base that is `req.query.root` is refused. An upload filename becomes `basename` and the traversal witness dies. The file's other functions are unchanged.
+
+FP risk: a prefix check that uses `startsWith(base)` without the separator. The edit must use the 258 form. A test fails the phase if the printed code matches the known buggy form.
+
+### Phase 410 — Context-correct escaping [`FULLSHIELD_EXPERIMENTAL_CTXESCAPE`]
+Insert the sanitizer that 282 says clears the HTML context of the hole. A text node gets the HTML-escape helper. A URL attribute does not get the HTML-escape helper; it gets the URL sanitizer from the catalog or a refusal. A script body is a refusal unless the catalog has a JS-string encoder and 282 says that encoder clears the context. The edit does not wrap a hole in a sanitizer that 282's matrix says is insufficient. If no catalog sanitizer clears the context, refuse.
+
+Depends on: 282, 406. Flag off: no escape edit.
+
+Build:
+1. Read the context from 282.
+2. Pick the catalog sanitizer that clears it, or refuse.
+3. Re-run the matrix on the edited fixture in the test.
+
+Acceptance: a text-node hole gets the HTML escape and the XSS witness dies. `<a href="${x}">` does not get HTML escape; it is refused or it gets the URL sanitizer, and the test asserts it does not get `escapeHtml` alone. A script-body hole with no encoder is refused.
+
+FP risk: double escaping. If the hole is already wrapped in the same sanitizer, emit no edit. The fixture of a double wrap must produce an empty diff.
+
+### Phase 411 — SSRF allowlist wrapper [`FULLSHIELD_EXPERIMENTAL_SSRFWRAP`]
+Wrap the fetch in a helper that parses the URL (281) and compares the host to a literal allowlist. The codemod inserts the helper and a constant `const ALLOW = []`. The edit is never marked safe while the array is empty. `--apply` refuses an empty allowlist. Dry-run shows the edit and says the user must fill the list. The helper rejects non-https unless the list entry says so. The helper does not add hosts from the code under scan.
+
+Depends on: 281, 406. Flag off: no wrapper.
+
+Build:
+1. Insert the helper and the empty constant.
+2. Refuse `--apply` while the list is empty.
+3. Do not populate the list from literals in the file. Those literals may be the bug.
+
+Acceptance: dry-run output contains the helper and the refusal reason. `--apply` on an empty list changes nothing. `--apply` after the test fills a literal host applies, and a URL with a different host is the runtime/static finding. The phase does not add `example.invalid` on its own.
+
+FP risk: an allowlist of `''` or `*`. The helper rejects both. The schema of the list is non-empty hosts with dots or localhost. `*` fails the helper's own unit test.
+
+### Phase 412 — Redirect allowlist [`FULLSHIELD_EXPERIMENTAL_REDIRWRAP`]
+The same shape as 411 for redirect sinks. The helper allows only relative paths that do not start with `//` and do not contain a scheme, or absolute URLs whose host is on the literal list. An empty list means relative paths only, and that default is safe to apply, unlike SSRF, because a relative redirect does not leave the origin. The edit replaces `res.redirect(req.query.next)` with the helper. A constant redirect target is not rewritten.
+
+Depends on: 406 and the redirect sink catalog. Flag off: no rewrite.
+
+Build:
+1. Insert the helper.
+2. Default to same-origin relative.
+3. Leave constant targets alone.
+
+Acceptance: `res.redirect(req.query.next)` becomes the helper call and the open-redirect witness dies. `res.redirect('/home')` is not edited. A target of `//evil.example` fails the helper in its unit test. `--apply` works with the default relative-only list.
+
+FP risk: an application that intentionally redirects to a partner host. The user adds the host. The codemod does not add it from a comment.
+
+### Phase 413 — NoSQL filter key guard [`FULLSHIELD_EXPERIMENTAL_NOSQLGUARD`]
+When a filter object's keys are `Unknown` and a schema or a literal key list exists, insert a pick of those keys before the call. When no key list exists, refuse. Do not insert a "delete every key that starts with `$`" helper as a safe fix by itself when the schema exists, because the schema pick is tighter; the `$` strip is the edit only when the user passes `--strip-operators` and no schema exists, and that edit is marked `review`, not safe. Casts of enumerated fields use the schema types.
+
+Depends on: 299, 406. Flag off: no edit.
+
+Build:
+1. Prefer a schema pick.
+2. Refuse when no key list exists, unless `--strip-operators` is set.
+3. Mark the strip edit `review`.
+
+Acceptance: a schema of `{ id: string }` produces a pick and the operator-injection witness dies. No schema and no flag produces no edit. `--strip-operators` produces an edit marked `review`. A constant filter is not edited.
+
+FP risk: a pick that drops a key the query needs and returns a broader result. The edit is `review` when the schema is partial (`additionalProperties` not false). It is safe only when the schema is closed. The test covers both.
+
+### Phase 414 — Crypto API replacement [`FULLSHIELD_EXPERIMENTAL_CRYPTOFIX`]
+Replace `createHash('md5'|'sha1')` used in a security sink (password, signature, token) with the catalog algorithm (`sha256` minimum for a non-password digest, a password hash API for a password field). Replace `Math.random` used to build a token with `crypto.randomBytes`. Do not replace `md5` of a static asset cache key when a config allow names that function; otherwise still emit the edit marked `review`. Do not claim the new algorithm is the user's compliance requirement. The edit is a source change the user applies.
+
+Depends on: 406 and the crypto sink list from phase 96. Flag off: no crypto edit.
+
+Build:
+1. Classify the use as password, token, signature, or other, from the sink catalog.
+2. Emit the replacement for the first three.
+3. Mark `other` as `review`.
+
+Acceptance: `createHash('md5')` on a password field becomes the password-hash API edit and is not marked safe until the edit names `bcrypt`, `scrypt`, or `argon2`. `Math.random` in a token becomes `randomBytes`. An md5 cache key in an allowed function is not edited. A test does not execute the hash as a cracker.
+
+FP risk: replacing a hash that other systems must reproduce. The edit is `review` whenever the hash is compared to a stored value the schema says is an interoperability digest. Password fields are not that class.
+
+### Phase 415 — JWT verify options edit [`FULLSHIELD_EXPERIMENTAL_JWTOPT`]
+Insert `algorithms: ['RS256']` only when the key material is a PEM public key or a certificate. Insert `algorithms: ['HS256']` only when the key is an HMAC secret and the existing list is missing. If the key type is unknown, refuse. Never write `none`. If the existing list mixes HMAC and RSA, refuse and say the calls must be split; do not pick one. The edit does not fetch a JWKS.
+
+Depends on: 317, 406. Flag off: no JWT edit.
+
+Build:
+1. Require a known key class.
+2. Write a one-element algorithms list of the matching family.
+3. Refuse mixed and unknown keys.
+
+Acceptance: a public PEM with no `algorithms` gains `['RS256']`. An HMAC secret gains `['HS256']`. A mixed list is refused and the file is unchanged. The printed code does not contain `none`.
+
+FP risk: a key that is RSA-PSS and not RS256. The catalog maps PEM headers to a default, and the edit is `review` when the header is not the common `BEGIN PUBLIC KEY` case the test covers. Unusual headers refuse.
+
+### Phase 416 — Cookie flag edit [`FULLSHIELD_EXPERIMENTAL_COOKIEFLAGS`]
+Add missing `httpOnly: true`, `secure: true`, and `sameSite: 'lax'` on `res.cookie` and session cookie options. Do not override an explicit `sameSite: 'none'`; report it instead, because that value is a cross-site choice the user made. Do not set `secure: false`. An explicit `httpOnly: false` on a csrf cookie name (319) is left alone. Other explicit `httpOnly: false` are reported and not flipped.
+
+Depends on: 319, 406. Flag off: no cookie edit.
+
+Build:
+1. Add only missing flags.
+2. Leave explicit cross-site and csrf choices.
+3. Dry-run by default.
+
+Acceptance: a cookie with no options gains the three flags. `sameSite: 'none'` with `secure: true` is not rewritten and is reported. A csrf cookie with `httpOnly: false` is unchanged. The diff does not touch an unrelated cookie that already has the flags.
+
+FP risk: a local HTTP development server that cannot set `secure`. The edit is `review` when the config environment literal is `development`. It is safe to mark only when that literal is absent or is `production`.
+
+### Phase 417 — Helmet and CORS config edit [`FULLSHIELD_EXPERIMENTAL_HELMETFIX`]
+Insert the catalog helmet call when 323's route has no helmet and the app is Express. For CORS, do not replace a reflect-origin with a guessed host. Dry-run shows the reflect finding and inserts a literal `origin: ''` that `--apply` refuses until the user replaces it, same rule as 411. A missing CORS middleware is not given `origin: true`. The edit is allowed to add `origin: false` only when the app has no cross-origin route in the route model; otherwise refuse.
+
+Depends on: 323, 406. Flag off: no config edit.
+
+Build:
+1. Insert helmet when absent.
+2. Refuse to invent an origin.
+3. Allow `origin: false` only when no cross-origin literal exists.
+
+Acceptance: an Express app missing helmet gains the call in dry-run. A reflect CORS is not applied with a fake host. `origin: true` is never inserted. An app with a literal foreign script URL does not get `origin: false`.
+
+FP risk: helmet's default breaking a cross-origin setup. The edit is `review`, not safe, and the message says defaults may block the app's own clients. The test asserts the `review` mark.
+
+### Phase 418 — Secret literal to env [`FULLSHIELD_EXPERIMENTAL_SECRETENV`]
+Replace a literal that 332 matched with `process.env.NAME`, where `NAME` comes from the format id plus a short hash of the fingerprint, not from the secret. Append `NAME=` to `.env.example` with an empty value. Do not write the secret into `.env`, the example, the diff, or the log. The finding remains until a later scan sees the env read, and the edit does not say the secret was rotated. If `.env.example` is absent, create it with the key and a comment that the value is not stored.
+
+Depends on: 332, 340, 406. Flag off: no edit.
+
+Build:
+1. Replace the literal.
+2. Update `.env.example` without the value.
+3. Scrub the secret from the diff output.
+
+Acceptance: the source contains `process.env` and not the synthetic token. `.env.example` contains the name and not the token. The dry-run diff does not contain the token. A test greps the process output.
+
+FP risk: two secrets in one file getting the same name. The hash suffix differs. The test uses two tokens and asserts two names.
+
+### Phase 419 — Prototype key guard [`FULLSHIELD_EXPERIMENTAL_PROTOKEY`]
+When a tainted key is used in an assignment `obj[k] = v`, insert a dominating guard that rejects `__proto__`, `constructor`, and `prototype`, or rewrite the object allocation to `Object.create(null)` when every subsequent operation in the function is an assignment or a read that does not need `Object.prototype`. If the function calls an object method, do not use `Object.create(null)`; use the guard. Refuse if the key is not tainted. Do not freeze prototypes in the user's process from the codemod; that is 390 and it is opt-in runtime.
+
+Depends on: 390's static key list, 406. Flag off: no edit.
+
+Build:
+1. Detect the assignment.
+2. Prefer the guard when methods are called.
+3. Use `Object.create(null)` only in the pure-assignment case.
+
+Acceptance: `obj[req.body.k] = v` gains the guard and the prototype witness dies. A function that then calls `obj.hasOwnProperty` does not get `Object.create(null)`. A constant key `'name'` is not edited.
+
+FP risk: a guard that throws on a legitimate key `constructor` stored as data. The edit is `review` when the object is on a model field tagged as free-form map. It is safe on `{}` literals that are not returned as API data. The test covers the map case.
+
+### Phase 420 — Fix batches [`FULLSHIELD_EXPERIMENTAL_FIXGROUP`]
+Group edits into batches by directory and rule id, with a max diff line count from config (default 400). Output is a list of patch files under `.fullshield/fixes/`. The command does not open a pull request, does not push, and does not comment (Section 31). A batch that contains one `review` edit is marked `review`. A batch of only safe edits is marked `safe`. The user applies a batch by id.
+
+Depends on: 406. Flag off: `fix` output is unchanged.
+
+Build:
+1. Bin edits by directory and rule.
+2. Split a bin that exceeds the line cap.
+3. Write patch files. Do not call `git push` or a forge API.
+
+Acceptance: 10 small edits in two directories produce two batches. One `review` edit marks its batch `review`. No network and no `git push`, asserted by the test. The line cap splits a fixture that exceeds it.
+
+FP risk: a batch the user applies as safe that includes a file outside the directory. The patch paths are checked against the batch directory. A path that escapes is a refused batch.
+
+### Phase 421 — Fix verification on the witness [`FULLSHIELD_EXPERIMENTAL_FIXVERIFY2`]
+After an edit, re-scan the touched files with the IR and require the previous witness to fail verification. A textual change that still verifies is a failed fix and is not marked safe. The re-scan does not run the app, the tests, or a browser (Section 31). It does not delete the finding from the baseline; the next full scan does that if the finding is gone. Verification of a refused edit is a no-op.
+
+Depends on: 262, 406. Flag off: phase 91's behavior remains.
+
+Build:
+1. Re-parse and re-query the witness's sink.
+2. Require the witness checker to fail.
+3. Do not spawn the project.
+
+Acceptance: the SQL placeholder edit makes the witness fail verification and the fix is eligible to be safe. An edit that only renames a variable leaves the witness valid and the fix is failed. The test asserts no `npm test` and no application process.
+
+FP risk: a witness that fails for an unrelated reason, marking a bad edit safe. The checker must fail at the same sink line with the same rule id, not merely fail somewhere. The test plants a second bug and asserts it does not satisfy the first witness.
+
+### Phase 422 — Fix disposition table [`FULLSHIELD_EXPERIMENTAL_FIXDISP`]
+Disposition is a closed table, not a confidence score (Section 31, Phase 84). `safe` requires: the codemod did not refuse, the witness failed verification (421), and the hole class is on the auto-apply list (`sql-value`, `path-prefix`, `html-text`, `cookie-missing-flag`). Every other applied shape is `review`. There is no weight and no fourth state. The JSON field is `disposition`. A schema test rejects a numeric `confidence`.
+
+Depends on: 421. Flag off: no disposition field.
+
+Build:
+1. Encode the table.
+2. Set the field.
+3. Ban numeric confidence in the schema.
+
+Acceptance: the SQL value rewrite is `safe` when 421 passes. The SSRF empty allowlist is absent, not `safe`. The crypto interoperability case is `review`. The JSON has no `confidence` number.
+
+FP risk: adding a hole class to the auto-apply list casually. The list is in this phase's text and changing it is an R10-level product change that needs a human. The test snapshots the list.
+
+### Phase 423 — Terminal fix review [`FULLSHIELD_EXPERIMENTAL_FIXUI`]
+A terminal UI lists batches, shows the diff, and asks for a confirmation per batch. Non-interactive `--apply` applies only `safe` batches and refuses `review` batches with a message to use the UI or `--apply-review`. The UI reads stdin. It does not open a network connection and it does not launch a browser. `--yes` is not added.
+
+Depends on: 420, 422. Flag off: non-interactive `fix --apply` stays as it is today for the previous safe set.
+
+Build:
+1. Render the diff.
+2. Ask per batch.
+3. Block `--apply` of `review` batches.
+
+Acceptance: a scripted stdin of "n" applies nothing. A scripted "y" applies a safe batch. `--apply` on a review batch exits non-zero and writes nothing. No browser process and no socket.
+
+FP risk: a user holding down enter. The prompt default is no. Empty stdin is no. The test sends a newline and asserts no write.
+
+### Phase 424 — Fix rollback journal [`FULLSHIELD_EXPERIMENTAL_FIXJOURNAL`]
+Each apply appends `.fullshield/fix-journal.json` with the batch id, the forward patch, the reverse patch, and the file hashes before the edit. `fullshield fix --rollback <id>` applies the reverse patch only when the current file hash equals the hash after the forward edit. A file that changed since is refused. The journal does not contain secrets (418's scrub runs first). The journal is local.
+
+Depends on: 406, 418. Flag off: no journal and no rollback command.
+
+Build:
+1. Record hashes and both patches.
+2. Rollback only on a matching hash.
+3. Scrub secrets.
+
+Acceptance: apply then rollback restores the bytes. A one-character edit after apply makes rollback refuse and leave the new character. The journal of a secret edit does not contain the token.
+
+FP risk: a journal in a public git commit. The init template gitignores `.fullshield/fix-journal.json`. The test asserts the gitignore line.
+
+### Phase 425 — SARIF fixes [`FULLSHIELD_EXPERIMENTAL_SARIFFIX`]
+When a safe or review edit exists, the SARIF `fixes` property carries the same patch text as the dry-run. The artifact is validated against the SARIF schema the repo already vendors for tests. A review edit is included and its `description` says `review`. A refused edit is omitted. The SARIF file does not contain a secret literal that 418 removed. Flag off, SARIF bytes are unchanged.
+
+Depends on: 406. Flag off: byte-identical SARIF.
+
+Build:
+1. Attach patches to the result locations.
+2. Validate the schema.
+3. Scrub secrets.
+
+Acceptance: a fixture SQL fix appears under `fixes` and the schema validates. A refused identifier hole has no `fixes` entry. Flag off, the SARIF snapshot matches. The token from 418 is absent.
+
+FP risk: a consumer auto-applying every SARIF fix, including `review`. The description text is `review` or `safe` and the test asserts `review` is not labeled `safe`.
+
+### Lane O — Output, policy, and editors (426–450)
+
+These phases add experimental fields or extra files. They do not change the default finding key `(ruleId, file, line, severity)` unless a phase says so, and then it is behind the flag and needs `DIFF.txt` before any promotion. None of them post to a forge, open a pull request, or send telemetry.
+
+### Phase 426 — Local finding history [`FULLSHIELD_EXPERIMENTAL_HISTORY`]
+The existing local sqlite store gains a row per fingerprint: first seen, last seen, last state (`open`, `absent`, `suppressed`). A finding that disappears is `absent`. It is not deleted. The store stays on the machine. There is no sync. The history command reads the store and prints counts. It does not phone home. A test asserts the runtime entry does not open the history database (R14).
+
+Depends on: 340's fingerprint when secrets are involved; the finding key otherwise. Flag off: the store schema is unchanged.
+
+Build:
+1. Add the state column.
+2. Mark absent rows when a scan finishes without that fingerprint.
+3. Keep the file local. Document the path.
+
+Acceptance: two scans, the second without the bug, leave one row with state `absent`. A third scan that brings it back sets `open` and keeps the original first-seen time. No network. The runtime package test does not open the file.
+
+FP risk: a fingerprint that changes because the witness changed, looking like a new bug and an absent old bug. 428 defines the fingerprint stability rules. Until 428 is on, the history message says the key includes the line.
+
+### Phase 427 — Local trend report [`FULLSHIELD_EXPERIMENTAL_TREND`]
+`fullshield trend` reads the history store and prints counts per rule per scan id. The header says the numbers are local and unreviewed. There is no chart service and no embedded remote image. Output is text or JSON. Empty history prints zero rows and exits 0. The command does not start a scan by itself unless `--scan` is passed, and `--scan` is the normal local scan.
+
+Depends on: 426. Flag off: the command fails with `FS-E`.
+
+Build:
+1. Query the store.
+2. Print the header.
+3. Do not compute a score.
+
+Acceptance: a fixture store with two scans prints two counts. The header contains `unreviewed`. Empty store exits 0. The JSON has no `score` field.
+
+FP risk: a reader publishing the text as a trend claim. The header is the control, and R7 still applies if someone copies it into the README. This phase does not write the README.
+
+### Phase 428 — Refactor-stable fingerprints [`FULLSHIELD_EXPERIMENTAL_STABLEFP`]
+The fingerprint ignores the line number. It hashes the rule id, the sink class, the origin, the repository-relative file path, and the witness shape after identifier normalization (372's normalizer). A function moved inside the file keeps the fingerprint. A function moved to another file does not. A changed sink class does not. The algorithm is documented and tested. Baseline matching uses this fingerprint only when the flag is on. Flag off, the baseline key is unchanged, so this phase does not churn the baseline by surprise.
+
+Depends on: 262, 426. Flag off: baseline keys unchanged.
+
+Build:
+1. Define the hash input in one function shared by history and baseline.
+2. Test a rename, a move across files, and a sink-class change.
+3. Keep the flag-off key.
+
+Acceptance: renaming a local variable keeps the fingerprint. Moving the function to another file changes it. Changing SQL to command injection changes it. Flag off, the baseline snapshot matches the previous key.
+
+FP risk: two real bugs in one file collapsing to one fingerprint. The hash includes a disambiguator: the normalized sink expression's shape, not just the file. Two sinks in one function are two hashes in the test.
+
+### Phase 429 — Suppression audit [`FULLSHIELD_EXPERIMENTAL_SUPPRESS`]
+A suppression comment or baseline entry needs a reason string, an owner string, and an optional `until` date. A suppression that matches no current finding is `SUPPRESS-ORPHAN` (info). A suppression past `until` is `SUPPRESS-EXPIRED` (medium) and the underlying finding is reported again. A suppression without a reason is `SUPPRESS-BARE` (medium) and does not suppress. The phase does not delete the user's comment. It reports.
+
+Depends on: 426 for expiry dates that use first-seen; the comment parser otherwise. Flag off: today's suppression behavior remains.
+
+Build:
+1. Parse reason, owner, and until.
+2. Emit the three ids.
+3. Honor only suppressions that have a reason and a live date.
+
+Acceptance: a bare comment does not suppress and reports `SUPPRESS-BARE`. An expired date reports `SUPPRESS-EXPIRED` and the finding returns. An orphan reports info. A complete live suppression suppresses and emits nothing else.
+
+FP risk: a date format the parser misreads as already expired. The only accepted format is `YYYY-MM-DD`. Anything else is `SUPPRESS-BARE`. The test uses `10/21/2026` and expects bare, not expired.
+
+### Phase 430 — SARIF taxonomies [`FULLSHIELD_EXPERIMENTAL_SARIFTAX`]
+Every rule file maps to one or more CWE ids or to the explicit token `cwe: none` with a one-line reason. SARIF output includes the taxonomy. A rule with neither fails the build of the package. The mapping file is `rules/*.md` front matter, not a second list that can drift. `cwe: none` is allowed for rules that are policy, not weaknesses, and the reason is required. The phase does not claim CWE coverage it did not map.
+
+Depends on: the rule file loader. Flag off: SARIF without the new taxonomy block, bytes otherwise unchanged.
+
+Build:
+1. Require the front matter.
+2. Emit the taxonomy.
+3. Fail the package build on a missing mapping.
+
+Acceptance: a mapped rule appears in the SARIF taxonomy. A fixture rule with no mapping fails the test. `cwe: none` without a reason fails. Flag off, the previous SARIF snapshot holds.
+
+FP risk: a wrong CWE id. The id is data the human reviews. The phase does not auto-assign from the rule's English title. A test rejects a mapper that reads only the title.
+
+### Phase 431 — GitLab report files [`FULLSHIELD_EXPERIMENTAL_GITLABRPT`]
+Emit GitLab SAST and dependency-scanning JSON from the same findings, into files the user names. Validate against the schema files committed in the repo. Do not call the GitLab API. Do not post a comment. A finding that does not fit the schema is listed in a sidecar `unmapped.json` and is not dropped silently. Flag off, the files are not written.
+
+Depends on: 430 for CWE when present. Flag off: no GitLab files.
+
+Build:
+1. Map fields.
+2. Validate.
+3. Write `unmapped.json` for the rest.
+
+Acceptance: a fixture scan produces a schema-valid SAST file. A finding with a missing required GitLab field lands in `unmapped.json` and not in the main file as a broken row. No network.
+
+FP risk: a consumer ignoring `unmapped.json` and thinking the main file is complete. The main file's header names the sidecar. The test asserts that.
+
+### Phase 432 — CycloneDX 1.6 [`FULLSHIELD_EXPERIMENTAL_CDX16`]
+When the flag is on, SBOM output can request CycloneDX 1.6. The 1.5 path is unchanged when the flag is off or when `--format cyclonedx` is passed without `--spec 1.6`. 1.6 fields are only those the 1.6 spec already defines that this project has data for (purl, hashes, properties for reachability). No invented fields. Validate with the committed schema. A reachability property is omitted when reachability was not computed, not filled with `unknown` presented as a spec enum unless the spec allows it. If the spec's enum does not include our class names, put the class in a namespaced property and document the name.
+
+Depends on: 249. Flag off: 1.5 bytes unchanged.
+
+Build:
+1. Add the 1.6 emitter beside 1.5.
+2. Validate.
+3. Leave 1.5 as the default.
+
+Acceptance: `--spec 1.6` validates. Default output matches the 1.5 snapshot. A component without a hash omits the hash. The test fails if a 1.6 file is emitted with the flag off.
+
+FP risk: a consumer that rejects namespaced properties. The documentation names the property. The emitter does not drop the component to satisfy a stricter consumer.
+
+### Phase 433 — Local signatures for SBOM and VEX [`FULLSHIELD_EXPERIMENTAL_SBOMIGN`]
+Sign the SBOM or VEX with Node's crypto, ed25519, using a key file the user passes. Do not generate a key and upload it. Do not copy the private key into the report. The signature file sits next to the SBOM. Verification is `fullshield sbom --verify` and uses the public half the user passes. A missing key exits `FS-E` and writes no signature. No network.
+
+Depends on: the SBOM command. Flag off: no signature file.
+
+Build:
+1. Sign the bytes.
+2. Write the signature beside the SBOM.
+3. Verify in a test with a fixture key that is not a production secret.
+
+Acceptance: verify succeeds on the fixture key. A flipped byte fails verify. A missing key exits `FS-E` and leaves no file. The private key path is not in the SBOM JSON.
+
+FP risk: a user committing the private key. The command's error text, when the key path is inside the repo, warns. It still signs if the user passes `--i-mean-it` is not added. It warns and continues, because refusing would be a new policy. The warning is tested.
+
+### Phase 434 — Offline HTML report [`FULLSHIELD_EXPERIMENTAL_HTMLRPT`]
+Write one HTML file with findings, witnesses, and the matrix if present. The file contains no external script, no external stylesheet, and no image URL. The test loads it in a parser and asserts every URL is absent. Inline style is allowed. Script is not allowed; the report is static. Secrets are redacted as in 340. The file is written only when `--html <path>` is passed.
+
+Depends on: 262 for witnesses when present. Flag off: no HTML.
+
+Build:
+1. Render the file.
+2. Ban URLs and script tags in the output.
+3. Redact secrets.
+
+Acceptance: the fixture report has the finding title and no `http` substring. A secret finding's token is absent. Flag off, the command without the flag errors with `FS-E` rather than writing a partial file.
+
+FP risk: a finding message that contains a URL the user scanned, which is data, not a dependency of the report. The ban is on tags and on stylesheet or script URLs, not on the text of a finding that quotes `https://example.invalid`. The test uses a quoted URL in a message and expects the text, and expects no `src=` or `href=` to a host.
+
+### Phase 435 — Summary page [`FULLSHIELD_EXPERIMENTAL_SUMMARY`]
+`fullshield summary` prints counts by severity and by module, the top rule ids by count, and a fixed sentence that the counts are unreviewed unless the history row says a human reviewed them. The template is fixed in the repo. It does not take adjectives from the marketing ban list (Section 31). There is no "risk score." Empty results print zeroes. The command reads the last local scan file and does not scan by itself.
+
+Depends on: the scan JSON. Flag off: the command errors with `FS-E`.
+
+Build:
+1. Read the last scan.
+2. Print the template.
+3. Schema-ban a score and ban the marketing words in the template file.
+
+Acceptance: a fixture scan prints the counts and the unreviewed sentence. The template file does not contain the banned words. No score field. Empty input prints zeroes and exits 0.
+
+FP risk: the top-rule list being mistaken for severity. The list header says "by count." The test asserts the header.
+
+### Phase 436 — Language server on stdio [`FULLSHIELD_EXPERIMENTAL_LSP`]
+`fullshield lsp` speaks LSP over stdio: `initialize`, `textDocument/diagnostic`, `shutdown`. Diagnostics come from a scan of the open file plus the IR dependencies 269 already knows how to limit, falling back to the single file if 269 is off. This is not an editor extension. No VS Code package is added (Section 31). No telemetry. The process does not listen on a TCP port. A document that fails to parse returns an empty diagnostic list and a log line, not a crash.
+
+Depends on: 251 for multi-file; single-file mode otherwise. Flag off: the subcommand errors with `FS-E`.
+
+Build:
+1. Implement the three LSP methods on stdio.
+2. Map findings to diagnostics.
+3. Bind no TCP port. A test asserts no listen socket.
+
+Acceptance: a fixture file with one SQL finding produces one diagnostic. A clean file produces none. A TCP connect to the process fails. The package exports do not contain a VS Code contribution point. The test reads `package.json` and fails if `contributes` is added.
+
+FP risk: diagnostics drifting from `scan --json`. The test runs both on the fixture and compares the finding keys.
+
+### Phase 437 — MCP tools for routes and witnesses [`FULLSHIELD_EXPERIMENTAL_MCP2`]
+Add MCP tools that return the route matrix, one witness, and the proof JSON for a finding id. They call the same functions as the CLI. They do not apply fixes unless the user invokes the existing fix tool, which still dry-runs unless the user passes apply. The tool list is snapshotted in the MCP manifest test (Q5). No new network host. The server binds as the current MCP server does; this phase does not add a public listener.
+
+Depends on: 313, 262. Flag off: the new tools are not registered.
+
+Build:
+1. Register the tools.
+2. Return the same JSON the CLI writes.
+3. Snapshot the manifest.
+
+Acceptance: a client fixture lists the new tools only when the flag is on. A witness request for an unknown id returns a typed error, not an empty success. Apply is not the default. The manifest snapshot matches.
+
+FP risk: a tool description that tells the client to auto-apply. The description says dry-run. The test reads the description string.
+
+### Phase 438 — Hook templates [`FULLSHIELD_EXPERIMENTAL_HOOKTPL`]
+`fullshield init` can print hook snippets for husky, lefthook, and the pre-commit framework. The snippets call the 342 command. They are text. They are not runtime dependencies. A test renders each template and compares it to a snapshot. The templates do not download the hook tool. They do not set `git config --global`.
+
+Depends on: 342. Flag off: init's existing output is unchanged.
+
+Build:
+1. Add the three templates.
+2. Snapshot them.
+3. Do not run the installers in the test; only render.
+
+Acceptance: each snapshot contains the pre-commit command and does not contain a URL fetch. Flag off, init's snapshot is unchanged. The rendered husky snippet is a hook file, not a change to `.gitconfig`.
+
+FP risk: a template that uses `sudo` or a global install. The test rejects `sudo` and `npm install -g` in the template bodies.
+
+### Phase 439 — CI templates [`FULLSHIELD_EXPERIMENTAL_CITPL`]
+Templates for Jenkins, CircleCI, Azure Pipelines, and Bitbucket Pipelines run `npx fullshield scan --fail-on high` and store SARIF as a job artifact. They do not post comments (Section 31). GitHub Actions stays the existing template. Third-party images are pinned by digest in the template or the template says the user must pin, and an unpinned image fails the template test. The templates do not contain a secret.
+
+Depends on: the SARIF emitter. Flag off: the templates are not written by init.
+
+Build:
+1. Add the four files under `templates/`.
+2. Assert pin policy and the absence of comment APIs.
+3. Do not contact those systems in the test.
+
+Acceptance: each template contains `--fail-on` and an artifact path. None contain `createComment` or an unpinned image. A secret-shaped token in a template fails the test. Flag off, init does not copy them.
+
+FP risk: a template that fails closed on info findings. The flag is `high`, matching the documented default for new templates, and the test asserts the word `high`.
+
+### Phase 440 — Per-package monorepo reports [`FULLSHIELD_EXPERIMENTAL_MONOREPORT`]
+One JSON file per workspace package, plus a rollup. Paths inside a package file are package-relative. A finding in a shared package is counted once in the rollup and listed as inherited by dependents, not re-counted. The inherit edge uses the workspace graph, not a guess from directory names. Flag off, the single report is unchanged.
+
+Depends on: the workspace parser from phase 54. Flag off: byte-identical single report.
+
+Build:
+1. Split findings by the package that owns the file.
+2. Roll up with a set, not a sum, of fingerprints.
+3. Record dependents.
+
+Acceptance: a shared package with one finding and two dependents produces one rollup count and two inherit edges. Package-relative paths do not start with `../` escaping the package. Flag off, the single file snapshot matches.
+
+FP risk: a finding in a file outside every package being dropped. It lands in a `_root` report and is counted in the rollup. The test places a file at the repo root.
+
+### Phase 441 — Config JSON Schema [`FULLSHIELD_EXPERIMENTAL_CFGSCHEMA`]
+`docs/config.schema.json` is the schema for the scanner config and the runtime config. `fullshield config --check` validates the local file and exits `FS-E` on errors. 404 uses the same file. Unknown keys fail. The schema is drafted by hand in this phase to match the keys the code already reads; it does not invent new product keys. A test loads every fixture config.
+
+Depends on: none. Flag off: `--check` errors with `FS-E` rather than validating with a partial schema. Existing scans do not start requiring the schema until a later promotion.
+
+Build:
+1. Write the schema from the keys the code reads.
+2. Implement `--check`.
+3. Share the file with 404.
+
+Acceptance: a known-good fixture passes. An unknown key fails. The runtime test and the scanner test load the same schema path. A key the code reads that is absent from the schema fails a coverage test that diffs `src` key reads against the schema.
+
+FP risk: a schema that is stricter than the code and rejects a config the current release accepts. Those keys are added as optional. The test uses the current default config file and expects success.
+
+### Phase 442 — Static rule-doc generator [`FULLSHIELD_EXPERIMENTAL_RULEDOCS`]
+A dev script turns `rules/*.md` into a directory of HTML files with the same offline constraints as 434. It does not deploy. It does not fetch fonts. The output is gitignored except a snapshot of one page in the test. Q12: the generator is not packed.
+
+Depends on: the rule files. Not a runtime flag.
+
+Build:
+1. Render one page per rule.
+2. Ban external URLs the way 434 does.
+3. Do not add a deploy step.
+
+Acceptance: the fixture rule's HTML contains the rule id and no script tag. The script is not in `package.json` `files`. A missing rule file fails the generator.
+
+FP risk: the HTML being treated as a second source of truth. The page footer says the Markdown file wins. The test asserts the footer.
+
+### Phase 443 — Witness diagrams [`FULLSHIELD_EXPERIMENTAL_EXPLAIN`]
+`fullshield explain <fingerprint>` prints the witness as text: source, steps, sanitizers that removed labels, and the sink. The format is fixed. A snapshot test covers one vulnerable-app finding. If the fingerprint is unknown, exit `FS-E`. The command does not highlight by shelling out to a pager that executes the finding text. It writes stdout only.
+
+Depends on: 262. Flag off: the command errors with `FS-E`.
+
+Build:
+1. Render the witness.
+2. Snapshot one finding.
+3. Refuse unknown ids.
+
+Acceptance: the snapshot contains the source file and the sink file from the fixture. An unknown id exits `FS-E`. The output does not contain a secret fixture's raw token when the finding is a secret; it contains the fingerprint.
+
+FP risk: a step list so long it hides the sink. Cap the printed steps at 40 and say the witness was truncated. The full JSON remains available from the scan file. The test uses a long chain and expects the cap line.
+
+### Phase 444 — CODEOWNERS on findings [`FULLSHIELD_EXPERIMENTAL_OWNERS`]
+Match the finding's file against the repo's CODEOWNERS. Print the owner. Do not call the GitHub API. A file with no owner is `unowned`. The match uses the last matching pattern, which is the CODEOWNERS rule. A syntax error in CODEOWNERS is `FS-E` and no owner is guessed. Flag off, findings have no owner field.
+
+Depends on: none beyond the scan result. Flag off: no owner field.
+
+Build:
+1. Parse CODEOWNERS.
+2. Apply the last-match rule.
+3. Attach `owner` under experimental fields.
+
+Acceptance: a fixture CODEOWNERS that assigns `*.js` and then overrides one path uses the override. A file outside every pattern is `unowned`. A broken CODEOWNERS exits `FS-E`. No network.
+
+FP risk: an owner name that is a secret. CODEOWNERS is printed as text. The phase does not special-case it. Secret scanning of the file is 332's job if the line matches a format, which an owner token might. That is acceptable and not suppressed here.
+
+### Phase 445 — Fix-by dates in policy [`FULLSHIELD_EXPERIMENTAL_SLA`]
+The policy file maps severity to a day count. A finding whose first-seen time is older than that count is `POLICY-SLA-001` (info) and names the days. Dep findings use the OSV `modified` time when the cache has it, else first-seen. The clock is the scan time. The phase does not file a ticket. A missing history store means the age is unknown and the id is not emitted, rather than treating every finding as new or as old.
+
+Depends on: 378, 426. Flag off: no SLA id.
+
+Build:
+1. Read the day counts. Reject non-integers.
+2. Compare to first-seen or OSV modified.
+3. Emit info. Do not change the original finding's severity.
+
+Acceptance: a 40-day-old high finding with a 30-day policy reports `POLICY-SLA-001` and the original severity stays high. A 1-day-old finding does not. No history store emits nothing from this id. A policy value of `asap` fails to load.
+
+FP risk: a first-seen time that resets when the fingerprint changes. 428 is the mitigation when it is on. The message includes which clock was used (`first-seen` or `osv-modified`).
+
+### Phase 446 — Changed-line view [`FULLSHIELD_EXPERIMENTAL_PRLINES`]
+`--changed <diff>` limits the findings printed in the human view and in the default JSON for that invocation to findings whose sink line is in the diff's added or context lines, plus findings whose witness passes through an added line. The IR is still built for the whole program, so a new sink of an old source is included. Findings that do not touch the diff are omitted from that invocation's output and remain in the full file when `--json-full` is also passed. This hides untouched issues on purpose, and the header says so. The phase does not post the diff.
+
+Depends on: 262 for the pass-through rule; line intersection otherwise. Flag off: `--changed` keeps today's behavior if it already exists, or errors if it does not. Do not silently narrow today's default scan.
+
+Build:
+1. Parse the unified diff.
+2. Intersect sinks and witness steps.
+3. Print the header that the view is partial.
+
+Acceptance: a new sink of an old source is included. An old finding in an untouched file is omitted. `--json-full` contains both. The header is present. A default scan without `--changed` is byte-identical.
+
+FP risk: a source introduced in the diff that flows to an old sink. The witness-step rule includes it. The test plants that shape.
+
+### Phase 447 — Versioned scan JSON [`FULLSHIELD_EXPERIMENTAL_JSONSCHEMA`]
+`docs/scan-result.schema.json` versions the scan document. The `schemaVersion` field is `1` for the current stable fields. Experimental fields live under `experimental` and may disappear in a minor. Removing a stable field is a major (R16a), and `semver-check` gains a clause that diffs the schema's stable required list. This phase adds the schema and the check. It does not bump the package to 2.0.
+
+Depends on: `scripts/semver-check.mjs`. Flag off: the field is still added only when the flag is on, so default JSON stays stable. The schema file exists either way as documentation of the stable output.
+
+Build:
+1. Write the schema from the current stable keys.
+2. Teach semver-check to diff the required list.
+3. Put new fields under `experimental` when the flag is on.
+
+Acceptance: a fixture document validates. Deleting a required key in a scratch schema fails the semver fixture test. Flag off, `scan --json` matches the previous snapshot. `schemaVersion` is not added to default JSON in this phase.
+
+FP risk: a consumer that rejects unknown fields and then meets `experimental` later. The default document gains no new keys in this phase. The test snapshots the keys.
+
+### Phase 448 — Streaming scan API [`FULLSHIELD_EXPERIMENTAL_STREAMAPI`]
+The library exports an async iterator that yields findings as they are finished. Order is not sorted. `scan --json` remains sorted and byte-stable. A test consumes the iterator, sorts, and compares to `scan --json` under the same flags. Cancellation stops the walk and does not leave a worker (495) behind. The iterator is experimental and named so a stable import path is not added. Q5 lists it as experimental.
+
+Depends on: the scan pipeline. Flag off: the export is absent.
+
+Build:
+1. Yield findings.
+2. Document the unsorted order.
+3. Test equality after sort, and cancellation.
+
+Acceptance: the sorted iterator output equals the JSON findings. A cancel in the test leaves no child process. Flag off, the export list snapshot does not include the iterator.
+
+FP risk: a user assuming stream order is the JSON order. The type's doc comment says it is not. The API snapshot includes that comment's text.
+
+### Phase 449 — Data-only rule plugins [`FULLSHIELD_EXPERIMENTAL_RULEPLUGIN`]
+A plugin is a JSON file of sources, sinks, and sanitizers in the phase 81 schema. The loader rejects a plugin that contains JavaScript, a `require`, or a path outside the directory the user passed. There is no JS hook. A plugin finding uses a rule id the plugin declares, prefixed `USER-`, and the schema rejects ids that do not start with that prefix so a plugin cannot shadow `SAST-SQLI-001`. The plugin is not packed. It is the user's file.
+
+Depends on: 81's schema, 251 when IR queries are on. Flag off: the directory is not read.
+
+Build:
+1. Load JSON only.
+2. Enforce the id prefix and the path jail.
+3. Run the same query engine.
+
+Acceptance: a plugin sink that matches a fixture reports `USER-…`. A plugin file that is `.js` is rejected. A plugin id of `SAST-SQLI-001` is rejected. A path that uses `..` to leave the directory is rejected. Flag off, the fixture reports nothing from the plugin.
+
+FP risk: a sanitizer in the plugin that clears too much. The plugin's sanitizer is the user's data, and the finding's witness names the plugin file. The phase does not bless the sanitizer. A test shows a plugin sanitizer clearing SQL and the witness containing the plugin path.
+
+### Phase 450 — Performance report [`FULLSHIELD_EXPERIMENTAL_PERFREPT`]
+`scan --perf <path>` writes per-phase timings and peak RSS to a local JSON file. Findings are unchanged. The file is labeled `unreviewed`. The command does not upload it. Flag off, `--perf` errors with `FS-E` and the scan still runs when the option is omitted. Timings are not added to the finding JSON.
+
+Depends on: none. Flag off: finding bytes unchanged.
+
+Build:
+1. Record timings around the existing phases.
+2. Write the side file.
+3. Leave the finding document untouched.
+
+Acceptance: the side file has one row per phase that ran and `unreviewed: true`. The finding snapshot matches the run without `--perf` except for timestamps that are not in the finding document. No network.
+
+FP risk: the side file being cited as a benchmark. The label is the control. The phase does not edit BENCHMARK.md.
+
+### Lane P — Text of deploy configs (451–465)
+
+These phases read files in the repo. They do not connect to a cluster, a cloud API, or a container daemon. They do not scan images or OS packages (Section 31). A finding is a fact about the text.
+
+### Phase 451 — Dockerfile stage graph [`FULLSHIELD_EXPERIMENTAL_DOCKERFILE`]
+Parse the Dockerfile stage graph. Findings: a secret ARG that reaches the final stage (do not duplicate 337 when that flag is on), `npm install` in a stage that copied a lockfile where `npm ci` could run, a final stage with no `USER`, and a `COPY` of `.env`. An intermediate root stage that is not copied forward is info. Do not build or pull an image. A parser failure is a 271 event and is not a clean result. The module does not import `child_process`.
+
+Depends on: 337. Flag off: byte-identical.
+
+Build:
+1. Parse stages and `COPY --from` edges.
+2. Emit those facts.
+3. Do not invoke `docker`.
+
+Acceptance: no `USER` in the final stage reports. `USER node` does not. `COPY .env .` reports. `npm install` beside a copied lockfile reports. `npm ci` does not. A static check fails if this module imports `child_process`.
+
+FP risk: a scratch final stage with no Node. The npm finding requires a copied lockfile or `package.json`. A stage without them does not get the npm finding. It can still get the root finding.
+
+### Phase 452 — Compose services [`FULLSHIELD_EXPERIMENTAL_COMPOSE`]
+Parse compose files. Separate ids for `privileged: true`, `network_mode: host`, a docker-socket mount, an `env_file` whose committed file matches 332, and a published port. `${VAR}` with no default is not a literal. `${VAR:-secret}` is a literal and goes through 332. Do not call `docker compose`. A published port on a service that is not the Node app is low. The Node app is identified by the build context or the package name, and that one is medium.
+
+Depends on: 332. Flag off: byte-identical.
+
+Build:
+1. Parse the YAML.
+2. Emit one id per fact.
+3. Do not import a docker client.
+
+Acceptance: each dangerous key has a positive and a negative fixture. A bare `${TOKEN}` does not report as a secret. A default of a synthetic token does. A redis service's published port is low. No daemon call.
+
+FP risk: a socket mount the user intended for a builder service. It still reports. The message names the service. The phase does not keep a per-service allow without a policy key.
+
+### Phase 453 — Kubernetes manifests for the Node workload [`FULLSHIELD_EXPERIMENTAL_K8SMANIFEST`]
+Parse YAML that mentions the package name or the Node image. Findings: `runAsUser: 0` or missing `runAsNonRoot` where the spec is otherwise present, `privileged: true`, a `hostPath`, and a missing memory limit at info. `automountServiceAccountToken: true` is high only when the manifest also mounts the token and the command text does not reference it; otherwise info. Do not read `KUBECONFIG` and do not apply anything. Unrendered Helm is a 271 event plus a 332 text scan, not a structural parse.
+
+Depends on: 332. Flag off: byte-identical.
+
+Build:
+1. Parse documents.
+2. Gate structural findings on the package or image mention.
+3. Leave Helm braces as an event.
+
+Acceptance: `runAsUser: 0` reports. `runAsNonRoot: true` does not. `hostPath` reports. A missing memory limit is info. A `{{ }}` file emits the event and still reports a synthetic token. An unrelated manifest stays quiet. The module does not read `KUBECONFIG`.
+
+FP risk: a workload that mentions the package name in a comment. The mention must be in `image` or `command` or a label the catalog lists, not in a comment. The comment fixture must not report.
+
+### Phase 454 — GitHub Actions expression edges [`FULLSHIELD_EXPERIMENTAL_GHAEXPR`]
+`${{ github.event.pull_request.title }}` and the other untrusted `github.event.*` fields are origin `gha-event`. A `run:` step that interpolates that origin is `CI-GHA-INJECT-001` (high). `pull_request_target` plus a checkout of the PR head is `CI-GHA-TARGET-001` (high). A cache key that includes a mutable PR ref is `CI-GHA-CACHE-001` (medium). `github.sha` alone is not that list. The expression grammar is a parser, including nested braces. Do not call GitHub. An artifact path of `.env` is info unless the file exists and 332 matches, in which case it is the secret finding.
+
+Depends on: 338. Flag off: byte-identical.
+
+Build:
+1. Parse expressions.
+2. Taint the untrusted event fields.
+3. Emit the three ids.
+
+Acceptance: the PR title inside `run:` reports. `github.repository` does not. `pull_request_target` with the PR head ref reports. A cache key of only `github.sha` does not. No network.
+
+FP risk: a checkout of the PR that the workflow never executes as code. The target finding is about the checkout pair. The message says the risk is executing the PR. It does not say the workflow is already compromised.
+
+### Phase 455 — GitLab CI untrusted inputs [`FULLSHIELD_EXPERIMENTAL_GITLABCI`]
+A `script` or `before_script` that interpolates `CI_COMMIT_MESSAGE`, `CI_MERGE_REQUEST_TITLE`, or another name on the committed untrusted list is `CI-GL-INJECT-001` (high). `CI_JOB_ID` is not on the list. The phase does not prove shell quoting; the message says the variable is interpolated. Do not call the GitLab API.
+
+Depends on: the YAML parser. Flag off: byte-identical.
+
+Build:
+1. Keep the untrusted names in data.
+2. Find interpolations in script arrays.
+3. Emit one row per job.
+
+Acceptance: `echo $CI_MERGE_REQUEST_TITLE` reports. `echo $CI_JOB_ID` does not. A name off the list does not. No network.
+
+FP risk: a quoted here-doc that a human considers safe. This phase still reports. Quoting proof is not claimed. The negative fixture is a job id, not a quoted title.
+
+### Phase 456 — Terraform text for the Node deploy [`FULLSHIELD_EXPERIMENTAL_TFNODE`]
+Parse an in-tree HCL subset for resources that reference the package. Findings: ingress `0.0.0.0/0` or `::/0` on the app port, a `public-read` ACL on a bucket the same file passes to the app as state, and a `user_data` literal that 332 matches. Do not run Terraform, refresh providers, or download modules. A construct outside the subset is a 271 event and is not assumed safe. A CIDR on a security group the file does not connect to the app is omitted, not guessed.
+
+Depends on: 332. Flag off: byte-identical.
+
+Build:
+1. Parse the subset.
+2. Emit the three findings.
+3. Do not download modules.
+
+Acceptance: `0.0.0.0/0` on port 3000 reports. The same CIDR on an unconnected group does not. A public-read state bucket reports. A synthetic token in `user_data` reports. No provider network.
+
+FP risk: an office range written as the world CIDR. It reports, and the message quotes the CIDR. That is the check.
+
+### Phase 457 — Serverless and SAM resource text [`FULLSHIELD_EXPERIMENTAL_SAMCFG`]
+Parse `serverless.yml` and SAM templates. Findings: `Action: '*'` or `Resource: '*'` on the function role, an HTTP event with no auth whose app route has a session predicate (the mismatch), and an environment literal that 332 matches. A public app route paired with a public event is not a mismatch. Do not deploy and do not import an AWS client. An unresolved `!Ref` is an event and is not by itself a public endpoint.
+
+Depends on: 301, 311, 332. Flag off: byte-identical.
+
+Build:
+1. Parse the files.
+2. Compare events to the route model when both exist.
+3. Emit IAM and secret findings from the text.
+
+Acceptance: `Action: '*'` reports. A scoped action does not. An unauthenticated event plus a session route reports the mismatch. A public pair does not. A token literal reports. No AWS client import.
+
+FP risk: a role star that is a comment. Only the IAM statement structure counts. The comment fixture must not report.
+
+### Phase 458 — Vercel and Netlify config [`FULLSHIELD_EXPERIMENTAL_EDGECFG`]
+Parse `vercel.json`, `netlify.toml`, and header files. Findings: a redirect target taken from a request parameter, a missing catalog header (`X-Content-Type-Options`, `Referrer-Policy`) at info, and a `NEXT_PUBLIC_` or `VITE_` value that 332 matches unless the format says `publicByDesign`. A redirect to a literal same-site path emits nothing. Do not call the hosting API.
+
+Depends on: 332. Flag off: byte-identical.
+
+Build:
+1. Parse the config.
+2. Check redirects, headers, and public env names.
+3. Do not contact the host.
+
+Acceptance: a query redirect reports. `/home` does not. A missing `Referrer-Policy` is info. A public env with a synthetic token reports. A `publicByDesign` format does not. No network.
+
+FP risk: a header set to an unusual but safe value. If the header is present, do not report it missing. The test sets `Referrer-Policy: no-referrer` and expects silence.
+
+### Phase 459 — Proxy header pairing [`FULLSHIELD_EXPERIMENTAL_PROXYPAIR`]
+When the repo has both an nginx config and an app `trust proxy` setting, compare them. Trust plus `$proxy_add_x_forwarded_for` is `CONFIG-PROXY-001` (high) because the client can prepend. An overwrite directive plus trust emits nothing. If only one side exists, emit nothing. Do not connect to nginx. The message says only the in-repo proxy was compared.
+
+Depends on: the config IR for `trust proxy`. Flag off: byte-identical.
+
+Build:
+1. Parse the forwarded-header directive.
+2. Read the app setting from source.
+3. Emit only when both exist.
+
+Acceptance: append plus trust reports high. Overwrite plus trust emits nothing. Trust alone emits nothing. A proxy file alone emits nothing. The message contains the in-repo sentence.
+
+FP risk: a second proxy the file does not show. The sentence is the control. The phase does not claim the whole path is correct.
+
+### Phase 460 — Production source-map flags [`FULLSHIELD_EXPERIMENTAL_PRODMAP`]
+Report `CONFIG-SOURCEMAP-001` (low) when a browser build config sets `productionBrowserSourceMaps: true` or a webpack `devtool` that emits a full map, and that assignment is not under a development-only condition. A server-only map key is not in the catalog. Parse the config as an AST. Do not `require` it. A fixture whose config calls `process.exit(1)` at top level must not run.
+
+Depends on: none. Flag off: byte-identical.
+
+Build:
+1. Read the catalog keys from the AST.
+2. Respect a dominating environment check.
+3. Do not execute the config.
+
+Acceptance: the Next flag at top level reports. The same flag inside `NODE_ENV !== 'production'` does not. A server-only key does not. The `process.exit` fixture does not exit the test.
+
+FP risk: a map that is generated and then deleted by a later build step the AST cannot see. The finding is about the flag. The message says the flag is set, not that the file was observed in an artifact. 339 covers observed files.
+
+### Phase 461 — Bundler env inlining [`FULLSHIELD_EXPERIMENTAL_DEFINEENV`]
+A client `define`, `envPrefix`, or Next `env` entry that inlines a name on the secret-name list is `SAST-ENV-CLIENT-001` (high). Any other non-public name is medium. `NEXT_PUBLIC_` and `VITE_` are public prefixes. `publicByDesign` formats do not report. A server target emits nothing. Do not read the process environment to fill a value, and redact a value if the config contains one. Do not run the bundler.
+
+Depends on: 332's name list. Flag off: byte-identical.
+
+Build:
+1. Read the define table from the AST.
+2. Classify the target.
+3. Emit on client inlines.
+
+Acceptance: `process.env.SECRET` on a client target reports and the value is absent from the JSON. `NEXT_PUBLIC_API` does not. A server target does not. The test's own environment is not copied into the finding.
+
+FP risk: a publishable key whose format lacks `publicByDesign`. It reports until the format row gains the bit. The witness names the format id or `name-only`.
+
+### Phase 462 — Env example drift [`FULLSHIELD_EXPERIMENTAL_ENVDRIFT`]
+Diff literal `process.env.NAME` reads against `.env.example` and the config schema. A read with no example key is info. An example key never read is info, and the message says "no read in the scan set." Do not open `.env`. A computed `process.env[name]` is a 271 event and not a concrete key. Test files are ignored.
+
+Depends on: 441 if a schema exists. Flag off: byte-identical.
+
+Build:
+1. Collect literal reads.
+2. Diff keys.
+3. Do not read `.env`.
+
+Acceptance: `DATABASE_URL` with no example key reports info. An unread example key reports info. A token placed only in `.env` is absent from the output. A computed key emits the event and no invented name.
+
+FP risk: a key used only by a script outside the scan roots. The message's "scan set" wording is the control, and the test asserts those words.
+
+### Phase 463 — Node flags in start scripts [`FULLSHIELD_EXPERIMENTAL_NODEFLAGS`]
+Tokenize `scripts.start` and the process-manager command. `--inspect` with no host, or with a non-loopback host, is `CONFIG-INSPECT-001` (high). `--inspect=127.0.0.1` is not. On a script named `dev` or `start:dev`, the same finding is medium. `--insecure-http-parser` is medium. `--eval` of a secret-shaped literal is high. `--no-warnings` is not a finding. Do not spawn the script.
+
+Depends on: 332. Flag off: byte-identical.
+
+Build:
+1. Tokenize the command.
+2. Apply the table.
+3. Do not spawn Node on it.
+
+Acceptance: bare `--inspect` on `start` is high. The same flag on `dev` is medium. Loopback inspect emits nothing. `--no-warnings` emits nothing. The test does not spawn the script.
+
+FP risk: a start script that is wrapped by a dev-only process manager. The script name is the signal. A script named `start` stays high even if the human only uses it locally. The message says the script name was `start`.
+
+### Phase 464 — Permission-model suggestion [`FULLSHIELD_EXPERIMENTAL_PERMMODEL`]
+From literal `fs` paths and literal URL hosts in the IR, print a `node --permission` command that allows only those. A dynamic path produces a gap line and does not produce `--allow-fs-read=*`. `--allow-child-process` is included only when the IR contains `child_process`. The command is printed. `--apply` is disposition `review` and is not on the safe list. Do not run the app under the flag.
+
+Depends on: 251. Flag off: no suggestion.
+
+Build:
+1. Collect literal paths and hosts.
+2. Render the command or a gap.
+3. Keep apply at `review`.
+
+Acceptance: reads of `./data` and a fetch of `https://example.invalid` produce those two allows and no child-process allow. `child_process` in the IR adds that allow. `fs.readFile(req.query.p)` produces a gap and no star allow. `--apply` is `review`.
+
+FP risk: a set that is too tight for a dynamic path the gap already named. The gap line is why apply is not safe. The phase does not discover the missing path by running the app.
+
+### Phase 465 — Process manager units [`FULLSHIELD_EXPERIMENTAL_UNITFILE`]
+Parse PM2 ecosystem files and systemd units in the repo. Findings: `User=root` or `uid: 0`, an `Environment=` value that 332 matches, and an inspect flag (463). `User=node` with no secret emits nothing. Do not spawn `systemctl` or `pm2`. The module does not import `child_process`. A sample under `docs/deploy` still reports; this phase does not special-case `docs/`.
+
+Depends on: 332, 463. Flag off: byte-identical.
+
+Build:
+1. Parse both formats.
+2. Emit the three facts.
+3. Do not start a service.
+
+Acceptance: `User=root` reports. `User=node` does not. A synthetic token in `Environment=` is redacted in the JSON. An inspect flag reports. No `child_process` import.
+
+FP risk: a unit the user considers an example. It reports, and the path is in the message. Ignoring `docs/` remains the user's existing ignore list, not a hard-coded exception.
+
+### Lane Q — Measurement and release evidence (466–500)
+
+These phases are dev tooling or release checks. They are not packed (Q12). They do not scan an `untouched` holdout and commit the result (B3). They do not invent advisory data (R6). They do not mark their own output `reviewed` (R7).
+
+### Phase 466 — Holdout registry rows [`FULLSHIELD_EXPERIMENTAL_HOLDOUTS`]
+Add ten holdout rows to `bench/holdouts.json` with `status: untouched`, a pinned commit, `reviewed: false`, and an empty `firstRunDate`. The human names the repos in the commit that lands the rows. This text does not invent ten repo names (R6). If the human has not named them, the phase is parked (S3), not filled with placeholders. The schema test rejects a results file added in the same commit, a row already marked `tuning` or `seen`, and `reviewed: true`. Scanning is the release process (B3), not this commit.
+
+Depends on: B1. Not packed.
+
+Build:
+1. Enforce the schema on new `untouched` rows.
+2. Forbid a results JSON for that name in the same commit.
+3. Park if the ten names are not supplied.
+
+Acceptance: once ten human-named rows exist, the schema passes. A results file fails the commit check. A `reviewed: true` row fails. Placeholder names are not part of the implementation.
+
+FP risk: scanning the holdout while adding the row. The forbidden results file is the control.
+
+### Phase 467 — Advisory replay on local checkouts [`FULLSHIELD_EXPERIMENTAL_CVEREPLAY`]
+`fullshield replay --before <dir> --after <dir> --id <osvId>` scans two directories the user already has. It records whether each finding is only in `--before` (`present-before`), in both (`not-distinguishing`), or only in `--after` (`regressed`). It does not clone, fetch, or choose one finding as the cause of the id. Output is `unreviewed`. The id is a label the user passed.
+
+Depends on: the scanner. Not packed.
+
+Build:
+1. Scan both trees with the same flags.
+2. Diff finding keys.
+3. Print every distinguishing key. Do not attribute one of them to the id.
+
+Acceptance: a SQL bug only in `--before` is `present-before`. The same bug in both is `not-distinguishing`. The OSV client is not constructed. No `git fetch`.
+
+FP risk: an unrelated old-only finding being read as the CVE. The header says the keys are not attributed. The test asserts that sentence and asserts more than one key is listed when the fixture has two.
+
+### Phase 468 — Synthetic witness generator [`FULLSHIELD_EXPERIMENTAL_SYNTH`]
+Generate fixtures by planting a source, a sink, and an optional sanitizer. Mark them `synthetic` and write them under `test/fixtures/synthetic/`. The ground-truth loader refuses that directory (B8). The same seed produces the same bytes. The generator does not scrape advisories and does not copy bench apps. Each file starts with a comment that it is synthetic.
+
+Depends on: 251. Not packed.
+
+Build:
+1. Emit the three shapes from a seed.
+2. Mark them synthetic.
+3. Keep them out of `bench/`.
+
+Acceptance: two runs with the same seed match byte for byte. The loader test rejects a synthetic file as ground truth. The comment is present. No network.
+
+FP risk: citing synthetic recall in BENCHMARK.md. This phase does not edit BENCHMARK.md. The loader refusal is the control.
+
+### Phase 469 — CWE fixture index [`FULLSHIELD_EXPERIMENTAL_CWEINDEX`]
+Index fixtures by the CWE front matter from 430. Every in-scope rule needs one positive and one negative fixture. `cwe: none` is exempt. A committed out-of-scope list is exempt only with a one-line reason per row. Do not download a CWE database. The test does not judge whether a negative fixture is secretly positive; Q10 remains that check.
+
+Depends on: 430. Not packed.
+
+Build:
+1. Read front matter and fixture names.
+2. Assert the pairs.
+3. Require reasons on exemptions.
+
+Acceptance: a rule missing a negative fixture fails. A `cwe: none` rule does not. An exemption without a reason fails. No network.
+
+FP risk: a vacuous negative fixture. This phase does not detect that. The acceptance text in the report says Q10 is still required, and the test asserts that the phase does not delete Q10.
+
+### Phase 470 — Second-reviewer agreement [`FULLSHIELD_EXPERIMENTAL_KAPPA`]
+When two human label files exist, compute Cohen's kappa per rule and print the count beside it. The script does not write labels and does not break ties. One file prints `needs second reviewer` and exits 0. The number is a statistic about the labels, not a README claim (R7). A hand-computed pair in the test must match to two decimal places.
+
+Depends on: phase 76's label format. Not packed.
+
+Build:
+1. Compute kappa from the two files.
+2. Print the count.
+3. Do not write labels or the README.
+
+Acceptance: the hand-computed pair matches. A single file prints the sentence and exits 0. The label files' hashes are unchanged. The count is in the output.
+
+FP risk: a high kappa on two labels. The count is printed. The test uses a pair of size 2 and expects the count `2`.
+
+### Phase 471 — Static benchmark pages [`FULLSHIELD_EXPERIMENTAL_BENCHHTML`]
+Render `bench/*.json` that is already on disk into offline HTML, with 434's ban on external scripts and stylesheet URLs. Show the file's `unreviewed` bit and the file mtime. Do not recompute the numbers and do not treat a missing file as zero. Do not run a scan from the generator.
+
+Depends on: 434's HTML constraints. Not packed.
+
+Build:
+1. Read the JSON.
+2. Render HTML.
+3. Leave missing files as empty sections that say `missing`.
+
+Acceptance: a fixture number appears. A missing file's section says `missing` and not `0`. The HTML has no script URL. The generator starts no scan.
+
+FP risk: stale JSON read as current. The mtime is on the page. The test asserts it.
+
+### Phase 472 — Pinned benchmark toolchain [`FULLSHIELD_EXPERIMENTAL_TOOLCHAINPIN`]
+`bench/toolchain.json` records Node, npm, and the Semgrep version 263 uses. The differential test exits non-zero before launching Semgrep when the local version differs, and it prints both versions. It does not download the pinned tool. A pin change is a commit whose report says the pin changed. If CI's image does not match, update the pin in the same commit as the image change; do not weaken the compare.
+
+Depends on: 263. Not packed.
+
+Build:
+1. Record the versions.
+2. Compare before the differential test.
+3. Do not install.
+
+Acceptance: a match continues. A mismatch exits non-zero and does not start Semgrep. The test does not open a network connection.
+
+FP risk: a pin that CI cannot run. The fix is to change the pin and the image together, not to skip the check. The script has no skip flag. The test asserts no `--skip`.
+
+### Phase 473 — Comparison from a reviewed map [`FULLSHIELD_EXPERIMENTAL_COMPARE2`]
+Generate a comparison table only from rows in `bench/comparison-map.json` whose `reviewed` bit a human set. Omit unreviewed rows. Do not show them as zeroes. If none are reviewed, print `no reviewed comparison rows`. Do not scrape other tools and do not invent counts (R6). Do not rewrite COMPARISON.md in this phase.
+
+Depends on: B7. Not packed.
+
+Build:
+1. Read the map.
+2. Drop unreviewed rows.
+3. Do not construct an HTTP client.
+
+Acceptance: a reviewed row appears. An unreviewed row does not. An empty map prints the sentence. A test fails if the generator file imports an HTTP client. The generator does not set `reviewed`.
+
+FP risk: a wrong reviewed row. That review is R1. The tool does not flip the bit.
+
+### Phase 474 — Miss list from a local advisory file [`FULLSHIELD_EXPERIMENTAL_FNMINE`]
+Read a local JSON list of `{id, file, line, class}` the human curated. Match with B5 (class, file, line ±3). In-scope items with no match are misses. Out-of-scope classes are a separate list and are not misses. Output is `unreviewed`. Do not fetch the ids and do not file issues.
+
+Depends on: B4, B5. Not packed.
+
+Build:
+1. Scan the local tree.
+2. Match with ±3.
+3. Print the two lists.
+
+Acceptance: a planted bug the scan finds is not a miss. A planted in-scope bug the scan misses is on the miss list. A finding four lines away is a miss. A finding three lines away is a hit. No network.
+
+FP risk: calling a line-offset miss a scanner failure when B5 would count it as a hit. The ±3 rule is the acceptance, and the four-line fixture locks it.
+
+### Phase 475 — Precision floors per framework [`FULLSHIELD_EXPERIMENTAL_PRECFW`]
+Split 265's Wilson bound by the route's framework tag. Floors stay human-owned. The script does not write the floor file. A cell with fewer than 20 labels is `ungated`. `unknown` framework is its own cell and is not dropped. There is no blended precision that hides one bad framework. A cell under its floor fails CI on `next` the same way 265 does.
+
+Depends on: 265, 255. Not packed.
+
+Build:
+1. Split labels by framework.
+2. Compute the bound.
+3. Leave the floor file's bytes unchanged.
+
+Acceptance: a fixture under the floor fails. A fixture over it passes. Nineteen labels are `ungated`. The `unknown` cell is present. The floor file hash is unchanged.
+
+FP risk: misses parked in `unknown`. The cell is reported. The test asserts it is not folded into another framework.
+
+### Phase 476 — Performance numbers page [`FULLSHIELD_EXPERIMENTAL_PERFPAGE`]
+Render `bench/perf*.json` with the 471 generator. Do not add a threshold (R1). Do not fail the build because a number is large. Print `unreviewed` when the file says so. A missing file is an empty section, not a zero.
+
+Depends on: 471. Not packed.
+
+Build:
+1. Render the perf JSON.
+2. Add no limit.
+3. Exit 0 regardless of the magnitude.
+
+Acceptance: a fixture number appears. A large number still exits 0. No new threshold file is created. The header says the page is not a gate.
+
+FP risk: the page being used as a gate. The header sentence is the control, and the test asserts it.
+
+### Phase 477 — Parser and IR fuzzer [`FULLSHIELD_EXPERIMENTAL_FUZZPARSE`]
+Mutate a seed corpus and feed it to the parser and the IR builder. Fuel caps mutations and time per input. A crash or a hang past the fuel is a failure. A clean parse error is not a failure. Do not execute the mutated program with `node` or `vm` (R15). Do not fetch seeds. The harness kills a case that exceeds fuel and counts it as a failure instead of waiting for the job timeout.
+
+Depends on: 251. Not packed.
+
+Build:
+1. Mutate seeds under fuel.
+2. Parse and lower to IR.
+3. Fail on crash or hang. Do not assert findings.
+
+Acceptance: zero mutations of a good seed still parse. The harness exits 0 on the current seeds if none crash. The mutated source is never passed to `vm`. A hang is a failed case, not a job timeout.
+
+FP risk: a mutator that never reaches the parser. At least one successful parse per seed family is required. Zero successes fail the harness.
+
+### Phase 478 — Lockfile and metadata fuzzer [`FULLSHIELD_EXPERIMENTAL_FUZZLOCK`]
+Fuzz the lockfile, packument, and tarball-metadata parsers by mutating JSON and headers. Do not extract a hostile archive beyond the path checks 179 already has. A crash or a hang is a failure. A rejected file is not. Do not spawn `npm` and do not run package scripts. Zero successful parses in a seed family is a failure.
+
+Depends on: 261. Not packed.
+
+Build:
+1. Mutate JSON and headers.
+2. Parse under fuel.
+3. Forbid an `npm` spawn.
+
+Acceptance: the harness exits 0 on seeds that do not crash. A planted crash fails until fixed. The test asserts no `npm` spawn. A mutator that rejects every input fails the family-success check.
+
+FP risk: mutating into a real install. The harness has no install path. The test reads the harness and rejects a `child_process` spawn of `npm`.
+
+### Phase 479 — Node 22 and Node 24 finding diff [`FULLSHIELD_EXPERIMENTAL_NODEDIFF`]
+Run the fixture scan on Node 22 and Node 24 and diff the finding arrays. Any byte difference is a failure, including a timestamp field that leaked into a finding. There is no skip list. Do not edit a fixture to hide a Node-specific bug; park the phase on that bug (S3).
+
+Depends on: the CI matrix. Not packed.
+
+Build:
+1. Run both versions.
+2. Diff sorted finding JSON.
+3. Fail on any difference.
+
+Acceptance: current fixtures match. A planted difference in a test double fails the diff. The diff script contains no skip list. The test asserts that.
+
+FP risk: allowing a "known delta" file later. This phase does not add one. The report says a future delta file would be a different phase and an R1 decision.
+
+### Phase 480 — Determinism under scheduler noise [`FULLSHIELD_EXPERIMENTAL_DETSTRESS`]
+Repeat the fixture scan three times with shuffled directory order and different `UV_THREADPOOL_SIZE` values. The finding JSON must match byte for byte. One difference fails the job. There is no retry-until-green loop.
+
+Depends on: Q11. Not packed.
+
+Build:
+1. Shuffle read order from a seed.
+2. Run three times.
+3. Diff. Do not retry.
+
+Acceptance: three runs match. A planted unordered map in a test double fails. The script source has no retry loop. The test reads the script and rejects `retry`.
+
+FP risk: a timing bug that shows up only on CI. That is a failure. The phase does not classify it as flaky.
+
+### Phase 481 — Unsoundness register [`FULLSHIELD_EXPERIMENTAL_UNSOUNDREG`]
+Generate nothing speculative. Check that every kind in the 271 enum has a heading in `docs/unsoundness.md` and that every heading is a kind. The human writes the one-line reason. The checker does not invent reasons. The opening paragraph says exhaustion over-approximates in `sound` mode and does not drop facts silently. The doc does not say the engine is sound.
+
+Depends on: 271. Not packed.
+
+Build:
+1. Compare the enum to the headings.
+2. Fail on drift.
+3. Assert the opening sentence.
+
+Acceptance: every current kind has a heading. A scratch kind without a heading fails. The opening sentence is present. The checker does not rewrite a human's reason paragraph.
+
+FP risk: a reason that overclaims. The checker cannot judge prose. The human review is the control, and the doc's front matter stays `reviewed: false` until a person changes it.
+
+### Phase 482 — Rule checklist [`FULLSHIELD_EXPERIMENTAL_RULECHECK`]
+For each rule, record whether it has a positive fixture, a negative fixture, a Q10 mutant, a precision floor or the word `ungated`, and an FP paragraph. The result is a checklist. There is no numeric score and the JSON has no `score` field. Missing items fail `quality` only for rules added after this phase. Older rules are listed and follow the 94 ratchet: they do not fail the baseline. The checklist is not a review, and the report sentence says so.
+
+Depends on: 94, 265. Not packed.
+
+Build:
+1. Check the five items.
+2. Fail on new rules only.
+3. Ban a `score` field.
+
+Acceptance: a new rule missing a negative fixture fails quality. An old rule missing one is listed and does not fail. The JSON has `missing` and no `score`. The report sentence is in the script's stdout and the test asserts it.
+
+FP risk: a new rule that checks every box and is still wrong. The sentence is the control. The phase does not relax Q10.
+
+### Phase 483 — Flag ablation [`FULLSHIELD_EXPERIMENTAL_ABLATION`]
+Run the bench apps with each named engine flag toggled off once, and write the finding-count delta. Set `unreviewed: true`. Do not pick a winner, do not change product defaults, and do not include holdout paths. The word `winner` must not appear in the output.
+
+Depends on: the Section 49 flags under test. Not packed.
+
+Build:
+1. Run the toggles on the tuning and fixture repos the script is given.
+2. Write counts.
+3. Leave defaults untouched.
+
+Acceptance: one row per toggled flag, with a count, on a tiny fixture repo. The output contains `unreviewed` and does not contain `winner`. Holdout names are not in the path arguments. Defaults in the code are unchanged.
+
+FP risk: a count cited as quality. The bit is the control. The test asserts `unreviewed: true`.
+
+### Phase 484 — Anti-overfitting check [`FULLSHIELD_EXPERIMENTAL_ANTIOVERFIT`]
+Fail a branch when the diff changes a rule matcher and a tuning-app file under `bench/` and does not also change a handwritten fixture under `test/fixtures/`. Fail if the commit adds a results file for an `untouched` holdout. Fail if a new fixture's bytes equal a file under the tuning app (B8). The check judges the commit shape, not whether the rule is correct.
+
+Depends on: B2, B3, B8. Not packed.
+
+Build:
+1. Inspect the diff.
+2. Require a fixture beside a tuning-app change.
+3. Forbid untouched results and byte-identical copies.
+
+Acceptance: a rule edit plus a NodeGoat edit without a fixture fails. The same diff plus a handwritten fixture passes. A new untouched results file fails. A fixture that copies tuning-app bytes fails.
+
+FP risk: a legitimate expected-output update. It still needs a fixture. The failure message says that.
+
+### Phase 485 — Reproduction command check [`FULLSHIELD_EXPERIMENTAL_REPROKIT`]
+If BENCHMARK.md contains a fenced reproduction block, run only commands whose program is `node`, `npm`, or `fullshield`, then diff the printed numbers to the file. Do not write the file. A mismatch exits 1. No block: exit 0 and print `no reproduction block`. Refuse `curl` and refuse any argument that is an `untouched` holdout name. Do not invent numbers to put in the block (R6).
+
+Depends on: R6, R7. Not packed.
+
+Build:
+1. Parse the block.
+2. Allowlist the programs.
+3. Diff without writing.
+
+Acceptance: a matching fixture block exits 0. A wrong number exits 1. `curl` is refused and not executed. An untouched holdout argument is refused. A missing block prints the sentence.
+
+FP risk: a command that scans a holdout under another name. The holdout path check uses the registry's repo field and the directory name. The test uses the directory name and expects a refusal.
+
+### Phase 486 — Local false-positive note [`FULLSHIELD_EXPERIMENTAL_FEEDBACK`]
+`fullshield feedback fp <fingerprint>` appends to `.fullshield/feedback.json` the fingerprint, the witness locations, and the user's note. It does not send the file. The init template gitignores that path. An unknown fingerprint exits `FS-E` and creates no file. The command does not copy the source line's full text beyond the witness fields already stored. If 332 matches the note, the command warns locally and still writes, because the file is gitignored. The command constructs no HTTP client.
+
+Depends on: 262, 340. Flag off: the command exits `FS-E`.
+
+Build:
+1. Append the local record.
+2. Gitignore the path in the init template.
+3. Warn on a 332 match in the note. Do not upload.
+
+Acceptance: the file contains the fingerprint and the note. The fixture source line is not copied wholesale. No socket is opened. An unknown fingerprint creates no file. The gitignore line exists in the template.
+
+FP risk: a note that holds a secret. The warning and the gitignore are the controls. The test puts a synthetic token in the note and expects the warning text and the file still local.
+
+### Phase 487 — Candidate fixture from a note [`FULLSHIELD_EXPERIMENTAL_FIXPIPE`]
+Turn one local feedback record into `test/fixtures/candidates/<id>/` with `reviewed: false` only when the witness already lives under `test/fixtures/`. If the witness points at a bench or tuning app, write a TODO file and do not copy that source (B8). The default runner does not load `candidates/`. The script does not set `reviewed: true` and does not network.
+
+Depends on: 486, B8. Not packed.
+
+Build:
+1. Read the local feedback file.
+2. Write a candidate or a TODO.
+3. Leave the default runner's include list unchanged.
+
+Acceptance: a record inside `test/fixtures` produces a candidate the default runner does not load. A record that points at a tuning app produces a TODO and not that app's source. `reviewed` is false. No network.
+
+FP risk: a candidate becoming a regression test by accident. The runner include-list test excludes `candidates/`.
+
+### Phase 488 — Human false-positive corpus [`FULLSHIELD_EXPERIMENTAL_FPCORPUS`]
+`quality/false-positives.json` lists fingerprints a human marked `falsePositive`, each with a reason. If a scan of the corpus fixtures emits a listed fingerprint, CI fails unless the rule file names that fingerprint and why it changed. The implementation commit does not add rows (R3). A missing file prints `no false-positive corpus` and does not look like a pass in the README. An empty reason fails the schema. The human owns the marks (R1).
+
+Depends on: 340. Not packed.
+
+Build:
+1. Load the file.
+2. Fail on a reappearance without a rule-file note.
+3. Do not add rows in the implementation commit.
+
+Acceptance: a planted reappearance fails. The same reappearance with the note passes. An empty list prints the sentence. A temp copy is what the test edits. The committed JSON is not modified by the implementation.
+
+FP risk: a true bug marked false. The required reason is the only schema control. The phase does not second-guess the mark.
+
+### Phase 489 — Holdout rotation proposal [`FULLSHIELD_EXPERIMENTAL_HOLDOUTROT`]
+Print which `seen` holdouts could leave the active set and which `untouched` reserves remain. Do not edit `bench/holdouts.json`. If fewer than two untouched reserves exist, exit 1 (B3). Do not scan the reserves. The script has no write call.
+
+Depends on: B3. Not packed.
+
+Build:
+1. Read the registry.
+2. Print the proposal.
+3. Exit 1 below two reserves.
+
+Acceptance: one reserve exits 1. Two reserves exit 0 and print the proposal. The registry hash is unchanged. No scan starts.
+
+FP risk: a later edit path. The test asserts the hash and asserts the script source has no write of the registry.
+
+### Phase 490 — Local evidence folder [`FULLSHIELD_EXPERIMENTAL_AUDITPACK`]
+`fullshield evidence-pack <dir>` writes the scan JSON, the SBOM if it exists, the VEX if it exists, the unsoundness register, and the threat-model headings. The first line of the folder README says the contents are locally generated and are not a third-party assessment. A missing SBOM is named in the README and is not replaced by an empty SBOM. The scan JSON is required. Secrets are redacted (340). The command does not upload.
+
+Depends on: 481. 496's headings are copied when that file exists. Flag off: the command exits `FS-E`.
+
+Build:
+1. Copy artifacts that exist.
+2. Write the README's first line.
+3. Refuse to invent a missing SBOM.
+
+Acceptance: the folder contains the sentence and the scan JSON. A missing SBOM is named and no empty SBOM is written. The synthetic secret is absent. No network.
+
+FP risk: the folder being sent as an attestation. The first-line sentence is the control. The test asserts it is line 1.
+
+### Phase 491 — Release workflow provenance shape [`FULLSHIELD_EXPERIMENTAL_PROVSHAPE`]
+Parse the publish workflow and check the provenance fields the file already claims: subject, build type, and the isolation the workflow text states. Read YAML only. Do not request a level from a service and do not add a badge. A missing field fails the checker. Do not insert a fake field to pass. If the real workflow is missing a field, park the phase and name the field (S3).
+
+Depends on: the existing publish workflow. Not packed.
+
+Build:
+1. Parse the workflow.
+2. Check the claimed fields.
+3. Fail a fixture that deletes `subject`.
+
+Acceptance: the deleted-subject fixture fails. The phase is done only if the real workflow passes or the report parks it with the field name. No network. The checker does not rewrite the workflow.
+
+FP risk: a check that always passes. The deleted-field fixture is the guard against that.
+
+### Phase 492 — Rebuild byte comparison [`FULLSHIELD_EXPERIMENTAL_REPROBUILD`]
+Build the package twice on one OS and diff the tarball list and the JS hashes. Only files listed in human-owned `quality/repro-allow.json` may differ, and each row needs a reason. Two builds on one OS must match aside from that list. Do not rewrite the tarball inside the checker to hide a timestamp. If a timestamp is the difference, fix the build or add an allow row. The implementation commit may add the initial rows and must list them in the report. Later rows are R1.
+
+Depends on: Q12. Not packed.
+
+Build:
+1. Build twice.
+2. Diff.
+3. Apply the allow list without rewriting bytes.
+
+Acceptance: identical builds pass. A planted timestamp fails unless an allow row names the file. An allow row with an empty reason fails the schema. The checker does not rewrite the tarball.
+
+FP risk: an allow list that eventually covers every file. Growth after the initial rows is human-owned. The report states that.
+
+### Phase 493 — SBOM signature on the release [`FULLSHIELD_EXPERIMENTAL_RELEASESIGN`]
+The release job runs 433's sign command with the CI secret. The spec does not create the secret and does not print it. A release job without the secret fails the workflow lint. A pull-request job without the secret does not fail. `continue-on-error` on the sign step fails the lint. The private key is not an artifact path. The test is a lint plus a dry run with a fixture key. There is no real publish.
+
+Depends on: 433, 491. Not packed.
+
+Build:
+1. Point the release job at the sign command.
+2. Lint the conditions above.
+3. Dry-run with a fixture key.
+
+Acceptance: the fixture workflow lints. The dry run writes a signature. A release job missing the secret fails the lint. A pull-request job missing it does not. `continue-on-error` fails the lint. No publish.
+
+FP risk: a skipped sign step. The `continue-on-error` rejection is the control, and the test deletes that rejection and expects the lint to fail.
+
+### Phase 494 — Hard-dependency guard [`FULLSHIELD_EXPERIMENTAL_DEPMIN`]
+`dependencies` in `package.json` equals the committed allow list, which is empty. The test fails if a name is added. New peers must be optional (R13). Dev dependencies are Q4's problem. If a hard dependency already exists, park (S3) and do not delete it in this phase. The implementation commit does not modify `dependencies`. After this phase the allow list is human-owned, the same way 94's baseline is.
+
+Depends on: R13, Q4. Not packed.
+
+Build:
+1. Assert the allow list.
+2. Assert peers are optional.
+3. Do not add a runtime dependency.
+
+Acceptance: the empty list matches `package.json`. A scratch `leftpad` dependency fails. A peer without `optional: true` fails. The commit does not change `dependencies`.
+
+FP risk: a later phase editing the allow list and the dependency together. The report says later edits are R1.
+
+### Phase 495 — Workers under the permission model [`FULLSHIELD_EXPERIMENTAL_PERMWORKERS`]
+Spawn scan workers with `node --permission` when the running Node supports it. Allow the repo path and the cache path. Do not allow child-process spawn in the default set. Network is limited to the hosts R15 already names, and only on a run the user asked to make networked. A worker read of `/etc/passwd` must fail. If Node 22 cannot express one needed permission, a reason row may name a single-capability fallback, and that fallback is logged. This phase adds no such row. Scanned code is still not executed.
+
+Depends on: R15. Flag off: workers spawn as they do today.
+
+Build:
+1. Add the permission flags to the worker spawn.
+2. Test an outside read fails.
+3. Log any fallback. Add none in this commit.
+
+Acceptance: a worker reads a fixture inside the repo. A read of `/etc/passwd` fails. `--allow-child-process` is absent. The R15 no-execute test still passes. No fallback row is added.
+
+FP risk: a silent widen. A fallback without a reason fails the schema. The test asserts the default argument list.
+
+### Phase 496 — Threat model document [`FULLSHIELD_EXPERIMENTAL_THREATDOC`]
+Write `docs/threat-model.md` with the assets (source under scan, secrets in reports, the OSV cache, the runtime hook), the trust boundary (the repo is untrusted and is not executed, the network is the R15 host list), and each Section 31 rejection. A test fails if a Section 31 bullet's opening phrase is missing. Each in-scope threat links to a phase or to the words `not covered`. The doc contains none of the marketing phrases Section 31 bans. Front matter `reviewed` stays false.
+
+Depends on: Section 31. Not packed.
+
+Build:
+1. Write the headings and the Section 31 list.
+2. Link threats to phases or `not covered`.
+3. Add the presence test.
+
+Acceptance: every Section 31 opening phrase appears. A threat with no link and no `not covered` fails. The banned phrases are absent. `reviewed` is false.
+
+FP risk: the doc drifting from Section 31. The phrase test is the control. It does not judge whether the prose is careful. That review is human, which is why `reviewed` stays false.
+
+### Phase 497 — Local advisory drill [`FULLSHIELD_EXPERIMENTAL_DRILL`]
+Copy a fixture OSV document into a temp cache, scan, and assert the advisory id is in the JSON and the SARIF validates, under a time budget. The id is a synthetic example the schema allows, not a real advisory the tool fetched. The script accepts no path to the production cache. It sends no mail and opens no socket. The package name lives in the temp fixture, not as a constant in the scanner, so renaming the package renames the finding.
+
+Depends on: the OSV parser, 430. Not packed.
+
+Build:
+1. Use a temp cache.
+2. Assert the id and the SARIF schema.
+3. Write a local log.
+
+Acceptance: the synthetic id appears. A broken SARIF fixture fails the drill. The production cache path is rejected as an argument. A renamed package still produces a finding for the new name. No network.
+
+FP risk: a hard-coded id making the drill pass. The rename test is the control.
+
+### Phase 498 — Release-build pins [`FULLSHIELD_EXPERIMENTAL_BUILDPIN`]
+Lint the repo's workflows: Node and npm are pinned, actions use a SHA rather than a floating tag, and the install step is `npm ci --ignore-scripts`. This is FullShield's build, not the scanned project's start script (463). The lint fails; it does not rewrite. The implementation commit may add the pins, and the report lists every SHA for the human to verify before merge (R1). The tool does not claim it verified the SHAs.
+
+Depends on: 491. Not packed.
+
+Build:
+1. Lint tags and the install command.
+2. Pin floating actions in this commit if any remain.
+3. List the SHAs in the report.
+
+Acceptance: a fixture workflow with `actions/checkout@v4` and no SHA fails the lint. The repo workflows pass. `npm install` in a workflow fails the lint. There is no publish step in the test.
+
+FP risk: a pin to a bad SHA. The listed SHAs and the human merge are the control. The phase text does not say the tool verified them.
+
+### Phase 499 — Backport check [`FULLSHIELD_EXPERIMENTAL_BACKPORT`]
+`docs/support.md` names the supported minor lines and says the human backports security fixes for stable rule ids. `scripts/backport-check.mjs` diffs finding keys `(ruleId, relative file, severity)` between this tree and a second checkout the human passes. A stable id that differs exits 1. An experimental-only difference exits 0. A missing path exits 0 and prints `no backport target`. The script contains no `git push`, `git merge`, or `npm publish`. Absolute paths are not part of the key.
+
+Depends on: 447. Not packed.
+
+Build:
+1. Write the support doc.
+2. Diff stable ids.
+3. Leave the second tree untouched.
+
+Acceptance: a stable-id difference exits 1. An experimental-only difference exits 0. A missing path prints the sentence. Two directories with different prefixes and the same relative finding match. The script source does not contain `npm publish` or `git push`.
+
+FP risk: a path-only difference looking like a product change. The relative key is the control, and the two-prefix fixture locks it.
+
+### Phase 500 — Stability contract for a future major [`FULLSHIELD_EXPERIMENTAL_STABILITY2`]
+Add a section to `docs/stability.md` listing stable scan fields and stable rule ids, generated from rules whose front matter says `stability: stable` and from the schema's stable required keys. `semver-check` fails if a listed field or id disappears without a major bump. An id marked `deprecated` in minor N may be removed in N+2, and the checker enforces that window against changelog headings. Experimental keys under `experimental` may disappear in a minor. A rule without the stable bit stays off the list. This phase does not release 2.0, does not remove an id, and does not change default `scan --json`. The doc does not say the product is complete.
+
+Depends on: R16a, 447. Not packed.
+
+Build:
+1. Write the section from the current stable set.
+2. Enforce removal and the two-minor window in `semver-check`.
+3. Leave the package version and the default JSON unchanged.
+
+Acceptance: a scratch schema that drops a stable field fails the checker. A deprecation removed one minor later fails. A removal two minors later passes the checker and is not performed on this repo. The fixture `scan --json` matches the pre-phase snapshot. A rule without `stability: stable` is absent from the list.
+
+FP risk: listing an experimental field as stable. The front-matter bit is the gate. The planted rule without the bit is the test.

@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import type { Finding, ModuleName, Severity } from '../../../core/finding.js';
 import { rangeSatisfies } from '../semver.js';
+import { currentFacts } from './facts.js';
 import { npmFinding, npmFlag, npmRow, type NpmDepthInput, type NpmDepthRow } from './types.js';
 
 /**
@@ -413,7 +414,8 @@ async function homeNpmrcFindings(findings: Finding[], input: NpmDepthInput): Pro
   const sources: Array<{ file: string; text: string | undefined }> = [];
   const home = npmHomeDir();
   if (home !== undefined) {
-    sources.push({ file: '~/.npmrc', text: await readAbs(join(home, '.npmrc')) });
+    const cached = currentFacts()?.homeNpmrc;
+    sources.push({ file: '~/.npmrc', text: cached !== undefined ? cached : await readAbs(join(home, '.npmrc')) });
   }
   if (input.files.includes('home/.npmrc')) {
     sources.push({ file: 'home/.npmrc', text: await readRel(input.cwd, 'home/.npmrc') });
@@ -688,8 +690,9 @@ interface ParsedNpmrc { file: string; lines: NpmrcLine[] }
 
 async function loadNpmrcs(cwd: string, files: readonly string[]): Promise<ParsedNpmrc[]> {
   const out: ParsedNpmrc[] = [];
+  const cached = currentFacts()?.npmrcFiles;
   for (const file of files) {
-    const text = await readRel(cwd, file);
+    const text = cached?.get(file.replaceAll('\\', '/')) ?? await readRel(cwd, file);
     if (text === undefined) {continue;}
     out.push({ file, lines: parseNpmrc(text) });
   }

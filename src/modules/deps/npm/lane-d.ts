@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { Finding, Severity } from '../../../core/finding.js';
+import { currentFacts } from './facts.js';
 import { npmFinding, npmFlag, npmRow, type NpmDepthInput, type NpmDepthRow } from './types.js';
 
 /** Phases 168–187. Direct production tarballs only. Cache only: this lane never fetches. */
@@ -320,6 +321,13 @@ async function readJson(path: string): Promise<unknown> {
 }
 
 async function readVersion(cacheDir: string, name: string, version: string): Promise<VersionDoc | undefined> {
+  const held = currentFacts()?.packuments.get(name);
+  if (held !== undefined) {
+    const doc = asRecord(held);
+    const packument = asRecord(doc?.packument) ?? doc;
+    const versions = asRecord(packument?.versions);
+    return asRecord(versions?.[version]);
+  }
   const paths = [
     join(cacheDir, 'registry', `${name}.json`),
     join(cacheDir, 'registry', `${name.replaceAll('/', '__')}.json`),
@@ -353,30 +361,38 @@ interface Loaded {
   entries: Record<string, string>;
 }
 
+function loadedFrom(doc: Record<string, unknown> | undefined): Loaded | undefined {
+  if (doc === undefined) {return undefined;}
+  const loaded: Loaded = { entries: {} };
+  if (typeof doc.bytesBase64 === 'string' && doc.bytesBase64.length > 0) {
+    loaded.bytes = Buffer.from(doc.bytesBase64, 'base64');
+  }
+  const entries = asRecord(doc.entries);
+  if (entries !== undefined) {
+    for (const [key, value] of Object.entries(entries)) {
+      if (typeof value === 'string') {loaded.entries[key] = value;}
+    }
+  }
+  return loaded;
+}
+
 async function loadDescriptor(cacheDir: string, name: string): Promise<Loaded | undefined> {
+  const held = currentFacts()?.tarballs.get(name);
+  if (held !== undefined) {return loadedFrom(asRecord(held));}
   const paths = [
     join(cacheDir, 'tarballs', `${name}.json`),
     join(cacheDir, 'tarballs', `${name.replaceAll('/', '%2f')}.json`),
   ];
   for (const path of paths) {
-    const doc = asRecord(await readJson(path));
-    if (doc === undefined) {continue;}
-    const loaded: Loaded = { entries: {} };
-    if (typeof doc.bytesBase64 === 'string' && doc.bytesBase64.length > 0) {
-      loaded.bytes = Buffer.from(doc.bytesBase64, 'base64');
-    }
-    const entries = asRecord(doc.entries);
-    if (entries !== undefined) {
-      for (const [key, value] of Object.entries(entries)) {
-        if (typeof value === 'string') {loaded.entries[key] = value;}
-      }
-    }
-    return loaded;
+    const loaded = loadedFrom(asRecord(await readJson(path)));
+    if (loaded !== undefined) {return loaded;}
   }
   return undefined;
 }
 
 async function loadIntegrityFile(cacheDir: string, integrity: string): Promise<Buffer | undefined> {
+  const held = currentFacts()?.tarballBytes.get(integrity);
+  if (held !== undefined) {return held;}
   try {
     return await readFile(join(cacheDir, 'tarballs', integrityFile(integrity)));
   } catch {

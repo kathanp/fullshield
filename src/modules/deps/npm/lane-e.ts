@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { Finding, Severity } from '../../../core/finding.js';
+import { currentFacts } from './facts.js';
 import {
   npmFinding,
   npmFlag,
@@ -742,6 +743,8 @@ async function loadDescriptors(
 }
 
 async function readDescriptor(cacheDir: string, name: string): Promise<Descriptor | undefined> {
+  const held = currentFacts()?.tarballs.get(name);
+  if (held !== undefined) {return parseDescriptor(held);}
   let text: string;
   try {
     text = await readFile(join(cacheDir, 'tarballs', `${encodeURIComponent(name)}.json`), 'utf8');

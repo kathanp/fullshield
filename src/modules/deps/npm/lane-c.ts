@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 import type { Finding, Severity } from '../../../core/finding.js';
 import { compareSemver, rangeSatisfies } from '../semver.js';
+import { currentFacts } from './facts.js';
 import { npmFinding, npmFlag, npmRow } from './types.js';
 import type { NpmDepthInput, NpmDepthRow } from './types.js';
 
@@ -719,7 +720,8 @@ async function loadPackage(
   version: string,
   now: number,
 ): Promise<ParsedCache | undefined> {
-  const raw = await readJson(registryPath(cacheDir, name));
+  const held = currentFacts()?.packuments.get(name);
+  const raw = held !== undefined ? held : await readJson(registryPath(cacheDir, name));
   const packument = packumentOf(raw);
   if (packument === undefined) {return undefined;}
   const inline = previousFrom(asRecord(raw)?.previous);

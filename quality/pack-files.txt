@@ -27,9 +27,11 @@ dist/supply.js
 dist/threat.js
 dist/vex.js
 dist/workspaces.js
+models/advisory-symbols.json
 models/index.json
 models/npm-builders.json
 models/npm-popular.json
+models/sinks.json
 models/ssti.json
 models/vendored.json
 models/webhooks.json

@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import type { Finding } from '../../../core/finding.js';
 import { lockUsesElectron, packageUsesElectron } from '../../config/electron.js';
 import { registryCachePath } from '../../../provenance/index.js';
+import { currentFacts } from './facts.js';
 import { npmFinding, npmFlag, npmRow, type NpmDepthInput, type NpmDepthRow } from './types.js';
 
 const BUILTINS = new Set(builtinModules.flatMap((name) => [name, name.replace(/^node:/, '')]));
@@ -949,6 +950,14 @@ async function readCached(
   name: string,
   version: string | undefined,
 ): Promise<{ type?: string; exports?: unknown } | undefined> {
+  const held = currentFacts()?.packuments.get(name);
+  if (held !== undefined && asRecord(held) !== undefined) {
+    const raw = asRecord(held);
+    if (raw === undefined) {return undefined;}
+    const body = versionEntry(raw, version) ?? asPackageJson(raw);
+    if (body === undefined) {return undefined;}
+    return { type: typeof body.type === 'string' ? body.type : undefined, exports: body.exports };
+  }
   try {
     const raw = JSON.parse(await readFile(registryCachePath(cacheDir, name), 'utf8')) as Record<string, unknown>;
     const body = versionEntry(raw, version) ?? asPackageJson(raw);
