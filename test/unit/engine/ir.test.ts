@@ -279,4 +279,39 @@ describe('phase 251 IR', () => {
     });
     expect(byLocal.get('read')?.resolved).toBeUndefined();
   });
+
+  it('lowers the statement and expression forms the module walker knows', () => {
+    const source = `
+      import def from './d';
+      import * as ns from './n';
+      export * from './all';
+      type Alias = string;
+      interface Box { n: number }
+      declare function declared(): void;
+      enum E { A }
+      namespace N { export const z = 1; }
+      export default function exported(cond) {
+        class Child extends Base { method() { return this; } }
+        let x = 0;
+        const y = cond ? x : 1;
+        x += y || 1;
+        x++;
+        while (x) { break; }
+        do { continue; } while (0);
+        for (let i = 0; i < 1; i++) { x = i; }
+        for (const key in obj) { x = key; }
+        for (const item of list) { x = item; }
+        switch (x) { case 1: x = 1; break; default: x = 0; }
+        try { throw new Error('e'); } catch (err) { x = err; } finally { x = 1; }
+        label: { x = 1; }
+        debugger;
+        return;
+      }
+      export const named = 1;
+      export function also() { return; }
+    `;
+    const ir = lowerSource(source, 'forms.ts');
+    expect(ir.functions.length).toBeGreaterThan(1);
+    expect(ir.functions.some((fn) => fn.name === 'exported')).toBe(true);
+  });
 });
