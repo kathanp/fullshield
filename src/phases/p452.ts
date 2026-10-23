@@ -75,7 +75,17 @@ function secretLiteral(value: string): boolean {
   return SECRET.test(value);
 }
 
-function scanService(name: string, service: Record<string, unknown>, file: string, text: string, packageName: string, envFiles: Readonly<Record<string, string>>): PhaseFinding[] {
+interface ServiceScan {
+  name: string;
+  service: Record<string, unknown>;
+  file: string;
+  text: string;
+  packageName: string;
+  envFiles: Readonly<Record<string, string>>;
+}
+
+function scanService(input: ServiceScan): PhaseFinding[] {
+  const { name, service, file, text, packageName, envFiles } = input;
   const findings: PhaseFinding[] = [];
   if (service.privileged === true) {
     findings.push({ ruleId: COMPOSE_PRIVILEGED, severity: 'high', file, line: lineOf(text, 'privileged'), message: `service ${name} sets privileged` });
@@ -124,7 +134,7 @@ export function scanCompose(file: string, text: string, packageName: string, env
   for (const [name, value] of Object.entries(services)) {
     const service = asRecord(value);
     if (service !== null) {
-      findings.push(...scanService(name, service, file, text, packageName, envFiles));
+      findings.push(...scanService({ name, service, file, text, packageName, envFiles }));
     }
   }
   return [...baseline, ...findings];

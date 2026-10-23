@@ -55,9 +55,25 @@ function isNode(value: unknown): value is TSESTree.Node {
   return typeof value.type === 'string';
 }
 
-function normalize(node: TSESTree.Node): unknown {
-  const record = node as unknown as Record<string, unknown>;
-  const out: Record<string, unknown> = { type: node.type };
+const META_KEYS = new Set(['type', 'loc', 'range', 'start', 'end', 'parent']);
+
+function skipKey(node: TSESTree.Node, key: string): boolean {
+  if (META_KEYS.has(key)) {
+    return true;
+  }
+  if (node.type === 'Identifier' && key === 'name') {
+    return true;
+  }
+  if (node.type === 'Literal' && (key === 'value' || key === 'raw')) {
+    return true;
+  }
+  if (node.type === 'TemplateElement' && (key === 'value' || key === 'tail')) {
+    return true;
+  }
+  return false;
+}
+
+function assignLiteral(node: TSESTree.Node, out: Record<string, unknown>): void {
   if (node.type === 'Identifier') {
     out.name = 'id';
   }
@@ -67,26 +83,33 @@ function normalize(node: TSESTree.Node): unknown {
   if (node.type === 'TemplateElement') {
     out.value = 'lit';
   }
+}
+
+function childValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    const nodes = value.filter(isNode);
+    if (nodes.length === 0) {
+      return undefined;
+    }
+    return nodes.map((child) => normalize(child));
+  }
+  if (isNode(value)) {
+    return normalize(value);
+  }
+  return undefined;
+}
+
+function normalize(node: TSESTree.Node): unknown {
+  const record = node as unknown as Record<string, unknown>;
+  const out: Record<string, unknown> = { type: node.type };
+  assignLiteral(node, out);
   for (const [key, value] of Object.entries(record)) {
-    if (key === 'type' || key === 'loc' || key === 'range' || key === 'start' || key === 'end' || key === 'parent') {
+    if (skipKey(node, key)) {
       continue;
     }
-    if (node.type === 'Identifier' && key === 'name') {
-      continue;
-    }
-    if (node.type === 'Literal' && (key === 'value' || key === 'raw')) {
-      continue;
-    }
-    if (node.type === 'TemplateElement' && (key === 'value' || key === 'tail')) {
-      continue;
-    }
-    if (Array.isArray(value)) {
-      const nodes = value.filter(isNode);
-      if (nodes.length > 0) {
-        out[key] = nodes.map((child) => normalize(child));
-      }
-    } else if (isNode(value)) {
-      out[key] = normalize(value);
+    const child = childValue(value);
+    if (child !== undefined) {
+      out[key] = child;
     }
   }
   return out;

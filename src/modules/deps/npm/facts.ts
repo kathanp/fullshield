@@ -157,49 +157,59 @@ function rememberScripts(into: Map<string, string>, source: string, value: unkno
   }
 }
 
-/**
- * Read lock rows, the manifest, `.npmrc`, packuments, tarballs, script text,
- * names, and the lock graph once. Network reads go through `input.fetchImpl`
- * and each packument name and each tarball URL is requested at most once.
- */
-export async function loadNpmFacts(input: NpmDepthInput): Promise<NpmFacts> {
-  const manifest = parseManifest(input.manifestRaw);
-  const lockRows = lockRowsFrom(input.lockTexts);
-  const graph = graphFrom(lockRows);
-  const names = [...new Set(lockRows.flatMap((row) => (row.name === undefined ? [] : [row.name])))].sort();
+function lockNames(lockRows: readonly NpmLockRow[]): string[] {
+  const names = new Set<string>();
+  for (const row of lockRows) {
+    if (row.name !== undefined) {names.add(row.name);}
+  }
+  return [...names].sort();
+}
+
+function isProjectNpmrc(norm: string): boolean {
+  if (norm === 'home/.npmrc') {return false;}
+  return norm === '.npmrc' || norm.endsWith('/.npmrc');
+}
+
+async function readProjectNpmrcs(input: NpmDepthInput): Promise<Map<string, string>> {
   const npmrcFiles = new Map<string, string>();
   for (const file of input.files) {
     const norm = file.replaceAll('\\', '/');
-    if (norm === 'home/.npmrc' || (norm !== '.npmrc' && !norm.endsWith('/.npmrc'))) {continue;}
+    if (!isProjectNpmrc(norm)) {continue;}
     try {
       npmrcFiles.set(norm, await readFile(join(input.cwd, file), 'utf8'));
     } catch {
       // unreadable project npmrc is not a fact
     }
   }
-  let homeNpmrc: string | undefined;
+  return npmrcFiles;
+}
+
+async function readHomeNpmrc(): Promise<string | undefined> {
   const home = process.env.FULLSHIELD_NPM_HOME;
-  if (home !== undefined && home.trim() !== '') {
-    try {
-      homeNpmrc = await readFile(join(home, '.npmrc'), 'utf8');
-    } catch {
-      homeNpmrc = undefined;
-    }
+  if (home === undefined || home.trim() === '') {return undefined;}
+  try {
+    return await readFile(join(home, '.npmrc'), 'utf8');
+  } catch {
+    return undefined;
   }
+}
 
-  const packuments = new Map<string, unknown>();
-  const tarballs = new Map<string, unknown>();
-  const tarballBytes = new Map<string, Buffer>();
-  const scriptText = new Map<string, string>();
-  rememberScripts(scriptText, 'package.json', manifest);
-
+function manifestNames(names: readonly string[], manifest: Record<string, unknown> | undefined): Set<string> {
   const packageNames = new Set(names);
-  if (manifest !== undefined) {
-    for (const field of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
-      for (const name of stringKeys(manifest[field])) {packageNames.add(name);}
-    }
+  if (manifest === undefined) {return packageNames;}
+  for (const field of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
+    for (const name of stringKeys(manifest[field])) {packageNames.add(name);}
   }
+  return packageNames;
+}
 
+async function loadCachedMetadata(
+  input: NpmDepthInput,
+  packageNames: ReadonlySet<string>,
+  packuments: Map<string, unknown>,
+  tarballs: Map<string, unknown>,
+  scriptText: Map<string, string>,
+): Promise<void> {
   for (const name of packageNames) {
     const raw = await readFirst(registryPaths(input.cacheDir, name));
     if (raw !== undefined) {packuments.set(name, raw);}
@@ -209,50 +219,97 @@ export async function loadNpmFacts(input: NpmDepthInput): Promise<NpmFacts> {
       rememberScripts(scriptText, name, tar);
     }
   }
+}
+
+async function loadIntegrityBytes(
+  input: NpmDepthInput,
+  lockRows: readonly NpmLockRow[],
+  tarballBytes: Map<string, Buffer>,
+): Promise<void> {
   for (const row of lockRows) {
-    if (row.integrity === undefined) {continue;}
-    if (tarballBytes.has(row.integrity)) {continue;}
+    if (row.integrity === undefined || tarballBytes.has(row.integrity)) {continue;}
     try {
       tarballBytes.set(row.integrity, await readFile(join(input.cacheDir, 'tarballs', integrityFile(row.integrity))));
     } catch {
       // missing integrity file stays a cache miss
     }
   }
+}
 
-  const fetchImpl = input.fetchImpl;
-  if (fetchImpl !== undefined && !input.offline) {
-    const seenPack = new Set<string>();
-    const seenTar = new Set<string>();
-    if (wantsPackument()) {
-      for (const name of packageNames) {
-        if (packuments.has(name) || seenPack.has(name)) {continue;}
-        seenPack.add(name);
-        const url = packumentUrl(name);
-        assertRegistryUrl(url);
-        const response = await fetchImpl(url);
-        if (!response.ok) {continue;}
-        try {
-          packuments.set(name, JSON.parse(Buffer.from(await response.arrayBuffer()).toString('utf8')) as unknown);
-        } catch {
-          // a body that is not JSON is a miss, not a second fetch
-        }
-      }
-    }
-    if (wantsTarball()) {
-      for (const row of lockRows) {
-        if (!isRegistryTarball(row.resolved) || seenTar.has(row.resolved)) {continue;}
-        if (row.integrity !== undefined && tarballBytes.has(row.integrity)) {continue;}
-        seenTar.add(row.resolved);
-        assertRegistryUrl(row.resolved);
-        const response = await fetchImpl(row.resolved);
-        if (!response.ok) {continue;}
-        const bytes = Buffer.from(await response.arrayBuffer());
-        tarballBytes.set(row.resolved, bytes);
-        if (row.integrity !== undefined) {tarballBytes.set(row.integrity, bytes);}
-      }
+async function fetchPackuments(
+  fetchImpl: (input: string, init?: RequestInit) => Promise<Response>,
+  packageNames: ReadonlySet<string>,
+  packuments: Map<string, unknown>,
+): Promise<void> {
+  const seenPack = new Set<string>();
+  for (const name of packageNames) {
+    if (packuments.has(name) || seenPack.has(name)) {continue;}
+    seenPack.add(name);
+    const url = packumentUrl(name);
+    assertRegistryUrl(url);
+    const response = await fetchImpl(url);
+    if (!response.ok) {continue;}
+    try {
+      packuments.set(name, JSON.parse(Buffer.from(await response.arrayBuffer()).toString('utf8')) as unknown);
+    } catch {
+      // a body that is not JSON is a miss, not a second fetch
     }
   }
+}
 
+async function fetchTarballs(
+  fetchImpl: (input: string, init?: RequestInit) => Promise<Response>,
+  lockRows: readonly NpmLockRow[],
+  tarballBytes: Map<string, Buffer>,
+): Promise<void> {
+  const seenTar = new Set<string>();
+  for (const row of lockRows) {
+    if (!isRegistryTarball(row.resolved) || seenTar.has(row.resolved)) {continue;}
+    if (row.integrity !== undefined && tarballBytes.has(row.integrity)) {continue;}
+    seenTar.add(row.resolved);
+    assertRegistryUrl(row.resolved);
+    const response = await fetchImpl(row.resolved);
+    if (!response.ok) {continue;}
+    const bytes = Buffer.from(await response.arrayBuffer());
+    tarballBytes.set(row.resolved, bytes);
+    if (row.integrity !== undefined) {tarballBytes.set(row.integrity, bytes);}
+  }
+}
+
+async function fetchRemote(
+  input: NpmDepthInput,
+  packageNames: ReadonlySet<string>,
+  lockRows: readonly NpmLockRow[],
+  packuments: Map<string, unknown>,
+  tarballBytes: Map<string, Buffer>,
+): Promise<void> {
+  const fetchImpl = input.fetchImpl;
+  if (fetchImpl === undefined || input.offline) {return;}
+  if (wantsPackument()) {await fetchPackuments(fetchImpl, packageNames, packuments);}
+  if (wantsTarball()) {await fetchTarballs(fetchImpl, lockRows, tarballBytes);}
+}
+
+/**
+ * Read lock rows, the manifest, `.npmrc`, packuments, tarballs, script text,
+ * names, and the lock graph once. Network reads go through `input.fetchImpl`
+ * and each packument name and each tarball URL is requested at most once.
+ */
+export async function loadNpmFacts(input: NpmDepthInput): Promise<NpmFacts> {
+  const manifest = parseManifest(input.manifestRaw);
+  const lockRows = lockRowsFrom(input.lockTexts);
+  const graph = graphFrom(lockRows);
+  const names = lockNames(lockRows);
+  const npmrcFiles = await readProjectNpmrcs(input);
+  const homeNpmrc = await readHomeNpmrc();
+  const scriptText = new Map<string, string>();
+  rememberScripts(scriptText, 'package.json', manifest);
+  const packageNames = manifestNames(names, manifest);
+  const packuments = new Map<string, unknown>();
+  const tarballs = new Map<string, unknown>();
+  const tarballBytes = new Map<string, Buffer>();
+  await loadCachedMetadata(input, packageNames, packuments, tarballs, scriptText);
+  await loadIntegrityBytes(input, lockRows, tarballBytes);
+  await fetchRemote(input, packageNames, lockRows, packuments, tarballBytes);
   return {
     cwd: input.cwd,
     files: input.files,

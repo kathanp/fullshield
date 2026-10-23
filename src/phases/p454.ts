@@ -103,6 +103,82 @@ function lineOf(text: string, needle: string): number {
   return index < 0 ? 1 : index + 1;
 }
 
+interface WorkflowScan {
+  file: string;
+  text: string;
+  files: Readonly<Record<string, string>>;
+  target: boolean;
+  findings: PhaseFinding[];
+}
+
+function stringField(record: Record<string, unknown> | null, key: string): string {
+  const value = record?.[key];
+  if (typeof value === 'string') {
+    return value;
+  }
+  return '';
+}
+
+function noteRun(step: Record<string, unknown>, scan: WorkflowScan): void {
+  if (typeof step.run !== 'string') {
+    return;
+  }
+  if (!extractExpressions(step.run).some(untrusted)) {
+    return;
+  }
+  scan.findings.push({ ruleId: GHA_INJECT, severity: 'high', file: scan.file, line: lineOf(scan.text, 'run:'), message: 'run step interpolates an untrusted github.event field' });
+}
+
+function noteCheckout(step: Record<string, unknown>, withBlock: Record<string, unknown> | null, scan: WorkflowScan): void {
+  const uses = typeof step.uses === 'string' ? step.uses : '';
+  if (!scan.target || !uses.includes('actions/checkout')) {
+    return;
+  }
+  if (!stringField(withBlock, 'ref').includes('pull_request.head')) {
+    return;
+  }
+  scan.findings.push({ ruleId: GHA_TARGET, severity: 'high', file: scan.file, line: lineOf(scan.text, 'pull_request'), message: 'the risk is executing the PR' });
+}
+
+function mutableKey(item: string): boolean {
+  return item.includes('github.event.') || item.includes('pull_request');
+}
+
+function noteCache(withBlock: Record<string, unknown> | null, scan: WorkflowScan): void {
+  const expressions = extractExpressions(stringField(withBlock, 'key'));
+  const mutable = expressions.some(mutableKey);
+  const onlySha = expressions.length > 0 && expressions.every((item) => item.trim() === 'github.sha');
+  if (mutable && !onlySha) {
+    scan.findings.push({ ruleId: GHA_CACHE, severity: 'medium', file: scan.file, line: lineOf(scan.text, 'key:'), message: 'cache key includes a mutable PR ref' });
+  }
+}
+
+function envPath(path: string): boolean {
+  return path === '.env' || path.endsWith('/.env');
+}
+
+function noteEnvArtifact(withBlock: Record<string, unknown> | null, scan: WorkflowScan): void {
+  const path = stringField(withBlock, 'path');
+  if (!envPath(path)) {
+    return;
+  }
+  const body = scan.files[path] ?? scan.files['.env'];
+  if (body === undefined || !SECRET.test(body)) {
+    scan.findings.push({ ruleId: GHA_ENV_ARTIFACT, severity: 'info', file: scan.file, line: lineOf(scan.text, '.env'), message: 'artifact path is .env' });
+    return;
+  }
+  const token = SECRET.exec(body)?.[0] ?? '';
+  scan.findings.push({ ruleId: 'SECRET-AWS-001', severity: 'high', file: scan.file, line: lineOf(scan.text, '.env'), message: 'artifact path matches a secret', snippet: `${token.slice(0, 4)}****` });
+}
+
+function noteStep(step: Record<string, unknown>, scan: WorkflowScan): void {
+  const withBlock = asRecord(step.with);
+  noteRun(step, scan);
+  noteCheckout(step, withBlock, scan);
+  noteCache(withBlock, scan);
+  noteEnvArtifact(withBlock, scan);
+}
+
 export function scanWorkflow(file: string, text: string, files: Readonly<Record<string, string>> = {}, baseline: readonly PhaseFinding[] = []): PhaseFinding[] {
   if (!enabled()) {
     return [...baseline];
@@ -111,46 +187,9 @@ export function scanWorkflow(file: string, text: string, files: Readonly<Record<
   if (root === null) {
     return [...baseline];
   }
-  const findings: PhaseFinding[] = [];
-  const target = onTarget(root);
+  const scan: WorkflowScan = { file, text, files, target: onTarget(root), findings: [] };
   walkSteps(root, (step) => {
-    if (typeof step.run === 'string') {
-      const hit = extractExpressions(step.run).some(untrusted);
-      if (hit) {
-        findings.push({ ruleId: GHA_INJECT, severity: 'high', file, line: lineOf(text, 'run:'), message: 'run step interpolates an untrusted github.event field' });
-      }
-    }
-    const uses = typeof step.uses === 'string' ? step.uses : '';
-    const withBlock = asRecord(step.with);
-    if (target && uses.includes('actions/checkout')) {
-      const ref = typeof withBlock?.ref === 'string' ? withBlock.ref : '';
-      if (ref.includes('pull_request.head')) {
-        findings.push({
-          ruleId: GHA_TARGET,
-          severity: 'high',
-          file,
-          line: lineOf(text, 'pull_request'),
-          message: 'the risk is executing the PR',
-        });
-      }
-    }
-    const key = typeof withBlock?.key === 'string' ? withBlock.key : '';
-    const expressions = extractExpressions(key);
-    const mutable = expressions.some((item) => item.includes('github.event.') || item.includes('pull_request'));
-    const onlySha = expressions.length > 0 && expressions.every((item) => item.trim() === 'github.sha');
-    if (mutable && !onlySha) {
-      findings.push({ ruleId: GHA_CACHE, severity: 'medium', file, line: lineOf(text, 'key:'), message: 'cache key includes a mutable PR ref' });
-    }
-    const path = typeof withBlock?.path === 'string' ? withBlock.path : '';
-    if (path === '.env' || path.endsWith('/.env')) {
-      const body = files[path] ?? files['.env'];
-      if (body !== undefined && SECRET.test(body)) {
-        const token = SECRET.exec(body)?.[0] ?? '';
-        findings.push({ ruleId: 'SECRET-AWS-001', severity: 'high', file, line: lineOf(text, '.env'), message: 'artifact path matches a secret', snippet: `${token.slice(0, 4)}****` });
-      } else {
-        findings.push({ ruleId: GHA_ENV_ARTIFACT, severity: 'info', file, line: lineOf(text, '.env'), message: 'artifact path is .env' });
-      }
-    }
+    noteStep(step, scan);
   });
-  return [...baseline, ...findings];
+  return [...baseline, ...scan.findings];
 }

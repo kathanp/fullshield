@@ -29,34 +29,47 @@ export function analyzeShell(source: string, options?: { file?: string }): { fin
   if (program === null) {return { findings: [] };}
   const file = options?.file ?? 'inline.js';
   const findings: ShellFinding[] = [];
-  const walk = (stmts: readonly TSESTree.Statement[], env: Map<string, Binding>, params: ReadonlySet<string>): void => {
-    for (const stmt of stmts) {
-      if (stmt.type === 'FunctionDeclaration' && stmt.id !== null) {
-        const names = new Set(stmt.params.flatMap((param) => (param.type === 'Identifier' ? [param.name] : [])));
-        const next = new Map(env);
-        for (const name of names) {next.set(name, { tainted: true, charClass: 'any' });}
-        walk(stmt.body.body, next, names);
-        continue;
-      }
-      if (stmt.type === 'BlockStatement') {walk(stmt.body, env, params); continue;}
-      if (stmt.type === 'IfStatement') {
-        walk(stmt.consequent.type === 'BlockStatement' ? stmt.consequent.body : [stmt.consequent], env, params);
-        if (stmt.alternate !== null) {walk(stmt.alternate.type === 'BlockStatement' ? stmt.alternate.body : [stmt.alternate], env, params);}
-        continue;
-      }
-      if (stmt.type === 'VariableDeclaration') {
-        for (const decl of stmt.declarations) {
-          if (decl.id.type === 'Identifier' && decl.init !== null) {env.set(decl.id.name, bindingOf(decl.init, env));}
-        }
-        continue;
-      }
-      if (stmt.type === 'ExpressionStatement' && stmt.expression.type === 'CallExpression') {
-        noteCall(stmt.expression, env, file, findings);
-      }
-    }
+  const bag: ShellWalk = { file, findings, walk: () => undefined };
+  bag.walk = (stmts, env, params) => {
+    for (const stmt of stmts) {walkShell(stmt, env, params, bag);}
   };
-  walk(program.body, new Map(), new Set());
+  bag.walk(program.body, new Map(), new Set());
   return { findings };
+}
+
+interface ShellWalk {
+  file: string;
+  findings: ShellFinding[];
+  walk: (stmts: readonly TSESTree.Statement[], env: Map<string, Binding>, params: ReadonlySet<string>) => void;
+}
+
+function walkShell(stmt: TSESTree.Statement, env: Map<string, Binding>, params: ReadonlySet<string>, bag: ShellWalk): void {
+  if (stmt.type === 'FunctionDeclaration' && stmt.id !== null) {walkShellFn(stmt, env, bag); return;}
+  if (stmt.type === 'BlockStatement') {bag.walk(stmt.body, env, params); return;}
+  if (stmt.type === 'IfStatement') {walkShellIf(stmt, env, params, bag); return;}
+  if (stmt.type === 'VariableDeclaration') {bindShellVars(stmt, env); return;}
+  if (stmt.type === 'ExpressionStatement' && stmt.expression.type === 'CallExpression') {
+    noteCall(stmt.expression, env, bag.file, bag.findings);
+  }
+}
+
+function walkShellFn(stmt: TSESTree.FunctionDeclaration, env: Map<string, Binding>, bag: ShellWalk): void {
+  if (stmt.id === null) {return;}
+  const names = new Set(stmt.params.flatMap((param) => (param.type === 'Identifier' ? [param.name] : [])));
+  const next = new Map(env);
+  for (const name of names) {next.set(name, { tainted: true, charClass: 'any' });}
+  bag.walk(stmt.body.body, next, names);
+}
+
+function walkShellIf(stmt: TSESTree.IfStatement, env: Map<string, Binding>, params: ReadonlySet<string>, bag: ShellWalk): void {
+  bag.walk(stmt.consequent.type === 'BlockStatement' ? stmt.consequent.body : [stmt.consequent], env, params);
+  if (stmt.alternate !== null) {bag.walk(stmt.alternate.type === 'BlockStatement' ? stmt.alternate.body : [stmt.alternate], env, params);}
+}
+
+function bindShellVars(stmt: TSESTree.VariableDeclaration, env: Map<string, Binding>): void {
+  for (const decl of stmt.declarations) {
+    if (decl.id.type === 'Identifier' && decl.init !== null) {env.set(decl.id.name, bindingOf(decl.init, env));}
+  }
 }
 
 function noteCall(
@@ -107,24 +120,45 @@ function shellHoles(value: AbstractString): { context: ShellContext; report: boo
   let preceding = '';
   for (const seg of value.segments) {
     if (seg.kind === 'literal') {
-      for (const ch of seg.text) {
-        if (state === 'code' && ch === "'") {state = 'sq';}
-        else if (state === 'sq' && ch === "'") {state = 'code';}
-        else if (state === 'code' && ch === '"') {state = 'dq';}
-        else if (state === 'dq' && ch === '"') {state = 'code';}
-        else if (state === 'code') {preceding += ch;}
-      }
+      const stepped = stepLiteral(seg.text, state, preceding);
+      state = stepped.state;
+      preceding = stepped.preceding;
       continue;
     }
-    const charClass: CharClass | 'any' = seg.kind === 'tainted' ? seg.charClass : 'any';
-    if (labelsOf({ segments: [seg] }).length === 0 && seg.kind !== 'unknown') {continue;}
-    if (state === 'sq') {holes.push({ context: 'single', report: !excludesQuote(charClass) });}
-    else if (state === 'dq') {holes.push({ context: 'double', report: true });}
-    else if (/(?:^|\s)-$/.test(preceding) && allowsDash(charClass)) {holes.push({ context: 'option', report: true });}
-    else {holes.push({ context: 'bare', report: true });}
+    const noted = noteShellHole(seg, state, preceding);
+    if (noted !== null) {holes.push(noted);}
     preceding += ' ';
   }
   return holes;
+}
+
+function stepLiteral(text: string, state: 'code' | 'sq' | 'dq', preceding: string): { state: 'code' | 'sq' | 'dq'; preceding: string } {
+  let next = state;
+  let prefix = preceding;
+  for (const ch of text) {
+    const stepped = stepChar(next, ch);
+    next = stepped.state;
+    if (stepped.keep) {prefix += ch;}
+  }
+  return { state: next, preceding: prefix };
+}
+
+function stepChar(state: 'code' | 'sq' | 'dq', ch: string): { state: 'code' | 'sq' | 'dq'; keep: boolean } {
+  if (state === 'code' && ch === "'") {return { state: 'sq', keep: false };}
+  if (state === 'sq' && ch === "'") {return { state: 'code', keep: false };}
+  if (state === 'code' && ch === '"') {return { state: 'dq', keep: false };}
+  if (state === 'dq' && ch === '"') {return { state: 'code', keep: false };}
+  if (state === 'code') {return { state, keep: true };}
+  return { state, keep: false };
+}
+
+function noteShellHole(seg: Segment, state: 'code' | 'sq' | 'dq', preceding: string): { context: ShellContext; report: boolean } | null {
+  const charClass: CharClass | 'any' = seg.kind === 'tainted' ? seg.charClass : 'any';
+  if (labelsOf({ segments: [seg] }).length === 0 && seg.kind !== 'unknown') {return null;}
+  if (state === 'sq') {return { context: 'single', report: !excludesQuote(charClass) };}
+  if (state === 'dq') {return { context: 'double', report: true };}
+  if (/(?:^|\s)-$/.test(preceding) && allowsDash(charClass)) {return { context: 'option', report: true };}
+  return { context: 'bare', report: true };
 }
 
 function bindingOf(node: TSESTree.Node, env: ReadonlyMap<string, Binding>): Binding {

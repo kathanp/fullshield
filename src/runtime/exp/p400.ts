@@ -29,6 +29,22 @@ function jsonDepth(value: unknown, depth: number): number {
   return max;
 }
 
+function configuredLimits(config?: { maxBytes?: number; maxDepth?: number }): { maxBytes: number; maxDepth: number } {
+  return {
+    maxBytes: config?.maxBytes ?? DEFAULT_MAX_BYTES,
+    maxDepth: config?.maxDepth ?? DEFAULT_MAX_DEPTH,
+  };
+}
+
+function schemaRejects(parsed: unknown, schema: Readonly<Record<string, string>> | undefined): boolean {
+  if (schema === undefined || typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {return false;}
+  const record = parsed as Record<string, unknown>;
+  for (const key of Object.keys(record)) {
+    if (schema[key] === undefined) {return true;}
+  }
+  return false;
+}
+
 export function guardMessage(
   message: string,
   config?: { maxBytes?: number; maxDepth?: number; schema?: Readonly<Record<string, string>> },
@@ -36,9 +52,8 @@ export function guardMessage(
   if (!enabled()) {
     return { drop: false, delivered: true, event: false };
   }
-  const maxBytes = config?.maxBytes ?? DEFAULT_MAX_BYTES;
-  const maxDepth = config?.maxDepth ?? DEFAULT_MAX_DEPTH;
-  if (Buffer.byteLength(message) > maxBytes) {
+  const limits = configuredLimits(config);
+  if (Buffer.byteLength(message) > limits.maxBytes) {
     return { drop: true, delivered: false, event: true };
   }
   let parsed: unknown;
@@ -47,16 +62,11 @@ export function guardMessage(
   } catch {
     return { drop: false, delivered: true, event: false };
   }
-  if (jsonDepth(parsed, 0) > maxDepth) {
+  if (jsonDepth(parsed, 0) > limits.maxDepth) {
     return { drop: true, delivered: false, event: true };
   }
-  if (config?.schema !== undefined && typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-    const record = parsed as Record<string, unknown>;
-    for (const key of Object.keys(record)) {
-      if (config.schema[key] === undefined) {
-        return { drop: true, delivered: false, event: true };
-      }
-    }
+  if (schemaRejects(parsed, config?.schema)) {
+    return { drop: true, delivered: false, event: true };
   }
   return { drop: false, delivered: true, event: false };
 }

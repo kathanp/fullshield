@@ -142,36 +142,41 @@ function notebook(text: string): { ok: true; parts: string[] } | { ok: false } {
   return { ok: true, parts };
 }
 
-export function scanDocument(file: string, text: string, formats: readonly SecretFormat[]): DocResult {
-  if (!enabled() || excluded(file)) {
-    return { findings: [], events: [] };
+function singleHit(file: string, text: string, formats: readonly SecretFormat[]): DocFinding[] {
+  const hit = formatFinding(file, 1, text, formats);
+  if (hit === undefined) {
+    return [];
   }
-  const path = file.replaceAll('\\', '/');
-  if (path.endsWith('.ipynb')) {
-    const parsed = notebook(text);
-    if (!parsed.ok) {
-      const hit = formatFinding(file, 1, text, formats);
-      return { findings: hit === undefined ? [] : [hit], events: [{ code: 271, file, detail: 'notebook parse failed' }] };
-    }
-    const findings: DocFinding[] = [];
-    for (const part of parsed.parts) {
-      const hit = formatFinding(file, 1, part, formats);
-      if (hit !== undefined) {
-        findings.push(hit);
-      }
-    }
-    return { findings, events: [] };
-  }
-  const parsed = path.endsWith('.yaml') || path.endsWith('.yml') || path.endsWith('.toml') || path.endsWith('.ini') || path.endsWith('.properties')
-    ? parseYamlSubset(text)
-    : undefined;
-  if (parsed === undefined) {
-    const hit = formatFinding(file, 1, text, formats);
-    return { findings: hit === undefined ? [] : [hit], events: [] };
-  }
+  return [hit];
+}
+
+function withEvent(file: string, text: string, formats: readonly SecretFormat[], detail: string): DocResult {
+  return { findings: singleHit(file, text, formats), events: [{ code: 271, file, detail }] };
+}
+
+function isStructured(path: string): boolean {
+  return path.endsWith('.yaml') || path.endsWith('.yml') || path.endsWith('.toml') || path.endsWith('.ini') || path.endsWith('.properties');
+}
+
+function scanNotebook(file: string, text: string, formats: readonly SecretFormat[]): DocResult {
+  const parsed = notebook(text);
   if (!parsed.ok) {
-    const hit = formatFinding(file, 1, text, formats);
-    return { findings: hit === undefined ? [] : [hit], events: [{ code: 271, file, detail: 'structured parse failed' }] };
+    return withEvent(file, text, formats, 'notebook parse failed');
+  }
+  const findings: DocFinding[] = [];
+  for (const part of parsed.parts) {
+    const hit = formatFinding(file, 1, part, formats);
+    if (hit !== undefined) {
+      findings.push(hit);
+    }
+  }
+  return { findings, events: [] };
+}
+
+function scanStructured(file: string, text: string, formats: readonly SecretFormat[]): DocResult {
+  const parsed = parseYamlSubset(text);
+  if (!parsed.ok) {
+    return withEvent(file, text, formats, 'structured parse failed');
   }
   const findings: DocFinding[] = [];
   for (const pair of parsed.pairs) {
@@ -187,4 +192,18 @@ export function scanDocument(file: string, text: string, formats: readonly Secre
     }
   }
   return { findings, events: [] };
+}
+
+export function scanDocument(file: string, text: string, formats: readonly SecretFormat[]): DocResult {
+  if (!enabled() || excluded(file)) {
+    return { findings: [], events: [] };
+  }
+  const path = file.replaceAll('\\', '/');
+  if (path.endsWith('.ipynb')) {
+    return scanNotebook(file, text, formats);
+  }
+  if (!isStructured(path)) {
+    return { findings: singleHit(file, text, formats), events: [] };
+  }
+  return scanStructured(file, text, formats);
 }

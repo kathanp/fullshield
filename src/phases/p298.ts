@@ -54,24 +54,39 @@ function noteCall(call: TSESTree.CallExpression, findings: PrismaFinding[], keyS
   const callee = stripNode(call.callee);
   if (callee.type !== 'MemberExpression') {return;}
   const name = propName(callee);
-  if (name === '$queryRawUnsafe' || name === '$executeRawUnsafe' || name === 'raw') {
-    const arg = call.arguments[0];
-    if (arg !== undefined && tainted(arg) && !numericOnly(arg)) {findings.push({ file, line: lineOf(call), sink: 'raw' });}
-    return;
-  }
-  if (name === 'findMany' || name === 'findFirst' || name === 'create' || name === 'update') {
-    const arg = call.arguments[0];
-    if (arg === undefined || arg.type !== 'ObjectExpression') {return;}
-    const where = prop(arg, 'where');
-    if (where !== null && where.type === 'Identifier') {findings.push({ file, line: lineOf(call), sink: 'operator' });}
-    if (where !== null && where.type === 'MemberExpression' && tainted(where)) {findings.push({ file, line: lineOf(call), sink: 'operator' });}
-    const data = prop(arg, 'data');
-    if (data !== null && data.type === 'ObjectExpression') {
-      const keys = data.properties.flatMap((item) => item.type === 'Property' && item.key.type === 'Identifier' ? [item.key.name] : []);
-      if (keys.length > 0) {keySets.push({ field: 'data', keys });}
-    }
-  }
-  if (call.callee.type === 'TaggedTemplateExpression') {return;}
+  if (isRawName(name)) {noteRaw(call, findings, file); return;}
+  if (isModelName(name)) {noteModel(call, findings, keySets, file);}
+}
+
+function isRawName(name: string | null): boolean {
+  return name === '$queryRawUnsafe' || name === '$executeRawUnsafe' || name === 'raw';
+}
+
+function isModelName(name: string | null): boolean {
+  return name === 'findMany' || name === 'findFirst' || name === 'create' || name === 'update';
+}
+
+function noteRaw(call: TSESTree.CallExpression, findings: PrismaFinding[], file: string): void {
+  const arg = call.arguments[0];
+  if (arg !== undefined && tainted(arg) && !numericOnly(arg)) {findings.push({ file, line: lineOf(call), sink: 'raw' });}
+}
+
+function noteModel(call: TSESTree.CallExpression, findings: PrismaFinding[], keySets: KeySet[], file: string): void {
+  const arg = call.arguments[0];
+  if (arg === undefined || arg.type !== 'ObjectExpression') {return;}
+  noteWhere(prop(arg, 'where'), call, findings, file);
+  noteData(prop(arg, 'data'), keySets);
+}
+
+function noteWhere(where: TSESTree.Node | null, call: TSESTree.CallExpression, findings: PrismaFinding[], file: string): void {
+  if (where !== null && where.type === 'Identifier') {findings.push({ file, line: lineOf(call), sink: 'operator' });}
+  if (where !== null && where.type === 'MemberExpression' && tainted(where)) {findings.push({ file, line: lineOf(call), sink: 'operator' });}
+}
+
+function noteData(data: TSESTree.Node | null, keySets: KeySet[]): void {
+  if (data === null || data.type !== 'ObjectExpression') {return;}
+  const keys = data.properties.flatMap((item) => item.type === 'Property' && item.key.type === 'Identifier' ? [item.key.name] : []);
+  if (keys.length > 0) {keySets.push({ field: 'data', keys });}
 }
 
 function noteTag(node: TSESTree.TaggedTemplateExpression, findings: PrismaFinding[], file: string): void {

@@ -59,32 +59,58 @@ function topRoute(stmt: TSESTree.Statement): { path: string; body: TSESTree.Stat
 }
 
 function collect(body: readonly TSESTree.Statement[], route: string, stores: Store[], events: UnsoundEvent[], file: string): void {
-  for (const stmt of body) {
-    if (stmt.type === 'ExpressionStatement' && stmt.expression.type === 'AssignmentExpression') {
-      const { left, right } = stmt.expression;
-      if (left.type === 'MemberExpression' && isSession(left.object)) {
-        const key = propName(left);
-        if (key === null) {
-          events.push({ kind: 'dynamic-property', file, line: lineOf(left), reason: 'dynamic session key' });
-          continue;
-        }
-        stores.push({ kind: 'session', key, route, untrusted: isRequestSource(right) || (right.type === 'MemberExpression' && isRequestSource(right)) });
-      }
-    }
-    if (stmt.type === 'ExpressionStatement' && stmt.expression.type === 'CallExpression') {
-      const call = stmt.expression;
-      const callee = stripNode(call.callee);
-      if (callee.type === 'MemberExpression' && propName(callee) === 'set') {
-        const key = call.arguments[0];
-        const value = call.arguments[1];
-        if (key !== undefined && key.type === 'Literal' && typeof key.value === 'string' && value !== undefined && value.type !== 'SpreadElement') {
-          stores.push({ kind: 'cache', key: key.value, route, untrusted: isRequestSource(value) });
-        } else if (key !== undefined && key.type !== 'Literal') {
-          events.push({ kind: 'dynamic-property', file, line: lineOf(call), reason: 'dynamic cache key' });
-        }
-      }
-    }
+  for (const stmt of body) {collectStmt(stmt, route, stores, events, file);}
+}
+
+function collectStmt(stmt: TSESTree.Statement, route: string, stores: Store[], events: UnsoundEvent[], file: string): void {
+  if (stmt.type !== 'ExpressionStatement') {return;}
+  if (stmt.expression.type === 'AssignmentExpression') {collectSession(stmt.expression, route, stores, events, file);}
+  if (stmt.expression.type === 'CallExpression') {collectCache(stmt.expression, route, stores, events, file);}
+}
+
+function collectSession(
+  expr: TSESTree.AssignmentExpression,
+  route: string,
+  stores: Store[],
+  events: UnsoundEvent[],
+  file: string,
+): void {
+  const { left, right } = expr;
+  if (left.type !== 'MemberExpression' || !isSession(left.object)) {return;}
+  const key = propName(left);
+  if (key === null) {
+    events.push({ kind: 'dynamic-property', file, line: lineOf(left), reason: 'dynamic session key' });
+    return;
   }
+  stores.push({ kind: 'session', key, route, untrusted: sessionUntrusted(right) });
+}
+
+function sessionUntrusted(right: TSESTree.Expression): boolean {
+  return isRequestSource(right) || (right.type === 'MemberExpression' && isRequestSource(right));
+}
+
+function collectCache(
+  call: TSESTree.CallExpression,
+  route: string,
+  stores: Store[],
+  events: UnsoundEvent[],
+  file: string,
+): void {
+  const callee = stripNode(call.callee);
+  if (callee.type !== 'MemberExpression' || propName(callee) !== 'set') {return;}
+  const key = call.arguments[0];
+  const value = call.arguments[1];
+  if (isCacheKey(key) && value !== undefined && value.type !== 'SpreadElement') {
+    stores.push({ kind: 'cache', key: key.value, route, untrusted: isRequestSource(value) });
+    return;
+  }
+  if (key !== undefined && key.type !== 'Literal') {
+    events.push({ kind: 'dynamic-property', file, line: lineOf(call), reason: 'dynamic cache key' });
+  }
+}
+
+function isCacheKey(key: TSESTree.CallExpressionArgument | undefined): key is TSESTree.Literal & { value: string } {
+  return key !== undefined && key.type === 'Literal' && typeof key.value === 'string';
 }
 
 function readStores(body: readonly TSESTree.Statement[], route: string, stores: readonly Store[], findings: XreqFinding[], file: string): void {

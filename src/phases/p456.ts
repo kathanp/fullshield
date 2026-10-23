@@ -84,43 +84,80 @@ function appBlocks(blocks: readonly Block[], packageName: string): Block[] {
   return blocks.filter((block) => block.kind === 'resource' && block.body.includes(packageName));
 }
 
+interface TfScan {
+  file: string;
+  packageName: string;
+  apps: readonly Block[];
+  connected: ReadonlySet<string>;
+  findings: PhaseFinding[];
+}
+
+function connectedGroups(apps: readonly Block[]): Set<string> {
+  const connected = new Set<string>();
+  for (const app of apps) {
+    for (const ref of app.body.matchAll(/aws_security_group\.([A-Za-z0-9_]+)/g)) {
+      if (ref[1] !== undefined) {
+        connected.add(ref[1]);
+      }
+    }
+  }
+  return connected;
+}
+
+function appPort(body: string): boolean {
+  return /from_port\s*=\s*3000/.test(body) || /to_port\s*=\s*3000/.test(body);
+}
+
+function noteCidr(block: Block, scan: TfScan): void {
+  const world = /0\.0\.0\.0\/0|::\/0/.test(block.body);
+  if (!world || !appPort(block.body)) {
+    return;
+  }
+  if (!scan.connected.has(block.name) && !block.body.includes(scan.packageName)) {
+    return;
+  }
+  scan.findings.push({ ruleId: TF_CIDR, severity: 'high', file: scan.file, line: block.line, message: 'ingress 0.0.0.0/0 on the app port' });
+}
+
+function noteAcl(block: Block, scan: TfScan): void {
+  if (!/acl\s*=\s*"public-read"/.test(block.body)) {
+    return;
+  }
+  const bucket = /aws_s3_bucket\.([A-Za-z0-9_]+)/.exec(block.body)?.[1];
+  const passed = bucket !== undefined && scan.apps.some((app) => app.body.includes(`aws_s3_bucket.${bucket}`));
+  if (!passed) {
+    return;
+  }
+  scan.findings.push({ ruleId: TF_ACL, severity: 'high', file: scan.file, line: block.line, message: 'public-read ACL on a bucket passed to the app' });
+}
+
+function noteUserData(block: Block, scan: TfScan): void {
+  if (!block.body.includes('user_data') || !SECRET.test(block.body)) {
+    return;
+  }
+  const token = SECRET.exec(block.body)?.[0] ?? '';
+  scan.findings.push({ ruleId: TF_USERDATA, severity: 'high', file: scan.file, line: block.line, message: 'user_data literal', snippet: `${token.slice(0, 4)}****` });
+}
+
+function noteResource(block: Block, scan: TfScan): void {
+  if (block.kind !== 'resource') {
+    return;
+  }
+  noteCidr(block, scan);
+  noteAcl(block, scan);
+  noteUserData(block, scan);
+}
+
 export function scanTerraform(file: string, text: string, packageName: string, baseline: readonly PhaseFinding[] = []): TfResult {
   if (!enabled()) {
     return { findings: [...baseline], events: [] };
   }
   const parsed = blocksOf(text);
   const apps = appBlocks(parsed.blocks, packageName);
-  const connected = new Set<string>();
-  for (const app of apps) {
-    const refs = app.body.matchAll(/aws_security_group\.([A-Za-z0-9_]+)/g);
-    for (const ref of refs) {
-      if (ref[1] !== undefined) {
-        connected.add(ref[1]);
-      }
-    }
-  }
-  const findings: PhaseFinding[] = [];
+  const scan: TfScan = { file, packageName, apps, connected: connectedGroups(apps), findings: [] };
   for (const block of parsed.blocks) {
-    if (block.kind !== 'resource') {
-      continue;
-    }
-    const world = /0\.0\.0\.0\/0|::\/0/.test(block.body);
-    const appPort = /from_port\s*=\s*3000/.test(block.body) || /to_port\s*=\s*3000/.test(block.body);
-    if (world && appPort && (connected.has(block.name) || block.body.includes(packageName))) {
-      findings.push({ ruleId: TF_CIDR, severity: 'high', file, line: block.line, message: 'ingress 0.0.0.0/0 on the app port' });
-    }
-    if (/acl\s*=\s*"public-read"/.test(block.body)) {
-      const bucket = /aws_s3_bucket\.([A-Za-z0-9_]+)/.exec(block.body)?.[1];
-      const passed = bucket !== undefined && apps.some((app) => app.body.includes(`aws_s3_bucket.${bucket}`));
-      if (passed) {
-        findings.push({ ruleId: TF_ACL, severity: 'high', file, line: block.line, message: 'public-read ACL on a bucket passed to the app' });
-      }
-    }
-    if (block.body.includes('user_data') && SECRET.test(block.body)) {
-      const token = SECRET.exec(block.body)?.[0] ?? '';
-      findings.push({ ruleId: TF_USERDATA, severity: 'high', file, line: block.line, message: 'user_data literal', snippet: `${token.slice(0, 4)}****` });
-    }
+    noteResource(block, scan);
   }
   const events = parsed.events.map((event) => ({ ...event, file }));
-  return { findings: [...baseline, ...findings], events };
+  return { findings: [...baseline, ...scan.findings], events };
 }

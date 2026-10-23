@@ -64,53 +64,56 @@ function asAdvisories(parsed: unknown): Advisory[] {
   throw new FsError('OSV file is malformed');
 }
 
-export function advisoriesFromOsvFile(filePath: string, text: string, locked: readonly LockedPackage[]): OsvFileReport {
-  if (!enabled()) {
-    throw new FsError('OSV file option requires FULLSHIELD_EXPERIMENTAL_OSVFILE=1');
-  }
+function readAdvisories(text: string): Advisory[] {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text) as unknown;
   } catch {
     throw new FsError('OSV file is malformed');
   }
-  let advisories: Advisory[];
   try {
-    advisories = asAdvisories(parsed);
+    return asAdvisories(parsed);
   } catch (error) {
     if (error instanceof FsError) {
       throw error;
     }
     throw new FsError('OSV file is malformed');
   }
-  const findings: FileAdvisoryFinding[] = [];
-  for (const advisory of advisories) {
-    if (typeof advisory.id !== 'string' || advisory.id === '') {
-      throw new FsError('OSV file is malformed');
-    }
-    const affected = advisory.affected ?? [];
-    for (const item of affected) {
-      const name = item.package?.name;
-      const versions = item.versions ?? [];
-      if (typeof name !== 'string') {
-        continue;
-      }
-      for (const lockedPackage of locked) {
-        if (lockedPackage.name === name && versions.includes(lockedPackage.version)) {
-          findings.push({
-            ruleId: 'DEPS-VULN-001',
-            advisoryId: advisory.id,
-            packageName: name,
-            version: lockedPackage.version,
-          });
-        }
-      }
+}
+
+function requireId(advisory: Advisory): string {
+  if (typeof advisory.id !== 'string' || advisory.id === '') {
+    throw new FsError('OSV file is malformed');
+  }
+  return advisory.id;
+}
+
+function matchLocked(name: string, versions: readonly string[], locked: readonly LockedPackage[], advisoryId: string, findings: FileAdvisoryFinding[]): void {
+  for (const lockedPackage of locked) {
+    if (lockedPackage.name === name && versions.includes(lockedPackage.version)) {
+      findings.push({ ruleId: 'DEPS-VULN-001', advisoryId, packageName: name, version: lockedPackage.version });
     }
   }
-  return {
-    advisorySource: 'file',
-    file: filePath,
-    current: false,
-    findings,
-  };
+}
+
+function matchAdvisory(advisory: Advisory, locked: readonly LockedPackage[], findings: FileAdvisoryFinding[]): void {
+  const advisoryId = requireId(advisory);
+  for (const item of advisory.affected ?? []) {
+    const name = item.package?.name;
+    if (typeof name !== 'string') {
+      continue;
+    }
+    matchLocked(name, item.versions ?? [], locked, advisoryId, findings);
+  }
+}
+
+export function advisoriesFromOsvFile(filePath: string, text: string, locked: readonly LockedPackage[]): OsvFileReport {
+  if (!enabled()) {
+    throw new FsError('OSV file option requires FULLSHIELD_EXPERIMENTAL_OSVFILE=1');
+  }
+  const findings: FileAdvisoryFinding[] = [];
+  for (const advisory of readAdvisories(text)) {
+    matchAdvisory(advisory, locked, findings);
+  }
+  return { advisorySource: 'file', file: filePath, current: false, findings };
 }

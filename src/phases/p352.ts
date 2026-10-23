@@ -40,49 +40,73 @@ export function assertNoScore(value: unknown): void {
   }
 }
 
+interface DepSides {
+  removed: Map<string, string>;
+  added: Map<string, string>;
+}
+
+function recordLine(line: string, sides: DepSides): void {
+  const match = DEP_LINE.exec(line);
+  if (match?.[1] === undefined || match[2] === undefined) {
+    return;
+  }
+  if (line.startsWith('-') && !line.startsWith('---')) {
+    sides.removed.set(match[1], match[2]);
+  }
+  if (line.startsWith('+') && !line.startsWith('+++')) {
+    sides.added.set(match[1], match[2]);
+  }
+}
+
+function collectDiff(diff: string): DepSides {
+  const sides: DepSides = { removed: new Map(), added: new Map() };
+  for (const line of diff.split('\n')) {
+    recordLine(line, sides);
+  }
+  return sides;
+}
+
+function addFactTokens(tokens: Set<RiskToken>, fact: DepFacts | undefined): void {
+  if (fact?.installScript === true) {
+    tokens.add('install-script');
+  }
+  if (fact?.advisoryCritical === true) {
+    tokens.add('advisory-critical');
+  }
+  if (fact?.resolvedHost !== undefined && fact.resolvedHost !== 'registry.npmjs.org') {
+    tokens.add('non-registry-host');
+  }
+}
+
+function riskFlags(name: string, removed: ReadonlyMap<string, string>, fact: DepFacts | undefined): RiskToken[] {
+  const tokens = new Set<RiskToken>();
+  if (!removed.has(name)) {
+    tokens.add('new-direct');
+  }
+  addFactTokens(tokens, fact);
+  return [...tokens].sort((left, right) => left.localeCompare(right));
+}
+
+function riskRows(sides: DepSides, facts: ReadonlyMap<string, DepFacts>): RiskRow[] {
+  const rows: RiskRow[] = [];
+  for (const [name, version] of sides.added) {
+    if (sides.removed.get(name) === version) {
+      continue;
+    }
+    const flags = riskFlags(name, sides.removed, facts.get(name));
+    if (flags.length === 0) {
+      continue;
+    }
+    rows.push({ name, riskFlags: flags });
+  }
+  return rows;
+}
+
 export function dependencyFlags(readDiff: () => string, facts: ReadonlyMap<string, DepFacts>): RiskRow[] {
   if (!enabled()) {
     throw new DepFlagsError('FULLSHIELD_EXPERIMENTAL_DEPRFLAGS');
   }
-  const diff = readDiff();
-  const removed = new Map<string, string>();
-  const added = new Map<string, string>();
-  for (const line of diff.split('\n')) {
-    const match = DEP_LINE.exec(line);
-    if (match?.[1] === undefined || match[2] === undefined) {
-      continue;
-    }
-    if (line.startsWith('-') && !line.startsWith('---')) {
-      removed.set(match[1], match[2]);
-    }
-    if (line.startsWith('+') && !line.startsWith('+++')) {
-      added.set(match[1], match[2]);
-    }
-  }
-  const rows: RiskRow[] = [];
-  for (const [name, version] of added) {
-    if (removed.get(name) === version) {
-      continue;
-    }
-    const fact = facts.get(name);
-    const tokens = new Set<RiskToken>();
-    if (!removed.has(name)) {
-      tokens.add('new-direct');
-    }
-    if (fact?.installScript === true) {
-      tokens.add('install-script');
-    }
-    if (fact?.advisoryCritical === true) {
-      tokens.add('advisory-critical');
-    }
-    if (fact?.resolvedHost !== undefined && fact.resolvedHost !== 'registry.npmjs.org') {
-      tokens.add('non-registry-host');
-    }
-    if (tokens.size === 0) {
-      continue;
-    }
-    rows.push({ name, riskFlags: [...tokens].sort((a, b) => a.localeCompare(b)) });
-  }
+  const rows = riskRows(collectDiff(readDiff()), facts);
   assertNoScore({ rows });
   return rows;
 }

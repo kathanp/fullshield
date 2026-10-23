@@ -91,27 +91,29 @@ export function npmRow(ruleId: string, cwe: string): NpmDepthRow {
   };
 }
 
-export function npmFinding(
-  ruleId: string,
-  severity: Severity,
-  file: string,
-  snippet: string,
-  title: string,
-  message: string,
-  remediation: string,
-  confidence: Confidence = 'high',
-  module: ModuleName = 'deps',
-): Finding {
+export interface NpmFindingInput {
+  ruleId: string;
+  severity: Severity;
+  file: string;
+  snippet: string;
+  title: string;
+  message: string;
+  remediation: string;
+  confidence?: Confidence;
+  module?: ModuleName;
+}
+
+export function npmFinding(input: NpmFindingInput): Finding {
   return {
-    id: makeFindingId(ruleId, file, snippet),
-    ruleId,
-    module,
-    title,
-    severity,
-    confidence,
-    file,
-    snippet,
-    message,
-    remediation,
+    id: makeFindingId(input.ruleId, input.file, input.snippet),
+    ruleId: input.ruleId,
+    module: input.module ?? 'deps',
+    title: input.title,
+    severity: input.severity,
+    confidence: input.confidence ?? 'high',
+    file: input.file,
+    snippet: input.snippet,
+    message: input.message,
+    remediation: input.remediation,
   };
 }

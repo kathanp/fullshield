@@ -261,28 +261,54 @@ function collectStructuralEvents(
 ): void {
   const resolvedSet = new Set(resolved);
   walkAst(program, (node) => {
-    if (node.type === 'MemberExpression' && node.computed && propName(node) === null) {
-      pushEvent(events, 'dynamic-property', file, lineOf(node), 'dynamic property name');
-    }
-    if (node.type === 'NewExpression' && node.callee.type === 'Identifier' && node.callee.name === 'Proxy') {
-      pushEvent(events, 'proxy', file, lineOf(node), 'Proxy');
-    }
-    if (node.type === 'NewExpression' && node.callee.type === 'Identifier' && node.callee.name === 'Function') {
-      pushEvent(events, 'eval', file, lineOf(node), 'eval or Function');
-    }
-    if (node.type === 'CallExpression' || node.type === 'NewExpression') {
-      noteCallEvent(node, file, locals, events);
-    }
-    if (node.type === 'ImportExpression') {
-      noteSpecifier(node.source, file, resolvedSet, events, lineOf(node));
-    }
-    if (node.type === 'ImportDeclaration') {
-      noteSpecifier(node.source, file, resolvedSet, events, lineOf(node));
-    }
-    if ((node.type === 'ExportAllDeclaration' || node.type === 'ExportNamedDeclaration') && node.source !== null) {
-      noteSpecifier(node.source, file, resolvedSet, events, lineOf(node));
-    }
+    noteStructuralNode(node, file, locals, resolvedSet, events);
   });
+}
+
+function noteStructuralNode(
+  node: TSESTree.Node,
+  file: string,
+  locals: ReadonlySet<string>,
+  resolved: ReadonlySet<string>,
+  events: UnsoundEvent[],
+): void {
+  noteDynamicOrProxy(node, file, events);
+  if (node.type === 'CallExpression' || node.type === 'NewExpression') {
+    noteCallEvent(node, file, locals, events);
+  }
+  noteImportNode(node, file, resolved, events);
+}
+
+function noteDynamicOrProxy(node: TSESTree.Node, file: string, events: UnsoundEvent[]): void {
+  if (node.type === 'MemberExpression' && node.computed && propName(node) === null) {
+    pushEvent(events, 'dynamic-property', file, lineOf(node), 'dynamic property name');
+  }
+  noteProxyOrFunction(node, file, events);
+}
+
+function noteProxyOrFunction(node: TSESTree.Node, file: string, events: UnsoundEvent[]): void {
+  if (node.type !== 'NewExpression' || node.callee.type !== 'Identifier') {return;}
+  if (node.callee.name === 'Proxy') {pushEvent(events, 'proxy', file, lineOf(node), 'Proxy');}
+  if (node.callee.name === 'Function') {pushEvent(events, 'eval', file, lineOf(node), 'eval or Function');}
+}
+
+function noteImportNode(
+  node: TSESTree.Node,
+  file: string,
+  resolved: ReadonlySet<string>,
+  events: UnsoundEvent[],
+): void {
+  if (node.type === 'ImportExpression' || node.type === 'ImportDeclaration') {
+    noteSpecifier(node.source, file, resolved, events, lineOf(node));
+    return;
+  }
+  if (isExportFrom(node) && node.source !== null) {
+    noteSpecifier(node.source, file, resolved, events, lineOf(node));
+  }
+}
+
+function isExportFrom(node: TSESTree.Node): node is TSESTree.ExportAllDeclaration | TSESTree.ExportNamedDeclaration {
+  return node.type === 'ExportAllDeclaration' || node.type === 'ExportNamedDeclaration';
 }
 
 function noteCallEvent(
@@ -452,37 +478,69 @@ function execStmt(
     execBlock(stmt.body, env, locals, findings, file);
     return;
   }
-  if (stmt.type === 'FunctionDeclaration' || stmt.type === 'ClassDeclaration' || stmt.type === 'ImportDeclaration') {return;}
+  if (isSkippedStmt(stmt)) {return;}
   if (stmt.type === 'VariableDeclaration') {
-    for (const decl of stmt.declarations) {
-      if (decl.id.type === 'Identifier' && decl.init !== null) {
-        env.set(decl.id.name, taintOf(decl.init, env, locals));
-      }
-    }
-    noteExpression(stmt, env, locals, findings, file);
+    execVarDecl(stmt, env, locals, findings, file);
     return;
   }
   if (stmt.type === 'ExpressionStatement') {
-    const expr = stripNode(stmt.expression);
-    if (expr.type === 'AssignmentExpression' && expr.left.type === 'Identifier') {
-      env.set(expr.left.name, taintOf(expr.right, env, locals));
-    }
-    noteExpression(expr, env, locals, findings, file);
+    execExprStmt(stmt, env, locals, findings, file);
     return;
   }
   if (stmt.type === 'ReturnStatement' && stmt.argument !== null) {
     noteExpression(stmt.argument, env, locals, findings, file);
     return;
   }
-  if (stmt.type === 'IfStatement') {
-    const saved = new Map(env);
-    execStmt(stmt.consequent, env, locals, findings, file);
-    const left = new Map(env);
-    env.clear();
-    for (const [key, value] of saved) {env.set(key, value);}
-    if (stmt.alternate !== null) {execStmt(stmt.alternate, env, locals, findings, file);}
-    joinEnv(env, left, saved);
+  if (stmt.type === 'IfStatement') {execIf(stmt, env, locals, findings, file);}
+}
+
+function isSkippedStmt(stmt: TSESTree.Statement): boolean {
+  return stmt.type === 'FunctionDeclaration' || stmt.type === 'ClassDeclaration' || stmt.type === 'ImportDeclaration';
+}
+
+function execVarDecl(
+  stmt: TSESTree.VariableDeclaration,
+  env: Map<string, Taint>,
+  locals: ReadonlySet<string>,
+  findings: SoundnessFinding[],
+  file: string,
+): void {
+  for (const decl of stmt.declarations) {
+    if (decl.id.type === 'Identifier' && decl.init !== null) {
+      env.set(decl.id.name, taintOf(decl.init, env, locals));
+    }
   }
+  noteExpression(stmt, env, locals, findings, file);
+}
+
+function execExprStmt(
+  stmt: TSESTree.ExpressionStatement,
+  env: Map<string, Taint>,
+  locals: ReadonlySet<string>,
+  findings: SoundnessFinding[],
+  file: string,
+): void {
+  const expr = stripNode(stmt.expression);
+  if (expr.type === 'AssignmentExpression' && expr.left.type === 'Identifier') {
+    env.set(expr.left.name, taintOf(expr.right, env, locals));
+  }
+  noteExpression(expr, env, locals, findings, file);
+}
+
+function execIf(
+  stmt: TSESTree.IfStatement,
+  env: Map<string, Taint>,
+  locals: ReadonlySet<string>,
+  findings: SoundnessFinding[],
+  file: string,
+): void {
+  const saved = new Map(env);
+  execStmt(stmt.consequent, env, locals, findings, file);
+  const left = new Map(env);
+  env.clear();
+  for (const [key, value] of saved) {env.set(key, value);}
+  if (stmt.alternate !== null) {execStmt(stmt.alternate, env, locals, findings, file);}
+  joinEnv(env, left, saved);
 }
 
 function joinEnv(env: Map<string, Taint>, left: ReadonlyMap<string, Taint>, saved: ReadonlyMap<string, Taint>): void {
@@ -528,25 +586,38 @@ function noteExpression(
 function taintOf(node: TSESTree.Node, env: ReadonlyMap<string, Taint>, locals: ReadonlySet<string>): Taint {
   const current = stripNode(node);
   if (isRequestSource(current)) {return { direct: true, viaUnknown: false };}
-  if (current.type === 'Identifier') {return env.get(current.name) ?? { direct: false, viaUnknown: false };}
+  if (current.type === 'Identifier') {return readTaint(env, current.name);}
   if (current.type === 'TemplateLiteral') {return orAll(current.expressions, env, locals);}
   if (current.type === 'BinaryExpression' && current.operator === '+') {
     return orTaint(taintOf(current.left, env, locals), taintOf(current.right, env, locals));
   }
-  if (current.type === 'MemberExpression') {
-    const objectTaint = taintOf(current.object, env, locals);
-    if (objectTaint.direct || objectTaint.viaUnknown) {return objectTaint;}
-  }
-  if (current.type === 'CallExpression') {
-    const callee = stripNode(current.callee);
-    const args = current.arguments.filter((arg): arg is TSESTree.Expression => arg.type !== 'SpreadElement');
-    const argTaint = orAll(args, env, locals);
-    if (callee.type === 'Identifier' && !locals.has(callee.name) && !BUILTINS.has(callee.name) && callee.name !== 'eval') {
-      if (argTaint.direct || argTaint.viaUnknown) {return { direct: false, viaUnknown: true };}
-    }
-    return { direct: false, viaUnknown: false };
+  if (current.type === 'MemberExpression') {return taintMember(current, env, locals);}
+  if (current.type === 'CallExpression') {return taintCall(current, env, locals);}
+  return { direct: false, viaUnknown: false };
+}
+
+function readTaint(env: ReadonlyMap<string, Taint>, name: string): Taint {
+  return env.get(name) ?? { direct: false, viaUnknown: false };
+}
+
+function taintMember(current: TSESTree.MemberExpression, env: ReadonlyMap<string, Taint>, locals: ReadonlySet<string>): Taint {
+  const objectTaint = taintOf(current.object, env, locals);
+  if (objectTaint.direct || objectTaint.viaUnknown) {return objectTaint;}
+  return { direct: false, viaUnknown: false };
+}
+
+function taintCall(current: TSESTree.CallExpression, env: ReadonlyMap<string, Taint>, locals: ReadonlySet<string>): Taint {
+  const callee = stripNode(current.callee);
+  const args = current.arguments.filter((arg): arg is TSESTree.Expression => arg.type !== 'SpreadElement');
+  const argTaint = orAll(args, env, locals);
+  if (isUnknownCallee(callee, locals) && (argTaint.direct || argTaint.viaUnknown)) {
+    return { direct: false, viaUnknown: true };
   }
   return { direct: false, viaUnknown: false };
+}
+
+function isUnknownCallee(callee: TSESTree.Node, locals: ReadonlySet<string>): boolean {
+  return callee.type === 'Identifier' && !locals.has(callee.name) && !BUILTINS.has(callee.name) && callee.name !== 'eval';
 }
 
 function orAll(nodes: readonly TSESTree.Node[], env: ReadonlyMap<string, Taint>, locals: ReadonlySet<string>): Taint {

@@ -48,34 +48,59 @@ function exec(
   file: string,
 ): Map<string, Refine> {
   if (stmt.type === 'BlockStatement') {return execBlock(stmt.body, new Map(env), findings, file);}
-  if (stmt.type === 'VariableDeclaration') {
-    const next = new Map(env);
-    for (const decl of stmt.declarations) {
-      if (decl.id.type === 'Identifier' && decl.init !== null) {next.set(decl.id.name, refineOfExpr(decl.init));}
-    }
-    return next;
-  }
-  if (stmt.type === 'ExpressionStatement') {
-    const expr = stripNode(stmt.expression);
-    if (expr.type === 'AssignmentExpression' && expr.left.type === 'Identifier') {
-      const next = new Map(env);
-      next.set(expr.left.name, refineOfExpr(expr.right));
-      return next;
-    }
-    if (expr.type === 'CallExpression') {noteSink(expr, env, findings, file);}
-    return env;
-  }
+  if (stmt.type === 'VariableDeclaration') {return execVars(stmt, env);}
+  if (stmt.type === 'ExpressionStatement') {return execExpr(stmt, env, findings, file);}
   if (stmt.type === 'ReturnStatement' || stmt.type === 'ThrowStatement') {return env;}
   if (stmt.type === 'IfStatement') {return execIf(stmt, env, findings, file);}
-  if (stmt.type === 'SwitchStatement' && stmt.discriminant.type === 'Identifier') {
-    for (const item of stmt.cases) {
-      const next = new Map(env);
-      if (item.test !== null && item.test.type === 'Literal') {next.set(stmt.discriminant.name, { dropStrings: true });}
-      execBlock(item.consequent, next, findings, file);
-    }
-    return env;
-  }
+  if (stmt.type === 'SwitchStatement' && stmt.discriminant.type === 'Identifier') {return execSwitch(stmt, env, findings, file);}
   return env;
+}
+
+function execVars(stmt: TSESTree.VariableDeclaration, env: Map<string, Refine>): Map<string, Refine> {
+  const next = new Map(env);
+  for (const decl of stmt.declarations) {
+    if (decl.id.type === 'Identifier' && decl.init !== null) {next.set(decl.id.name, refineOfExpr(decl.init));}
+  }
+  return next;
+}
+
+function execExpr(
+  stmt: TSESTree.ExpressionStatement,
+  env: Map<string, Refine>,
+  findings: NarrowFinding[],
+  file: string,
+): Map<string, Refine> {
+  const expr = stripNode(stmt.expression);
+  if (expr.type === 'AssignmentExpression' && expr.left.type === 'Identifier') {
+    const next = new Map(env);
+    next.set(expr.left.name, refineOfExpr(expr.right));
+    return next;
+  }
+  if (expr.type === 'CallExpression') {noteSink(expr, env, findings, file);}
+  return env;
+}
+
+function execSwitch(
+  stmt: TSESTree.SwitchStatement,
+  env: Map<string, Refine>,
+  findings: NarrowFinding[],
+  file: string,
+): Map<string, Refine> {
+  if (stmt.discriminant.type !== 'Identifier') {return env;}
+  for (const item of stmt.cases) {execCase(item, stmt.discriminant.name, env, findings, file);}
+  return env;
+}
+
+function execCase(
+  item: TSESTree.SwitchCase,
+  name: string,
+  env: Map<string, Refine>,
+  findings: NarrowFinding[],
+  file: string,
+): void {
+  const next = new Map(env);
+  if (item.test !== null && item.test.type === 'Literal') {next.set(name, { dropStrings: true });}
+  execBlock(item.consequent, next, findings, file);
 }
 
 function execIf(
@@ -110,38 +135,77 @@ function noteSink(call: TSESTree.CallExpression, env: ReadonlyMap<string, Refine
 
 function condition(node: TSESTree.Node): { name: string; positive: boolean } | null {
   const current = stripNode(node);
-  if (current.type === 'UnaryExpression' && current.operator === '!') {
-    const inner = condition(current.argument);
-    if (inner === null) {return null;}
-    return { name: inner.name, positive: !inner.positive };
-  }
-  if (current.type === 'BinaryExpression' && (current.operator === '===' || current.operator === '==') && current.left.type === 'UnaryExpression' && current.left.operator === 'typeof' && current.left.argument.type === 'Identifier' && current.right.type === 'Literal' && current.right.value === 'number') {
-    return { name: current.left.argument.name, positive: true };
-  }
-  if (current.type === 'BinaryExpression' && current.operator === '!==' && current.left.type === 'UnaryExpression' && current.left.operator === 'typeof' && current.left.argument.type === 'Identifier' && current.right.type === 'Literal' && (current.right.value === 'number' || current.right.value === 'boolean')) {
-    return { name: current.left.argument.name, positive: false };
-  }
-  if (current.type === 'BinaryExpression' && current.operator === 'instanceof' && current.left.type === 'Identifier' && current.right.type === 'Identifier' && current.right.name === 'Date') {
-    return { name: current.left.name, positive: true };
-  }
-  if (current.type === 'BinaryExpression' && (current.operator === '===' || current.operator === '==' || current.operator === '!==') && current.left.type === 'Identifier' && current.right.type === 'Literal' && typeof current.right.value === 'boolean') {
-    return { name: current.left.name, positive: current.operator !== '!==' };
-  }
-  if (current.type === 'CallExpression' && current.callee.type === 'MemberExpression' && propName(current.callee) === 'isInteger' && current.arguments[0]?.type === 'Identifier') {
-    const arg = current.arguments[0];
-    return arg.type === 'Identifier' ? { name: arg.name, positive: true } : null;
-  }
-  if (current.type === 'CallExpression' && current.callee.type === 'MemberExpression' && propName(current.callee) === 'isArray' && current.arguments[0]?.type === 'Identifier') {
-    const arg = current.arguments[0];
-    return arg.type === 'Identifier' ? { name: arg.name, positive: true } : null;
-  }
-  if (current.type === 'CallExpression' && current.callee.type === 'MemberExpression' && propName(current.callee) === 'test' && current.arguments[0]?.type === 'Identifier') {
-    const arg = current.arguments[0];
-    if (arg.type !== 'Identifier') {return null;}
-    const regex = current.callee.type === 'MemberExpression' ? current.callee.object : null;
-    if (regex !== null && regex.type === 'Literal' && 'regex' in regex && regex.regex?.pattern === '^\\d+$') {return { name: arg.name, positive: true };}
-  }
+  const negated = negatedCondition(current);
+  if (negated !== undefined) {return negated;}
+  return typeofNumber(current)
+    ?? typeofOther(current)
+    ?? instanceofDate(current)
+    ?? booleanCompare(current)
+    ?? callPredicate(current);
+}
+
+function negatedCondition(current: TSESTree.Node): { name: string; positive: boolean } | null | undefined {
+  if (current.type !== 'UnaryExpression' || current.operator !== '!') {return undefined;}
+  const inner = condition(current.argument);
+  if (inner === null) {return null;}
+  return { name: inner.name, positive: !inner.positive };
+}
+
+function typeofNumber(current: TSESTree.Node): { name: string; positive: boolean } | null {
+  if (!isTypeofCompare(current, '===') && !isTypeofCompare(current, '==')) {return null;}
+  if (current.right.value !== 'number') {return null;}
+  return { name: current.left.argument.name, positive: true };
+}
+
+function typeofOther(current: TSESTree.Node): { name: string; positive: boolean } | null {
+  if (!isTypeofCompare(current, '!==')) {return null;}
+  if (current.right.value !== 'number' && current.right.value !== 'boolean') {return null;}
+  return { name: current.left.argument.name, positive: false };
+}
+
+function isTypeofCompare(current: TSESTree.Node, operator: string): current is TSESTree.BinaryExpression & {
+  left: TSESTree.UnaryExpression & { argument: TSESTree.Identifier };
+  right: TSESTree.Literal;
+} {
+  return current.type === 'BinaryExpression'
+    && current.operator === operator
+    && current.left.type === 'UnaryExpression'
+    && current.left.operator === 'typeof'
+    && current.left.argument.type === 'Identifier'
+    && current.right.type === 'Literal';
+}
+
+function instanceofDate(current: TSESTree.Node): { name: string; positive: boolean } | null {
+  if (current.type !== 'BinaryExpression' || current.operator !== 'instanceof') {return null;}
+  if (current.left.type !== 'Identifier' || current.right.type !== 'Identifier' || current.right.name !== 'Date') {return null;}
+  return { name: current.left.name, positive: true };
+}
+
+function booleanCompare(current: TSESTree.Node): { name: string; positive: boolean } | null {
+  if (current.type !== 'BinaryExpression' || current.left.type !== 'Identifier') {return null;}
+  if (current.right.type !== 'Literal' || typeof current.right.value !== 'boolean') {return null;}
+  if (current.operator !== '===' && current.operator !== '==' && current.operator !== '!==') {return null;}
+  return { name: current.left.name, positive: current.operator !== '!==' };
+}
+
+function callPredicate(current: TSESTree.Node): { name: string; positive: boolean } | null {
+  const named = namedCall(current);
+  if (named === null) {return null;}
+  if (named.method === 'isInteger' || named.method === 'isArray') {return { name: named.arg, positive: true };}
+  if (named.method === 'test' && digitRegex(named.object)) {return { name: named.arg, positive: true };}
   return null;
+}
+
+function namedCall(current: TSESTree.Node): { method: string; arg: string; object: TSESTree.Node } | null {
+  if (current.type !== 'CallExpression' || current.callee.type !== 'MemberExpression') {return null;}
+  const method = propName(current.callee);
+  const arg = current.arguments[0];
+  if (method === null || arg === undefined || arg.type !== 'Identifier') {return null;}
+  return { method, arg: arg.name, object: current.callee.object };
+}
+
+function digitRegex(object: TSESTree.Node): boolean {
+  return object.type === 'Literal' && 'regex' in object && object.regex?.pattern === '^\\d+$';
 }
 
 function refineOfExpr(node: TSESTree.Node): Refine {

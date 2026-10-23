@@ -31,37 +31,52 @@ export function analyzeHierarchy(source: string, options?: { file?: string }): {
   const file = options?.file ?? 'inline.js';
   const classes = new Map<string, ClassInfo>();
   const objects = new Map<string, Map<string, MethodFn>>();
-  const ensure = (name: string): ClassInfo => {
-    const found = classes.get(name);
-    if (found !== undefined) {return found;}
-    const created: ClassInfo = { parent: null, methods: new Map() };
-    classes.set(name, created);
-    return created;
-  };
-  for (const stmt of program.body) {
-    if (stmt.type === 'ClassDeclaration' && stmt.id !== null) {
-      const info = ensure(stmt.id.name);
-      if (stmt.superClass !== null && stmt.superClass.type === 'Identifier') {info.parent = stmt.superClass.name;}
-      for (const member of stmt.body.body) {
-        if (member.type !== 'MethodDefinition' || member.kind !== 'method' || member.key.type !== 'Identifier') {continue;}
-        if (member.value.type !== 'FunctionExpression') {continue;}
-        info.methods.set(member.key.name, fnOf(member.value));
-      }
-    }
-    if (stmt.type === 'FunctionDeclaration' && stmt.id !== null) {ensure(stmt.id.name);}
-    if (stmt.type === 'VariableDeclaration') {
-      for (const decl of stmt.declarations) {
-        if (decl.id.type === 'Identifier' && decl.init !== null && decl.init.type === 'ObjectExpression') {
-          objects.set(decl.id.name, objectMethods(decl.init));
-        }
-      }
-    }
-    if (stmt.type === 'ExpressionStatement') {notePrototype(stmt.expression, ensure, objects);}
-  }
+  const ensure = (name: string): ClassInfo => ensureClass(classes, name);
+  for (const stmt of program.body) {collectDecl(stmt, ensure, objects);}
   const points = new Map<string, string>();
   const findings: HierarchyFinding[] = [];
   for (const stmt of program.body) {execStmt(stmt, points, classes, findings, file);}
   return { findings };
+}
+
+function ensureClass(classes: Map<string, ClassInfo>, name: string): ClassInfo {
+  const found = classes.get(name);
+  if (found !== undefined) {return found;}
+  const created: ClassInfo = { parent: null, methods: new Map() };
+  classes.set(name, created);
+  return created;
+}
+
+function collectDecl(
+  stmt: TSESTree.Statement,
+  ensure: (name: string) => ClassInfo,
+  objects: Map<string, Map<string, MethodFn>>,
+): void {
+  if (stmt.type === 'ClassDeclaration' && stmt.id !== null) {collectClass(stmt, ensure);}
+  if (stmt.type === 'FunctionDeclaration' && stmt.id !== null) {ensure(stmt.id.name);}
+  if (stmt.type === 'VariableDeclaration') {collectObjects(stmt, objects);}
+  if (stmt.type === 'ExpressionStatement') {notePrototype(stmt.expression, ensure, objects);}
+}
+
+function collectClass(stmt: TSESTree.ClassDeclaration, ensure: (name: string) => ClassInfo): void {
+  if (stmt.id === null) {return;}
+  const info = ensure(stmt.id.name);
+  if (stmt.superClass !== null && stmt.superClass.type === 'Identifier') {info.parent = stmt.superClass.name;}
+  for (const member of stmt.body.body) {collectMethod(member, info);}
+}
+
+function collectMethod(member: TSESTree.ClassElement, info: ClassInfo): void {
+  if (member.type !== 'MethodDefinition' || member.kind !== 'method' || member.key.type !== 'Identifier') {return;}
+  if (member.value.type !== 'FunctionExpression') {return;}
+  info.methods.set(member.key.name, fnOf(member.value));
+}
+
+function collectObjects(stmt: TSESTree.VariableDeclaration, objects: Map<string, Map<string, MethodFn>>): void {
+  for (const decl of stmt.declarations) {
+    if (decl.id.type === 'Identifier' && decl.init !== null && decl.init.type === 'ObjectExpression') {
+      objects.set(decl.id.name, objectMethods(decl.init));
+    }
+  }
 }
 
 function fnOf(fn: TSESTree.FunctionExpression | TSESTree.FunctionDeclaration): MethodFn {
@@ -86,36 +101,76 @@ function notePrototype(
   objects: ReadonlyMap<string, Map<string, MethodFn>>,
 ): void {
   const node = stripNode(expr);
-  if (node.type === 'AssignmentExpression' && node.left.type === 'MemberExpression') {
-    const proto = node.left.object;
-    if (proto.type === 'MemberExpression' && propName(proto) === 'prototype' && proto.object.type === 'Identifier') {
-      const method = propName(node.left);
-      if (method !== null && node.right.type === 'FunctionExpression') {
-        ensure(proto.object.name).methods.set(method, fnOf(node.right));
-      }
-    }
-  }
+  noteProtoAssign(node, ensure);
   if (node.type !== 'CallExpression') {return;}
+  noteProtoCall(node, ensure, objects);
+}
+
+function noteProtoAssign(node: TSESTree.Node, ensure: (name: string) => ClassInfo): void {
+  if (node.type !== 'AssignmentExpression' || node.left.type !== 'MemberExpression') {return;}
+  const proto = node.left.object;
+  if (proto.type !== 'MemberExpression' || propName(proto) !== 'prototype' || proto.object.type !== 'Identifier') {return;}
+  const method = propName(node.left);
+  if (method !== null && node.right.type === 'FunctionExpression') {
+    ensure(proto.object.name).methods.set(method, fnOf(node.right));
+  }
+}
+
+function noteProtoCall(
+  node: TSESTree.CallExpression,
+  ensure: (name: string) => ClassInfo,
+  objects: ReadonlyMap<string, Map<string, MethodFn>>,
+): void {
   const callee = stripNode(node.callee);
-  const name = callee.type === 'Identifier' ? callee.name : callee.type === 'MemberExpression' ? propName(callee) : null;
-  if (name === 'inherits' && node.arguments.length >= 2) {
-    const sub = node.arguments[0];
-    const base = node.arguments[1];
-    if (sub !== undefined && base !== undefined && sub.type === 'Identifier' && base.type === 'Identifier') {
-      ensure(sub.name).parent = base.name;
-    }
+  const name = calleeName(callee);
+  if (name === 'inherits') {noteInherits(node, ensure);}
+  if (name === 'assign') {noteAssign(node, ensure, objects);}
+}
+
+function calleeName(callee: TSESTree.Node): string | null {
+  if (callee.type === 'Identifier') {return callee.name;}
+  if (callee.type === 'MemberExpression') {return propName(callee);}
+  return null;
+}
+
+function noteInherits(node: TSESTree.CallExpression, ensure: (name: string) => ClassInfo): void {
+  if (node.arguments.length < 2) {return;}
+  const sub = node.arguments[0];
+  const base = node.arguments[1];
+  if (sub !== undefined && base !== undefined && sub.type === 'Identifier' && base.type === 'Identifier') {
+    ensure(sub.name).parent = base.name;
   }
-  if (name === 'assign' && node.arguments.length >= 2) {
-    const target = node.arguments[0];
-    const mixin = node.arguments[1];
-    if (target !== undefined && mixin !== undefined && target.type === 'MemberExpression' && propName(target) === 'prototype' && target.object.type === 'Identifier') {
-      const info = ensure(target.object.name);
-      const methods = mixin.type === 'Identifier' ? objects.get(mixin.name) : mixin.type === 'ObjectExpression' ? objectMethods(mixin) : undefined;
-      if (methods !== undefined) {
-        for (const [key, method] of methods) {info.methods.set(key, method);}
-      }
-    }
-  }
+}
+
+function noteAssign(
+  node: TSESTree.CallExpression,
+  ensure: (name: string) => ClassInfo,
+  objects: ReadonlyMap<string, Map<string, MethodFn>>,
+): void {
+  if (node.arguments.length < 2) {return;}
+  const target = node.arguments[0];
+  const mixin = node.arguments[1];
+  if (!isPrototypeTarget(target) || mixin === undefined) {return;}
+  const info = ensure(target.object.name);
+  const methods = mixinMethods(mixin, objects);
+  if (methods === undefined) {return;}
+  for (const [key, method] of methods) {info.methods.set(key, method);}
+}
+
+function isPrototypeTarget(target: TSESTree.CallExpressionArgument | undefined): target is TSESTree.MemberExpression & { object: TSESTree.Identifier } {
+  return target !== undefined
+    && target.type === 'MemberExpression'
+    && propName(target) === 'prototype'
+    && target.object.type === 'Identifier';
+}
+
+function mixinMethods(
+  mixin: TSESTree.CallExpressionArgument,
+  objects: ReadonlyMap<string, Map<string, MethodFn>>,
+): Map<string, MethodFn> | undefined {
+  if (mixin.type === 'Identifier') {return objects.get(mixin.name);}
+  if (mixin.type === 'ObjectExpression') {return objectMethods(mixin);}
+  return undefined;
 }
 
 function execStmt(

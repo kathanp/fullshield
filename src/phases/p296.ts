@@ -23,50 +23,70 @@ export function analyzeGraphql(source: string, options?: { file?: string }): { f
   const enums = enumFields(program);
   const findings: GraphqlFinding[] = [];
   const routes: string[] = [];
-  for (const stmt of program.body) {
-    if (stmt.type !== 'VariableDeclaration') {continue;}
-    for (const decl of stmt.declarations) {
-      if (decl.id.type !== 'Identifier' || decl.init === null || decl.init.type !== 'ObjectExpression') {continue;}
-      if (decl.id.name !== 'resolvers') {continue;}
-      for (const parent of decl.init.properties) {
-        if (parent.type !== 'Property' || parent.key.type !== 'Identifier' || parent.value.type !== 'ObjectExpression') {continue;}
-        for (const field of parent.value.properties) {
-          if (field.type !== 'Property' || field.key.type !== 'Identifier') {continue;}
-          const route = `GRAPHQL ${parent.key.name}.${field.key.name}`;
-          routes.push(route);
-          const fn = field.value.type === 'FunctionExpression' || field.value.type === 'ArrowFunctionExpression' ? field.value : null;
-          if (fn === null || fn.body.type !== 'BlockStatement') {continue;}
-          const argsName = fn.params[1]?.type === 'Identifier' ? fn.params[1].name : null;
-          for (const inner of fn.body.body) {
-            if (inner.type !== 'ExpressionStatement' || inner.expression.type !== 'CallExpression') {continue;}
-            const callee = inner.expression.callee;
-            if (callee.type !== 'MemberExpression' || propName(callee) !== 'query') {continue;}
-            const arg = inner.expression.arguments[0];
-            if (arg === undefined || argsName === null || !usesArg(arg, argsName)) {continue;}
-            const fieldName = argField(arg, argsName);
-            if (fieldName !== null && enums.has(fieldName)) {continue;}
-            findings.push({ file, line: lineOf(inner), route, finding: true });
-          }
-        }
-      }
-    }
-  }
+  const bag: GqlBag = { enums, findings, routes, file };
+  for (const stmt of program.body) {scanResolvers(stmt, bag);}
   return { findings, routes, events: [] };
+}
+
+interface GqlBag {
+  enums: ReadonlySet<string>;
+  findings: GraphqlFinding[];
+  routes: string[];
+  file: string;
+}
+
+function scanResolvers(stmt: TSESTree.Statement, bag: GqlBag): void {
+  if (stmt.type !== 'VariableDeclaration') {return;}
+  for (const decl of stmt.declarations) {scanResolverDecl(decl, bag);}
+}
+
+function scanResolverDecl(decl: TSESTree.VariableDeclarator, bag: GqlBag): void {
+  if (decl.id.type !== 'Identifier' || decl.id.name !== 'resolvers' || decl.init === null || decl.init.type !== 'ObjectExpression') {return;}
+  for (const parent of decl.init.properties) {scanResolverType(parent, bag);}
+}
+
+function scanResolverType(parent: TSESTree.ObjectLiteralElement, bag: GqlBag): void {
+  if (parent.type !== 'Property' || parent.key.type !== 'Identifier' || parent.value.type !== 'ObjectExpression') {return;}
+  for (const field of parent.value.properties) {scanResolverField(parent.key.name, field, bag);}
+}
+
+function scanResolverField(parentName: string, field: TSESTree.ObjectLiteralElement, bag: GqlBag): void {
+  if (field.type !== 'Property' || field.key.type !== 'Identifier') {return;}
+  const route = `GRAPHQL ${parentName}.${field.key.name}`;
+  bag.routes.push(route);
+  const fn = resolverFn(field.value);
+  if (fn === null) {return;}
+  const argsName = fn.params[1]?.type === 'Identifier' ? fn.params[1].name : null;
+  for (const inner of fn.body.body) {noteGraphqlQuery(inner, argsName, route, bag);}
+}
+
+function resolverFn(value: TSESTree.Node): (TSESTree.FunctionExpression | TSESTree.ArrowFunctionExpression) & { body: TSESTree.BlockStatement } | null {
+  if (value.type !== 'FunctionExpression' && value.type !== 'ArrowFunctionExpression') {return null;}
+  if (value.body.type !== 'BlockStatement') {return null;}
+  return value as (TSESTree.FunctionExpression | TSESTree.ArrowFunctionExpression) & { body: TSESTree.BlockStatement };
+}
+
+function noteGraphqlQuery(inner: TSESTree.Statement, argsName: string | null, route: string, bag: GqlBag): void {
+  const arg = queryArg(inner);
+  if (arg === null || argsName === null || !usesArg(arg, argsName)) {return;}
+  const fieldName = argField(arg, argsName);
+  if (fieldName !== null && bag.enums.has(fieldName)) {return;}
+  bag.findings.push({ file: bag.file, line: lineOf(inner), route, finding: true });
+}
+
+function queryArg(inner: TSESTree.Statement): TSESTree.Node | null {
+  if (inner.type !== 'ExpressionStatement' || inner.expression.type !== 'CallExpression') {return null;}
+  const callee = inner.expression.callee;
+  if (callee.type !== 'MemberExpression' || propName(callee) !== 'query') {return null;}
+  const arg = inner.expression.arguments[0];
+  if (arg === undefined) {return null;}
+  return arg;
 }
 
 function enumFields(program: TSESTree.Program): Set<string> {
   const names = new Set<string>();
   const visit = (node: TSESTree.Node): void => {
-    if (node.type === 'ObjectExpression') {
-      for (const prop of node.properties) {
-        if (prop.type === 'Property' && prop.key.type === 'Identifier' && prop.value.type === 'ObjectExpression') {
-          for (const inner of prop.value.properties) {
-            if (inner.type === 'Property' && inner.key.type === 'Identifier' && inner.key.name === 'enum') {names.add(prop.key.name);}
-          }
-        }
-        if (prop.type === 'Property') {visit(prop.value);}
-      }
-    }
+    if (node.type === 'ObjectExpression') {visitObject(node, names, visit);}
   };
   for (const stmt of program.body) {
     if (stmt.type === 'VariableDeclaration') {
@@ -76,6 +96,23 @@ function enumFields(program: TSESTree.Program): Set<string> {
     }
   }
   return names;
+}
+
+function visitObject(node: TSESTree.ObjectExpression, names: Set<string>, visit: (node: TSESTree.Node) => void): void {
+  for (const prop of node.properties) {visitEnumProp(prop, names, visit);}
+}
+
+function visitEnumProp(prop: TSESTree.ObjectLiteralElement, names: Set<string>, visit: (node: TSESTree.Node) => void): void {
+  if (prop.type === 'Property' && prop.key.type === 'Identifier' && prop.value.type === 'ObjectExpression') {
+    noteEnum(prop.key.name, prop.value, names);
+  }
+  if (prop.type === 'Property') {visit(prop.value);}
+}
+
+function noteEnum(name: string, value: TSESTree.ObjectExpression, names: Set<string>): void {
+  for (const inner of value.properties) {
+    if (inner.type === 'Property' && inner.key.type === 'Identifier' && inner.key.name === 'enum') {names.add(name);}
+  }
 }
 
 function usesArg(node: TSESTree.Node, argsName: string): boolean {

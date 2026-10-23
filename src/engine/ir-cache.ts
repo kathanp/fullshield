@@ -141,17 +141,30 @@ function isParam(value: unknown): value is IrParam {
 }
 
 function isNode(value: unknown): value is IrNode {
+  if (!isNodeHeader(value)) {return false;}
+  return isNodeSlots(value);
+}
+
+function isNodeHeader(value: unknown): value is Record<string, unknown> {
   if (!isRecord(value) || typeof value.op !== 'string' || !OPS.has(value.op)) {return false;}
   if (typeof value.file !== 'string' || !isInt(value.line, 0) || !isInt(value.col, 0)) {return false;}
-  if (value.dest !== undefined && !isInt(value.dest, 1)) {return false;}
-  if (value.cond !== undefined && !isInt(value.cond, 1)) {return false;}
-  if (value.object !== undefined && !isInt(value.object, 1)) {return false;}
+  return true;
+}
+
+function isNodeSlots(value: Record<string, unknown>): boolean {
+  if (!optionalInt(value, 'dest') || !optionalInt(value, 'cond') || !optionalInt(value, 'object')) {return false;}
   if (value.name !== undefined && typeof value.name !== 'string') {return false;}
-  if (value.args !== undefined && !(Array.isArray(value.args) && value.args.every((item) => isInt(item, 1)))) {
-    return false;
-  }
+  if (value.args !== undefined && !isIntList(value.args)) {return false;}
   if ('literal' in value && !isLiteral(value.literal)) {return false;}
   return true;
+}
+
+function optionalInt(row: Record<string, unknown>, key: string): boolean {
+  return row[key] === undefined || isInt(row[key], 1);
+}
+
+function isIntList(value: unknown): boolean {
+  return Array.isArray(value) && value.every((item) => isInt(item, 1));
 }
 
 function isLiteral(value: unknown): boolean {

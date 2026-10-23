@@ -30,41 +30,68 @@ export function analyzeOrm(source: string, options: { library: string; version: 
   const packagePath = options.packagePath ?? options.library;
   const selected = selectRow(rows, options.version, packagePath);
   const verkey = process.env.FULLSHIELD_EXPERIMENTAL_VERKEY === '1';
-  const supported = verkey ? selected.row !== null && !selected.fallback : rows.some((row) => row.appliesTo !== undefined && satisfiesRange(options.version, row.appliesTo));
+  const supported = ormSupported(verkey, selected, rows, options.version);
   const events = verkey ? selected.events : [];
   const program = parseProgram(source);
   if (program === null) {return { findings: [], events, row: selected.row?.id ?? null };}
   const findings: OrmFinding[] = [];
-  walkAst(program, (node) => {
-    if (node.type === 'CallExpression') {noteCall(node, options.library, supported, findings, file);}
-    if (node.type === 'TaggedTemplateExpression' && !supported) {return;}
-  });
-  return { findings, events, row: supported ? (selected.row?.id ?? rows[0]?.id ?? null) : null };
+  walkAst(program, (node) => {visitOrm(node, options.library, supported, findings, file);});
+  return { findings, events, row: supportedRow(supported, selected.row?.id, rows) };
+}
+
+function ormSupported(verkey: boolean, selected: { row: ModelRow | null; fallback: boolean }, rows: readonly ModelRow[], version: string): boolean {
+  if (verkey) {return selected.row !== null && !selected.fallback;}
+  return rows.some((row) => row.appliesTo !== undefined && satisfiesRange(version, row.appliesTo));
+}
+
+function supportedRow(supported: boolean, selectedId: string | undefined, rows: readonly ModelRow[]): string | null {
+  if (!supported) {return null;}
+  return selectedId ?? rows[0]?.id ?? null;
+}
+
+function visitOrm(node: TSESTree.Node, library: string, supported: boolean, findings: OrmFinding[], file: string): void {
+  if (node.type === 'CallExpression') {noteCall(node, library, supported, findings, file);}
 }
 
 function noteCall(call: TSESTree.CallExpression, library: string, supported: boolean, findings: OrmFinding[], file: string): void {
-  const callee = stripNode(call.callee);
-  const name = callee.type === 'Identifier' ? callee.name : callee.type === 'MemberExpression' ? propName(callee) : null;
+  const name = calleeName(stripNode(call.callee));
   if (name === null) {return;}
-  if ((name === 'query' || name === 'literal' || name === '$where' || name === 'raw') && call.arguments.some((arg) => arg.type !== 'SpreadElement' && tainted(arg))) {
-    findings.push({ file, line: lineOf(call), library, sink: 'raw' });
-    return;
-  }
+  if (isRawSink(name) && hasTaintedArg(call)) {findings.push({ file, line: lineOf(call), library, sink: 'raw' }); return;}
   if (name === 'where' && bound(call)) {return;}
-  if (name === 'where' && call.arguments.some((arg) => arg.type !== 'SpreadElement' && wholeObject(arg))) {
-    findings.push({ file, line: lineOf(call), library, sink: 'operator' });
-    return;
-  }
-  if (name === 'findAll' || name === 'find' || name === 'findMany' || name === 'create') {
-    const arg = call.arguments[0];
-    if (arg !== undefined && arg.type === 'ObjectExpression') {
-      const rawWhere = property(arg, '$where');
-      if (rawWhere !== null && (wholeObject(rawWhere) || tainted(rawWhere))) {findings.push({ file, line: lineOf(call), library, sink: 'raw' });}
-      const where = property(arg, 'where');
-      if (where !== null && wholeObject(where)) {findings.push({ file, line: lineOf(call), library, sink: 'operator' });}
-    }
-  }
+  if (name === 'where' && hasWholeArg(call)) {findings.push({ file, line: lineOf(call), library, sink: 'operator' }); return;}
+  if (isFinder(name)) {noteFinder(call, library, findings, file);}
   if (!supported && name === 'findAll') {return;}
+}
+
+function calleeName(callee: TSESTree.Node): string | null {
+  if (callee.type === 'Identifier') {return callee.name;}
+  if (callee.type === 'MemberExpression') {return propName(callee);}
+  return null;
+}
+
+function isRawSink(name: string): boolean {
+  return name === 'query' || name === 'literal' || name === '$where' || name === 'raw';
+}
+
+function isFinder(name: string): boolean {
+  return name === 'findAll' || name === 'find' || name === 'findMany' || name === 'create';
+}
+
+function hasTaintedArg(call: TSESTree.CallExpression): boolean {
+  return call.arguments.some((arg) => arg.type !== 'SpreadElement' && tainted(arg));
+}
+
+function hasWholeArg(call: TSESTree.CallExpression): boolean {
+  return call.arguments.some((arg) => arg.type !== 'SpreadElement' && wholeObject(arg));
+}
+
+function noteFinder(call: TSESTree.CallExpression, library: string, findings: OrmFinding[], file: string): void {
+  const arg = call.arguments[0];
+  if (arg === undefined || arg.type !== 'ObjectExpression') {return;}
+  const rawWhere = property(arg, '$where');
+  if (rawWhere !== null && (wholeObject(rawWhere) || tainted(rawWhere))) {findings.push({ file, line: lineOf(call), library, sink: 'raw' });}
+  const where = property(arg, 'where');
+  if (where !== null && wholeObject(where)) {findings.push({ file, line: lineOf(call), library, sink: 'operator' });}
 }
 
 function bound(call: TSESTree.CallExpression): boolean {

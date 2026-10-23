@@ -30,29 +30,11 @@ export function analyzeEnvSources(
   const severity: EnvFinding['severity'] = options?.trustEnvironment === false ? 'medium' : 'info';
   const findings: EnvFinding[] = [];
   const env = new Map<string, boolean>();
-  const walk = (stmts: readonly TSESTree.Statement[]): void => {
-    for (const stmt of stmts) {
-      if (stmt.type === 'FunctionDeclaration' || stmt.type === 'BlockStatement') {
-        walk(stmt.type === 'BlockStatement' ? stmt.body : stmt.body.body);
-        continue;
-      }
-      if (stmt.type === 'VariableDeclaration') {
-        for (const decl of stmt.declarations) {
-          if (decl.id.type === 'Identifier' && decl.init !== null) {env.set(decl.id.name, isEnv(decl.init) || (decl.init.type === 'Identifier' && env.get(decl.init.name) === true));}
-        }
-      }
-      if (stmt.type === 'ExpressionStatement' && stmt.expression.type === 'CallExpression') {
-        const sink = sinkOf(stmt.expression);
-        if (sink !== null && callUsesEnv(stmt.expression, env)) {
-          findings.push({ file, line: lineOf(stmt.expression), origin: 'environment', severity, sinkClass: sink });
-        }
-      }
-      if (stmt.type === 'ExpressionStatement' && stmt.expression.type === 'AssignmentExpression' && stmt.expression.left.type === 'Identifier') {
-        env.set(stmt.expression.left.name, isEnv(stmt.expression.right));
-      }
-    }
+  const bag: EnvWalk = { file, severity, findings, walk: () => undefined };
+  bag.walk = (stmts) => {
+    for (const stmt of stmts) {walkEnv(stmt, env, bag);}
   };
-  walk(program.body);
+  bag.walk(program.body);
   return { findings };
 }
 
@@ -70,6 +52,47 @@ export function scanTreeForEnv(root: string): EnvFinding[] {
   };
   visit(root);
   return findings;
+}
+
+interface EnvWalk {
+  file: string;
+  severity: EnvFinding['severity'];
+  findings: EnvFinding[];
+  walk: (stmts: readonly TSESTree.Statement[]) => void;
+}
+
+function walkEnv(stmt: TSESTree.Statement, env: Map<string, boolean>, bag: EnvWalk): void {
+  if (stmt.type === 'FunctionDeclaration' || stmt.type === 'BlockStatement') {
+    bag.walk(stmt.type === 'BlockStatement' ? stmt.body : stmt.body.body);
+    return;
+  }
+  if (stmt.type === 'VariableDeclaration') {bindEnvVars(stmt, env);}
+  noteEnvCall(stmt, env, bag);
+  noteEnvAssign(stmt, env);
+}
+
+function bindEnvVars(stmt: TSESTree.VariableDeclaration, env: Map<string, boolean>): void {
+  for (const decl of stmt.declarations) {
+    if (decl.id.type === 'Identifier' && decl.init !== null) {env.set(decl.id.name, envInit(decl.init, env));}
+  }
+}
+
+function envInit(init: TSESTree.Expression, env: ReadonlyMap<string, boolean>): boolean {
+  return isEnv(init) || (init.type === 'Identifier' && env.get(init.name) === true);
+}
+
+function noteEnvCall(stmt: TSESTree.Statement, env: Map<string, boolean>, bag: EnvWalk): void {
+  if (stmt.type !== 'ExpressionStatement' || stmt.expression.type !== 'CallExpression') {return;}
+  const sink = sinkOf(stmt.expression);
+  if (sink !== null && callUsesEnv(stmt.expression, env)) {
+    bag.findings.push({ file: bag.file, line: lineOf(stmt.expression), origin: 'environment', severity: bag.severity, sinkClass: sink });
+  }
+}
+
+function noteEnvAssign(stmt: TSESTree.Statement, env: Map<string, boolean>): void {
+  if (stmt.type !== 'ExpressionStatement' || stmt.expression.type !== 'AssignmentExpression') {return;}
+  if (stmt.expression.left.type !== 'Identifier') {return;}
+  env.set(stmt.expression.left.name, isEnv(stmt.expression.right));
 }
 
 function isEnv(node: TSESTree.Node): boolean {

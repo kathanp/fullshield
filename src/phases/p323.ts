@@ -69,66 +69,107 @@ function boundaryHost(sample: string, host: string): boolean {
   return beforeOk && afterOk;
 }
 
-function row(file: string, line: number, severity: CorsFinding['severity'], confidence: CorsFinding['confidence'], message: string, witness: string): CorsFinding {
-  return { ruleId: 'CONFIG-CORSV2-001', severity, confidence, file, line, message, witness };
+function row(input: Pick<CorsFinding, 'file' | 'line' | 'severity' | 'confidence' | 'message' | 'witness'>): CorsFinding {
+  return { ruleId: 'CONFIG-CORSV2-001', severity: input.severity, confidence: input.confidence, file: input.file, line: input.line, message: input.message, witness: input.witness };
+}
+
+function one(options: CorsOptions, severity: CorsFinding['severity'], confidence: CorsFinding['confidence'], message: string, witness: string): CorsResult {
+  return { findings: [row({ file: options.file, line: options.line, severity, confidence, message, witness })], events: [] };
+}
+
+function literalValues(origin: CorsOrigin): readonly string[] | undefined {
+  if (origin.kind === 'literal') {
+    return [origin.value];
+  }
+  if (origin.kind === 'literals') {
+    return origin.values;
+  }
+  if (origin.kind === 'null') {
+    return ['null'];
+  }
+  return undefined;
+}
+
+function earlyFinding(options: CorsOptions): CorsResult | undefined {
+  const origin = options.origin;
+  if (origin.kind === 'reflect-request' && options.credentials) {
+    return one(options, 'critical', 'high', 'CORS reflects the request origin with credentials.', 'reflect-request');
+  }
+  const literals = literalValues(origin);
+  if (literals !== undefined) {
+    if (literals.includes('null')) {
+      return one(options, 'high', 'high', 'CORS allows the null origin.', 'null');
+    }
+    return { findings: [], events: [] };
+  }
+  if (origin.kind !== 'function') {
+    return undefined;
+  }
+  if (origin.identity) {
+    return { findings: [], events: [] };
+  }
+  return one(options, 'low', 'low', 'CORS origin function is not the identity echo.', 'function');
+}
+
+function unknownRegex(options: CorsOptions, source: string): CorsResult {
+  return one(options, 'low', 'low', 'CORS regex is unknown to the automaton.', source);
+}
+
+function regexCandidates(host: string): string[] {
+  return [`not${host}`, `x${host}`, `${host}.attacker.example`, `https://${host}.not.example`];
+}
+
+function compileRegex(source: string): RegExp | undefined {
+  try {
+    return new RegExp(source);
+  } catch {
+    return undefined;
+  }
+}
+
+function searchRegex(compiled: RegExp, host: string, options: CorsOptions): CorsResult {
+  let left = options.fuel ?? 32;
+  for (const candidate of regexCandidates(host)) {
+    if (left <= 0) {
+      return {
+        findings: [row({ file: options.file, line: options.line, severity: 'low', confidence: 'low', message: 'CORS regex search exhausted its fuel.', witness: 'fuel' })],
+        events: [{ code: 271, file: options.file, detail: 'cors regex fuel exhausted' }],
+      };
+    }
+    left -= 1;
+    if (compiled.test(candidate) && !boundaryHost(candidate, host)) {
+      return one(options, 'medium', 'medium', 'CORS regex accepts a string that is not a boundary match of the intended host.', candidate);
+    }
+  }
+  return { findings: [], events: [] };
+}
+
+function regexFinding(options: CorsOptions): CorsResult {
+  const origin = options.origin;
+  if (origin.kind !== 'regex') {
+    return { findings: [], events: [] };
+  }
+  if (/\\[1-9]/.test(origin.source)) {
+    return unknownRegex(options, origin.source);
+  }
+  const compiled = compileRegex(origin.source);
+  if (compiled === undefined) {
+    return unknownRegex(options, origin.source);
+  }
+  const host = intendedHost(origin.source);
+  if (host === undefined) {
+    return unknownRegex(options, origin.source);
+  }
+  return searchRegex(compiled, host, options);
 }
 
 export function corsFindings(options: CorsOptions): CorsResult {
   if (!enabled()) {
     return { findings: [], events: [] };
   }
-  const { file, line, origin } = options;
-  if (origin.kind === 'reflect-request' && options.credentials) {
-    return { findings: [row(file, line, 'critical', 'high', 'CORS reflects the request origin with credentials.', 'reflect-request')], events: [] };
+  const early = earlyFinding(options);
+  if (early !== undefined) {
+    return early;
   }
-  const literals = origin.kind === 'literal' ? [origin.value] : origin.kind === 'literals' ? origin.values : origin.kind === 'null' ? ['null'] : undefined;
-  if (literals !== undefined) {
-    if (literals.includes('null')) {
-      return { findings: [row(file, line, 'high', 'high', 'CORS allows the null origin.', 'null')], events: [] };
-    }
-    return { findings: [], events: [] };
-  }
-  if (origin.kind === 'function') {
-    if (origin.identity) {
-      return { findings: [], events: [] };
-    }
-    return { findings: [row(file, line, 'low', 'low', 'CORS origin function is not the identity echo.', 'function')], events: [] };
-  }
-  if (origin.kind !== 'regex') {
-    return { findings: [], events: [] };
-  }
-  if (/\\[1-9]/.test(origin.source)) {
-    return {
-      findings: [row(file, line, 'low', 'low', 'CORS regex is unknown to the automaton.', origin.source)],
-      events: [],
-    };
-  }
-  let compiled: RegExp;
-  try {
-    compiled = new RegExp(origin.source);
-  } catch {
-    return { findings: [row(file, line, 'low', 'low', 'CORS regex is unknown to the automaton.', origin.source)], events: [] };
-  }
-  const host = intendedHost(origin.source);
-  if (host === undefined) {
-    return { findings: [row(file, line, 'low', 'low', 'CORS regex is unknown to the automaton.', origin.source)], events: [] };
-  }
-  const candidates = [`not${host}`, `x${host}`, `${host}.attacker.example`, `https://${host}.not.example`];
-  let left = options.fuel ?? 32;
-  for (const candidate of candidates) {
-    if (left <= 0) {
-      return {
-        findings: [row(file, line, 'low', 'low', 'CORS regex search exhausted its fuel.', 'fuel')],
-        events: [{ code: 271, file, detail: 'cors regex fuel exhausted' }],
-      };
-    }
-    left -= 1;
-    if (compiled.test(candidate) && !boundaryHost(candidate, host)) {
-      return {
-        findings: [row(file, line, 'medium', 'medium', 'CORS regex accepts a string that is not a boundary match of the intended host.', candidate)],
-        events: [],
-      };
-    }
-  }
-  return { findings: [], events: [] };
+  return regexFinding(options);
 }

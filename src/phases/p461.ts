@@ -77,47 +77,81 @@ interface Collected {
   names: Array<{ name: string; line: number; formatId: string }>;
 }
 
+function astNode(value: unknown): value is TSESTree.Node {
+  return typeof value === 'object' && value !== null && 'type' in value;
+}
+
+function walkChild(child: unknown, visit: (node: TSESTree.Node) => void): void {
+  if (Array.isArray(child)) {
+    for (const item of child) {
+      if (astNode(item)) {
+        visit(item);
+      }
+    }
+    return;
+  }
+  if (astNode(child)) {
+    visit(child);
+  }
+}
+
+function noteTarget(key: string | null, node: TSESTree.Property, collected: Collected): void {
+  if (key !== 'target' || node.value.type !== 'Literal') {
+    return;
+  }
+  collected.target = node.value.value === 'node' ? 'server' : 'client';
+}
+
+function formatId(value: string | null, formats: readonly SecretFormat[]): string | undefined {
+  const format = formats.find((item) => value !== null && item.pattern.test(value));
+  if (format?.publicByDesign === true) {
+    return undefined;
+  }
+  return format?.id ?? 'name-only';
+}
+
+function noteDefineProp(prop: TSESTree.ObjectLiteralElement, formats: readonly SecretFormat[], collected: Collected): void {
+  if (prop.type !== 'Property') {
+    return;
+  }
+  const raw = propertyName(prop.key);
+  const name = raw === null ? null : envName(raw);
+  if (name === null) {
+    return;
+  }
+  const id = formatId(stringLiteral(prop.value), formats);
+  if (id === undefined) {
+    return;
+  }
+  collected.names.push({ name, line: prop.loc?.start.line ?? 1, formatId: id });
+}
+
+function noteDefine(key: string | null, node: TSESTree.Property, formats: readonly SecretFormat[], collected: Collected): void {
+  if ((key !== 'define' && key !== 'env') || node.value.type !== 'ObjectExpression') {
+    return;
+  }
+  for (const prop of node.value.properties) {
+    noteDefineProp(prop, formats, collected);
+  }
+}
+
+function visitDefine(node: TSESTree.Node, formats: readonly SecretFormat[], collected: Collected): void {
+  if (node.type === 'Property') {
+    const key = propertyName(node.key);
+    noteTarget(key, node, collected);
+    noteDefine(key, node, formats, collected);
+  }
+  for (const child of Object.values(node as unknown as Record<string, unknown>)) {
+    walkChild(child, (item) => {
+      visitDefine(item, formats, collected);
+    });
+  }
+}
+
 function collect(text: string, formats: readonly SecretFormat[]): Collected {
   const ast = parse(text, { loc: true, range: false, jsx: false });
   const collected: Collected = { target: 'unknown', names: [] };
-  const visit = (node: TSESTree.Node): void => {
-    if (node.type === 'Property') {
-      const key = propertyName(node.key);
-      if (key === 'target' && node.value.type === 'Literal') {
-        collected.target = node.value.value === 'node' ? 'server' : 'client';
-      }
-      if ((key === 'define' || key === 'env') && node.value.type === 'ObjectExpression') {
-        for (const prop of node.value.properties) {
-          if (prop.type !== 'Property') {
-            continue;
-          }
-          const raw = propertyName(prop.key);
-          const name = raw === null ? null : envName(raw);
-          if (name === null) {
-            continue;
-          }
-          const value = stringLiteral(prop.value);
-          const format = formats.find((item) => value !== null && item.pattern.test(value));
-          if (format?.publicByDesign === true) {
-            continue;
-          }
-          collected.names.push({ name, line: prop.loc?.start.line ?? 1, formatId: format?.id ?? 'name-only' });
-        }
-      }
-    }
-    for (const child of Object.values(node as unknown as Record<string, unknown>)) {
-      if (Array.isArray(child)) {
-        for (const item of child) {
-          if (typeof item === 'object' && item !== null && 'type' in item) {
-            visit(item as TSESTree.Node);
-          }
-        }
-      } else if (typeof child === 'object' && child !== null && 'type' in child) {
-        visit(child as TSESTree.Node);
-      }
-    }
-  };
-  visit(ast);
+  visitDefine(ast, formats, collected);
   return collected;
 }
 

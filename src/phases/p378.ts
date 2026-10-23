@@ -54,16 +54,11 @@ function stringList(value: unknown, key: string): string[] {
   return value as string[];
 }
 
-export function loadSupplyPolicy(text: string | null, location = 'fullshield.policy.json'): PolicyLoad {
-  if (!enabled()) {
-    return { policy: null, ignored: true };
-  }
-  if (location.startsWith('https://') || location.startsWith('http://')) {
-    throw new FsError(`policy location is remote: ${location}`);
-  }
-  if (text === null) {
-    return { policy: null, ignored: false };
-  }
+function remoteLocation(location: string): boolean {
+  return location.startsWith('https://') || location.startsWith('http://');
+}
+
+function parseObject(text: string): Record<string, unknown> {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text) as unknown;
@@ -73,20 +68,22 @@ export function loadSupplyPolicy(text: string | null, location = 'fullshield.pol
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
     throw new FsError('policy file must be an object');
   }
-  const record = parsed as Record<string, unknown>;
+  return parsed as Record<string, unknown>;
+}
+
+function rejectUnknown(record: Record<string, unknown>): void {
   for (const key of Object.keys(record)) {
     if (!POLICY_KEYS.includes(key as PolicyKey)) {
       throw new FsError(`unknown policy key ${key}`);
     }
   }
-  const policy: SupplyChainPolicy = {
-    allowedRegistries: [],
-    allowedScriptCapabilities: [],
-    pinMode: null,
-    secretAllow: [],
-    privateRegistryHosts: [],
-    pinSeverity: null,
-  };
+}
+
+function emptyPolicy(): SupplyChainPolicy {
+  return { allowedRegistries: [], allowedScriptCapabilities: [], pinMode: null, secretAllow: [], privateRegistryHosts: [], pinSeverity: null };
+}
+
+function assignLists(record: Record<string, unknown>, policy: SupplyChainPolicy): void {
   if (record.allowedRegistries !== undefined) {
     policy.allowedRegistries = stringList(record.allowedRegistries, 'allowedRegistries');
   }
@@ -99,17 +96,47 @@ export function loadSupplyPolicy(text: string | null, location = 'fullshield.pol
   if (record.privateRegistryHosts !== undefined) {
     policy.privateRegistryHosts = stringList(record.privateRegistryHosts, 'privateRegistryHosts');
   }
-  if (record.pinMode !== undefined) {
-    if (typeof record.pinMode !== 'string' || !PIN_MODES.has(record.pinMode)) {
-      throw new FsError('pinMode is invalid');
-    }
-    policy.pinMode = record.pinMode as 'exact' | 'range';
+}
+
+function assignPinMode(record: Record<string, unknown>, policy: SupplyChainPolicy): void {
+  if (record.pinMode === undefined) {
+    return;
   }
-  if (record.pinSeverity !== undefined) {
-    if (typeof record.pinSeverity !== 'string' || !SEVERITIES.has(record.pinSeverity)) {
-      throw new FsError('pinSeverity rejects a non-string value');
-    }
-    policy.pinSeverity = record.pinSeverity as 'info' | 'low' | 'medium';
+  if (typeof record.pinMode !== 'string' || !PIN_MODES.has(record.pinMode)) {
+    throw new FsError('pinMode is invalid');
   }
-  return { policy, ignored: false };
+  policy.pinMode = record.pinMode as 'exact' | 'range';
+}
+
+function assignPinSeverity(record: Record<string, unknown>, policy: SupplyChainPolicy): void {
+  if (record.pinSeverity === undefined) {
+    return;
+  }
+  if (typeof record.pinSeverity !== 'string' || !SEVERITIES.has(record.pinSeverity)) {
+    throw new FsError('pinSeverity rejects a non-string value');
+  }
+  policy.pinSeverity = record.pinSeverity as 'info' | 'low' | 'medium';
+}
+
+function parsePolicy(record: Record<string, unknown>): SupplyChainPolicy {
+  const policy = emptyPolicy();
+  assignLists(record, policy);
+  assignPinMode(record, policy);
+  assignPinSeverity(record, policy);
+  return policy;
+}
+
+export function loadSupplyPolicy(text: string | null, location = 'fullshield.policy.json'): PolicyLoad {
+  if (!enabled()) {
+    return { policy: null, ignored: true };
+  }
+  if (remoteLocation(location)) {
+    throw new FsError(`policy location is remote: ${location}`);
+  }
+  if (text === null) {
+    return { policy: null, ignored: false };
+  }
+  const record = parseObject(text);
+  rejectUnknown(record);
+  return { policy: parsePolicy(record), ignored: false };
 }

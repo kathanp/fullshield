@@ -42,40 +42,46 @@ export interface BruteFinding {
   witness: string;
 }
 
+function sensitive(route: SensitiveRoute, config: BruteConfig): boolean {
+  if (route.kind === 'login' || route.kind === 'reset' || route.kind === 'mfa') {
+    return true;
+  }
+  return config.paths?.includes(route.path) === true;
+}
+
+function sharedBucket(key: LimiterKey): boolean {
+  return key === 'constant' || key === 'other';
+}
+
+function bruteRow(route: SensitiveRoute, message: string, witness: string): BruteFinding {
+  return { ruleId: RULE, severity: 'medium', confidence: 'medium', file: route.file, line: route.line, message, witness };
+}
+
+function bruteHit(route: SensitiveRoute): BruteFinding | undefined {
+  const limiter = route.limiter;
+  const later = limiter !== undefined && limiter.order >= route.routeOrder;
+  if (limiter === undefined || later || !limiter.dominatesCredential) {
+    const witness = later ? 'registered-after' : 'missing-limiter';
+    return bruteRow(route, `Sensitive route ${route.path} has no dominating rate limit.`, witness);
+  }
+  if (sharedBucket(limiter.key)) {
+    return bruteRow(route, `Sensitive route ${route.path} uses a shared bucket.`, 'bucket is shared');
+  }
+  return undefined;
+}
+
 export function bruteFindings(routes: readonly SensitiveRoute[], config: BruteConfig = {}): BruteFinding[] {
   if (!enabled()) {
     return [];
   }
   const findings: BruteFinding[] = [];
   for (const route of routes) {
-    const marked = route.kind === 'login' || route.kind === 'reset' || route.kind === 'mfa' || config.paths?.includes(route.path) === true;
-    if (!marked) {
+    if (!sensitive(route, config)) {
       continue;
     }
-    const limiter = route.limiter;
-    const later = limiter !== undefined && limiter.order >= route.routeOrder;
-    if (limiter === undefined || later || !limiter.dominatesCredential) {
-      findings.push({
-        ruleId: RULE,
-        severity: 'medium',
-        confidence: 'medium',
-        file: route.file,
-        line: route.line,
-        message: `Sensitive route ${route.path} has no dominating rate limit.`,
-        witness: later ? 'registered-after' : 'missing-limiter',
-      });
-      continue;
-    }
-    if (limiter.key === 'constant' || limiter.key === 'other') {
-      findings.push({
-        ruleId: RULE,
-        severity: 'medium',
-        confidence: 'medium',
-        file: route.file,
-        line: route.line,
-        message: `Sensitive route ${route.path} uses a shared bucket.`,
-        witness: 'bucket is shared',
-      });
+    const hit = bruteHit(route);
+    if (hit !== undefined) {
+      findings.push(hit);
     }
   }
   return findings;

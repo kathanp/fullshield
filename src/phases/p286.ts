@@ -73,49 +73,121 @@ function evalExpr(node: TSESTree.Node, env: ReadonlyMap<string, Val>): Val {
   const current = stripNode(node);
   if (isRequestSource(current)) {return { labels: ['sqli'], fields: new Map(), saved: null };}
   if (current.type === 'Identifier') {return env.get(current.name) ?? NONE;}
-  if (current.type === 'MemberExpression' && current.object.type === 'Identifier' && current.property.type === 'Identifier' && !current.computed) {
-    const field = env.get(current.object.name)?.fields.get(current.property.name);
-    return field ?? NONE;
-  }
-  if (current.type === 'ObjectExpression') {
-    const fields = new Map<string, Val>();
-    const labels = new Set<string>();
-    for (const prop of current.properties) {
-      if (prop.type !== 'Property' || prop.key.type !== 'Identifier') {continue;}
-      const value = evalExpr(prop.value, env);
-      fields.set(prop.key.name, value);
-      for (const label of value.labels) {labels.add(label);}
-    }
-    return { labels: [...labels], fields, saved: null };
-  }
+  if (isFieldRead(current)) {return readField(current, env);}
+  if (current.type === 'ObjectExpression') {return evalObject(current, env);}
   if (current.type === 'CallExpression') {return evalCall(current, env);}
-  if (current.type === 'BinaryExpression') {
-    const left = evalExpr(current.left, env);
-    const right = evalExpr(current.right, env);
-    return { labels: [...new Set([...left.labels, ...right.labels])], fields: new Map(), saved: null };
-  }
+  if (current.type === 'BinaryExpression') {return evalBinary(current, env);}
   return NONE;
+}
+
+function isFieldRead(current: TSESTree.Node): current is TSESTree.MemberExpression & { object: TSESTree.Identifier; property: TSESTree.Identifier } {
+  return current.type === 'MemberExpression'
+    && current.object.type === 'Identifier'
+    && current.property.type === 'Identifier'
+    && !current.computed;
+}
+
+function readField(current: TSESTree.MemberExpression & { object: TSESTree.Identifier; property: TSESTree.Identifier }, env: ReadonlyMap<string, Val>): Val {
+  return env.get(current.object.name)?.fields.get(current.property.name) ?? NONE;
+}
+
+function evalObject(current: TSESTree.ObjectExpression, env: ReadonlyMap<string, Val>): Val {
+  const fields = new Map<string, Val>();
+  const labels = new Set<string>();
+  for (const prop of current.properties) {addField(prop, fields, labels, env);}
+  return { labels: [...labels], fields, saved: null };
+}
+
+function addField(prop: TSESTree.ObjectLiteralElement, fields: Map<string, Val>, labels: Set<string>, env: ReadonlyMap<string, Val>): void {
+  if (prop.type !== 'Property' || prop.key.type !== 'Identifier') {return;}
+  const value = evalExpr(prop.value, env);
+  fields.set(prop.key.name, value);
+  for (const label of value.labels) {labels.add(label);}
+}
+
+function evalBinary(current: TSESTree.BinaryExpression, env: ReadonlyMap<string, Val>): Val {
+  const left = evalExpr(current.left, env);
+  const right = evalExpr(current.right, env);
+  return { labels: [...new Set([...left.labels, ...right.labels])], fields: new Map(), saved: null };
 }
 
 function evalCall(call: TSESTree.CallExpression, env: ReadonlyMap<string, Val>): Val {
   const callee = stripNode(call.callee);
-  const name = callee.type === 'Identifier' ? callee.name : callee.type === 'MemberExpression' ? propName(callee) : null;
-  const object = callee.type === 'MemberExpression' && callee.object.type === 'Identifier' ? callee.object.name : null;
+  const name = callName(callee);
+  const object = callObject(callee);
+  const inner = callInner(call, env);
+  return dispatchCall(name, object, callee, inner, env) ?? inner;
+}
+
+function callName(callee: TSESTree.Node): string | null {
+  if (callee.type === 'Identifier') {return callee.name;}
+  if (callee.type === 'MemberExpression') {return propName(callee);}
+  return null;
+}
+
+function callObject(callee: TSESTree.Node): string | null {
+  if (callee.type === 'MemberExpression' && callee.object.type === 'Identifier') {return callee.object.name;}
+  return null;
+}
+
+function callInner(call: TSESTree.CallExpression, env: ReadonlyMap<string, Val>): Val {
   const arg0 = call.arguments[0];
-  const inner = arg0 === undefined || arg0.type === 'SpreadElement' ? NONE : evalExpr(arg0, env);
+  if (arg0 === undefined || arg0.type === 'SpreadElement') {return NONE;}
+  return evalExpr(arg0, env);
+}
+
+function dispatchCall(name: string | null, object: string | null, callee: TSESTree.Node, inner: Val, env: ReadonlyMap<string, Val>): Val | null {
+  return jsonCall(name, object, inner)
+    ?? cloneCall(name, inner)
+    ?? qsCall(name, object, inner)
+    ?? bufferCall(name, object, callee, inner, env)
+    ?? codecCall(name, inner)
+    ?? compressCall(name, inner);
+}
+
+function jsonCall(name: string | null, object: string | null, inner: Val): Val | null {
   if (name === 'stringify' && object === 'JSON') {return { labels: inner.labels, fields: inner.fields, saved: inner };}
   if (name === 'parse' && object === 'JSON') {return inner.saved ?? inner;}
-  if (name === 'structuredClone') {return { labels: inner.labels, fields: new Map(inner.fields), saved: inner.saved };}
-  if (name === 'stringify' && (object === 'querystring' || object === 'qs')) {return { labels: inner.labels, fields: inner.fields, saved: inner };}
-  if (name === 'parse' && (object === 'querystring' || object === 'qs')) {return inner.saved ?? inner;}
+  return null;
+}
+
+function cloneCall(name: string | null, inner: Val): Val | null {
+  if (name !== 'structuredClone') {return null;}
+  return { labels: inner.labels, fields: new Map(inner.fields), saved: inner.saved };
+}
+
+function qsCall(name: string | null, object: string | null, inner: Val): Val | null {
+  if (!isQs(object)) {return null;}
+  if (name === 'stringify') {return { labels: inner.labels, fields: inner.fields, saved: inner };}
+  if (name === 'parse') {return inner.saved ?? inner;}
+  return null;
+}
+
+function isQs(object: string | null): boolean {
+  return object === 'querystring' || object === 'qs';
+}
+
+function bufferCall(name: string | null, object: string | null, callee: TSESTree.Node, inner: Val, env: ReadonlyMap<string, Val>): Val | null {
   if (name === 'from' && object === 'Buffer') {return { labels: inner.labels, fields: new Map(), saved: inner };}
-  if (name === 'toString' && callee.type === 'MemberExpression') {
-    const receiver = evalExpr(callee.object, env);
-    return receiver.saved ?? receiver;
-  }
+  if (name === 'toString' && callee.type === 'MemberExpression') {return toStringValue(callee.object, env);}
+  return null;
+}
+
+function toStringValue(object: TSESTree.Node, env: ReadonlyMap<string, Val>): Val {
+  const receiver = evalExpr(object, env);
+  return receiver.saved ?? receiver;
+}
+
+function codecCall(name: string | null, inner: Val): Val | null {
   if (name === 'btoa' || name === 'encodeURIComponent') {return { labels: [], fields: new Map(), saved: inner };}
   if (name === 'atob' || name === 'decodeURIComponent') {return inner.saved ?? inner;}
-  if ((name === 'gzipSync' || name === 'deflateSync') && inner.labels.length > 0) {return { labels: inner.labels, fields: new Map(), saved: inner };}
+  return null;
+}
+
+function compressCall(name: string | null, inner: Val): Val | null {
+  if ((name === 'gzipSync' || name === 'deflateSync') && inner.labels.length > 0) {
+    return { labels: inner.labels, fields: new Map(), saved: inner };
+  }
   if (name === 'gunzipSync' || name === 'inflateSync') {return inner.saved ?? inner;}
-  return inner;
+  return null;
 }

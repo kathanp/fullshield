@@ -24,46 +24,81 @@ export function analyzeServerActions(files: Readonly<Record<string, string>>): {
   const events: UnsoundEvent[] = [];
   const findings: ActionFinding[] = [];
   const actions = new Map<string, { file: string; name: string; params: string[]; auth: boolean; formData: boolean; dynamicKey: boolean; queriesParam: boolean }>();
-  for (const [file, source] of Object.entries(files)) {
-    const program = parseProgram(source);
-    if (program === null || !isServerModule(program)) {continue;}
-    for (const stmt of program.body) {
-      if (stmt.type !== 'ExportNamedDeclaration' || stmt.declaration?.type !== 'FunctionDeclaration' || stmt.declaration.id === null || !stmt.declaration.async) {continue;}
-      const fn = stmt.declaration;
-      if (fn.id === null) {continue;}
-      const name = fn.id.name;
-      const info = inspectAction(fn);
-      if (info.dynamicKey) {events.push({ kind: 'dynamic-property', file, line: 1, reason: 'dynamic form key' });}
-      actions.set(name, { file, name, ...info });
-    }
-    if (hasComputedAction(program)) {events.push({ kind: 'dynamic-property', file, line: 1, reason: 'computed action id' });}
-  }
+  for (const [file, source] of Object.entries(files)) {collectActions(file, source, actions, events);}
   for (const action of actions.values()) {
-    const pages: string[] = [];
-    let literalOnly = true;
-    let sawCall = false;
-    for (const [file, source] of Object.entries(files)) {
-      if (file === action.file) {continue;}
-      const program = parseProgram(source);
-      if (program === null || !importsName(program, action.name)) {continue;}
-      if (!references(program, action.name)) {continue;}
-      pages.push(file);
-      const calls = callsOf(program, action.name);
-      if (calls.length > 0) {sawCall = true;}
-      if (calls.some((call) => call.arguments.some((arg) => arg.type !== 'Literal'))) {literalOnly = false;}
-    }
-    const injection = action.formData || (action.queriesParam && !(sawCall && literalOnly));
-    if (!injection) {continue;}
-    findings.push({
-      file: action.file,
-      action: action.name,
-      injection: true,
-      authState: action.auth ? 'present' : 'absent',
-      pages,
-      caller: pages.length === 0 ? 'unknown' : pages.join(','),
-    });
+    const finding = actionFinding(action, files);
+    if (finding !== null) {findings.push(finding);}
   }
   return { findings, events };
+}
+
+interface ActionInfo {
+  file: string;
+  name: string;
+  params: string[];
+  auth: boolean;
+  formData: boolean;
+  dynamicKey: boolean;
+  queriesParam: boolean;
+}
+
+function collectActions(file: string, source: string, actions: Map<string, ActionInfo>, events: UnsoundEvent[]): void {
+  const program = parseProgram(source);
+  if (program === null || !isServerModule(program)) {return;}
+  for (const stmt of program.body) {noteExport(stmt, file, actions, events);}
+  if (hasComputedAction(program)) {events.push({ kind: 'dynamic-property', file, line: 1, reason: 'computed action id' });}
+}
+
+function noteExport(stmt: TSESTree.Statement, file: string, actions: Map<string, ActionInfo>, events: UnsoundEvent[]): void {
+  if (!isAsyncExport(stmt)) {return;}
+  const fn = stmt.declaration;
+  if (fn.id === null) {return;}
+  const info = inspectAction(fn);
+  if (info.dynamicKey) {events.push({ kind: 'dynamic-property', file, line: 1, reason: 'dynamic form key' });}
+  actions.set(fn.id.name, { file, name: fn.id.name, ...info });
+}
+
+function isAsyncExport(stmt: TSESTree.Statement): stmt is TSESTree.ExportNamedDeclaration & { declaration: TSESTree.FunctionDeclaration } {
+  return stmt.type === 'ExportNamedDeclaration'
+    && stmt.declaration?.type === 'FunctionDeclaration'
+    && stmt.declaration.id !== null
+    && stmt.declaration.async;
+}
+
+function actionFinding(action: ActionInfo, files: Readonly<Record<string, string>>): ActionFinding | null {
+  const use = actionUse(action, files);
+  const injection = action.formData || (action.queriesParam && !(use.sawCall && use.literalOnly));
+  if (!injection) {return null;}
+  return {
+    file: action.file,
+    action: action.name,
+    injection: true,
+    authState: action.auth ? 'present' : 'absent',
+    pages: use.pages,
+    caller: use.pages.length === 0 ? 'unknown' : use.pages.join(','),
+  };
+}
+
+function actionUse(action: ActionInfo, files: Readonly<Record<string, string>>): { pages: string[]; literalOnly: boolean; sawCall: boolean } {
+  const pages: string[] = [];
+  let literalOnly = true;
+  let sawCall = false;
+  for (const [file, source] of Object.entries(files)) {
+    const noted = noteCaller(file, source, action);
+    if (noted === null) {continue;}
+    pages.push(file);
+    if (noted.sawCall) {sawCall = true;}
+    if (!noted.literalOnly) {literalOnly = false;}
+  }
+  return { pages, literalOnly, sawCall };
+}
+
+function noteCaller(file: string, source: string, action: ActionInfo): { sawCall: boolean; literalOnly: boolean } | null {
+  if (file === action.file) {return null;}
+  const program = parseProgram(source);
+  if (program === null || !importsName(program, action.name) || !references(program, action.name)) {return null;}
+  const calls = callsOf(program, action.name);
+  return { sawCall: calls.length > 0, literalOnly: calls.every((call) => call.arguments.every((arg) => arg.type === 'Literal')) };
 }
 
 function isServerModule(program: TSESTree.Program): boolean {

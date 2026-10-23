@@ -65,6 +65,99 @@ function memberPath(node: TSESTree.MemberExpression): string[] | undefined {
   return parts;
 }
 
+interface HeapState {
+  objects: Map<string, ObjFields>;
+  taintedNames: Set<string>;
+  findings: HeapFinding[];
+  depthLimit: number;
+}
+
+function isAstNode(value: unknown): value is TSESTree.Node {
+  return value !== null && typeof value === 'object' && 'type' in value;
+}
+
+function walkAst(node: TSESTree.Node, visit: (node: TSESTree.Node) => void): void {
+  for (const key of Object.keys(node)) {
+    if (key === 'parent') {continue;}
+    const value = (node as unknown as Record<string, unknown>)[key];
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (isAstNode(item)) {visit(item);}
+      }
+    } else if (isAstNode(value)) {
+      visit(value);
+    }
+  }
+}
+
+function writeField(fields: Map<string, boolean>, parts: string[], tainted: boolean, depthLimit: number): void {
+  const key = collapsePath(parts, depthLimit);
+  fields.set(key, (fields.get(key) ?? false) || tainted);
+}
+
+function storeFields(
+  fields: Map<string, boolean>,
+  prefix: string[],
+  expr: TSESTree.Node,
+  taintedNames: ReadonlySet<string>,
+  depthLimit: number,
+): void {
+  if (expr.type === 'ObjectExpression') {
+    for (const prop of expr.properties) {
+      if (prop.type !== 'Property' || prop.computed === true || prop.key.type !== 'Identifier') {continue;}
+      storeFields(fields, [...prefix, prop.key.name], prop.value, taintedNames, depthLimit);
+    }
+    return;
+  }
+  writeField(fields, prefix, exprTainted(expr, taintedNames), depthLimit);
+}
+
+function storeObject(state: HeapState, name: string, expr: TSESTree.ObjectExpression): void {
+  const fields: ObjFields = { fields: new Map() };
+  storeFields(fields.fields, [], expr, state.taintedNames, state.depthLimit);
+  state.objects.set(name, fields);
+}
+
+function noteBinding(node: TSESTree.Node, state: HeapState): void {
+  if (node.type !== 'VariableDeclarator' || node.id.type !== 'Identifier' || node.init === null) {return;}
+  if (node.init.type === 'ObjectExpression') {
+    storeObject(state, node.id.name, node.init);
+    return;
+  }
+  if (exprTainted(node.init, state.taintedNames)) {state.taintedNames.add(node.id.name);}
+}
+
+function noteQuery(node: TSESTree.Node, state: HeapState): void {
+  if (node.type !== 'CallExpression' || node.callee.type !== 'MemberExpression') {return;}
+  const property = node.callee.property;
+  if (property.type !== 'Identifier' || (property.name !== 'query' && property.name !== 'exec')) {return;}
+  for (const arg of node.arguments) {noteQueryArg(arg, state);}
+}
+
+function noteQueryArg(arg: TSESTree.CallExpressionArgument, state: HeapState): void {
+  if (arg.type !== 'MemberExpression' && arg.type !== 'BinaryExpression') {return;}
+  const reads = arg.type === 'MemberExpression' ? [arg] : memberReads(arg);
+  for (const read of reads) {noteFieldRead(read, state);}
+}
+
+function noteFieldRead(read: TSESTree.MemberExpression, state: HeapState): void {
+  const parts = memberPath(read);
+  if (parts === undefined || parts.length < 2) {return;}
+  const root = parts[0];
+  if (root === undefined) {return;}
+  const obj = state.objects.get(root);
+  if (obj === undefined) {return;}
+  const collapsed = collapsePath(parts.slice(1), state.depthLimit);
+  if (obj.fields.get(collapsed) !== true) {return;}
+  state.findings.push({ path: `${root}.${collapsed}`, line: read.loc?.start.line ?? 1 });
+}
+
+function visitHeap(node: TSESTree.Node, state: HeapState): void {
+  noteBinding(node, state);
+  noteQuery(node, state);
+  walkAst(node, (child) => { visitHeap(child, state); });
+}
+
 export function heapFindings(source: string, depthLimit = 3): HeapFinding[] {
   if (!heapEnabled()) {return [];}
   const program = parse(source, {
@@ -75,72 +168,14 @@ export function heapFindings(source: string, depthLimit = 3): HeapFinding[] {
     errorOnUnknownASTType: false,
     errorOnTypeScriptSyntacticAndSemanticIssues: false,
   });
-  const objects = new Map<string, ObjFields>();
-  const taintedNames = new Set<string>();
-  const findings: HeapFinding[] = [];
-
-  const writeField = (fields: Map<string, boolean>, parts: string[], tainted: boolean): void => {
-    const key = collapsePath(parts, depthLimit);
-    fields.set(key, (fields.get(key) ?? false) || tainted);
+  const state: HeapState = {
+    objects: new Map(),
+    taintedNames: new Set(),
+    findings: [],
+    depthLimit,
   };
-
-  const storeFields = (fields: Map<string, boolean>, prefix: string[], expr: TSESTree.Node): void => {
-    if (expr.type === 'ObjectExpression') {
-      for (const prop of expr.properties) {
-        if (prop.type !== 'Property' || prop.computed === true || prop.key.type !== 'Identifier') {continue;}
-        storeFields(fields, [...prefix, prop.key.name], prop.value);
-      }
-      return;
-    }
-    writeField(fields, prefix, exprTainted(expr, taintedNames));
-  };
-
-  const storeObject = (name: string, expr: TSESTree.ObjectExpression): void => {
-    const fields: ObjFields = { fields: new Map() };
-    storeFields(fields.fields, [], expr);
-    objects.set(name, fields);
-  };
-
-  const visit = (node: TSESTree.Node): void => {
-    if (node.type === 'VariableDeclarator' && node.id.type === 'Identifier' && node.init !== null) {
-      if (node.init.type === 'ObjectExpression') {storeObject(node.id.name, node.init);}
-      else if (exprTainted(node.init, taintedNames)) {taintedNames.add(node.id.name);}
-    }
-    if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression') {
-      const property = node.callee.property;
-      if (property.type === 'Identifier' && (property.name === 'query' || property.name === 'exec')) {
-        for (const arg of node.arguments) {
-          if (arg.type !== 'MemberExpression' && arg.type !== 'BinaryExpression') {continue;}
-          const reads = arg.type === 'MemberExpression' ? [arg] : memberReads(arg);
-          for (const read of reads) {
-            const parts = memberPath(read);
-            if (parts === undefined || parts.length < 2) {continue;}
-            const root = parts[0];
-            if (root === undefined) {continue;}
-            const obj = objects.get(root);
-            if (obj === undefined) {continue;}
-            const collapsed = collapsePath(parts.slice(1), depthLimit);
-            if (obj.fields.get(collapsed) === true) {
-              findings.push({ path: `${root}.${collapsed}`, line: read.loc?.start.line ?? 1 });
-            }
-          }
-        }
-      }
-    }
-    for (const key of Object.keys(node)) {
-      if (key === 'parent') {continue;}
-      const value = (node as unknown as Record<string, unknown>)[key];
-      if (Array.isArray(value)) {
-        for (const item of value) {
-          if (item !== null && typeof item === 'object' && 'type' in item) {visit(item as TSESTree.Node);}
-        }
-      } else if (value !== null && typeof value === 'object' && 'type' in value) {
-        visit(value as TSESTree.Node);
-      }
-    }
-  };
-  visit(program);
-  return findings;
+  visitHeap(program, state);
+  return state.findings;
 }
 
 function memberReads(node: TSESTree.BinaryExpression): TSESTree.MemberExpression[] {

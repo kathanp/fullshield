@@ -116,43 +116,64 @@ function sanitizerOf(node: TSESTree.Node): HtmlSanitizer {
 function scan(prefix: string): Scan {
   const state: Scan = { mode: 'text', attr: '', quote: '', tag: '' };
   for (let i = 0; i < prefix.length; i += 1) {
-    const ch = prefix[i] ?? '';
-    const next = prefix[i + 1] ?? '';
-    if (state.mode === 'comment') {
-      if (ch === '-' && next === '-' && (prefix[i + 2] ?? '') === '>') {state.mode = 'text'; i += 2;}
-      continue;
-    }
-    if (state.mode === 'script') {
-      if (prefix.slice(i, i + 9).toLowerCase() === '</script>') {state.mode = 'text'; i += 8;}
-      continue;
-    }
-    if (state.mode === 'style') {
-      if (prefix.slice(i, i + 8).toLowerCase() === '</style>') {state.mode = 'text'; i += 7;}
-      continue;
-    }
-    if (state.mode === 'text') {
-      if (ch === '<' && next === '!') {state.mode = 'comment'; continue;}
-      if (ch === '<') {state.mode = 'tag'; state.tag = ''; state.attr = ''; continue;}
-      continue;
-    }
-    if (state.mode === 'tag') {
-      if (ch === '>') {enterTag(state); continue;}
-      if (ch === ' ' || ch === '\n') {state.mode = 'attr-name'; state.attr = ''; continue;}
-      if (ch !== '/') {state.tag += ch;}
-      continue;
-    }
-    if (state.mode === 'attr-name') {
-      if (ch === '>') {enterTag(state); continue;}
-      if (ch === '=') {state.mode = 'attr-value'; state.quote = ''; continue;}
-      if (ch === ' ') {continue;}
-      state.attr += ch;
-      continue;
-    }
-    if (ch === '>' && state.quote === '') {enterTag(state); continue;}
-    if (state.quote === '' && (ch === '"' || ch === "'")) {state.quote = ch; continue;}
-    if (state.quote !== '' && ch === state.quote) {state.mode = 'attr-name'; state.attr = ''; state.quote = '';}
+    i += scanAt(state, prefix, i);
   }
   return state;
+}
+
+function scanAt(state: Scan, prefix: string, i: number): number {
+  const ch = prefix[i] ?? '';
+  const next = prefix[i + 1] ?? '';
+  if (state.mode === 'comment') {return closeComment(state, prefix, i, ch, next);}
+  if (state.mode === 'script') {return closeRegion(state, prefix, i, '</script>', 8);}
+  if (state.mode === 'style') {return closeRegion(state, prefix, i, '</style>', 7);}
+  if (state.mode === 'text') {return scanText(state, ch, next);}
+  if (state.mode === 'tag') {return scanTag(state, ch);}
+  if (state.mode === 'attr-name') {return scanAttrName(state, ch);}
+  return scanAttrValue(state, ch);
+}
+
+function closeComment(state: Scan, prefix: string, i: number, ch: string, next: string): number {
+  if (ch === '-' && next === '-' && (prefix[i + 2] ?? '') === '>') {
+    state.mode = 'text';
+    return 2;
+  }
+  return 0;
+}
+
+function closeRegion(state: Scan, prefix: string, i: number, token: string, extra: number): number {
+  if (prefix.slice(i, i + token.length).toLowerCase() === token) {
+    state.mode = 'text';
+    return extra;
+  }
+  return 0;
+}
+
+function scanText(state: Scan, ch: string, next: string): number {
+  if (ch === '<' && next === '!') {state.mode = 'comment'; return 0;}
+  if (ch === '<') {state.mode = 'tag'; state.tag = ''; state.attr = '';}
+  return 0;
+}
+
+function scanTag(state: Scan, ch: string): number {
+  if (ch === '>') {enterTag(state); return 0;}
+  if (ch === ' ' || ch === '\n') {state.mode = 'attr-name'; state.attr = ''; return 0;}
+  if (ch !== '/') {state.tag += ch;}
+  return 0;
+}
+
+function scanAttrName(state: Scan, ch: string): number {
+  if (ch === '>') {enterTag(state); return 0;}
+  if (ch === '=') {state.mode = 'attr-value'; state.quote = ''; return 0;}
+  if (ch !== ' ') {state.attr += ch;}
+  return 0;
+}
+
+function scanAttrValue(state: Scan, ch: string): number {
+  if (ch === '>' && state.quote === '') {enterTag(state); return 0;}
+  if (state.quote === '' && (ch === '"' || ch === "'")) {state.quote = ch; return 0;}
+  if (state.quote !== '' && ch === state.quote) {state.mode = 'attr-name'; state.attr = ''; state.quote = '';}
+  return 0;
 }
 
 function enterTag(state: Scan): void {

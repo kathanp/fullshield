@@ -31,22 +31,44 @@ export function analyzeTrpc(source: string, options?: { file?: string }): { rout
       if (prop.value.type === 'ObjectExpression') {walk(prop.value, path);}
     }
   };
-  for (const stmt of program.body) {
-    if (stmt.type !== 'VariableDeclaration') {continue;}
-    for (const decl of stmt.declarations) {
-      if (decl.init === null || decl.init.type !== 'CallExpression') {continue;}
-      const callee = stripNode(decl.init.callee);
-      if (callee.type === 'Identifier' && callee.name === 'router') {
-        const arg = decl.init.arguments[0];
-        const name = decl.id.type === 'Identifier' ? decl.id.name : '';
-        if (arg !== undefined && arg.type === 'ObjectExpression') {walk(arg, name === 'appRouter' ? '' : name);}
-        continue;
-      }
-      const path = decl.id.type === 'Identifier' ? decl.id.name : 'proc';
-      noteProcedure(decl.init, path, routes, events, file);
-    }
-  }
+  for (const stmt of program.body) {scanTrpc(stmt, routes, events, file, walk);}
   return { routes, events };
+}
+
+function scanTrpc(
+  stmt: TSESTree.Statement,
+  routes: TrpcRoute[],
+  events: UnsoundEvent[],
+  file: string,
+  walk: (node: TSESTree.Node, prefix: string) => void,
+): void {
+  if (stmt.type !== 'VariableDeclaration') {return;}
+  for (const decl of stmt.declarations) {scanTrpcDecl(decl, routes, events, file, walk);}
+}
+
+function scanTrpcDecl(
+  decl: TSESTree.VariableDeclarator,
+  routes: TrpcRoute[],
+  events: UnsoundEvent[],
+  file: string,
+  walk: (node: TSESTree.Node, prefix: string) => void,
+): void {
+  if (decl.init === null || decl.init.type !== 'CallExpression') {return;}
+  if (isRouter(decl.init)) {noteRouter(decl, walk); return;}
+  const path = decl.id.type === 'Identifier' ? decl.id.name : 'proc';
+  noteProcedure(decl.init, path, routes, events, file);
+}
+
+function isRouter(call: TSESTree.CallExpression): boolean {
+  const callee = stripNode(call.callee);
+  return callee.type === 'Identifier' && callee.name === 'router';
+}
+
+function noteRouter(decl: TSESTree.VariableDeclarator, walk: (node: TSESTree.Node, prefix: string) => void): void {
+  if (decl.init === null || decl.init.type !== 'CallExpression') {return;}
+  const arg = decl.init.arguments[0];
+  const name = decl.id.type === 'Identifier' ? decl.id.name : '';
+  if (arg !== undefined && arg.type === 'ObjectExpression') {walk(arg, name === 'appRouter' ? '' : name);}
 }
 
 function noteProcedure(call: TSESTree.CallExpression, path: string, routes: TrpcRoute[], events: UnsoundEvent[], file: string): void {

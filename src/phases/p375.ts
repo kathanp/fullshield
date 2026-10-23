@@ -55,6 +55,66 @@ function classify(specifier: string, integrity: string | undefined): UrlImportFi
   return null;
 }
 
+function astNode(value: unknown): value is TSESTree.Node {
+  return typeof value === 'object' && value !== null && 'type' in value;
+}
+
+function staticSpecifier(node: TSESTree.ImportDeclaration | TSESTree.ExportNamedDeclaration | TSESTree.ExportAllDeclaration): string | undefined {
+  const spec = node.source?.value;
+  if (typeof spec === 'string') {
+    return spec;
+  }
+  return undefined;
+}
+
+function noteStaticImport(node: TSESTree.Node, findings: UrlImportFinding[]): void {
+  if (node.type !== 'ImportDeclaration' && node.type !== 'ExportNamedDeclaration' && node.type !== 'ExportAllDeclaration') {
+    return;
+  }
+  const spec = staticSpecifier(node);
+  if (spec === undefined) {
+    return;
+  }
+  const hit = classify(spec, undefined);
+  if (hit !== null) {
+    findings.push(hit);
+  }
+}
+
+function noteDynamicImport(node: TSESTree.Node, findings: UrlImportFinding[]): void {
+  if (node.type !== 'ImportExpression' || node.source.type !== 'Literal' || typeof node.source.value !== 'string') {
+    return;
+  }
+  const hit = classify(node.source.value, undefined);
+  if (hit !== null) {
+    findings.push(hit);
+  }
+}
+
+function walkValue(value: unknown, visit: (node: TSESTree.Node) => void): void {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      if (astNode(item)) {
+        visit(item);
+      }
+    }
+    return;
+  }
+  if (astNode(value)) {
+    visit(value);
+  }
+}
+
+function walkImports(node: TSESTree.Node, findings: UrlImportFinding[]): void {
+  noteStaticImport(node, findings);
+  noteDynamicImport(node, findings);
+  for (const value of Object.values(node as unknown as Record<string, unknown>)) {
+    walkValue(value, (child) => {
+      walkImports(child, findings);
+    });
+  }
+}
+
 function fromSource(source: string): UrlImportFinding[] {
   let ast: TSESTree.Program;
   try {
@@ -63,36 +123,7 @@ function fromSource(source: string): UrlImportFinding[] {
     return [];
   }
   const findings: UrlImportFinding[] = [];
-  const visit = (node: TSESTree.Node): void => {
-    if (node.type === 'ImportDeclaration' || node.type === 'ExportNamedDeclaration' || node.type === 'ExportAllDeclaration') {
-      const spec = node.source?.value;
-      if (typeof spec === 'string') {
-        const hit = classify(spec, undefined);
-        if (hit !== null) {
-          findings.push(hit);
-        }
-      }
-    }
-    if (node.type === 'ImportExpression' && node.source.type === 'Literal' && typeof node.source.value === 'string') {
-      const hit = classify(node.source.value, undefined);
-      if (hit !== null) {
-        findings.push(hit);
-      }
-    }
-    const record = node as unknown as Record<string, unknown>;
-    for (const value of Object.values(record)) {
-      if (Array.isArray(value)) {
-        for (const item of value) {
-          if (typeof item === 'object' && item !== null && 'type' in item) {
-            visit(item as TSESTree.Node);
-          }
-        }
-      } else if (typeof value === 'object' && value !== null && 'type' in value) {
-        visit(value as TSESTree.Node);
-      }
-    }
-  };
-  visit(ast);
+  walkImports(ast, findings);
   return findings;
 }
 

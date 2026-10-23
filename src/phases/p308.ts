@@ -24,58 +24,85 @@ export function analyzeFastifyScope(source: string, options?: { file?: string })
   const routes: ScopeRoute[] = [];
   const rootHooks: string[] = [];
   const rootDecorators = new Map<string, string>();
-  for (const stmt of program.body) {
-    if (stmt.type !== 'ExpressionStatement' || stmt.expression.type !== 'CallExpression') {continue;}
-    applyCall(stmt.expression, rootHooks, rootDecorators, routes, locals, events, file, false);
-  }
+  const state: ScopeState = {
+    hooks: rootHooks,
+    decorators: rootDecorators,
+    routes,
+    locals,
+    events,
+    file,
+    breakScope: false,
+  };
+  for (const stmt of program.body) {applyTop(stmt, state);}
   return { routes, events };
 }
 
-function applyCall(
-  call: TSESTree.CallExpression,
-  hooks: string[],
-  decorators: Map<string, string>,
-  routes: ScopeRoute[],
-  locals: ReadonlyMap<string, TSESTree.FunctionDeclaration | TSESTree.FunctionExpression | TSESTree.ArrowFunctionExpression>,
-  events: UnsoundEvent[],
-  file: string,
-  breakScope: boolean,
-): void {
+interface ScopeState {
+  hooks: string[];
+  decorators: Map<string, string>;
+  routes: ScopeRoute[];
+  locals: ReadonlyMap<string, TSESTree.FunctionDeclaration | TSESTree.FunctionExpression | TSESTree.ArrowFunctionExpression>;
+  events: UnsoundEvent[];
+  file: string;
+  breakScope: boolean;
+}
+
+function applyTop(stmt: TSESTree.Statement, state: ScopeState): void {
+  if (stmt.type !== 'ExpressionStatement' || stmt.expression.type !== 'CallExpression') {return;}
+  applyCall(stmt.expression, state);
+}
+
+function applyCall(call: TSESTree.CallExpression, state: ScopeState): void {
   const callee = stripNode(call.callee);
   if (callee.type !== 'MemberExpression') {return;}
   const name = propName(callee);
-  if (name === 'addHook') {
-    hooks.push('auth');
-    return;
+  if (name === 'addHook') {state.hooks.push('auth'); return;}
+  if (name === 'decorate') {noteDecorate(call, state); return;}
+  if (name === 'get' || name === 'post') {noteRoute(call, state); return;}
+  if (name === 'register') {noteRegister(call, state);}
+}
+
+function noteDecorate(call: TSESTree.CallExpression, state: ScopeState): void {
+  const key = call.arguments[0];
+  const value = call.arguments[1];
+  if (key !== undefined && key.type === 'Literal' && typeof key.value === 'string' && value !== undefined && value.type === 'Identifier') {
+    state.decorators.set(key.value, value.name);
   }
-  if (name === 'decorate') {
-    const key = call.arguments[0];
-    const value = call.arguments[1];
-    if (key !== undefined && key.type === 'Literal' && typeof key.value === 'string' && value !== undefined && value.type === 'Identifier') {
-      decorators.set(key.value, value.name);
-    }
-    return;
-  }
-  if (name === 'get' || name === 'post') {
-    const path = call.arguments[0];
-    if (path !== undefined && path.type === 'Literal' && typeof path.value === 'string') {
-      const decorator = decorators.get('user') ?? null;
-      routes.push({ path: path.value, covered: hooks.length > 0 || breakScope, decorator });
-    }
-    return;
-  }
-  if (name !== 'register') {return;}
+}
+
+function noteRoute(call: TSESTree.CallExpression, state: ScopeState): void {
+  const path = call.arguments[0];
+  if (path === undefined || path.type !== 'Literal' || typeof path.value !== 'string') {return;}
+  const decorator = state.decorators.get('user') ?? null;
+  state.routes.push({ path: path.value, covered: state.hooks.length > 0 || state.breakScope, decorator });
+}
+
+function noteRegister(call: TSESTree.CallExpression, state: ScopeState): void {
   const plugin = call.arguments[0];
   if (plugin === undefined) {return;}
-  const resolved = resolvePlugin(plugin, locals);
-  if (resolved.dynamic) {events.push({ kind: 'unknown-callee', file, line: 1, reason: resolved.reason });}
-  const childHooks = resolved.scopeBreak || resolved.dynamic ? hooks : [];
-  const childDecorators = new Map(decorators);
-  if (resolved.fn !== null && resolved.fn.body.type === 'BlockStatement') {
-    for (const stmt of resolved.fn.body.body) {
-      if (stmt.type === 'ExpressionStatement' && stmt.expression.type === 'CallExpression') {
-        applyCall(stmt.expression, resolved.scopeBreak || resolved.dynamic ? hooks : childHooks, childDecorators, routes, locals, events, file, resolved.scopeBreak || resolved.dynamic);
-      }
+  const resolved = resolvePlugin(plugin, state.locals);
+  if (resolved.dynamic) {
+    state.events.push({ kind: 'unknown-callee', file: state.file, line: 1, reason: resolved.reason });
+  }
+  const broken = resolved.scopeBreak || resolved.dynamic;
+  const child: ScopeState = {
+    ...state,
+    hooks: broken ? state.hooks : [],
+    decorators: new Map(state.decorators),
+    breakScope: broken,
+  };
+  walkPlugin(resolved.fn, child, broken ? state.hooks : child.hooks);
+}
+
+function walkPlugin(
+  fn: TSESTree.FunctionDeclaration | TSESTree.FunctionExpression | TSESTree.ArrowFunctionExpression | null,
+  child: ScopeState,
+  hooks: string[],
+): void {
+  if (fn === null || fn.body.type !== 'BlockStatement') {return;}
+  for (const stmt of fn.body.body) {
+    if (stmt.type === 'ExpressionStatement' && stmt.expression.type === 'CallExpression') {
+      applyCall(stmt.expression, { ...child, hooks });
     }
   }
 }

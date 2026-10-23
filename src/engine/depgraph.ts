@@ -36,18 +36,22 @@ export interface DepGraphResult {
 
 const DEPTH_CAP = 3;
 
+export interface FunctionReachableInput {
+  current: ReachClass;
+  rootExport: string;
+  vulnerable: string;
+  edges: ReadonlyMap<string, readonly string[]>;
+  malicious: ReadonlySet<string>;
+  /** Invoked only for non-malicious packages on the walked path. */
+  readPackage: (name: string) => void;
+}
+
 /**
  * `edges` maps `pkg.export` to callees `otherPkg.fn`.
  * The reader is invoked only for non-malicious packages on the walked path.
  */
-export function functionReachable(
-  current: ReachClass,
-  rootExport: string,
-  vulnerable: string,
-  edges: ReadonlyMap<string, readonly string[]>,
-  malicious: ReadonlySet<string>,
-  readPackage: (name: string) => void,
-): DepGraphResult {
+export function functionReachable(input: FunctionReachableInput): DepGraphResult {
+  const { current, rootExport, vulnerable, edges, malicious, readPackage } = input;
   if (!depGraphEnabled()) {
     return { reachability: current, path: [], read: [] };
   }

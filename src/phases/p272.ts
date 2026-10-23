@@ -63,34 +63,64 @@ export function analyzePointsTo(source: string, options?: PointsToOptions): Poin
   const file = options?.file ?? 'inline.js';
   const budget = options?.budget ?? DEFAULT_BUDGET;
   const built = build(program);
-  if (built.constraints.length > budget) {
-    const variables: Record<string, string[]> = {};
-    for (const name of built.declared) {
-      if (!name.includes(':') && !name.startsWith('t')) {variables[name] = ['unknown'];}
-    }
-    return {
-      findings: [],
-      events: [{ kind: 'fixpoint-cap', file, line: 1, reason: 'points-to budget' }],
-      calls: built.calls.map((call) => ({ line: call.line, sink: false, targetKinds: ['unknown'] })),
-      variables,
-    };
-  }
+  if (built.constraints.length > budget) {return budgetResult(built, file);}
   solve(built);
+  return solvedResult(built, file);
+}
+
+function budgetResult(built: Model, file: string): PointsToResult {
+  const variables: Record<string, string[]> = {};
+  for (const name of built.declared) {
+    if (isUserVar(name)) {variables[name] = ['unknown'];}
+  }
+  return {
+    findings: [],
+    events: [{ kind: 'fixpoint-cap', file, line: 1, reason: 'points-to budget' }],
+    calls: built.calls.map((call) => ({ line: call.line, sink: false, targetKinds: ['unknown'] })),
+    variables,
+  };
+}
+
+function isUserVar(name: string): boolean {
+  return !name.includes(':') && !name.startsWith('t');
+}
+
+function solvedResult(built: Model, file: string): PointsToResult {
   const calls: PointsToCall[] = [];
   const findings: PointsToFinding[] = [];
-  for (const call of built.calls) {
-    const locs = built.pt.get(call.objVar) ?? new Set<string>();
-    const targetKinds = kindsOf(locs, built.locKind);
-    const sink = [...locs].some((loc) => built.locKind.get(loc) === 'pool' || built.methods.get(loc)?.get('query') === 'sink');
-    calls.push({ line: call.line, sink, targetKinds });
-    if (sink) {findings.push({ file, line: call.line, sink: 'pg.Pool.query' });}
-  }
+  for (const call of built.calls) {recordSolvedCall(call, built, file, calls, findings);}
+  return { findings, events: built.events, calls, variables: variableMap(built) };
+}
+
+function recordSolvedCall(
+  call: RecordedCall,
+  built: Model,
+  file: string,
+  calls: PointsToCall[],
+  findings: PointsToFinding[],
+): void {
+  const locs = built.pt.get(call.objVar) ?? new Set<string>();
+  const targetKinds = kindsOf(locs, built.locKind);
+  const sink = [...locs].some((loc) => isPoolSink(loc, built));
+  calls.push({ line: call.line, sink, targetKinds });
+  if (sink) {findings.push({ file, line: call.line, sink: 'pg.Pool.query' });}
+}
+
+function isPoolSink(loc: string, built: Model): boolean {
+  return built.locKind.get(loc) === 'pool' || built.methods.get(loc)?.get('query') === 'sink';
+}
+
+function variableMap(built: Model): Record<string, string[]> {
   const variables: Record<string, string[]> = {};
   for (const name of [...built.pt.keys()].sort()) {
-    if (name.startsWith('t') || name.startsWith('return:')) {continue;}
+    if (isHiddenVar(name)) {continue;}
     variables[name] = [...(built.pt.get(name) ?? [])].sort();
   }
-  return { findings, events: built.events, calls, variables };
+  return variables;
+}
+
+function isHiddenVar(name: string): boolean {
+  return name.startsWith('t') || name.startsWith('return:');
 }
 
 interface Model {
@@ -164,40 +194,50 @@ function thisFields(fn: TSESTree.FunctionDeclaration | TSESTree.FunctionExpressi
 }
 
 function walkStmt(stmt: TSESTree.Statement, model: Model): void {
-  if (stmt.type === 'FunctionDeclaration' && stmt.id !== null) {
-    const loc = `ctor:${stmt.id.name}`;
-    model.declared.add(stmt.id.name);
-    model.constraints.push({ op: 'alloc', dst: stmt.id.name, loc });
-    const prev = model.currentFn;
-    model.currentFn = stmt.id.name;
-    walkBlock(stmt.body.body, model);
-    model.currentFn = prev;
-    return;
-  }
-  if (stmt.type === 'ClassDeclaration' && stmt.id !== null) {
-    model.declared.add(stmt.id.name);
-    model.constraints.push({ op: 'alloc', dst: stmt.id.name, loc: `ctor:${stmt.id.name}` });
-    return;
-  }
+  if (stmt.type === 'FunctionDeclaration' && stmt.id !== null) {walkFunction(stmt, model); return;}
+  if (stmt.type === 'ClassDeclaration' && stmt.id !== null) {walkClass(stmt, model); return;}
   if (stmt.type === 'VariableDeclaration') {
     for (const decl of stmt.declarations) {bindDeclarator(decl, model);}
     return;
   }
-  if (stmt.type === 'ExpressionStatement') {
-    const expr = stripNode(stmt.expression);
-    if (expr.type === 'AssignmentExpression' && expr.left.type === 'Identifier') {
-      const dst = bindName(expr.left.name, model);
-      model.constraints.push({ op: 'copy', dst, src: ensureVar(expr.right, model) });
-    }
-    if (expr.type === 'CallExpression') {recordQuery(expr, model);}
-    return;
-  }
-  if (stmt.type === 'IfStatement') {
-    walkStmt(stmt.consequent, model);
-    if (stmt.alternate !== null) {walkStmt(stmt.alternate, model);}
-    return;
-  }
+  if (stmt.type === 'ExpressionStatement') {walkExpression(stmt, model); return;}
+  if (stmt.type === 'IfStatement') {walkIf(stmt, model); return;}
   if (stmt.type === 'BlockStatement') {walkBlock(stmt.body, model); return;}
+  walkReturn(stmt, model);
+}
+
+function walkFunction(stmt: TSESTree.FunctionDeclaration, model: Model): void {
+  if (stmt.id === null) {return;}
+  const loc = `ctor:${stmt.id.name}`;
+  model.declared.add(stmt.id.name);
+  model.constraints.push({ op: 'alloc', dst: stmt.id.name, loc });
+  const prev = model.currentFn;
+  model.currentFn = stmt.id.name;
+  walkBlock(stmt.body.body, model);
+  model.currentFn = prev;
+}
+
+function walkClass(stmt: TSESTree.ClassDeclaration, model: Model): void {
+  if (stmt.id === null) {return;}
+  model.declared.add(stmt.id.name);
+  model.constraints.push({ op: 'alloc', dst: stmt.id.name, loc: `ctor:${stmt.id.name}` });
+}
+
+function walkExpression(stmt: TSESTree.ExpressionStatement, model: Model): void {
+  const expr = stripNode(stmt.expression);
+  if (expr.type === 'AssignmentExpression' && expr.left.type === 'Identifier') {
+    const dst = bindName(expr.left.name, model);
+    model.constraints.push({ op: 'copy', dst, src: ensureVar(expr.right, model) });
+  }
+  if (expr.type === 'CallExpression') {recordQuery(expr, model);}
+}
+
+function walkIf(stmt: TSESTree.IfStatement, model: Model): void {
+  walkStmt(stmt.consequent, model);
+  if (stmt.alternate !== null) {walkStmt(stmt.alternate, model);}
+}
+
+function walkReturn(stmt: TSESTree.Statement, model: Model): void {
   if (stmt.type === 'ReturnStatement' && stmt.argument !== null && model.currentFn !== '') {
     const ret = `return:${model.currentFn}`;
     model.constraints.push({ op: 'copy', dst: ret, src: ensureVar(stmt.argument, model) });
@@ -246,55 +286,71 @@ function ensureVar(node: TSESTree.Node, model: Model): string {
   const current = stripNode(node);
   if (current.type === 'Identifier') {return resolveName(current.name, model);}
   const dst = fresh(model);
-  if (current.type === 'MemberExpression') {
-    const field = propName(current);
-    const objVar = ensureVar(current.object, model);
-    if (field === null) {model.constraints.push({ op: 'unknown-var', dst });}
-    else {model.constraints.push({ op: 'load', dst, objVar, field });}
-    return dst;
+  if (current.type === 'MemberExpression') {return ensureMember(current, dst, model);}
+  if (current.type === 'NewExpression') {return ensureNew(current, dst, model);}
+  if (current.type === 'ObjectExpression') {return ensureObject(current, dst, model);}
+  if (current.type === 'CallExpression') {return ensureCall(current, dst, model);}
+  model.constraints.push({ op: 'unknown-var', dst });
+  return dst;
+}
+
+function ensureMember(current: TSESTree.MemberExpression, dst: string, model: Model): string {
+  const field = propName(current);
+  const objVar = ensureVar(current.object, model);
+  if (field === null) {model.constraints.push({ op: 'unknown-var', dst });}
+  else {model.constraints.push({ op: 'load', dst, objVar, field });}
+  return dst;
+}
+
+function ensureNew(current: TSESTree.NewExpression, dst: string, model: Model): string {
+  const args = current.arguments.flatMap((arg) => (arg.type === 'SpreadElement' ? [] : [ensureVar(arg, model)]));
+  model.constraints.push({
+    op: 'invoke-new',
+    dst,
+    callee: ensureVar(current.callee, model),
+    args,
+    site: `new:${String(lineOf(current))}:${dst}`,
+  });
+  return dst;
+}
+
+function ensureObject(current: TSESTree.ObjectExpression, dst: string, model: Model): string {
+  const loc = `obj:${String(lineOf(current))}:${dst}`;
+  model.locKind.set(loc, 'object');
+  model.constraints.push({ op: 'alloc', dst, loc });
+  for (const prop of current.properties) {bindObjectProp(prop, loc, model);}
+  return dst;
+}
+
+function bindObjectProp(prop: TSESTree.ObjectLiteralElement, loc: string, model: Model): void {
+  if (prop.type !== 'Property' || prop.key.type !== 'Identifier') {return;}
+  const isMethod = prop.method || prop.value.type === 'FunctionExpression' || prop.value.type === 'ArrowFunctionExpression';
+  if (isMethod) {
+    const table = model.methods.get(loc) ?? new Map<string, 'sink' | 'user'>();
+    table.set(prop.key.name, 'user');
+    model.methods.set(loc, table);
+    return;
   }
-  if (current.type === 'NewExpression') {
-    const args = current.arguments.flatMap((arg) => (arg.type === 'SpreadElement' ? [] : [ensureVar(arg, model)]));
-    model.constraints.push({
-      op: 'invoke-new',
-      dst,
-      callee: ensureVar(current.callee, model),
-      args,
-      site: `new:${String(lineOf(current))}:${dst}`,
-    });
-    return dst;
-  }
-  if (current.type === 'ObjectExpression') {
-    const loc = `obj:${String(lineOf(current))}:${dst}`;
-    model.locKind.set(loc, 'object');
-    model.constraints.push({ op: 'alloc', dst, loc });
-    for (const prop of current.properties) {
-      if (prop.type !== 'Property' || prop.key.type !== 'Identifier') {continue;}
-      const isMethod = prop.method || prop.value.type === 'FunctionExpression' || prop.value.type === 'ArrowFunctionExpression';
-      if (isMethod) {
-        const table = model.methods.get(loc) ?? new Map<string, 'sink' | 'user'>();
-        table.set(prop.key.name, 'user');
-        model.methods.set(loc, table);
-      } else {
-        model.constraints.push({ op: 'obj-field', loc, field: prop.key.name, src: ensureVar(prop.value, model) });
-      }
-    }
-    return dst;
-  }
-  if (current.type === 'CallExpression' && isRequire(current, 'pg')) {
-    const loc = 'mod:pg';
-    model.locKind.set(loc, 'object');
-    model.locKind.set('ctor:pg.Pool', 'ctor-pool');
-    seedField(model, loc, 'Pool', 'ctor:pg.Pool');
-    model.constraints.push({ op: 'alloc', dst, loc });
-    return dst;
-  }
-  if (current.type === 'CallExpression' && current.callee.type === 'Identifier') {
+  model.constraints.push({ op: 'obj-field', loc, field: prop.key.name, src: ensureVar(prop.value, model) });
+}
+
+function ensureCall(current: TSESTree.CallExpression, dst: string, model: Model): string {
+  if (isRequire(current, 'pg')) {return ensurePg(dst, model);}
+  if (current.callee.type === 'Identifier') {
     model.constraints.push({ op: 'call-ret', dst, fn: current.callee.name });
     recordQuery(current, model);
     return dst;
   }
   model.constraints.push({ op: 'unknown-var', dst });
+  return dst;
+}
+
+function ensurePg(dst: string, model: Model): string {
+  const loc = 'mod:pg';
+  model.locKind.set(loc, 'object');
+  model.locKind.set('ctor:pg.Pool', 'ctor-pool');
+  seedField(model, loc, 'Pool', 'ctor:pg.Pool');
+  model.constraints.push({ op: 'alloc', dst, loc });
   return dst;
 }
 

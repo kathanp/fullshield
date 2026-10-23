@@ -61,6 +61,118 @@ function ident(node: TSESTree.Node | undefined): string | undefined {
   return undefined;
 }
 
+function isAstNode(value: unknown): value is TSESTree.Node {
+  return value !== null && typeof value === 'object' && 'type' in value;
+}
+
+function walkAst(node: TSESTree.Node, visit: (node: TSESTree.Node) => void): void {
+  for (const key of Object.keys(node)) {
+    if (key === 'parent') {continue;}
+    const value = (node as unknown as Record<string, unknown>)[key];
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (isAstNode(item)) {visit(item);}
+      }
+    } else if (isAstNode(value)) {
+      visit(value);
+    }
+  }
+}
+
+function recordImport(facts: FileFacts, stmt: TSESTree.ProgramStatement): void {
+  if (stmt.type !== 'ImportDeclaration' || typeof stmt.source.value !== 'string') {return;}
+  for (const spec of stmt.specifiers) {
+    if (spec.type === 'ImportSpecifier') {facts.imports.set(spec.local.name, stmt.source.value);}
+  }
+}
+
+function recordRouterDecl(facts: FileFacts, decl: TSESTree.VariableDeclarator): void {
+  if (decl.id.type !== 'Identifier' || decl.init === null || decl.init.type !== 'CallExpression') {return;}
+  const callee = decl.init.callee;
+  if (callee.type === 'MemberExpression' && callee.property.type === 'Identifier' && callee.property.name === 'Router') {
+    facts.routers.add(decl.id.name);
+  }
+  if (callee.type === 'Identifier' && callee.name === 'express') {facts.routers.add(decl.id.name);}
+}
+
+function recordRouters(facts: FileFacts, stmt: TSESTree.ProgramStatement): void {
+  if (stmt.type !== 'VariableDeclaration') {return;}
+  for (const decl of stmt.declarations) {recordRouterDecl(facts, decl);}
+}
+
+function recordExport(facts: FileFacts, stmt: TSESTree.ProgramStatement): void {
+  if (stmt.type !== 'ExportNamedDeclaration' || stmt.declaration?.type !== 'VariableDeclaration') {return;}
+  for (const decl of stmt.declaration.declarations) {
+    if (decl.id.type === 'Identifier') {facts.exports.set(decl.id.name, decl.id.name);}
+  }
+}
+
+function argNames(args: TSESTree.CallExpression['arguments']): string[] {
+  const names: string[] = [];
+  for (const arg of args) {
+    if (arg.type === 'SpreadElement') {continue;}
+    const name = ident(arg);
+    if (name !== undefined) {names.push(name);}
+  }
+  return names;
+}
+
+type RouterCall = TSESTree.CallExpression & {
+  callee: TSESTree.MemberExpression & { object: TSESTree.Identifier; property: TSESTree.Identifier };
+};
+
+function isRouterCall(node: TSESTree.Node): node is RouterCall {
+  return node.type === 'CallExpression'
+    && node.callee.type === 'MemberExpression'
+    && node.callee.object.type === 'Identifier'
+    && node.callee.property.type === 'Identifier';
+}
+
+function recordUse(facts: FileFacts, file: string, router: string, node: RouterCall): void {
+  const prefix = literal(node.arguments[0]) ?? '';
+  const names = argNames(node.arguments.slice(1));
+  const child = names.at(-1);
+  if (child === undefined) {return;}
+  facts.mounts.push({
+    router,
+    prefix,
+    middleware: names.slice(0, -1),
+    child,
+    file,
+  });
+  facts.routers.add(child);
+  facts.routers.add(router);
+}
+
+function recordEndpoint(facts: FileFacts, file: string, router: string, method: string, node: RouterCall): void {
+  const path = literal(node.arguments[0]) ?? '/';
+  const names = argNames(node.arguments.slice(1));
+  const handler = names.at(-1) ?? 'anonymous';
+  facts.endpoints.push({
+    router,
+    method: method.toUpperCase(),
+    path,
+    middleware: names.slice(0, -1),
+    handler,
+    file,
+    line: node.loc?.start.line ?? 1,
+  });
+  facts.routers.add(router);
+}
+
+function recordRouteCall(facts: FileFacts, file: string, node: TSESTree.Node): void {
+  if (!isRouterCall(node)) {return;}
+  const router = node.callee.object.name;
+  const method = node.callee.property.name;
+  if (method === 'use') {recordUse(facts, file, router, node);}
+  if (METHODS.has(method)) {recordEndpoint(facts, file, router, method, node);}
+}
+
+function visitRoutes(facts: FileFacts, file: string, node: TSESTree.Node): void {
+  recordRouteCall(facts, file, node);
+  walkAst(node, (child) => { visitRoutes(facts, file, child); });
+}
+
 function parseFile(file: string, source: string): FileFacts {
   const facts: FileFacts = {
     file,
@@ -79,85 +191,11 @@ function parseFile(file: string, source: string): FileFacts {
     errorOnTypeScriptSyntacticAndSemanticIssues: false,
   });
   for (const stmt of program.body) {
-    if (stmt.type === 'ImportDeclaration' && typeof stmt.source.value === 'string') {
-      for (const spec of stmt.specifiers) {
-        if (spec.type === 'ImportSpecifier') {facts.imports.set(spec.local.name, stmt.source.value);}
-      }
-    }
-    if (stmt.type === 'VariableDeclaration') {
-      for (const decl of stmt.declarations) {
-        if (decl.id.type !== 'Identifier' || decl.init === null || decl.init.type !== 'CallExpression') {continue;}
-        const callee = decl.init.callee;
-        if (callee.type === 'MemberExpression' && callee.property.type === 'Identifier' && callee.property.name === 'Router') {
-          facts.routers.add(decl.id.name);
-        }
-        if (callee.type === 'Identifier' && callee.name === 'express') {facts.routers.add(decl.id.name);}
-      }
-    }
-    if (stmt.type === 'ExportNamedDeclaration' && stmt.declaration?.type === 'VariableDeclaration') {
-      for (const decl of stmt.declaration.declarations) {
-        if (decl.id.type === 'Identifier') {facts.exports.set(decl.id.name, decl.id.name);}
-      }
-    }
+    recordImport(facts, stmt);
+    recordRouters(facts, stmt);
+    recordExport(facts, stmt);
   }
-  const visit = (node: TSESTree.Node): void => {
-    if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression' && node.callee.object.type === 'Identifier' && node.callee.property.type === 'Identifier') {
-      const router = node.callee.object.name;
-      const method = node.callee.property.name;
-      if (!facts.routers.has(router)) {
-        // imported routers are still mount targets
-      }
-      if (method === 'use') {
-        const prefix = literal(node.arguments[0]) ?? '';
-        const names = node.arguments.slice(1).flatMap((arg) => {
-          const name = arg.type === 'SpreadElement' ? undefined : ident(arg);
-          return name === undefined ? [] : [name];
-        });
-        const child = names.at(-1);
-        if (child !== undefined) {
-          facts.mounts.push({
-            router,
-            prefix,
-            middleware: names.slice(0, -1),
-            child,
-            file,
-          });
-          facts.routers.add(child);
-          facts.routers.add(router);
-        }
-      }
-      if (METHODS.has(method)) {
-        const path = literal(node.arguments[0]) ?? '/';
-        const names = node.arguments.slice(1).flatMap((arg) => {
-          const name = arg.type === 'SpreadElement' ? undefined : ident(arg);
-          return name === undefined ? [] : [name];
-        });
-        const handler = names.at(-1) ?? 'anonymous';
-        facts.endpoints.push({
-          router,
-          method: method.toUpperCase(),
-          path,
-          middleware: names.slice(0, -1),
-          handler,
-          file,
-          line: node.loc?.start.line ?? 1,
-        });
-        facts.routers.add(router);
-      }
-    }
-    for (const key of Object.keys(node)) {
-      if (key === 'parent') {continue;}
-      const value = (node as unknown as Record<string, unknown>)[key];
-      if (Array.isArray(value)) {
-        for (const item of value) {
-          if (item !== null && typeof item === 'object' && 'type' in item) {visit(item as TSESTree.Node);}
-        }
-      } else if (value !== null && typeof value === 'object' && 'type' in value) {
-        visit(value as TSESTree.Node);
-      }
-    }
-  };
-  visit(program);
+  visitRoutes(facts, file, program);
   return facts;
 }
 

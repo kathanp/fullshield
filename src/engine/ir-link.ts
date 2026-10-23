@@ -11,97 +11,135 @@ import type { ImportLink, IrResolveContext } from './ir-types.js';
  * `applyTsPaths`, `packageSpec`, and `applyPackageExports` rewrite the specifier itself.
  * Barrel re-exports are not followed: that step lives inside `runInterproc` and is not exported.
  */
+type ImportAdd = (local: string, specifier: string, imported: string) => void;
+
+function recordImportSpec(spec: TSESTree.ImportClause, specifier: string, add: ImportAdd): void {
+  if (spec.type === AST_NODE_TYPES.ImportDefaultSpecifier) {
+    add(spec.local.name, specifier, 'default');
+    return;
+  }
+  if (spec.type === AST_NODE_TYPES.ImportNamespaceSpecifier) {
+    add(spec.local.name, specifier, '*');
+    return;
+  }
+  if (spec.importKind !== 'type') {
+    add(spec.local.name, specifier, syntaxName(spec.imported) ?? 'default');
+  }
+}
+
+function recordImportDecl(node: TSESTree.ImportDeclaration, add: ImportAdd): void {
+  if (node.importKind === 'type') {return;}
+  const specifier = literalString(node.source);
+  if (specifier === undefined) {return;}
+  if (node.specifiers.length === 0) {
+    add(sideName(node), specifier, '*');
+    return;
+  }
+  for (const spec of node.specifiers) {recordImportSpec(spec, specifier, add);}
+}
+
+function recordExportAll(node: TSESTree.ExportAllDeclaration, add: ImportAdd): void {
+  if (node.exportKind === 'type') {return;}
+  const specifier = literalString(node.source);
+  if (specifier === undefined) {return;}
+  add(node.exported?.name ?? '*', specifier, '*');
+}
+
+function recordExportNamed(node: TSESTree.ExportNamedDeclaration, add: ImportAdd): void {
+  if (node.source === null || node.exportKind === 'type') {return;}
+  const specifier = literalString(node.source);
+  if (specifier === undefined) {return;}
+  for (const spec of node.specifiers) {
+    if (spec.exportKind === 'type') {continue;}
+    const exported = syntaxName(spec.exported);
+    const local = syntaxName(spec.local);
+    if (exported !== undefined && local !== undefined) {add(exported, specifier, local);}
+  }
+}
+
+function recordTsImportEquals(node: TSESTree.TSImportEqualsDeclaration, add: ImportAdd): void {
+  if (node.importKind === 'type') {return;}
+  if (node.moduleReference.type !== AST_NODE_TYPES.TSExternalModuleReference) {return;}
+  const specifier = literalString(node.moduleReference.expression);
+  if (specifier !== undefined) {add(node.id.name, specifier, '*');}
+}
+
+function recordDynamicImport(node: TSESTree.ImportExpression, add: ImportAdd): void {
+  const specifier = literalString(node.source);
+  if (specifier !== undefined) {add(sideName(node), specifier, '*');}
+}
+
+function recordRequireProps(
+  pattern: TSESTree.ObjectPattern,
+  required: { spec: string; exportName?: string },
+  add: ImportAdd,
+): void {
+  for (const prop of pattern.properties) {
+    if (
+      prop.type === AST_NODE_TYPES.Property &&
+      prop.key.type === AST_NODE_TYPES.Identifier &&
+      prop.value.type === AST_NODE_TYPES.Identifier
+    ) {
+      add(prop.value.name, required.spec, prop.key.name);
+    }
+  }
+}
+
+function recordRequireBinding(node: TSESTree.VariableDeclarator, add: ImportAdd): void {
+  if (node.init === null) {return;}
+  const required = requireInfo(node.init);
+  if (required === undefined) {return;}
+  if (node.id.type === AST_NODE_TYPES.Identifier) {
+    add(node.id.name, required.spec, required.exportName ?? '*');
+    return;
+  }
+  if (node.id.type === AST_NODE_TYPES.ObjectPattern) {recordRequireProps(node.id, required, add);}
+}
+
+function recordImportNode(node: TSESTree.Node, add: ImportAdd): void {
+  if (node.type === AST_NODE_TYPES.ImportDeclaration) {
+    recordImportDecl(node, add);
+    return;
+  }
+  if (node.type === AST_NODE_TYPES.ExportAllDeclaration) {
+    recordExportAll(node, add);
+    return;
+  }
+  if (node.type === AST_NODE_TYPES.ExportNamedDeclaration) {
+    recordExportNamed(node, add);
+    return;
+  }
+  if (node.type === AST_NODE_TYPES.TSImportEqualsDeclaration) {
+    recordTsImportEquals(node, add);
+    return;
+  }
+  if (node.type === AST_NODE_TYPES.ImportExpression) {
+    recordDynamicImport(node, add);
+    return;
+  }
+  if (node.type === AST_NODE_TYPES.VariableDeclarator) {recordRequireBinding(node, add);}
+}
+
+function attachResolved(file: string, ast: TSESTree.Program, links: ImportLink[], ctx?: IrResolveContext): void {
+  if (ctx?.files === undefined) {return;}
+  const resolved = collectRequires(file, ast, ctx.files);
+  for (const link of links) {
+    const hit = resolved.get(link.local);
+    if (hit !== undefined) {link.resolved = hit;}
+  }
+}
+
 export function collectImportLinks(
   file: string,
   ast: TSESTree.Program,
   ctx?: IrResolveContext,
 ): ImportLink[] {
   const links: ImportLink[] = [];
-  const add = (local: string, specifier: string, imported: string): void => {
+  const add: ImportAdd = (local, specifier, imported) => {
     links.push(decorate(local, specifier, imported, ctx));
   };
-
-  walk(ast, (node) => {
-    if (node.type === AST_NODE_TYPES.ImportDeclaration) {
-      if (node.importKind === 'type') {return;}
-      const specifier = literalString(node.source);
-      if (specifier === undefined) {return;}
-      if (node.specifiers.length === 0) {
-        add(sideName(node), specifier, '*');
-        return;
-      }
-      for (const spec of node.specifiers) {
-        if (spec.type === AST_NODE_TYPES.ImportDefaultSpecifier) {
-          add(spec.local.name, specifier, 'default');
-        } else if (spec.type === AST_NODE_TYPES.ImportNamespaceSpecifier) {
-          add(spec.local.name, specifier, '*');
-        } else if (spec.importKind !== 'type') {
-          add(spec.local.name, specifier, syntaxName(spec.imported) ?? 'default');
-        }
-      }
-      return;
-    }
-    if (node.type === AST_NODE_TYPES.ExportAllDeclaration) {
-      if (node.exportKind === 'type') {return;}
-      const specifier = literalString(node.source);
-      if (specifier === undefined) {return;}
-      add(node.exported?.name ?? '*', specifier, '*');
-      return;
-    }
-    if (node.type === AST_NODE_TYPES.ExportNamedDeclaration && node.source !== null) {
-      if (node.exportKind === 'type') {return;}
-      const specifier = literalString(node.source);
-      if (specifier === undefined) {return;}
-      for (const spec of node.specifiers) {
-        if (spec.exportKind === 'type') {continue;}
-        const exported = syntaxName(spec.exported);
-        const local = syntaxName(spec.local);
-        if (exported !== undefined && local !== undefined) {add(exported, specifier, local);}
-      }
-      return;
-    }
-    if (
-      node.type === AST_NODE_TYPES.TSImportEqualsDeclaration &&
-      node.importKind !== 'type' &&
-      node.moduleReference.type === AST_NODE_TYPES.TSExternalModuleReference
-    ) {
-      const specifier = literalString(node.moduleReference.expression);
-      if (specifier !== undefined) {add(node.id.name, specifier, '*');}
-      return;
-    }
-    if (node.type === AST_NODE_TYPES.ImportExpression) {
-      const specifier = literalString(node.source);
-      if (specifier !== undefined) {add(sideName(node), specifier, '*');}
-      return;
-    }
-    if (node.type === AST_NODE_TYPES.VariableDeclarator && node.init !== null) {
-      const required = requireInfo(node.init);
-      if (required === undefined) {return;}
-      if (node.id.type === AST_NODE_TYPES.Identifier) {
-        add(node.id.name, required.spec, required.exportName ?? '*');
-        return;
-      }
-      if (node.id.type === AST_NODE_TYPES.ObjectPattern) {
-        for (const prop of node.id.properties) {
-          if (
-            prop.type === AST_NODE_TYPES.Property &&
-            prop.key.type === AST_NODE_TYPES.Identifier &&
-            prop.value.type === AST_NODE_TYPES.Identifier
-          ) {
-            add(prop.value.name, required.spec, prop.key.name);
-          }
-        }
-      }
-    }
-  });
-
-  if (ctx?.files !== undefined) {
-    const resolved = collectRequires(file, ast, ctx.files);
-    for (const link of links) {
-      const hit = resolved.get(link.local);
-      if (hit !== undefined) {link.resolved = hit;}
-    }
-  }
+  walk(ast, (node) => { recordImportNode(node, add); });
+  attachResolved(file, ast, links, ctx);
   return links;
 }
 

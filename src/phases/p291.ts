@@ -39,29 +39,52 @@ export function analyzeExpress(source: string, options: { version: string; file?
   const asyncFns = asyncFunctions(program);
   const hasError = hasArity4(program);
   const routes: ExpressRoute[] = [];
+  const ctx: ExpressCtx = { major, asyncFns, hasError, queryKeys, file, events };
   for (const stmt of program.body) {
-    if (stmt.type !== 'ExpressionStatement' || stmt.expression.type !== 'CallExpression') {continue;}
-    const call = stmt.expression;
-    const callee = stripNode(call.callee);
-    if (callee.type !== 'MemberExpression') {continue;}
-    const method = propName(callee);
-    if (method !== 'get' && method !== 'post' && method !== 'put' && method !== 'patch' && method !== 'delete') {continue;}
-    const patternNode = call.arguments[0];
-    if (patternNode === undefined || patternNode.type !== 'Literal' || typeof patternNode.value !== 'string') {continue;}
-    const pattern = patternNode.value;
-    const handler = call.arguments[1];
-    const asyncHandler = handler !== undefined && isAsyncHandler(handler, asyncFns);
-    const compiled = compilePattern(pattern, major, file, lineOf(call), events);
-    routes.push({
-      method,
-      pattern,
-      fullPath: compiled.fullPath,
-      splat: compiled.splat,
-      rejectionEdge: major >= 5 && asyncHandler && hasError,
-      queryKeys,
-    });
+    const route = expressRoute(stmt, ctx);
+    if (route !== null) {routes.push(route);}
   }
   return { routes, events, findings: [] };
+}
+
+interface ExpressCtx {
+  major: number;
+  asyncFns: ReadonlySet<string>;
+  hasError: boolean;
+  queryKeys: ExpressRoute['queryKeys'];
+  file: string;
+  events: UnsoundEvent[];
+}
+
+function expressRoute(stmt: TSESTree.Statement, ctx: ExpressCtx): ExpressRoute | null {
+  const found = routeCall(stmt);
+  if (found === null) {return null;}
+  const patternNode = found.call.arguments[0];
+  if (patternNode === undefined || patternNode.type !== 'Literal' || typeof patternNode.value !== 'string') {return null;}
+  const handler = found.call.arguments[1];
+  const asyncHandler = handler !== undefined && isAsyncHandler(handler, ctx.asyncFns);
+  const compiled = compilePattern(patternNode.value, ctx.major, ctx.file, lineOf(found.call), ctx.events);
+  return {
+    method: found.method,
+    pattern: patternNode.value,
+    fullPath: compiled.fullPath,
+    splat: compiled.splat,
+    rejectionEdge: ctx.major >= 5 && asyncHandler && ctx.hasError,
+    queryKeys: ctx.queryKeys,
+  };
+}
+
+function routeCall(stmt: TSESTree.Statement): { method: string; call: TSESTree.CallExpression } | null {
+  if (stmt.type !== 'ExpressionStatement' || stmt.expression.type !== 'CallExpression') {return null;}
+  const callee = stripNode(stmt.expression.callee);
+  if (callee.type !== 'MemberExpression') {return null;}
+  const method = propName(callee);
+  if (!isRouteMethod(method)) {return null;}
+  return { method, call: stmt.expression };
+}
+
+function isRouteMethod(method: string | null): method is string {
+  return method === 'get' || method === 'post' || method === 'put' || method === 'patch' || method === 'delete';
 }
 
 function majorOf(version: string): number {

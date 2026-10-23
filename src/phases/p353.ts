@@ -91,91 +91,195 @@ function textualCurl(source: string): boolean {
   return /\bcurl\b/.test(source) || /\bwget\b/.test(source);
 }
 
-export function interpretScript(source: string, path = 'scripts/install.js'): ScriptResult {
-  const empty: ScriptResult = { ruleIds: [], steps: [], events: [], effects: [], hosts: [], readsNpmrc: false, executed: false };
-  if (!enabled()) {
-    return empty;
+interface ScriptState {
+  env: Map<string, string>;
+  steps: ScriptStep[];
+  effects: Set<ScriptResult['effects'][number]>;
+  hosts: Set<string>;
+  ruleIds: Set<string>;
+  readsNpmrc: boolean;
+  events: ScriptResult['events'];
+  source: string;
+}
+
+function blankResult(): ScriptResult {
+  return { ruleIds: [], steps: [], events: [], effects: [], hosts: [], readsNpmrc: false, executed: false };
+}
+
+function foldText(source: string): { text: string; events: ScriptResult['events'] } {
+  const folded = process.env[DEOBFUSC_FLAG] === '1' ? foldSource(source) : { text: source, partial: false, events: [] as string[] };
+  return { text: folded.text, events: folded.events.map((detail) => ({ code: 271 as const, detail })) };
+}
+
+function evalStopped(text: string, source: string, events: ScriptResult['events']): ScriptResult | undefined {
+  if (!/\beval\s*\(/.test(text) && !/\bFunction\s*\(/.test(text)) {
+    return undefined;
   }
-  if (path.split(/[/\\]/).includes('test')) {
-    return empty;
+  events.push({ code: 271, detail: 'eval stops the abstract branch' });
+  const ruleIds = textualCurl(source) ? ['DEPS-SCRIPT-CURL-001'] : [];
+  return { ruleIds, steps: [], events, effects: [], hosts: [], readsNpmrc: source.includes('.npmrc'), executed: false };
+}
+
+function keptLine(line: string): boolean {
+  return line.length > 0 && !line.startsWith('/*') && !line.startsWith('*');
+}
+
+function statementLines(text: string): string[] {
+  return text.split(/\n|;/).map((line) => stripLineComment(line).trim()).filter(keptLine);
+}
+
+function takeAssign(line: string, state: ScriptState): 'next' | 'stop' | 'miss' {
+  const assign = /^(?:const|let|var)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$/.exec(line);
+  if (assign?.[1] === undefined || assign[2] === undefined) {
+    return 'miss';
   }
-  const folded = process.env[DEOBFUSC_FLAG] === '1' ? foldSource(source) : { text: source, partial: false, events: [] };
-  const events = folded.events.map((detail) => ({ code: 271 as const, detail }));
-  const text = folded.text;
-  if (/\beval\s*\(/.test(text) || /\bFunction\s*\(/.test(text)) {
-    events.push({ code: 271, detail: 'eval stops the abstract branch' });
-    const ruleIds = textualCurl(source) ? ['DEPS-SCRIPT-CURL-001'] : [];
-    return { ruleIds, steps: [], events, effects: [], hosts: [], readsNpmrc: source.includes('.npmrc'), executed: false };
+  const value = evalConcat(assign[2], state.env, state.steps);
+  if (value === undefined) {
+    return 'stop';
   }
-  const env = new Map<string, string>();
-  const steps: ScriptStep[] = [];
-  const effects = new Set<ScriptResult['effects'][number]>();
-  const hosts = new Set<string>();
-  const ruleIds = new Set<string>();
-  let readsNpmrc = false;
+  state.env.set(assign[1], value);
+  if (value.includes('.npmrc')) {
+    state.readsNpmrc = true;
+  }
+  return 'next';
+}
+
+function takeEnv(line: string, state: ScriptState): boolean {
+  const envRead = /process\.env\.([A-Za-z0-9_]+)/.exec(line);
+  if (envRead === null || line.includes('(')) {
+    return false;
+  }
+  state.effects.add('env');
+  return true;
+}
+
+function noteNpmrc(callee: string, arg: string, state: ScriptState): void {
+  if (callee === 'fs.readFileSync' && arg.includes('.npmrc')) {
+    state.readsNpmrc = true;
+  }
+}
+
+function outsideWrite(arg: string): boolean {
+  return arg.startsWith('..') || arg.startsWith('/') || arg.startsWith('~/');
+}
+
+function noteWrite(callee: string, arg: string, state: ScriptState): void {
+  if (callee !== 'fs.writeFileSync' && !callee.endsWith('.writeFileSync')) {
+    return;
+  }
+  state.effects.add('fs-write');
+  if (outsideWrite(arg)) {
+    state.ruleIds.add('DEPS-SCRIPT-WRITE-001');
+  }
+}
+
+function shellCallee(callee: string): boolean {
+  return callee === 'exec' || callee === 'spawn' || callee.endsWith('.exec');
+}
+
+function noteShell(callee: string, arg: string, state: ScriptState): void {
+  if (!shellCallee(callee)) {
+    return;
+  }
+  state.effects.add('shell');
+  state.steps.push({ op: 'exec', value: arg });
+  if (textualCurl(arg)) {
+    state.ruleIds.add('DEPS-SCRIPT-CURL-001');
+  }
+  for (const host of hostsIn(arg)) {
+    state.hosts.add(host);
+    state.effects.add('net');
+  }
+}
+
+function noteNet(callee: string, arg: string, state: ScriptState): void {
+  if (callee !== 'fetch' && callee !== 'http.get') {
+    return;
+  }
+  state.effects.add('net');
+  for (const host of hostsIn(arg)) {
+    state.hosts.add(host);
+  }
+}
+
+function takeCall(line: string, state: ScriptState): 'next' | 'stop' {
+  const call = /^([A-Za-z0-9_.]+)\(([\s\S]*)\)$/.exec(line);
+  if (call?.[1] === undefined || call[2] === undefined) {
+    return 'stop';
+  }
+  const callee = call[1];
+  const arg = evalConcat(call[2].split(',')[0] ?? '', state.env, state.steps) ?? '';
+  noteNpmrc(callee, arg, state);
+  noteWrite(callee, arg, state);
+  noteShell(callee, arg, state);
+  noteNet(callee, arg, state);
+  return 'next';
+}
+
+function interpretLine(line: string, state: ScriptState): 'next' | 'stop' {
+  const assigned = takeAssign(line, state);
+  if (assigned !== 'miss') {
+    return assigned;
+  }
+  if (takeEnv(line, state)) {
+    return 'next';
+  }
+  return takeCall(line, state);
+}
+
+function burnFuel(state: ScriptState, fuel: number): number {
+  const next = fuel - 1;
+  if (next >= 0) {
+    return next;
+  }
+  state.events.push({ code: 271, detail: 'script fuel exhausted' });
+  if (textualCurl(state.source)) {
+    state.ruleIds.add('DEPS-SCRIPT-CURL-001');
+  }
+  return next;
+}
+
+function runLines(text: string, state: ScriptState): void {
   let fuel = FUEL;
-  const lines = text.split(/\n|;/).map((line) => stripLineComment(line).trim()).filter((line) => line.length > 0 && !line.startsWith('/*') && !line.startsWith('*'));
-  for (const line of lines) {
-    fuel -= 1;
-    if (fuel < 0) {
-      events.push({ code: 271, detail: 'script fuel exhausted' });
-      if (textualCurl(source)) {
-        ruleIds.add('DEPS-SCRIPT-CURL-001');
-      }
+  for (const line of statementLines(text)) {
+    fuel = burnFuel(state, fuel);
+    if (fuel < 0 || interpretLine(line, state) === 'stop') {
       break;
-    }
-    const assign = /^(?:const|let|var)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$/.exec(line);
-    if (assign?.[1] !== undefined && assign[2] !== undefined) {
-      const value = evalConcat(assign[2], env, steps);
-      if (value === undefined) {
-        break;
-      }
-      env.set(assign[1], value);
-      if (value.includes('.npmrc')) {
-        readsNpmrc = true;
-      }
-      continue;
-    }
-    const envRead = /process\.env\.([A-Za-z0-9_]+)/.exec(line);
-    if (envRead !== null && !line.includes('(')) {
-      effects.add('env');
-      continue;
-    }
-    const call = /^([A-Za-z0-9_.]+)\(([\s\S]*)\)$/.exec(line);
-    if (call?.[1] === undefined || call[2] === undefined) {
-      break;
-    }
-    const callee = call[1];
-    const arg = evalConcat(call[2].split(',')[0] ?? '', env, steps) ?? '';
-    if (callee === 'fs.readFileSync' && arg.includes('.npmrc')) {
-      readsNpmrc = true;
-    }
-    if (callee === 'fs.writeFileSync' || callee.endsWith('.writeFileSync')) {
-      effects.add('fs-write');
-      if (arg.startsWith('..') || arg.startsWith('/') || arg.startsWith('~/')) {
-        ruleIds.add('DEPS-SCRIPT-WRITE-001');
-      }
-    }
-    if (callee === 'exec' || callee === 'spawn' || callee.endsWith('.exec')) {
-      effects.add('shell');
-      steps.push({ op: 'exec', value: arg });
-      if (/\bcurl\b/.test(arg) || /\bwget\b/.test(arg)) {
-        ruleIds.add('DEPS-SCRIPT-CURL-001');
-      }
-      for (const host of hostsIn(arg)) {
-        hosts.add(host);
-        effects.add('net');
-      }
-    }
-    if (callee === 'fetch' || callee === 'http.get') {
-      effects.add('net');
-      for (const host of hostsIn(arg)) {
-        hosts.add(host);
-      }
-    }
-    if (callee === 'console.log') {
-      continue;
     }
   }
-  return { ruleIds: [...ruleIds], steps, events, effects: [...effects], hosts: [...hosts], readsNpmrc, executed: false };
+}
+
+function finish(state: ScriptState): ScriptResult {
+  return {
+    ruleIds: [...state.ruleIds],
+    steps: state.steps,
+    events: state.events,
+    effects: [...state.effects],
+    hosts: [...state.hosts],
+    readsNpmrc: state.readsNpmrc,
+    executed: false,
+  };
+}
+
+export function interpretScript(source: string, path = 'scripts/install.js'): ScriptResult {
+  if (!enabled() || path.split(/[/\\]/).includes('test')) {
+    return blankResult();
+  }
+  const folded = foldText(source);
+  const halted = evalStopped(folded.text, source, folded.events);
+  if (halted !== undefined) {
+    return halted;
+  }
+  const state: ScriptState = {
+    env: new Map(),
+    steps: [],
+    effects: new Set(),
+    hosts: new Set(),
+    ruleIds: new Set(),
+    readsNpmrc: false,
+    events: folded.events,
+    source,
+  };
+  runLines(folded.text, state);
+  return finish(state);
 }

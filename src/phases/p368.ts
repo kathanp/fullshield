@@ -37,6 +37,57 @@ function purlFor(name: string, version: string): string {
   return `pkg:npm/${encoded}@${version}`;
 }
 
+function blank(value: string | undefined): boolean {
+  return value === undefined || value === '';
+}
+
+function componentPurl(component: SbomComponentInput, name: string, version: string): string {
+  if (component.purl !== undefined) {
+    return component.purl;
+  }
+  if (name !== '' && version !== '') {
+    return purlFor(name, version);
+  }
+  return '';
+}
+
+function storedHash(hash: string | null): string | null {
+  if (hash === '') {
+    return null;
+  }
+  return hash;
+}
+
+function recordComponent(component: SbomComponentInput, rows: SbomHole[]): SbomFieldReport['components'][number] {
+  const name = component.name ?? '';
+  const version = component.version ?? '';
+  const label = name === '' ? '<unnamed>' : name;
+  if (blank(component.name)) {
+    rows.push({ field: 'name', component: label });
+  }
+  if (blank(component.version)) {
+    rows.push({ field: 'version', component: label });
+  }
+  const purl = componentPurl(component, name, version);
+  if (purl === '') {
+    rows.push({ field: 'purl', component: label });
+  }
+  const hash = component.integrity ?? null;
+  if (hash === null || hash === '') {
+    rows.push({ field: 'hash', component: label });
+  }
+  return { name, version, purl, hash: storedHash(hash) };
+}
+
+function holeCounts(rows: readonly SbomHole[]): SbomFieldReport['counts'] {
+  return {
+    name: rows.filter((row) => row.field === 'name').length,
+    version: rows.filter((row) => row.field === 'version').length,
+    purl: rows.filter((row) => row.field === 'purl').length,
+    hash: rows.filter((row) => row.field === 'hash').length,
+  };
+}
+
 export function sbomFieldReport(components: readonly SbomComponentInput[]): SbomFieldReport | null {
   if (!enabled()) {
     return null;
@@ -44,34 +95,7 @@ export function sbomFieldReport(components: readonly SbomComponentInput[]): Sbom
   const rows: SbomHole[] = [];
   const filled: SbomFieldReport['components'] = [];
   for (const component of components) {
-    const name = component.name ?? '';
-    const version = component.version ?? '';
-    const label = name === '' ? '<unnamed>' : name;
-    if (component.name === undefined || component.name === '') {
-      rows.push({ field: 'name', component: label });
-    }
-    if (component.version === undefined || component.version === '') {
-      rows.push({ field: 'version', component: label });
-    }
-    const purl = component.purl ?? (name !== '' && version !== '' ? purlFor(name, version) : '');
-    if (purl === '') {
-      rows.push({ field: 'purl', component: label });
-    }
-    const hash = component.integrity ?? null;
-    if (hash === null || hash === '') {
-      rows.push({ field: 'hash', component: label });
-    }
-    filled.push({ name, version, purl, hash: hash === '' ? null : hash });
+    filled.push(recordComponent(component, rows));
   }
-  return {
-    header: NOT_A_GRADE,
-    counts: {
-      name: rows.filter((row) => row.field === 'name').length,
-      version: rows.filter((row) => row.field === 'version').length,
-      purl: rows.filter((row) => row.field === 'purl').length,
-      hash: rows.filter((row) => row.field === 'hash').length,
-    },
-    rows,
-    components: filled,
-  };
+  return { header: NOT_A_GRADE, counts: holeCounts(rows), rows, components: filled };
 }

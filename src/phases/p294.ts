@@ -44,54 +44,97 @@ function compilePath(file: string, appRoot: string): { kind: 'route'; fullPath: 
   if (!file.startsWith(prefix)) {return { kind: 'outside' };}
   const parts = file.slice(prefix.length).split('/');
   const base = parts.pop() ?? '';
-  const fileKind = base.startsWith('route.') ? 'route' : base.startsWith('page.') ? 'page' : base.startsWith('layout.') ? 'layout' : 'other';
+  const built = pathPieces(parts);
+  if (built.kind === 'reject') {return built;}
+  return { kind: 'route', fullPath: `/${built.pieces.join('/')}`, fileKind: fileKindOf(base) };
+}
+
+function fileKindOf(base: string): 'route' | 'page' | 'layout' | 'other' {
+  if (base.startsWith('route.')) {return 'route';}
+  if (base.startsWith('page.')) {return 'page';}
+  if (base.startsWith('layout.')) {return 'layout';}
+  return 'other';
+}
+
+function pathPieces(parts: readonly string[]): { kind: 'ok'; pieces: string[] } | { kind: 'reject'; reason: string } {
   const pieces: string[] = [];
   const groups: string[] = [];
   for (const part of parts) {
-    if (part.startsWith('@') && part.includes('[')) {return { kind: 'reject', reason: 'slot dynamic' };}
-    if (part.startsWith('@')) {continue;}
-    if (part.startsWith('(.)') || part.startsWith('(..)') || part.startsWith('(...)')) {
-      const rest = part.slice(part.indexOf(')') + 1);
-      if (rest.length > 0) {pieces.push(rest);}
-      continue;
-    }
-    if (part.startsWith('(') && part.endsWith(')')) {
-      const name = part.slice(1, -1);
-      if (name.startsWith('.')) {continue;}
-      if (groups.includes(name)) {return { kind: 'reject', reason: 'duplicate group' };}
-      groups.push(name);
-      continue;
-    }
-    pieces.push(part);
+    const step = pathPart(part, pieces, groups);
+    if (step !== null) {return step;}
   }
-  return { kind: 'route', fullPath: `/${pieces.join('/')}`, fileKind };
+  return { kind: 'ok', pieces };
+}
+
+function pathPart(part: string, pieces: string[], groups: string[]): { kind: 'reject'; reason: string } | null {
+  if (part.startsWith('@') && part.includes('[')) {return { kind: 'reject', reason: 'slot dynamic' };}
+  if (part.startsWith('@')) {return null;}
+  if (isIntercept(part)) {pushIntercept(part, pieces); return null;}
+  if (part.startsWith('(') && part.endsWith(')')) {return pushGroup(part, groups);}
+  pieces.push(part);
+  return null;
+}
+
+function isIntercept(part: string): boolean {
+  return part.startsWith('(.)') || part.startsWith('(..)') || part.startsWith('(...)');
+}
+
+function pushIntercept(part: string, pieces: string[]): void {
+  const rest = part.slice(part.indexOf(')') + 1);
+  if (rest.length > 0) {pieces.push(rest);}
+}
+
+function pushGroup(part: string, groups: string[]): { kind: 'reject'; reason: string } | null {
+  const name = part.slice(1, -1);
+  if (name.startsWith('.')) {return null;}
+  if (groups.includes(name)) {return { kind: 'reject', reason: 'duplicate group' };}
+  groups.push(name);
+  return null;
 }
 
 function sourcesOf(program: TSESTree.Program, file: string, events: UnsoundEvent[]): string[] {
   const sources = new Set<string>();
-  walkAst(program, (node) => {
-    if ((node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression')) {
-      for (const param of node.params) {
-        if (param.type === 'Identifier' && (param.name === 'request' || param.name === 'Request')) {sources.add('request');}
-        if (param.type === 'ObjectPattern') {
-          for (const item of param.properties) {
-            if (item.type === 'Property' && item.key.type === 'Identifier') {
-              if (item.key.name === 'searchParams' || item.key.name === 'params' || item.key.name === 'request') {sources.add(item.key.name);}
-            }
-          }
-        }
-      }
-    }
-    if (node.type === 'CallExpression' && node.callee.type === 'Identifier' && (node.callee.name === 'headers' || node.callee.name === 'cookies')) {
-      sources.add(node.callee.name);
-    }
-  });
+  walkAst(program, (node) => {collectSource(node, sources);});
   for (const name of ['params', 'searchParams']) {
     if (sources.has(name) && usedWithoutAwait(program, name)) {
       events.push({ kind: 'unknown-callee', file, line: 1, reason: 'promise form' });
     }
   }
   return [...sources];
+}
+
+function collectSource(node: TSESTree.Node, sources: Set<string>): void {
+  if (isFnNode(node)) {collectParams(node.params, sources);}
+  if (node.type === 'CallExpression' && node.callee.type === 'Identifier' && isHeaderCall(node.callee.name)) {
+    sources.add(node.callee.name);
+  }
+}
+
+function isFnNode(node: TSESTree.Node): node is TSESTree.FunctionDeclaration | TSESTree.FunctionExpression | TSESTree.ArrowFunctionExpression {
+  return node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression';
+}
+
+function isHeaderCall(name: string): boolean {
+  return name === 'headers' || name === 'cookies';
+}
+
+function collectParams(params: readonly TSESTree.Parameter[], sources: Set<string>): void {
+  for (const param of params) {collectParam(param, sources);}
+}
+
+function collectParam(param: TSESTree.Parameter, sources: Set<string>): void {
+  if (param.type === 'Identifier' && (param.name === 'request' || param.name === 'Request')) {sources.add('request');}
+  if (param.type === 'ObjectPattern') {collectPattern(param, sources);}
+}
+
+function collectPattern(param: TSESTree.ObjectPattern, sources: Set<string>): void {
+  for (const item of param.properties) {
+    if (item.type === 'Property' && item.key.type === 'Identifier' && isSourceKey(item.key.name)) {sources.add(item.key.name);}
+  }
+}
+
+function isSourceKey(name: string): boolean {
+  return name === 'searchParams' || name === 'params' || name === 'request';
 }
 
 function usedWithoutAwait(program: TSESTree.Program, name: string): boolean {

@@ -26,18 +26,7 @@ export function analyzeCli(source: string, options?: { file?: string; bin?: bool
   const file = options?.file ?? 'inline.js';
   if (!isCli(program, options?.bin === true)) {return { findings: [] };}
   const findings: CliFinding[] = [];
-  walkAst(program, (node) => {
-    if (node.type !== 'CallExpression') {return;}
-    const callee = stripNode(node.callee);
-    const name = callee.type === 'Identifier' ? callee.name : callee.type === 'MemberExpression' ? propName(callee) : null;
-    if (name === 'query') {return;}
-    if (name === 'execFile') {return;}
-    if (name !== 'exec' && name !== 'execSync' && name !== 'eval' && name !== 'readFile' && name !== 'readFileSync') {return;}
-    const arg = node.arguments[0];
-    if (arg === undefined || !usesCli(arg)) {return;}
-    const sinkClass: CliFinding['sinkClass'] = name === 'eval' ? 'eval' : name === 'readFile' || name === 'readFileSync' ? 'path' : 'cmdi';
-    findings.push({ file, line: lineOf(node), origin: 'cli', severity: 'low', sinkClass });
-  });
+  walkAst(program, (node) => {noteCli(node, file, findings);});
   return { findings };
 }
 
@@ -57,6 +46,30 @@ export function scanTreeForCli(root: string): CliFinding[] {
   };
   visit(root);
   return findings;
+}
+
+function noteCli(node: TSESTree.Node, file: string, findings: CliFinding[]): void {
+  if (node.type !== 'CallExpression') {return;}
+  const name = cliCallee(stripNode(node.callee));
+  const sinkClass = cliSink(name);
+  if (sinkClass === null) {return;}
+  const arg = node.arguments[0];
+  if (arg === undefined || !usesCli(arg)) {return;}
+  findings.push({ file, line: lineOf(node), origin: 'cli', severity: 'low', sinkClass });
+}
+
+function cliCallee(callee: TSESTree.Node): string | null {
+  if (callee.type === 'Identifier') {return callee.name;}
+  if (callee.type === 'MemberExpression') {return propName(callee);}
+  return null;
+}
+
+function cliSink(name: string | null): CliFinding['sinkClass'] | null {
+  if (name === 'query' || name === 'execFile' || name === null) {return null;}
+  if (name === 'eval') {return 'eval';}
+  if (name === 'readFile' || name === 'readFileSync') {return 'path';}
+  if (name === 'exec' || name === 'execSync') {return 'cmdi';}
+  return null;
 }
 
 function packageHasBin(dir: string): boolean {

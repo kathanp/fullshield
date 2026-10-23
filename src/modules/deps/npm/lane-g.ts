@@ -725,15 +725,7 @@ function optionalFinding(
   name: string,
 ): Finding {
   return {
-    ...npmFinding(
-      OPTIONAL_ID,
-      'info',
-      lock.file,
-      name,
-      `Optional dependency ${name} is missing`,
-      `Optional dependency ${name} is missing from the lock. Its parent stays imported.`,
-      `Install ${name}, or remove it from optionalDependencies.`,
-    ),
+    ...npmFinding({ ruleId: OPTIONAL_ID, severity: 'info', file: lock.file, snippet: name, title: `Optional dependency ${name} is missing`, message: `Optional dependency ${name} is missing from the lock. Its parent stays imported.`, remediation: `Install ${name}, or remove it from optionalDependencies.` }),
     line: lineOfNeedle(lock.text, `"${name}"`),
   };
 }
@@ -774,15 +766,7 @@ function addMissingPeers(
 
 function peerFinding(lock: { file: string; text: string }, name: string): Finding {
   return {
-    ...npmFinding(
-      PEER_ID,
-      'medium',
-      lock.file,
-      name,
-      `Peer dependency ${name} is missing`,
-      `Non-optional peer ${name} is absent from the lock.`,
-      `Add ${name} to the root dependencies so the lock installs it, or declare the peer optional.`,
-    ),
+    ...npmFinding({ ruleId: PEER_ID, severity: 'medium', file: lock.file, snippet: name, title: `Peer dependency ${name} is missing`, message: `Non-optional peer ${name} is absent from the lock.`, remediation: `Add ${name} to the root dependencies so the lock installs it, or declare the peer optional.` }),
     line: lineOfNeedle(lock.text, `"${name}"`),
   };
 }
@@ -851,15 +835,7 @@ function nameFromLockPath(key: string): string | undefined {
 function aliasFinding(file: string, text: string, alias: string, target: string): Finding {
   const snippet = `${alias} → ${target}`;
   return {
-    ...npmFinding(
-      ALIAS_ID,
-      'info',
-      file,
-      snippet,
-      `Alias ${alias} resolves to ${target}`,
-      `${alias} → ${target}. Imports of the alias name follow ${target}. Advisory rows stay on the target version.`,
-      `Confirm ${alias} is meant to install ${target}.`,
-    ),
+    ...npmFinding({ ruleId: ALIAS_ID, severity: 'info', file: file, snippet: snippet, title: `Alias ${alias} resolves to ${target}`, message: `${alias} → ${target}. Imports of the alias name follow ${target}. Advisory rows stay on the target version.`, remediation: `Confirm ${alias} is meant to install ${target}.` }),
     line: lineOfNeedle(text, `"${alias}"`),
   };
 }
@@ -889,15 +865,7 @@ async function dualFinding(
   if (packument === undefined || packument.type !== 'module') {return undefined;}
   if (hasRequireCondition(rootExportValue(packument.exports))) {return undefined;}
   return {
-    ...npmFinding(
-      DUAL_ID,
-      'medium',
-      file,
-      hit.name,
-      `CommonJS require of ESM-only ${hit.name}`,
-      `require('${hit.name}') targets a package whose type is module and whose exports have no require condition.`,
-      `Import ${hit.name} from ESM, or depend on a build that publishes a require condition.`,
-    ),
+    ...npmFinding({ ruleId: DUAL_ID, severity: 'medium', file: file, snippet: hit.name, title: `CommonJS require of ESM-only ${hit.name}`, message: `require('${hit.name}') targets a package whose type is module and whose exports have no require condition.`, remediation: `Import ${hit.name} from ESM, or depend on a build that publishes a require condition.` }),
     line: lineAt(text, hit.index),
   };
 }
@@ -1009,15 +977,7 @@ function declaredNames(raw: string | undefined): Set<string> {
 function phantomFinding(file: string, text: string, hit: RawCall): Finding {
   const name = hit.name ?? '';
   return {
-    ...npmFinding(
-      PHANTOM_ID,
-      'medium',
-      file,
-      name,
-      `Dynamic import ${name} is not declared`,
-      `A literal dynamic import names ${name}, which is not in dependencies, devDependencies, optionalDependencies, or peerDependencies.`,
-      `Add ${name} to package.json, or remove the dynamic import.`,
-    ),
+    ...npmFinding({ ruleId: PHANTOM_ID, severity: 'medium', file: file, snippet: name, title: `Dynamic import ${name} is not declared`, message: `A literal dynamic import names ${name}, which is not in dependencies, devDependencies, optionalDependencies, or peerDependencies.`, remediation: `Add ${name} to package.json, or remove the dynamic import.` }),
     line: lineAt(text, hit.index),
   };
 }

@@ -49,6 +49,46 @@ function cookieBacked(route: CsrfRoute): boolean {
   return route.authKind.startsWith('passport:') && route.passportSession !== false;
 }
 
+function headerKnown(route: CsrfRoute, config: CsrfConfig): boolean {
+  if (route.customHeader === undefined) {
+    return false;
+  }
+  if (config.headerNames === undefined) {
+    return true;
+  }
+  return config.headerNames.includes(route.customHeader);
+}
+
+function csrfChecked(route: CsrfRoute, known: boolean): boolean {
+  return route.catalogCsrf || route.tokenCompare || (known && route.headerDominates);
+}
+
+function catalogNote(route: CsrfRoute, known: boolean): string {
+  if (route.customHeader !== undefined && !known) {
+    return ' The check was not in the catalog.';
+  }
+  return '';
+}
+
+function csrfHit(route: CsrfRoute, config: CsrfConfig, methods: ReadonlySet<string>): CsrfFinding | undefined {
+  if (!methods.has(route.method.toUpperCase()) || !cookieBacked(route)) {
+    return undefined;
+  }
+  const known = headerKnown(route, config);
+  if (csrfChecked(route, known)) {
+    return undefined;
+  }
+  return {
+    ruleId: RULE,
+    severity: 'high',
+    confidence: 'medium',
+    file: route.file,
+    line: route.line,
+    message: `Cookie-authenticated ${route.method} ${route.path} has no dominating CSRF check.${catalogNote(route, known)}`,
+    witness: `sameSite=${route.sameSite ?? 'absent'}`,
+  };
+}
+
 export function csrfFindings(routes: readonly CsrfRoute[], config: CsrfConfig = {}): CsrfFinding[] {
   if (!enabled()) {
     return [];
@@ -56,24 +96,10 @@ export function csrfFindings(routes: readonly CsrfRoute[], config: CsrfConfig = 
   const methods = new Set<string>([...MUTATIONS, ...(config.methods ?? []).map((method) => method.toUpperCase())]);
   const findings: CsrfFinding[] = [];
   for (const route of routes) {
-    if (!methods.has(route.method.toUpperCase()) || !cookieBacked(route)) {
-      continue;
+    const hit = csrfHit(route, config, methods);
+    if (hit !== undefined) {
+      findings.push(hit);
     }
-    const headerKnown = route.customHeader !== undefined && (config.headerNames === undefined || config.headerNames.includes(route.customHeader));
-    const checked = route.catalogCsrf || route.tokenCompare || (headerKnown && route.headerDominates);
-    if (checked) {
-      continue;
-    }
-    const catalogNote = route.customHeader !== undefined && !headerKnown ? ' The check was not in the catalog.' : '';
-    findings.push({
-      ruleId: RULE,
-      severity: 'high',
-      confidence: 'medium',
-      file: route.file,
-      line: route.line,
-      message: `Cookie-authenticated ${route.method} ${route.path} has no dominating CSRF check.${catalogNote}`,
-      witness: `sameSite=${route.sameSite ?? 'absent'}`,
-    });
   }
   return findings;
 }

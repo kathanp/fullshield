@@ -79,25 +79,39 @@ const LOCK_MANAGER: Record<string, string> = {
 };
 const PM_EXACT = /^(npm|pnpm|yarn|bun)@(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)(\+sha512\..+)?$/;
 
+function overrideFlags(): boolean {
+  return npmFlag('NPM_OVERRIDE_VULN') || npmFlag('NPM_OVERRIDE_WIDE') || npmFlag('NPM_OVERRIDE_ALIAS');
+}
+
+function managerFlags(): boolean {
+  return npmFlag('NPM_PACKAGEMANAGER') || npmFlag('NPM_COREPACK');
+}
+
+function npmrcFlags(): boolean {
+  return npmFlag('NPM_NPMRC_REG') || npmFlag('NPM_NPMRC_SCRIPT') || npmFlag('NPM_ENGINE_STRICT') || npmFlag('NPM_TRUSTED');
+}
+
+async function manifestLane(
+  findings: Finding[],
+  input: NpmDepthInput,
+  manifest: Record<string, unknown>,
+): Promise<void> {
+  specFindings(findings, manifest);
+  if (overrideFlags()) {await overrideFindings(findings, input, manifest);}
+  if (npmFlag('NPM_LIFECYCLE')) {lifecycleFindings(findings, manifest);}
+  if (managerFlags()) {packageManagerFindings(findings, input, manifest);}
+  if (npmFlag('NPM_ENGINES')) {await enginesFindings(findings, input, manifest);}
+  if (npmFlag('NPM_PUBLISHCONFIG')) {publishConfigFindings(findings, manifest);}
+  if (npmFlag('NPM_BINSHADOW')) {await binShadowFindings(findings, input, manifest);}
+  if (npmFlag('NPM_OSCPU')) {osCpuFindings(findings, input, manifest);}
+}
+
 export async function laneFindings(input: NpmDepthInput): Promise<Finding[]> {
   if (!FLAGS.some((name) => npmFlag(name))) {return [];}
   const findings: Finding[] = [];
   const manifest = parseManifest(input.manifestRaw);
-  if (manifest !== undefined) {
-    specFindings(findings, manifest);
-    if (npmFlag('NPM_OVERRIDE_VULN') || npmFlag('NPM_OVERRIDE_WIDE') || npmFlag('NPM_OVERRIDE_ALIAS')) {
-      await overrideFindings(findings, input, manifest);
-    }
-    if (npmFlag('NPM_LIFECYCLE')) {lifecycleFindings(findings, manifest);}
-    if (npmFlag('NPM_PACKAGEMANAGER') || npmFlag('NPM_COREPACK')) {packageManagerFindings(findings, input, manifest);}
-    if (npmFlag('NPM_ENGINES')) {await enginesFindings(findings, input, manifest);}
-    if (npmFlag('NPM_PUBLISHCONFIG')) {publishConfigFindings(findings, manifest);}
-    if (npmFlag('NPM_BINSHADOW')) {await binShadowFindings(findings, input, manifest);}
-    if (npmFlag('NPM_OSCPU')) {osCpuFindings(findings, input, manifest);}
-  }
-  if (npmFlag('NPM_NPMRC_REG') || npmFlag('NPM_NPMRC_SCRIPT') || npmFlag('NPM_ENGINE_STRICT') || npmFlag('NPM_TRUSTED')) {
-    await projectNpmrcFindings(findings, input, manifest);
-  }
+  if (manifest !== undefined) {await manifestLane(findings, input, manifest);}
+  if (npmrcFlags()) {await projectNpmrcFindings(findings, input, manifest);}
   if (npmFlag('NPM_NPMRC_HOME')) {await homeNpmrcFindings(findings, input);}
   return unique(findings);
 }
@@ -128,48 +142,69 @@ export const laneRows: readonly NpmDepthRow[] = [
   npmRow(OSCPU_001, 'CWE-1104'),
 ];
 
-function specFindings(findings: Finding[], manifest: Record<string, unknown>): void {
-  const wantFloat = npmFlag('NPM_FLOAT');
-  const wantGit = npmFlag('NPM_GITSPEC');
-  const wantFile = npmFlag('NPM_FILESPEC');
-  const wantUrl = npmFlag('NPM_URLSPEC');
-  const wantTag = npmFlag('NPM_TAGSPEC');
-  if (!wantFloat && !wantGit && !wantFile && !wantUrl && !wantTag) {return;}
-  for (const item of depSpecs(manifest, DEP_FIELDS)) {
-    const kind = classifySpec(item.spec);
-    const snippet = `${item.name}@${item.spec === '' ? '""' : item.spec}`;
-    if (kind === 'git' && wantGit) {
-      add(findings, GITSPEC_001, 'high', 'package.json', snippet,
-        'Git dependency spec',
-        `${item.name} is requested from a git protocol in package.json.`,
-        'Replace the git spec with a registry version that has a lockfile integrity.');
-    } else if (kind === 'file' && wantFile) {
-      add(findings, FILESPEC_001, 'medium', 'package.json', snippet,
-        'File or link dependency spec',
-        `${item.name} uses a file: or link: spec in package.json.`,
-        'Depend on a published registry version instead of a local path.');
-    } else if (kind === 'url' && wantUrl) {
-      add(findings, URLSPEC_001, 'high', 'package.json', snippet,
-        'URL dependency spec',
-        `${item.name} is requested from an HTTP URL whose host is not registry.npmjs.org.`,
-        'Use a registry.npmjs.org tarball or a semver range.');
-    } else if (kind === 'float' && wantFloat) {
-      add(findings, FLOAT_001, 'medium', 'package.json', snippet,
-        'Floating dependency spec',
-        `${item.name} uses a floating spec (${item.spec === '' ? 'empty' : item.spec}).`,
-        'Pin a semver range with an upper bound, or an exact version.');
-    } else if (kind === 'unbounded' && wantFloat && isProdField(item.field)) {
-      add(findings, FLOAT_002, 'low', 'package.json', snippet,
-        'Dependency spec without an upper bound',
-        `${item.name} allows every version above a floor (${item.spec}).`,
-        'Add an upper bound or switch to a caret, tilde, or exact version.');
-    } else if (kind === 'tag' && wantTag) {
-      add(findings, TAGSPEC_001, 'medium', 'package.json', snippet,
-        'Dist-tag dependency spec',
-        `${item.name} tracks a dist-tag instead of a version.`,
-        'Depend on an exact version or a bounded semver range.');
-    }
+interface SpecFlags {
+  float: boolean;
+  git: boolean;
+  file: boolean;
+  url: boolean;
+  tag: boolean;
+}
+
+function specFlags(): SpecFlags {
+  return {
+    float: npmFlag('NPM_FLOAT'),
+    git: npmFlag('NPM_GITSPEC'),
+    file: npmFlag('NPM_FILESPEC'),
+    url: npmFlag('NPM_URLSPEC'),
+    tag: npmFlag('NPM_TAGSPEC'),
+  };
+}
+
+function anySpec(flags: SpecFlags): boolean {
+  return flags.float || flags.git || flags.file || flags.url || flags.tag;
+}
+
+function specSnippet(item: DepSpec): string {
+  const shown = item.spec === '' ? '""' : item.spec;
+  return `${item.name}@${shown}`;
+}
+
+function floatDetail(spec: string): string {
+  return spec === '' ? 'empty' : spec;
+}
+
+function addSpec(findings: Finding[], item: DepSpec, flags: SpecFlags): void {
+  const kind = classifySpec(item.spec);
+  const snippet = specSnippet(item);
+  if (kind === 'git' && flags.git) {
+    add(findings, { ruleId: GITSPEC_001, severity: 'high', file: 'package.json', snippet, title: 'Git dependency spec', message: `${item.name} is requested from a git protocol in package.json.`, remediation: 'Replace the git spec with a registry version that has a lockfile integrity.' });
+    return;
   }
+  if (kind === 'file' && flags.file) {
+    add(findings, { ruleId: FILESPEC_001, severity: 'medium', file: 'package.json', snippet, title: 'File or link dependency spec', message: `${item.name} uses a file: or link: spec in package.json.`, remediation: 'Depend on a published registry version instead of a local path.' });
+    return;
+  }
+  if (kind === 'url' && flags.url) {
+    add(findings, { ruleId: URLSPEC_001, severity: 'high', file: 'package.json', snippet, title: 'URL dependency spec', message: `${item.name} is requested from an HTTP URL whose host is not registry.npmjs.org.`, remediation: 'Use a registry.npmjs.org tarball or a semver range.' });
+    return;
+  }
+  if (kind === 'float' && flags.float) {
+    add(findings, { ruleId: FLOAT_001, severity: 'medium', file: 'package.json', snippet, title: 'Floating dependency spec', message: `${item.name} uses a floating spec (${floatDetail(item.spec)}).`, remediation: 'Pin a semver range with an upper bound, or an exact version.' });
+    return;
+  }
+  if (kind === 'unbounded' && flags.float && isProdField(item.field)) {
+    add(findings, { ruleId: FLOAT_002, severity: 'low', file: 'package.json', snippet, title: 'Dependency spec without an upper bound', message: `${item.name} allows every version above a floor (${item.spec}).`, remediation: 'Add an upper bound or switch to a caret, tilde, or exact version.' });
+    return;
+  }
+  if (kind === 'tag' && flags.tag) {
+    add(findings, { ruleId: TAGSPEC_001, severity: 'medium', file: 'package.json', snippet, title: 'Dist-tag dependency spec', message: `${item.name} tracks a dist-tag instead of a version.`, remediation: 'Depend on an exact version or a bounded semver range.' });
+  }
+}
+
+function specFindings(findings: Finding[], manifest: Record<string, unknown>): void {
+  const flags = specFlags();
+  if (!anySpec(flags)) {return;}
+  for (const item of depSpecs(manifest, DEP_FIELDS)) {addSpec(findings, item, flags);}
 }
 
 async function overrideFindings(
@@ -180,27 +215,18 @@ async function overrideFindings(
   for (const pin of collectOverrides(manifest)) {
     const alias = overrideAlias(pin.spec);
     if (alias !== undefined && alias.other !== pin.name && npmFlag('NPM_OVERRIDE_ALIAS')) {
-      add(findings, OVERRIDE_ALIAS_001, 'high', 'package.json', `${pin.name}=>${alias.other}@${alias.version}`,
-        'Override replaces a package with a different name',
-        `The override for ${pin.name} installs ${alias.other}@${alias.version}.`,
-        'Override to the same package name, or remove the npm: alias.');
+      add(findings, { ruleId: OVERRIDE_ALIAS_001, severity: 'high', file: 'package.json', snippet: `${pin.name}=>${alias.other}@${alias.version}`, title: 'Override replaces a package with a different name', message: `The override for ${pin.name} installs ${alias.other}@${alias.version}.`, remediation: 'Override to the same package name, or remove the npm: alias.' });
       continue;
     }
     if (isWideOverride(pin.spec) && npmFlag('NPM_OVERRIDE_WIDE')) {
-      add(findings, OVERRIDE_WIDE_001, 'medium', 'package.json', `${pin.name}@${pin.spec}`,
-        'Override has no upper bound',
-        `The override for ${pin.name} is ${pin.spec}.`,
-        'Pin the override to an exact version or a caret range.');
+      add(findings, { ruleId: OVERRIDE_WIDE_001, severity: 'medium', file: 'package.json', snippet: `${pin.name}@${pin.spec}`, title: 'Override has no upper bound', message: `The override for ${pin.name} is ${pin.spec}.`, remediation: 'Pin the override to an exact version or a caret range.' });
       continue;
     }
     if (!npmFlag('NPM_OVERRIDE_VULN') || !isExactVersion(pin.spec)) {continue;}
     const ids = await osvIds(input.cacheDir, pin.name, pin.spec);
     if (ids === undefined || ids.length === 0) {continue;}
     for (const id of ids) {
-      add(findings, OVERRIDE_VULN_001, 'high', 'package.json', `${pin.name}@${pin.spec} ${id}`,
-        'Override pins a vulnerable version',
-        `The override pins ${pin.name}@${pin.spec}, which OSV lists as ${id}.`,
-        'Pin a version that the OSV cache does not list as affected.');
+      add(findings, { ruleId: OVERRIDE_VULN_001, severity: 'high', file: 'package.json', snippet: `${pin.name}@${pin.spec} ${id}`, title: 'Override pins a vulnerable version', message: `The override pins ${pin.name}@${pin.spec}, which OSV lists as ${id}.`, remediation: 'Pin a version that the OSV cache does not list as affected.' });
     }
   }
 }
@@ -211,11 +237,55 @@ function lifecycleFindings(findings: Finding[], manifest: Record<string, unknown
   for (const name of LIFECYCLE_SCRIPTS) {
     const body = scripts[name];
     if (typeof body !== 'string' || !riskyLifecycle(body)) {continue;}
-    add(findings, LIFECYCLE_001, 'high', 'package.json', `${name}: ${body.slice(0, 180)}`,
-      'Lifecycle script fetches remote code',
-      `The root ${name} script downloads or pipes remote content to a shell.`,
-      'Remove the downloader from the lifecycle script and run a local file instead.',
-      'config');
+    add(findings, { ruleId: LIFECYCLE_001, severity: 'high', file: 'package.json', snippet: `${name}: ${body.slice(0, 180)}`, title: 'Lifecycle script fetches remote code', message: `The root ${name} script downloads or pipes remote content to a shell.`, remediation: 'Remove the downloader from the lifecycle script and run a local file instead.', module: 'config' });
+  }
+}
+
+function reportMissingManager(
+  findings: Finding[],
+  manifest: Record<string, unknown>,
+  managers: ReadonlySet<string>,
+): void {
+  if (!npmFlag('NPM_PACKAGEMANAGER') || managers.size === 0 || privateCaretOnly(manifest)) {return;}
+  const listed = [...managers].sort().join(', ');
+  add(findings, { ruleId: PACKAGEMANAGER_001, severity: 'low', file: 'package.json', snippet: `packageManager missing (${listed})`, title: 'packageManager is missing', message: `A lockfile is present (${listed}) and package.json has no packageManager field.`, remediation: 'Set packageManager to the lockfile manager at an exact version, for example npm@10.9.2.' });
+}
+
+function reportNonStringManager(findings: Finding[]): void {
+  if (!npmFlag('NPM_PACKAGEMANAGER')) {return;}
+  add(findings, { ruleId: PACKAGEMANAGER_002, severity: 'medium', file: 'package.json', snippet: 'packageManager', title: 'packageManager is not name@version', message: 'packageManager is present and is not <name>@<exact semver>.', remediation: 'Set packageManager to npm, pnpm, yarn, or bun at an exact MAJOR.MINOR.PATCH version.' });
+}
+
+function managerMismatch(parsed: { exact: boolean; name?: string }, managers: ReadonlySet<string>): boolean {
+  if (!parsed.exact || managers.size === 0) {return false;}
+  return [...managers].some((manager) => manager !== parsed.name);
+}
+
+function reportManagerMismatch(
+  findings: Finding[],
+  managers: ReadonlySet<string>,
+  raw: string,
+  parsed: { exact: boolean; name?: string },
+): void {
+  const mismatch = managerMismatch(parsed, managers);
+  if (parsed.exact && !mismatch) {return;}
+  const listed = [...managers].sort().join(', ');
+  const why = mismatch
+    ? `packageManager is ${raw.trim()} but the lockfile manager is ${listed}.`
+    : `packageManager is ${raw.trim()}, which is not <name>@<exact semver> for npm, pnpm, yarn, or bun.`;
+  add(findings, { ruleId: PACKAGEMANAGER_002, severity: 'medium', file: 'package.json', snippet: raw.trim().slice(0, 180), title: 'packageManager does not match the lockfile', message: why, remediation: 'Set packageManager to the lockfile manager at an exact version, such as npm@10.9.2.' });
+}
+
+function reportStringManager(
+  findings: Finding[],
+  manifest: Record<string, unknown>,
+  managers: ReadonlySet<string>,
+  raw: string,
+): void {
+  const parsed = parsePackageManager(raw);
+  if (npmFlag('NPM_PACKAGEMANAGER')) {reportManagerMismatch(findings, managers, raw, parsed);}
+  if (npmFlag('NPM_COREPACK') && parsed.exact && !parsed.hasHash && !devEnginesHasHash(manifest)) {
+    add(findings, { ruleId: COREPACK_001, severity: 'info', file: 'package.json', snippet: raw.trim().slice(0, 180), title: 'packageManager has no Corepack integrity', message: `${raw.trim()} has no +sha512. suffix and devEngines.packageManager has no hash.`, remediation: 'Append the Corepack +sha512. hash, or set devEngines.packageManager to a hashed version. This check does not download the tarball.' });
   }
 }
 
@@ -227,43 +297,14 @@ function packageManagerFindings(
   const managers = requiredManagers(listedFiles(input));
   const raw = manifest.packageManager;
   if (raw === undefined) {
-    if (npmFlag('NPM_PACKAGEMANAGER') && managers.size > 0 && !privateCaretOnly(manifest)) {
-      const listed = [...managers].sort().join(', ');
-      add(findings, PACKAGEMANAGER_001, 'low', 'package.json', `packageManager missing (${listed})`,
-        'packageManager is missing',
-        `A lockfile is present (${listed}) and package.json has no packageManager field.`,
-        'Set packageManager to the lockfile manager at an exact version, for example npm@10.9.2.');
-    }
+    reportMissingManager(findings, manifest, managers);
     return;
   }
   if (typeof raw !== 'string') {
-    if (npmFlag('NPM_PACKAGEMANAGER')) {
-      add(findings, PACKAGEMANAGER_002, 'medium', 'package.json', 'packageManager',
-        'packageManager is not name@version',
-        'packageManager is present and is not <name>@<exact semver>.',
-        'Set packageManager to npm, pnpm, yarn, or bun at an exact MAJOR.MINOR.PATCH version.');
-    }
+    reportNonStringManager(findings);
     return;
   }
-  const parsed = parsePackageManager(raw);
-  if (npmFlag('NPM_PACKAGEMANAGER')) {
-    const mismatch = parsed.exact && managers.size > 0 && [...managers].some((manager) => manager !== parsed.name);
-    if (!parsed.exact || mismatch) {
-      const why = mismatch
-        ? `packageManager is ${raw.trim()} but the lockfile manager is ${[...managers].sort().join(', ')}.`
-        : `packageManager is ${raw.trim()}, which is not <name>@<exact semver> for npm, pnpm, yarn, or bun.`;
-      add(findings, PACKAGEMANAGER_002, 'medium', 'package.json', raw.trim().slice(0, 180),
-        'packageManager does not match the lockfile',
-        why,
-        'Set packageManager to the lockfile manager at an exact version, such as npm@10.9.2.');
-    }
-  }
-  if (npmFlag('NPM_COREPACK') && parsed.exact && !parsed.hasHash && !devEnginesHasHash(manifest)) {
-    add(findings, COREPACK_001, 'info', 'package.json', raw.trim().slice(0, 180),
-      'packageManager has no Corepack integrity',
-      `${raw.trim()} has no +sha512. suffix and devEngines.packageManager has no hash.`,
-      'Append the Corepack +sha512. hash, or set devEngines.packageManager to a hashed version. This check does not download the tarball.');
-  }
+  reportStringManager(findings, manifest, managers, raw);
 }
 
 async function enginesFindings(
@@ -279,20 +320,12 @@ async function enginesFindings(
     if (pin === undefined) {continue;}
     if (range === undefined) {
       if (enginesNodeUnparseable(manifest)) {continue;}
-      add(findings, ENGINES_001, 'medium', 'package.json', `${file}=${pin}`,
-        'Node pin is not covered by engines.node',
-        `${file} pins ${pin} and package.json has no engines.node range.`,
-        'Set engines.node so it includes the pinned version.',
-        'config');
+      add(findings, { ruleId: ENGINES_001, severity: 'medium', file: 'package.json', snippet: `${file}=${pin}`, title: 'Node pin is not covered by engines.node', message: `${file} pins ${pin} and package.json has no engines.node range.`, remediation: 'Set engines.node so it includes the pinned version.', module: 'config' });
       continue;
     }
     const included = rangeSatisfies(range, pin);
     if (included !== false) {continue;}
-    add(findings, ENGINES_001, 'medium', 'package.json', `engines.node=${range} ${file}=${pin}`,
-      'engines.node excludes the pinned Node version',
-      `engines.node (${range}) does not include ${pin} from ${file}.`,
-      'Widen engines.node to include the pinned version, or change the pin file.',
-      'config');
+    add(findings, { ruleId: ENGINES_001, severity: 'medium', file: 'package.json', snippet: `engines.node=${range} ${file}=${pin}`, title: 'engines.node excludes the pinned Node version', message: `engines.node (${range}) does not include ${pin} from ${file}.`, remediation: 'Widen engines.node to include the pinned version, or change the pin file.', module: 'config' });
   }
 }
 
@@ -300,10 +333,7 @@ function publishConfigFindings(findings: Finding[], manifest: Record<string, unk
   const publish = asRecord(manifest.publishConfig);
   if (manifest.private === true) {
     if (publish?.access === 'public') {
-      add(findings, PUBLISHCONFIG_002, 'medium', 'package.json', 'publishConfig.access=public',
-        'Private package publishes as public',
-        'private is true and publishConfig.access is public.',
-        'Remove publishConfig.access or set it to restricted.');
+      add(findings, { ruleId: PUBLISHCONFIG_002, severity: 'medium', file: 'package.json', snippet: 'publishConfig.access=public', title: 'Private package publishes as public', message: 'private is true and publishConfig.access is public.', remediation: 'Remove publishConfig.access or set it to restricted.' });
     }
     return;
   }
@@ -311,10 +341,7 @@ function publishConfigFindings(findings: Finding[], manifest: Record<string, unk
   if (typeof registry !== 'string') {return;}
   const host = foreignRegistryHost(registry);
   if (host === undefined) {return;}
-  add(findings, PUBLISHCONFIG_001, 'high', 'package.json', `publishConfig.registry=${host}`,
-    'publishConfig registry is not the npm registry',
-    `publishConfig.registry host is ${host}, and private is not true.`,
-    'Publish to registry.npmjs.org, or set private to true.');
+  add(findings, { ruleId: PUBLISHCONFIG_001, severity: 'high', file: 'package.json', snippet: `publishConfig.registry=${host}`, title: 'publishConfig registry is not the npm registry', message: `publishConfig.registry host is ${host}, and private is not true.`, remediation: 'Publish to registry.npmjs.org, or set private to true.' });
 }
 
 async function binShadowFindings(
@@ -335,10 +362,7 @@ async function binShadowFindings(
       const why = builtin
         ? `${name} installs a bin named ${bin}, which is a Node builtin.`
         : `${name} installs a bin named ${bin}, which is also a bin of the root package.`;
-      add(findings, BIN_SHADOW_001, 'medium', 'package.json', `${name} bin ${bin}`,
-        'Dependency bin shadows another command',
-        why,
-        'Rename the bin so it is not a Node builtin and not a root package bin.');
+      add(findings, { ruleId: BIN_SHADOW_001, severity: 'medium', file: 'package.json', snippet: `${name} bin ${bin}`, title: 'Dependency bin shadows another command', message: why, remediation: 'Rename the bin so it is not a Node builtin and not a root package bin.' });
     }
   }
 }
@@ -351,10 +375,56 @@ function osCpuFindings(findings: Finding[], input: NpmDepthInput, manifest: Reco
     if (listExcludes(entry.os, process.platform)) {reasons.push(`os excludes ${process.platform}`);}
     if (listExcludes(entry.cpu, process.arch)) {reasons.push(`cpu excludes ${process.arch}`);}
     if (reasons.length === 0) {continue;}
-    add(findings, OSCPU_001, 'info', 'package-lock.json', `${name} ${reasons.join(', ')}`,
-      'Locked package excludes this platform',
-      `${name} is a direct production dependency and its lock entry ${reasons.join(' and ')}. The package is still sent to OSV.`,
-      'Confirm the install is intentional for this os and cpu. This finding is informational.');
+    add(findings, { ruleId: OSCPU_001, severity: 'info', file: 'package-lock.json', snippet: `${name} ${reasons.join(', ')}`, title: 'Locked package excludes this platform', message: `${name} is a direct production dependency and its lock entry ${reasons.join(' and ')}. The package is still sent to OSV.`, remediation: 'Confirm the install is intentional for this os and cpu. This finding is informational.' });
+  }
+}
+
+function noteRegistryLine(findings: Finding[], file: string, line: NpmrcLine): void {
+  if (!npmFlag('NPM_NPMRC_REG') || !isRegistryKey(line.key)) {return;}
+  const host = foreignRegistryHost(line.value);
+  if (host === undefined) {return;}
+  add(findings, { ruleId: NPMRC_REG_001, severity: 'high', file, snippet: `registry host ${host}`, title: 'Project .npmrc registry is not the npm registry', message: `${file} sets ${line.key} to host ${host}.`, remediation: 'Point registry at https://registry.npmjs.org/ or remove the line.' });
+}
+
+function noteScriptLine(findings: Finding[], file: string, line: NpmrcLine): void {
+  if (!npmFlag('NPM_NPMRC_SCRIPT') || line.key !== 'ignore-scripts' || line.value.toLowerCase() !== 'false') {return;}
+  add(findings, { ruleId: NPMRC_SCRIPT_001, severity: 'info', file, snippet: 'ignore-scripts=false', title: 'Project .npmrc allows install scripts', message: `${file} sets ignore-scripts=false. This is informational and does not mean the project is compromised.`, remediation: 'Set ignore-scripts=true and list the installers you accept in trustedDependencies.' });
+}
+
+function ignoresScripts(line: NpmrcLine): boolean {
+  return line.key === 'ignore-scripts' && line.value.toLowerCase() === 'true';
+}
+
+function noteEngineLine(findings: Finding[], file: string, line: NpmrcLine, range: string | undefined): void {
+  if (!npmFlag('NPM_ENGINE_STRICT') || range === undefined) {return;}
+  if (line.key !== 'engine-strict' || line.value.toLowerCase() !== 'false') {return;}
+  add(findings, { ruleId: ENGINE_STRICT_001, severity: 'info', file, snippet: 'engine-strict=false', title: 'engine-strict is off while engines.node is set', message: `${file} sets engine-strict=false and engines.node is ${range}.`, remediation: 'Set engine-strict=true so installs honor engines.node.' });
+}
+
+function scanNpmrcLines(findings: Finding[], files: readonly ParsedNpmrc[], range: string | undefined): boolean {
+  let scriptsIgnored = false;
+  for (const rc of files) {
+    for (const line of rc.lines) {
+      noteRegistryLine(findings, rc.file, line);
+      noteScriptLine(findings, rc.file, line);
+      if (ignoresScripts(line)) {scriptsIgnored = true;}
+      noteEngineLine(findings, rc.file, line, range);
+    }
+  }
+  return scriptsIgnored;
+}
+
+function reportUntrustedInstalls(
+  findings: Finding[],
+  input: NpmDepthInput,
+  manifest: Record<string, unknown>,
+): void {
+  const trusted = trustedSet(manifest);
+  for (const name of directNames(manifest, PROD_FIELDS)) {
+    if (trusted.has(name)) {continue;}
+    const entry = lockEntry(input.lockTexts, name);
+    if (entry?.hasInstallScript !== true) {continue;}
+    add(findings, { ruleId: TRUSTED_001, severity: 'medium', file: 'package.json', snippet: `${name} hasInstallScript`, title: 'Install script is not in trustedDependencies', message: `${name} has hasInstallScript in the lockfile, ignore-scripts=true, and the name is not in trustedDependencies.`, remediation: 'Add the package to trustedDependencies after reviewing its install script, or remove the dependency.' });
   }
 }
 
@@ -365,49 +435,9 @@ async function projectNpmrcFindings(
 ): Promise<void> {
   const files = await loadNpmrcs(input.cwd, projectNpmrcPaths(input.files));
   const range = manifest === undefined ? undefined : enginesNode(manifest);
-  let scriptsIgnored = false;
-  for (const rc of files) {
-    for (const line of rc.lines) {
-      if (npmFlag('NPM_NPMRC_REG') && isRegistryKey(line.key)) {
-        const host = foreignRegistryHost(line.value);
-        if (host !== undefined) {
-          add(findings, NPMRC_REG_001, 'high', rc.file, `registry host ${host}`,
-            'Project .npmrc registry is not the npm registry',
-            `${rc.file} sets ${line.key} to host ${host}.`,
-            'Point registry at https://registry.npmjs.org/ or remove the line.');
-        }
-      }
-      if (npmFlag('NPM_NPMRC_SCRIPT') && line.key === 'ignore-scripts' && line.value.toLowerCase() === 'false') {
-        add(findings, NPMRC_SCRIPT_001, 'info', rc.file, 'ignore-scripts=false',
-          'Project .npmrc allows install scripts',
-          `${rc.file} sets ignore-scripts=false. This is informational and does not mean the project is compromised.`,
-          'Set ignore-scripts=true and list the installers you accept in trustedDependencies.');
-      }
-      if (line.key === 'ignore-scripts' && line.value.toLowerCase() === 'true') {scriptsIgnored = true;}
-      if (
-        npmFlag('NPM_ENGINE_STRICT') &&
-        line.key === 'engine-strict' &&
-        line.value.toLowerCase() === 'false' &&
-        range !== undefined
-      ) {
-        add(findings, ENGINE_STRICT_001, 'info', rc.file, 'engine-strict=false',
-          'engine-strict is off while engines.node is set',
-          `${rc.file} sets engine-strict=false and engines.node is ${range}.`,
-          'Set engine-strict=true so installs honor engines.node.');
-      }
-    }
-  }
+  const scriptsIgnored = scanNpmrcLines(findings, files, range);
   if (!npmFlag('NPM_TRUSTED') || !scriptsIgnored || manifest === undefined) {return;}
-  const trusted = trustedSet(manifest);
-  for (const name of directNames(manifest, PROD_FIELDS)) {
-    if (trusted.has(name)) {continue;}
-    const entry = lockEntry(input.lockTexts, name);
-    if (entry?.hasInstallScript !== true) {continue;}
-    add(findings, TRUSTED_001, 'medium', 'package.json', `${name} hasInstallScript`,
-      'Install script is not in trustedDependencies',
-      `${name} has hasInstallScript in the lockfile, ignore-scripts=true, and the name is not in trustedDependencies.`,
-      'Add the package to trustedDependencies after reviewing its install script, or remove the dependency.');
-  }
+  reportUntrustedInstalls(findings, input, manifest);
 }
 
 async function homeNpmrcFindings(findings: Finding[], input: NpmDepthInput): Promise<void> {
@@ -426,26 +456,34 @@ async function homeNpmrcFindings(findings: Finding[], input: NpmDepthInput): Pro
       if (!isRegistryKey(line.key)) {continue;}
       const host = foreignRegistryHost(line.value);
       if (host === undefined) {continue;}
-      add(findings, NPMRC_HOME_001, 'medium', source.file, `registry host ${host}`,
-        'Home .npmrc registry is not the npm registry',
-        `${source.file} sets ${line.key} to host ${host}. Token values are not printed.`,
-        'Point the home registry at https://registry.npmjs.org/.');
+      add(findings, { ruleId: NPMRC_HOME_001, severity: 'medium', file: source.file, snippet: `registry host ${host}`, title: 'Home .npmrc registry is not the npm registry', message: `${source.file} sets ${line.key} to host ${host}. Token values are not printed.`, remediation: 'Point the home registry at https://registry.npmjs.org/.' });
     }
   }
 }
 
-function add(
-  findings: Finding[],
-  ruleId: string,
-  severity: Severity,
-  file: string,
-  snippet: string,
-  title: string,
-  message: string,
-  remediation: string,
-  module: ModuleName = 'deps',
-): void {
-  findings.push(npmFinding(ruleId, severity, file, snippet, title, message, remediation, 'high', module));
+interface LaneAdd {
+  ruleId: string;
+  severity: Severity;
+  file: string;
+  snippet: string;
+  title: string;
+  message: string;
+  remediation: string;
+  module?: ModuleName;
+}
+
+function add(findings: Finding[], row: LaneAdd): void {
+  findings.push(npmFinding({
+    ruleId: row.ruleId,
+    severity: row.severity,
+    file: row.file,
+    snippet: row.snippet,
+    title: row.title,
+    message: row.message,
+    remediation: row.remediation,
+    confidence: 'high',
+    module: row.module,
+  }));
 }
 
 function unique(findings: Finding[]): Finding[] {

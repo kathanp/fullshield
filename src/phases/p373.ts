@@ -59,6 +59,76 @@ function attrValue(attr: TSESTree.JSXAttribute): string | null {
   return null;
 }
 
+interface JsxState {
+  url: string | null;
+  integrity: boolean;
+  stylesheet: boolean;
+}
+
+function astNode(value: unknown): value is TSESTree.Node {
+  return typeof value === 'object' && value !== null && 'type' in value;
+}
+
+function readJsxAttr(attr: TSESTree.JSXOpeningElement['attributes'][number], state: JsxState): void {
+  if (attr.type !== 'JSXAttribute' || attr.name.type !== 'JSXIdentifier') {
+    return;
+  }
+  const key = attr.name.name;
+  const value = attrValue(attr);
+  if (key === 'integrity') {
+    state.integrity = true;
+  }
+  if (key === 'src' || key === 'href') {
+    state.url = value;
+  }
+  if (key === 'rel' && value === 'stylesheet') {
+    state.stylesheet = true;
+  }
+}
+
+function jsxOpening(node: TSESTree.JSXOpeningElement): { url: string } | undefined {
+  const name = node.name.type === 'JSXIdentifier' ? node.name.name : '';
+  if (name !== 'script' && name !== 'link') {
+    return undefined;
+  }
+  const state: JsxState = { url: null, integrity: false, stylesheet: name === 'script' };
+  for (const attr of node.attributes) {
+    readJsxAttr(attr, state);
+  }
+  if (state.stylesheet && state.url !== null && !state.integrity) {
+    return { url: state.url };
+  }
+  return undefined;
+}
+
+function walkValue(value: unknown, visit: (node: TSESTree.Node) => void): void {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      if (astNode(item)) {
+        visit(item);
+      }
+    }
+    return;
+  }
+  if (astNode(value)) {
+    visit(value);
+  }
+}
+
+function walkJsx(node: TSESTree.Node, found: Array<{ url: string }>): void {
+  if (node.type === 'JSXOpeningElement') {
+    const hit = jsxOpening(node);
+    if (hit !== undefined) {
+      found.push(hit);
+    }
+  }
+  for (const value of Object.values(node as unknown as Record<string, unknown>)) {
+    walkValue(value, (child) => {
+      walkJsx(child, found);
+    });
+  }
+}
+
 function jsxTags(source: string): Array<{ url: string }> {
   let ast: TSESTree.Program;
   try {
@@ -67,48 +137,7 @@ function jsxTags(source: string): Array<{ url: string }> {
     return [];
   }
   const found: Array<{ url: string }> = [];
-  const visit = (node: TSESTree.Node): void => {
-    if (node.type === 'JSXOpeningElement') {
-      const name = node.name.type === 'JSXIdentifier' ? node.name.name : '';
-      if (name === 'script' || name === 'link') {
-        let url: string | null = null;
-        let integrity = false;
-        let stylesheet = name === 'script';
-        for (const attr of node.attributes) {
-          if (attr.type !== 'JSXAttribute' || attr.name.type !== 'JSXIdentifier') {
-            continue;
-          }
-          const key = attr.name.name;
-          const value = attrValue(attr);
-          if (key === 'integrity') {
-            integrity = true;
-          }
-          if (key === 'src' || key === 'href') {
-            url = value;
-          }
-          if (key === 'rel' && value === 'stylesheet') {
-            stylesheet = true;
-          }
-        }
-        if (stylesheet && url !== null && !integrity) {
-          found.push({ url });
-        }
-      }
-    }
-    const record = node as unknown as Record<string, unknown>;
-    for (const value of Object.values(record)) {
-      if (Array.isArray(value)) {
-        for (const item of value) {
-          if (typeof item === 'object' && item !== null && 'type' in item) {
-            visit(item as TSESTree.Node);
-          }
-        }
-      } else if (typeof value === 'object' && value !== null && 'type' in value) {
-        visit(value as TSESTree.Node);
-      }
-    }
-  };
-  visit(ast);
+  walkJsx(ast, found);
   return found;
 }
 

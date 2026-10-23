@@ -91,6 +91,62 @@ function differ(input: ManifestCompareInput, field: string, values: string[]): M
   return row(input, severity, field, left, right);
 }
 
+function definedValues(sides: readonly ManifestFields[], field: 'name' | 'version'): string[] {
+  const values: string[] = [];
+  for (const side of sides) {
+    const value = side[field];
+    if (value !== undefined) {
+      values.push(value);
+    }
+  }
+  return values;
+}
+
+function pushIdentity(input: ManifestCompareInput, sides: readonly ManifestFields[], findings: ManifestMismatch[]): void {
+  if (input.phase169ReportedNameOrVersion) {
+    return;
+  }
+  for (const field of ['name', 'version'] as const) {
+    const hit = differ(input, field, definedValues(sides, field));
+    if (hit !== null) {
+      findings.push(hit);
+    }
+  }
+}
+
+function keysOf(sides: readonly ManifestFields[], field: 'scripts' | 'dependencies'): Set<string> {
+  const keys = new Set<string>();
+  for (const side of sides) {
+    const record = side[field] ?? {};
+    for (const key of Object.keys(record)) {
+      keys.add(key);
+    }
+  }
+  return keys;
+}
+
+function pushMapped(input: ManifestCompareInput, field: string, values: string[], findings: ManifestMismatch[]): void {
+  const hit = differ(input, field, values);
+  if (hit !== null) {
+    findings.push(hit);
+  }
+}
+
+function pushScripts(input: ManifestCompareInput, sides: readonly ManifestFields[], findings: ManifestMismatch[]): void {
+  const selected = sides.filter((side) => side.scripts !== undefined);
+  for (const key of keysOf(selected, 'scripts')) {
+    pushMapped(input, `scripts.${key}`, selected.map((side) => side.scripts?.[key] ?? ABSENT), findings);
+  }
+}
+
+function pushDependencies(input: ManifestCompareInput, sides: readonly ManifestFields[], findings: ManifestMismatch[]): void {
+  const selected = sides.filter((side) => side.dependencies !== undefined);
+  for (const key of keysOf(selected, 'dependencies')) {
+    const values = selected.map((side) => canonicalDependency(side.dependencies?.[key] ?? ABSENT));
+    pushMapped(input, `dependencies.${key}`, values, findings);
+  }
+}
+
 export function manifestMismatches(input: ManifestCompareInput): ManifestMismatch[] {
   if (!enabled()) {
     return [];
@@ -100,48 +156,8 @@ export function manifestMismatches(input: ManifestCompareInput): ManifestMismatc
     return [];
   }
   const findings: ManifestMismatch[] = [];
-  if (!input.phase169ReportedNameOrVersion) {
-    for (const field of ['name', 'version'] as const) {
-      const values: string[] = [];
-      for (const side of sides) {
-        const value = side[field];
-        if (value !== undefined) {
-          values.push(value);
-        }
-      }
-      const hit = differ(input, field, values);
-      if (hit !== null) {
-        findings.push(hit);
-      }
-    }
-  }
-  const scriptSides = sides.filter((side) => side.scripts !== undefined);
-  const depSides = sides.filter((side) => side.dependencies !== undefined);
-  const scriptKeys = new Set<string>();
-  const depKeys = new Set<string>();
-  for (const side of scriptSides) {
-    for (const key of Object.keys(side.scripts ?? {})) {
-      scriptKeys.add(key);
-    }
-  }
-  for (const side of depSides) {
-    for (const key of Object.keys(side.dependencies ?? {})) {
-      depKeys.add(key);
-    }
-  }
-  for (const key of scriptKeys) {
-    const values = scriptSides.map((side) => side.scripts?.[key] ?? ABSENT);
-    const hit = differ(input, `scripts.${key}`, values);
-    if (hit !== null) {
-      findings.push(hit);
-    }
-  }
-  for (const key of depKeys) {
-    const values = depSides.map((side) => canonicalDependency(side.dependencies?.[key] ?? ABSENT));
-    const hit = differ(input, `dependencies.${key}`, values);
-    if (hit !== null) {
-      findings.push(hit);
-    }
-  }
+  pushIdentity(input, sides, findings);
+  pushScripts(input, sides, findings);
+  pushDependencies(input, sides, findings);
   return findings;
 }

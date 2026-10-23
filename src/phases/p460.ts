@@ -64,6 +64,64 @@ function literal(node: TSESTree.Node): string | boolean | null {
   return null;
 }
 
+function sourceMapLine(node: TSESTree.Node): number {
+  return node.loc?.start.line ?? 1;
+}
+
+function flaggedProperty(name: string, value: string | boolean | null): boolean {
+  if (name === 'productionBrowserSourceMaps' && value === true) {
+    return true;
+  }
+  return name === 'devtool' && typeof value === 'string' && FULL_MAPS.has(value);
+}
+
+function noteProperty(node: TSESTree.Property, file: string, devOnly: boolean, findings: PhaseFinding[]): void {
+  if (devOnly) {
+    return;
+  }
+  const name = propertyName(node.key);
+  const value = literal(node.value);
+  if (name === null || SERVER_ONLY.has(name) || !flaggedProperty(name, value)) {
+    return;
+  }
+  findings.push({ ruleId: SOURCEMAP_RULE, severity: 'low', file, line: sourceMapLine(node), message: 'the flag is set' });
+}
+
+function skippedChild(node: TSESTree.Node, key: string): boolean {
+  if (key === 'parent') {
+    return true;
+  }
+  if (node.type !== 'IfStatement') {
+    return false;
+  }
+  return key === 'consequent' || key === 'alternate';
+}
+
+function pushAst(child: unknown, children: TSESTree.Node[]): void {
+  if (Array.isArray(child)) {
+    for (const item of child) {
+      if (typeof item === 'object' && item !== null && 'type' in item) {
+        children.push(item as TSESTree.Node);
+      }
+    }
+    return;
+  }
+  if (typeof child === 'object' && child !== null && 'type' in child) {
+    children.push(child as TSESTree.Node);
+  }
+}
+
+function childNodes(node: TSESTree.Node): TSESTree.Node[] {
+  const children: TSESTree.Node[] = [];
+  for (const key of Object.keys(node)) {
+    if (skippedChild(node, key)) {
+      continue;
+    }
+    pushAst((node as unknown as Record<string, unknown>)[key], children);
+  }
+  return children;
+}
+
 function visit(node: TSESTree.Node, file: string, devOnly: boolean, findings: PhaseFinding[]): void {
   if (node.type === 'IfStatement' && isDevOnly(node.test)) {
     visit(node.consequent, file, true, findings);
@@ -72,37 +130,11 @@ function visit(node: TSESTree.Node, file: string, devOnly: boolean, findings: Ph
     }
     return;
   }
-  if (node.type === 'Property' && !devOnly) {
-    const name = propertyName(node.key);
-    const value = literal(node.value);
-    if (name !== null && !SERVER_ONLY.has(name)) {
-      const browser = name === 'productionBrowserSourceMaps' && value === true;
-      const fullMap = name === 'devtool' && typeof value === 'string' && FULL_MAPS.has(value);
-      if (browser || fullMap) {
-        findings.push({
-          ruleId: SOURCEMAP_RULE,
-          severity: 'low',
-          file,
-          line: node.loc?.start.line ?? 1,
-          message: 'the flag is set',
-        });
-      }
-    }
+  if (node.type === 'Property') {
+    noteProperty(node, file, devOnly, findings);
   }
-  for (const key of Object.keys(node)) {
-    if (key === 'parent' || (node.type === 'IfStatement' && (key === 'consequent' || key === 'alternate'))) {
-      continue;
-    }
-    const child = (node as unknown as Record<string, unknown>)[key];
-    if (Array.isArray(child)) {
-      for (const item of child) {
-        if (typeof item === 'object' && item !== null && 'type' in item) {
-          visit(item as TSESTree.Node, file, devOnly, findings);
-        }
-      }
-    } else if (typeof child === 'object' && child !== null && 'type' in child) {
-      visit(child as TSESTree.Node, file, devOnly, findings);
-    }
+  for (const child of childNodes(node)) {
+    visit(child, file, devOnly, findings);
   }
 }
 

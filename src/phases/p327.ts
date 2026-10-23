@@ -39,30 +39,55 @@ export interface GqlFinding {
 
 const CATALOG = new Set(['auth', 'requiresAuth']);
 
+function inScope(field: GqlField): boolean {
+  if (!field.parentPublic || field.returnsLiteral || field.introspection) {
+    return false;
+  }
+  return field.reachesStore || field.sensitive;
+}
+
+function directiveName(field: GqlField): string {
+  if (field.directive?.startsWith('@') === true) {
+    return field.directive.slice(1);
+  }
+  return field.directive ?? '';
+}
+
+function guarded(field: GqlField): boolean {
+  if (field.authz !== undefined && field.authz !== 'none') {
+    return true;
+  }
+  if (field.directiveCatalog && CATALOG.has(directiveName(field))) {
+    return true;
+  }
+  return field.queryCheckDominates;
+}
+
+function authzHit(field: GqlField): GqlFinding | undefined {
+  if (!inScope(field) || guarded(field)) {
+    return undefined;
+  }
+  return {
+    ruleId: RULE,
+    severity: 'medium',
+    confidence: 'medium',
+    file: field.file,
+    line: field.line,
+    message: `Public ${field.parent}.${field.field} has no dominating authorization check.`,
+    witness: field.directive ?? 'none',
+  };
+}
+
 export function gqlAuthzFindings(fields: readonly GqlField[]): GqlFinding[] {
   if (!enabled()) {
     return [];
   }
   const findings: GqlFinding[] = [];
   for (const field of fields) {
-    if (!field.parentPublic || field.returnsLiteral || field.introspection || (!field.reachesStore && !field.sensitive)) {
-      continue;
+    const hit = authzHit(field);
+    if (hit !== undefined) {
+      findings.push(hit);
     }
-    const name = field.directive?.startsWith('@') === true ? field.directive.slice(1) : (field.directive ?? '');
-    const catalog = field.directiveCatalog && CATALOG.has(name);
-    const guarded = (field.authz !== undefined && field.authz !== 'none') || catalog || field.queryCheckDominates;
-    if (guarded) {
-      continue;
-    }
-    findings.push({
-      ruleId: RULE,
-      severity: 'medium',
-      confidence: 'medium',
-      file: field.file,
-      line: field.line,
-      message: `Public ${field.parent}.${field.field} has no dominating authorization check.`,
-      witness: field.directive ?? 'none',
-    });
   }
   return findings;
 }

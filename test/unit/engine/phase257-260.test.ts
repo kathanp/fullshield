@@ -41,14 +41,35 @@ describe('phase 259 dep graph', () => {
       ['a.handle', ['b.parse']],
     ]);
     const read: string[] = [];
-    const hit = functionReachable('reachable-via-dependency', 'app.main', 'b.parse', edges, new Set(), (name) => {
-      read.push(name);
+    const hit = functionReachable({
+      current: 'reachable-via-dependency',
+      rootExport: 'app.main',
+      vulnerable: 'b.parse',
+      edges,
+      malicious: new Set(),
+      readPackage: (name) => {
+        read.push(name);
+      },
     });
     expect(hit.reachability).toBe('function-reachable-via-dependency');
     expect(hit.path).toEqual(['app.main', 'a.handle', 'b.parse']);
-    const missed = functionReachable('reachable-via-dependency', 'app.main', 'b.parse', new Map([['app.main', ['a.handle']]]), new Set(), () => undefined);
+    const missed = functionReachable({
+      current: 'reachable-via-dependency',
+      rootExport: 'app.main',
+      vulnerable: 'b.parse',
+      edges: new Map([['app.main', ['a.handle']]]),
+      malicious: new Set(),
+      readPackage: () => undefined,
+    });
     expect(missed.reachability).toBe('reachable-via-dependency');
-    const kept = functionReachable('function-reachable-via-dependency', 'app.main', 'b.parse', new Map(), new Set(), () => undefined);
+    const kept = functionReachable({
+      current: 'function-reachable-via-dependency',
+      rootExport: 'app.main',
+      vulnerable: 'b.parse',
+      edges: new Map(),
+      malicious: new Set(),
+      readPackage: () => undefined,
+    });
     expect(kept.reachability).toBe('function-reachable-via-dependency');
     expect(upgradeReach('function-reachable-via-dependency', 'reachable-via-dependency')).toBe('function-reachable-via-dependency');
   });
@@ -56,8 +77,15 @@ describe('phase 259 dep graph', () => {
   it('does not read a malicious package', () => {
     process.env[DEPGRAPH_FLAG] = '1';
     const read: string[] = [];
-    functionReachable('reachable-via-dependency', 'app.main', 'b.parse', new Map([['app.main', ['b.parse']]]), new Set(['b']), (name) => {
-      read.push(name);
+    functionReachable({
+      current: 'reachable-via-dependency',
+      rootExport: 'app.main',
+      vulnerable: 'b.parse',
+      edges: new Map([['app.main', ['b.parse']]]),
+      malicious: new Set(['b']),
+      readPackage: (name) => {
+        read.push(name);
+      },
     });
     expect(read).not.toContain('b');
   });

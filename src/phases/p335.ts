@@ -75,35 +75,61 @@ function treeShas(payload: Buffer): string[] {
   return shas;
 }
 
-function refsOf(reader: GitReader): { sha: string; ref: string }[] {
-  const refs: { sha: string; ref: string }[] = [];
-  const packed = reader.read(gitPath('packed-refs'))?.toString('utf8') ?? '';
-  for (const line of packed.split('\n')) {
+interface GitRef {
+  sha: string;
+  ref: string;
+}
+
+function readText(reader: GitReader, ...parts: string[]): string {
+  return reader.read(gitPath(...parts))?.toString('utf8') ?? '';
+}
+
+function pushSha(refs: GitRef[], sha: string, ref: string): void {
+  if (/^[0-9a-f]{40}$/.test(sha)) {
+    refs.push({ sha, ref });
+  }
+}
+
+function packedRefs(reader: GitReader): GitRef[] {
+  const refs: GitRef[] = [];
+  for (const line of readText(reader, 'packed-refs').split('\n')) {
     const match = /^([0-9a-f]{40})\s+(\S+)/.exec(line.trim());
     if (match?.[1] !== undefined && match[2] !== undefined) {
       refs.push({ sha: match[1], ref: match[2] });
     }
   }
-  const head = reader.read(gitPath('HEAD'))?.toString('utf8').trim() ?? '';
+  return refs;
+}
+
+function headRef(reader: GitReader, refs: GitRef[]): void {
+  const head = readText(reader, 'HEAD').trim();
   if (/^[0-9a-f]{40}$/.test(head)) {
     refs.push({ sha: head, ref: 'HEAD' });
-  } else if (head.startsWith('ref: ')) {
-    const target = reader.read(gitPath(...head.slice(5).trim().split('/')))?.toString('utf8').trim() ?? '';
-    if (/^[0-9a-f]{40}$/.test(target)) {
-      refs.push({ sha: target, ref: head.slice(5).trim() });
-    }
+    return;
   }
-  const stash = reader.read(gitPath('refs', 'stash'))?.toString('utf8').trim() ?? '';
-  if (/^[0-9a-f]{40}$/.test(stash)) {
-    refs.push({ sha: stash, ref: 'refs/stash' });
+  if (!head.startsWith('ref: ')) {
+    return;
   }
-  const reflog = reader.read(gitPath('logs', 'HEAD'))?.toString('utf8') ?? '';
-  for (const line of reflog.split('\n')) {
+  const name = head.slice(5).trim();
+  pushSha(refs, readText(reader, ...name.split('/')).trim(), name);
+}
+
+function reflogRefs(reader: GitReader): GitRef[] {
+  const refs: GitRef[] = [];
+  for (const line of readText(reader, 'logs', 'HEAD').split('\n')) {
     const next = /^[0-9a-f]{40} ([0-9a-f]{40}) /.exec(line)?.[1];
     if (next !== undefined && next !== '0'.repeat(40)) {
       refs.push({ sha: next, ref: 'reflog' });
     }
   }
+  return refs;
+}
+
+function refsOf(reader: GitReader): GitRef[] {
+  const refs = packedRefs(reader);
+  headRef(reader, refs);
+  pushSha(refs, readText(reader, 'refs', 'stash').trim(), 'refs/stash');
+  refs.push(...reflogRefs(reader));
   return refs;
 }
 
@@ -115,22 +141,92 @@ function safeList(reader: GitReader, path: string): readonly string[] {
   }
 }
 
-export function scanGit(reader: GitReader, formats: readonly SecretFormat[], maxBytes = 1_000_000): GitScan {
-  if (!enabled()) {
-    return { findings: [], events: [], claimedClean: true };
-  }
-  const findings: GitFinding[] = [];
-  const events: GitScan['events'] = [];
-  let claimedClean = true;
-  let used = 0;
-  for (const line of (reader.read(gitPath('objects', 'info', 'alternates'))?.toString('utf8') ?? '').split('\n')) {
+interface GitWalk {
+  findings: GitFinding[];
+  events: GitScan['events'];
+  claimedClean: boolean;
+  used: number;
+  maxBytes: number;
+}
+
+function noteEvent(state: GitWalk, file: string, detail: string): void {
+  state.events.push({ code: 271, file, detail });
+  state.claimedClean = false;
+}
+
+function noteAlternates(reader: GitReader, state: GitWalk): void {
+  for (const line of readText(reader, 'objects', 'info', 'alternates').split('\n')) {
     const target = line.trim();
     if (target.length === 0) {
       continue;
     }
-    events.push({ code: 271, file: target, detail: 'alternate not followed' });
-    claimedClean = false;
+    noteEvent(state, target, 'alternate not followed');
   }
+}
+
+function loadStore(reader: GitReader, sha: string, state: GitWalk): Buffer | undefined {
+  const raw = reader.read(gitPath('objects', sha.slice(0, 2), sha.slice(2)));
+  if (raw === undefined) {
+    return undefined;
+  }
+  const store = inflate(raw);
+  if (store === undefined) {
+    noteEvent(state, sha, 'corrupt git object');
+  }
+  return store;
+}
+
+function enqueueSplit(split: { type: string; payload: Buffer }, item: GitRef, formats: readonly SecretFormat[], queue: GitRef[], state: GitWalk): void {
+  if (split.type === 'commit') {
+    const tree = /^tree ([0-9a-f]{40})/m.exec(split.payload.toString('utf8'))?.[1];
+    if (tree !== undefined) {
+      queue.push({ sha: tree, ref: item.ref });
+    }
+    return;
+  }
+  if (split.type === 'tree') {
+    for (const sha of treeShas(split.payload)) {
+      queue.push({ sha, ref: item.ref });
+    }
+    return;
+  }
+  if (split.type !== 'blob') {
+    return;
+  }
+  const matched = matchGrammar(split.payload.toString('utf8'), formats);
+  if (matched === undefined) {
+    return;
+  }
+  state.findings.push({
+    ruleId: 'SECRETS-FORMAT-001',
+    severity: 'high',
+    file: `${item.sha} ${item.ref}`,
+    line: 1,
+    message: `git-object ${item.sha} on ${item.ref} matches ${matched.id}. The blob is not in the working tree.`,
+    witness: 'git-object',
+  });
+}
+
+function takeObject(reader: GitReader, item: GitRef, formats: readonly SecretFormat[], queue: GitRef[], state: GitWalk): 'stop' | 'next' {
+  if (state.used > state.maxBytes) {
+    noteEvent(state, item.sha, 'git object fuel exhausted');
+    return 'stop';
+  }
+  const store = loadStore(reader, item.sha, state);
+  if (store === undefined) {
+    return 'next';
+  }
+  state.used += store.length;
+  const split = splitHeader(store);
+  if (split === undefined) {
+    noteEvent(state, item.sha, 'corrupt git object');
+    return 'next';
+  }
+  enqueueSplit(split, item, formats, queue, state);
+  return 'next';
+}
+
+function walkObjects(reader: GitReader, formats: readonly SecretFormat[], state: GitWalk): void {
   const seen = new Set<string>();
   const queue = refsOf(reader);
   while (queue.length > 0) {
@@ -139,60 +235,31 @@ export function scanGit(reader: GitReader, formats: readonly SecretFormat[], max
       continue;
     }
     seen.add(item.sha);
-    if (used > maxBytes) {
-      events.push({ code: 271, file: item.sha, detail: 'git object fuel exhausted' });
-      claimedClean = false;
+    if (takeObject(reader, item, formats, queue, state) === 'stop') {
       break;
     }
-    const raw = reader.read(gitPath('objects', item.sha.slice(0, 2), item.sha.slice(2)));
-    const store = raw === undefined ? undefined : inflate(raw);
-    if (raw !== undefined && store === undefined) {
-      events.push({ code: 271, file: item.sha, detail: 'corrupt git object' });
-      claimedClean = false;
-      continue;
-    }
-    if (store === undefined) {
-      continue;
-    }
-    used += store.length;
-    const split = splitHeader(store);
-    if (split === undefined) {
-      events.push({ code: 271, file: item.sha, detail: 'corrupt git object' });
-      claimedClean = false;
-      continue;
-    }
-    if (split.type === 'commit') {
-      const tree = /^tree ([0-9a-f]{40})/m.exec(split.payload.toString('utf8'))?.[1];
-      if (tree !== undefined) {
-        queue.push({ sha: tree, ref: item.ref });
-      }
-    } else if (split.type === 'tree') {
-      for (const sha of treeShas(split.payload)) {
-        queue.push({ sha, ref: item.ref });
-      }
-    } else if (split.type === 'blob') {
-      const matched = matchGrammar(split.payload.toString('utf8'), formats);
-      if (matched !== undefined) {
-        findings.push({
-          ruleId: 'SECRETS-FORMAT-001',
-          severity: 'high',
-          file: `${item.sha} ${item.ref}`,
-          line: 1,
-          message: `git-object ${item.sha} on ${item.ref} matches ${matched.id}. The blob is not in the working tree.`,
-          witness: 'git-object',
-        });
-      }
-    }
   }
+}
+
+function scanPacks(reader: GitReader, state: GitWalk): void {
   for (const name of safeList(reader, gitPath('objects', 'pack'))) {
     if (!name.endsWith('.pack')) {
       continue;
     }
     const bytes = reader.read(gitPath('objects', 'pack', name));
     if (bytes === undefined || bytes.length < 4 || bytes.subarray(0, 4).toString('utf8') !== 'PACK') {
-      events.push({ code: 271, file: name, detail: 'corrupt pack' });
-      claimedClean = false;
+      noteEvent(state, name, 'corrupt pack');
     }
   }
-  return { findings, events, claimedClean };
+}
+
+export function scanGit(reader: GitReader, formats: readonly SecretFormat[], maxBytes = 1_000_000): GitScan {
+  if (!enabled()) {
+    return { findings: [], events: [], claimedClean: true };
+  }
+  const state: GitWalk = { findings: [], events: [], claimedClean: true, used: 0, maxBytes };
+  noteAlternates(reader, state);
+  walkObjects(reader, formats, state);
+  scanPacks(reader, state);
+  return { findings: state.findings, events: state.events, claimedClean: state.claimedClean };
 }

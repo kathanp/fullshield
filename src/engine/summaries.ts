@@ -70,32 +70,48 @@ function collect(program: TSESTree.Program): { fns: Map<string, FnFact>; entries
   return { fns, entries };
 }
 
+function isAstNode(value: unknown): value is TSESTree.Node {
+  return value !== null && typeof value === 'object' && 'type' in value;
+}
+
+function walkAst(node: TSESTree.Node, visit: (node: TSESTree.Node) => void): void {
+  for (const key of Object.keys(node)) {
+    if (key === 'parent') {continue;}
+    const value = (node as unknown as Record<string, unknown>)[key];
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (isAstNode(item)) {visit(item);}
+      }
+    } else if (isAstNode(value)) {
+      visit(value);
+    }
+  }
+}
+
+function isSinkCall(node: TSESTree.CallExpression): boolean {
+  return node.callee.type === 'MemberExpression'
+    && node.callee.property.type === 'Identifier'
+    && SINK_NAMES.has(node.callee.property.name);
+}
+
+function noteCall(node: TSESTree.CallExpression, fact: FnFact): void {
+  const edge = callEdge(node, fact.params, node.loc?.start.line ?? 1);
+  if (edge.callee !== '' && !SINK_NAMES.has(edge.callee)) {fact.calls.push(edge);}
+  if (!isSinkCall(node)) {return;}
+  for (const arg of node.arguments) {
+    if (arg.type === 'SpreadElement') {continue;}
+    const kind = classifyArg(arg, fact.params);
+    if (kind.kind === 'param') {fact.directSinks.add(kind.index);}
+  }
+}
+
+function walkNode(node: TSESTree.Node, fact: FnFact): void {
+  if (node.type === 'CallExpression') {noteCall(node, fact);}
+  walkAst(node, (child) => { walkNode(child, fact); });
+}
+
 function walkFn(body: TSESTree.BlockStatement, fact: FnFact): void {
-  const visit = (node: TSESTree.Node): void => {
-    if (node.type === 'CallExpression') {
-      const edge = callEdge(node, fact.params, node.loc?.start.line ?? 1);
-      if (edge.callee !== '' && !SINK_NAMES.has(edge.callee)) {fact.calls.push(edge);}
-      if (node.callee.type === 'MemberExpression' && node.callee.property.type === 'Identifier' && SINK_NAMES.has(node.callee.property.name)) {
-        for (const arg of node.arguments) {
-          if (arg.type === 'SpreadElement') {continue;}
-          const kind = classifyArg(arg, fact.params);
-          if (kind.kind === 'param') {fact.directSinks.add(kind.index);}
-        }
-      }
-    }
-    for (const key of Object.keys(node)) {
-      if (key === 'parent') {continue;}
-      const value = (node as unknown as Record<string, unknown>)[key];
-      if (Array.isArray(value)) {
-        for (const item of value) {
-          if (item !== null && typeof item === 'object' && 'type' in item) {visit(item as TSESTree.Node);}
-        }
-      } else if (value !== null && typeof value === 'object' && 'type' in value) {
-        visit(value as TSESTree.Node);
-      }
-    }
-  };
-  visit(body);
+  walkNode(body, fact);
 }
 
 function callEdge(node: TSESTree.CallExpression, params: readonly string[], line: number): CallEdge {

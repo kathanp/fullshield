@@ -43,6 +43,74 @@ function publicMaterial(kind: JwtKeyKind): boolean {
   return kind === 'pem-public' || kind === 'certificate';
 }
 
+function at(call: JwtCall, draft: Pick<JwtFinding, 'ruleId' | 'severity' | 'confidence' | 'message' | 'origin'>): JwtFinding {
+  const finding: JwtFinding = {
+    ruleId: draft.ruleId,
+    severity: draft.severity,
+    confidence: draft.confidence,
+    file: call.file,
+    line: call.line,
+    message: draft.message,
+  };
+  if (draft.origin !== undefined) {
+    finding.origin = draft.origin;
+  }
+  return finding;
+}
+
+function allowsNone(algorithms: readonly string[]): boolean {
+  return algorithms.some((name) => name.toLowerCase() === 'none');
+}
+
+function mixedOrMissing(call: JwtCall, algorithms: readonly string[]): boolean {
+  const hasHmac = algorithms.some((name) => HMAC.has(name));
+  const hasAsym = algorithms.some((name) => ASYMMETRIC.has(name));
+  const missing = call.algorithms === undefined;
+  const unknownKey = publicMaterial(call.key) || call.key === 'unknown';
+  return call.algorithmsSpreadUnknown === true || (hasHmac && hasAsym) || (missing && unknownKey);
+}
+
+function algorithmFinding(call: JwtCall): JwtFinding | undefined {
+  const algorithms = call.algorithms ?? [];
+  if (allowsNone(algorithms)) {
+    return at(call, { ruleId: 'SAST-JWTDEEP-002', severity: 'critical', confidence: 'high', message: 'JWT verify allows the none algorithm.' });
+  }
+  if (mixedOrMissing(call, algorithms)) {
+    return at(call, { ruleId: 'SAST-JWTDEEP-001', severity: 'high', confidence: 'high', message: 'JWT verify algorithms mix HMAC and asymmetric names, or algorithms are missing for this key.' });
+  }
+  return undefined;
+}
+
+function claimFinding(call: JwtCall): JwtFinding | undefined {
+  if (call.issuerModel !== 'third-party') {
+    return undefined;
+  }
+  if (call.audience && call.issuer) {
+    return undefined;
+  }
+  return at(call, { ruleId: 'SAST-JWTDEEP-003', severity: 'medium', confidence: 'medium', message: 'Third-party JWT verify is missing audience or issuer.' });
+}
+
+function flowFindings(call: JwtCall): JwtFinding[] {
+  const findings: JwtFinding[] = [];
+  if (call.kidFlowsTo === 'path') {
+    findings.push(at(call, { ruleId: 'SAST-PATH-001', severity: 'high', confidence: 'high', message: 'kid from the JWT header reaches a file path. Origin jwt-header.', origin: 'jwt-header' }));
+  }
+  if (call.kidFlowsTo === 'sql') {
+    findings.push(at(call, { ruleId: 'SAST-SQLI-001', severity: 'high', confidence: 'high', message: 'kid from the JWT header reaches a SQL query. Origin jwt-header.', origin: 'jwt-header' }));
+  }
+  if (call.headerUrlFlowsTo === 'fetch') {
+    findings.push(at(call, { ruleId: 'SAST-SSRF-001', severity: 'high', confidence: 'high', message: 'jku or x5u from the JWT header reaches fetch. Origin jwt-header.', origin: 'jwt-header' }));
+  }
+  return findings;
+}
+
+function pushDefined(findings: JwtFinding[], finding: JwtFinding | undefined): void {
+  if (finding !== undefined) {
+    findings.push(finding);
+  }
+}
+
 export function jwtFindings(calls: readonly JwtCall[]): JwtFinding[] {
   if (!enabled()) {
     return [];
@@ -52,78 +120,9 @@ export function jwtFindings(calls: readonly JwtCall[]): JwtFinding[] {
     if (call.kind !== 'verify') {
       continue;
     }
-    const algorithms = call.algorithms ?? [];
-    if (algorithms.some((name) => name.toLowerCase() === 'none')) {
-      findings.push({
-        ruleId: 'SAST-JWTDEEP-002',
-        severity: 'critical',
-        confidence: 'high',
-        file: call.file,
-        line: call.line,
-        message: 'JWT verify allows the none algorithm.',
-      });
-    } else {
-      const hasHmac = algorithms.some((name) => HMAC.has(name));
-      const hasAsym = algorithms.some((name) => ASYMMETRIC.has(name));
-      const missing = call.algorithms === undefined;
-      const dangerous =
-        call.algorithmsSpreadUnknown === true ||
-        (hasHmac && hasAsym) ||
-        (missing && (publicMaterial(call.key) || call.key === 'unknown'));
-      if (dangerous) {
-        findings.push({
-          ruleId: 'SAST-JWTDEEP-001',
-          severity: 'high',
-          confidence: 'high',
-          file: call.file,
-          line: call.line,
-          message: 'JWT verify algorithms mix HMAC and asymmetric names, or algorithms are missing for this key.',
-        });
-      }
-    }
-    if (call.issuerModel === 'third-party' && (!call.audience || !call.issuer)) {
-      findings.push({
-        ruleId: 'SAST-JWTDEEP-003',
-        severity: 'medium',
-        confidence: 'medium',
-        file: call.file,
-        line: call.line,
-        message: 'Third-party JWT verify is missing audience or issuer.',
-      });
-    }
-    if (call.kidFlowsTo === 'path') {
-      findings.push({
-        ruleId: 'SAST-PATH-001',
-        severity: 'high',
-        confidence: 'high',
-        file: call.file,
-        line: call.line,
-        origin: 'jwt-header',
-        message: 'kid from the JWT header reaches a file path. Origin jwt-header.',
-      });
-    }
-    if (call.kidFlowsTo === 'sql') {
-      findings.push({
-        ruleId: 'SAST-SQLI-001',
-        severity: 'high',
-        confidence: 'high',
-        file: call.file,
-        line: call.line,
-        origin: 'jwt-header',
-        message: 'kid from the JWT header reaches a SQL query. Origin jwt-header.',
-      });
-    }
-    if (call.headerUrlFlowsTo === 'fetch') {
-      findings.push({
-        ruleId: 'SAST-SSRF-001',
-        severity: 'high',
-        confidence: 'high',
-        file: call.file,
-        line: call.line,
-        origin: 'jwt-header',
-        message: 'jku or x5u from the JWT header reaches fetch. Origin jwt-header.',
-      });
-    }
+    pushDefined(findings, algorithmFinding(call));
+    pushDefined(findings, claimFinding(call));
+    findings.push(...flowFindings(call));
   }
   return findings;
 }

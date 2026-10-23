@@ -33,21 +33,28 @@ export function analyzeMeta(files: Readonly<Record<string, string>>, options: { 
   const events: UnsoundEvent[] = [];
   const dir = options.routesDir;
   for (const [file, source] of Object.entries(files)) {
-    if (dir !== undefined && !file.startsWith(dir)) {continue;}
-    const kinds = grammars(file, source);
-    if (kinds.length > 1) {
-      events.push({ kind: 'unknown-callee', file, line: 1, reason: 'two grammars' });
-      continue;
-    }
-    const kind = kinds[0];
-    if (kind === undefined || (options.framework !== 'auto' && kind !== options.framework)) {continue;}
-    const program = parseProgram(source);
-    if (program === null) {continue;}
-    const fullPath = pathFor(kind, file, dir);
-    const finding = reaches(program) && (sameRequestLocals(program) || usesSource(program));
-    routes.push({ file, framework: kind, fullPath, finding });
+    const route = metaRoute(file, source, dir, options.framework, events);
+    if (route !== null) {routes.push(route);}
   }
   return { routes, events };
+}
+
+function metaRoute(file: string, source: string, dir: string | undefined, framework: string, events: UnsoundEvent[]): MetaRoute | null {
+  if (dir !== undefined && !file.startsWith(dir)) {return null;}
+  const kinds = grammars(file, source);
+  if (kinds.length > 1) {
+    events.push({ kind: 'unknown-callee', file, line: 1, reason: 'two grammars' });
+    return null;
+  }
+  const kind = kinds[0];
+  if (kind === undefined || (framework !== 'auto' && kind !== framework)) {return null;}
+  const program = parseProgram(source);
+  if (program === null) {return null;}
+  return { file, framework: kind, fullPath: pathFor(kind, file, dir), finding: metaFinding(program) };
+}
+
+function metaFinding(program: TSESTree.Program): boolean {
+  return reaches(program) && (sameRequestLocals(program) || usesSource(program));
 }
 
 function grammars(file: string, source: string): string[] {

@@ -23,22 +23,49 @@ export function analyzeWs(source: string, options?: { file?: string }): { findin
   const events: UnsoundEvent[] = [];
   const findings: WsFinding[] = [];
   const connectionAuth = hasConnectionAuth(program);
-  walkAst(program, (node) => {
-    if (node.type !== 'CallExpression') {return;}
-    const callee = stripNode(node.callee);
-    if (callee.type !== 'MemberExpression' || propName(callee) !== 'on') {return;}
-    const eventName = node.arguments[0];
-    const handler = node.arguments[1];
-    if (handler === undefined || (handler.type !== 'ArrowFunctionExpression' && handler.type !== 'FunctionExpression')) {return;}
-    const literal = eventName !== undefined && eventName.type === 'Literal' && typeof eventName.value === 'string' ? eventName.value : null;
-    if (literal === null) {events.push({ kind: 'dynamic-property', file, line: lineOf(node), reason: 'computed event' });}
-    const payload = handler.params[0];
-    const payloadName = payload !== undefined && payload.type === 'Identifier' ? payload.name : null;
-    if (payloadName !== null && reachesQuery(handler, payloadName)) {
-      findings.push({ file, line: lineOf(node), route: literal === null ? null : `WS ${literal}`, auth: connectionAuth });
-    }
-  });
+  walkAst(program, (node) => {noteWs(node, file, findings, events, connectionAuth);});
   return { findings, events };
+}
+
+function noteWs(
+  node: TSESTree.Node,
+  file: string,
+  findings: WsFinding[],
+  events: UnsoundEvent[],
+  connectionAuth: boolean,
+): void {
+  const handler = wsHandler(node);
+  if (handler === null) {return;}
+  const literal = eventLiteral(node);
+  if (literal === null && node.type === 'CallExpression') {
+    events.push({ kind: 'dynamic-property', file, line: lineOf(node), reason: 'computed event' });
+  }
+  const payloadName = payloadOf(handler);
+  if (payloadName !== null && reachesQuery(handler, payloadName)) {
+    findings.push({ file, line: lineOf(node), route: literal === null ? null : `WS ${literal}`, auth: connectionAuth });
+  }
+}
+
+function wsHandler(node: TSESTree.Node): TSESTree.ArrowFunctionExpression | TSESTree.FunctionExpression | null {
+  if (node.type !== 'CallExpression') {return null;}
+  const callee = stripNode(node.callee);
+  if (callee.type !== 'MemberExpression' || propName(callee) !== 'on') {return null;}
+  const handler = node.arguments[1];
+  if (handler === undefined || (handler.type !== 'ArrowFunctionExpression' && handler.type !== 'FunctionExpression')) {return null;}
+  return handler;
+}
+
+function eventLiteral(node: TSESTree.Node): string | null {
+  if (node.type !== 'CallExpression') {return null;}
+  const eventName = node.arguments[0];
+  if (eventName !== undefined && eventName.type === 'Literal' && typeof eventName.value === 'string') {return eventName.value;}
+  return null;
+}
+
+function payloadOf(handler: TSESTree.ArrowFunctionExpression | TSESTree.FunctionExpression): string | null {
+  const payload = handler.params[0];
+  if (payload !== undefined && payload.type === 'Identifier') {return payload.name;}
+  return null;
 }
 
 function hasConnectionAuth(program: TSESTree.Program): boolean {

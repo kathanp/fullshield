@@ -10,6 +10,20 @@ type Enqueue = (node: FnNode, hint: string | undefined) => void;
 
 const BOOLEAN_BIN = new Set(['==', '===', '!=', '!==', '<', '<=', '>', '>=', 'in', 'instanceof']);
 
+const SKIP_STMT = new Set<string>([
+  AST_NODE_TYPES.BreakStatement,
+  AST_NODE_TYPES.ContinueStatement,
+  AST_NODE_TYPES.EmptyStatement,
+  AST_NODE_TYPES.DebuggerStatement,
+  AST_NODE_TYPES.ImportDeclaration,
+  AST_NODE_TYPES.ExportAllDeclaration,
+  AST_NODE_TYPES.TSTypeAliasDeclaration,
+  AST_NODE_TYPES.TSInterfaceDeclaration,
+  AST_NODE_TYPES.TSDeclareFunction,
+  AST_NODE_TYPES.TSEnumDeclaration,
+  AST_NODE_TYPES.TSModuleDeclaration,
+]);
+
 /**
  * Intra-procedural SSA. Nested functions are separate and do not capture the parent env.
  * `switch` arms are joined as alternatives; fallthrough is not modeled.
@@ -78,21 +92,71 @@ class Lowerer {
   }
 
   statement(node: TSESTree.Node): void {
+    if (SKIP_STMT.has(node.type)) {return;}
+    if (this.statementFlow(node)) {return;}
+    this.statementDecl(node);
+  }
+
+  private statementFlow(node: TSESTree.Node): boolean {
     if (node.type === AST_NODE_TYPES.BlockStatement) {
       for (const stmt of node.body) {this.statement(stmt);}
-      return;
+      return true;
     }
     if (node.type === AST_NODE_TYPES.ExpressionStatement) {
       this.lowerExpr(node.expression);
-      return;
+      return true;
     }
+    if (node.type === AST_NODE_TYPES.IfStatement) {
+      this.lowerIf(node);
+      return true;
+    }
+    if (node.type === AST_NODE_TYPES.WhileStatement) {
+      this.lowerLoop(node.test, () => { this.statement(node.body); }, node);
+      return true;
+    }
+    if (node.type === AST_NODE_TYPES.DoWhileStatement) {
+      this.lowerDo(node);
+      return true;
+    }
+    if (node.type === AST_NODE_TYPES.ForStatement) {
+      this.lowerFor(node);
+      return true;
+    }
+    if (node.type === AST_NODE_TYPES.ForInStatement || node.type === AST_NODE_TYPES.ForOfStatement) {
+      this.lowerForInOf(node);
+      return true;
+    }
+    if (node.type === AST_NODE_TYPES.SwitchStatement) {
+      this.lowerSwitch(node);
+      return true;
+    }
+    if (node.type === AST_NODE_TYPES.TryStatement) {
+      this.lowerTry(node);
+      return true;
+    }
+    if (node.type === AST_NODE_TYPES.ThrowStatement) {
+      this.lowerExpr(node.argument);
+      return true;
+    }
+    if (node.type === AST_NODE_TYPES.LabeledStatement) {
+      this.statement(node.body);
+      return true;
+    }
+    if (node.type === AST_NODE_TYPES.WithStatement) {
+      this.lowerExpr(node.object);
+      this.statement(node.body);
+      return true;
+    }
+    return false;
+  }
+
+  private statementDecl(node: TSESTree.Node): void {
     if (node.type === AST_NODE_TYPES.VariableDeclaration) {
       this.lowerVariable(node);
       return;
     }
     if (node.type === AST_NODE_TYPES.FunctionDeclaration) {
-      this.enqueue(node, node.id?.name);
-      if (node.id !== null) {this.defineOne(node.id.name, undefined, node.id);}
+      this.lowerFunctionDecl(node);
       return;
     }
     if (node.type === AST_NODE_TYPES.ClassDeclaration) {
@@ -100,53 +164,7 @@ class Lowerer {
       return;
     }
     if (node.type === AST_NODE_TYPES.ReturnStatement) {
-      if (node.argument === null) {
-        this.nodes.push({ op: 'return', ...this.loc(node) });
-        return;
-      }
-      const value = this.lowerExpr(node.argument);
-      this.nodes.push({ op: 'return', ...this.loc(node), args: [value] });
-      return;
-    }
-    if (node.type === AST_NODE_TYPES.IfStatement) {
-      this.lowerIf(node);
-      return;
-    }
-    if (node.type === AST_NODE_TYPES.WhileStatement) {
-      this.lowerLoop(node.test, () => { this.statement(node.body); }, node);
-      return;
-    }
-    if (node.type === AST_NODE_TYPES.DoWhileStatement) {
-      this.lowerDo(node);
-      return;
-    }
-    if (node.type === AST_NODE_TYPES.ForStatement) {
-      this.lowerFor(node);
-      return;
-    }
-    if (node.type === AST_NODE_TYPES.ForInStatement || node.type === AST_NODE_TYPES.ForOfStatement) {
-      this.lowerForInOf(node);
-      return;
-    }
-    if (node.type === AST_NODE_TYPES.SwitchStatement) {
-      this.lowerSwitch(node);
-      return;
-    }
-    if (node.type === AST_NODE_TYPES.TryStatement) {
-      this.lowerTry(node);
-      return;
-    }
-    if (node.type === AST_NODE_TYPES.ThrowStatement) {
-      this.lowerExpr(node.argument);
-      return;
-    }
-    if (node.type === AST_NODE_TYPES.LabeledStatement) {
-      this.statement(node.body);
-      return;
-    }
-    if (node.type === AST_NODE_TYPES.WithStatement) {
-      this.lowerExpr(node.object);
-      this.statement(node.body);
+      this.lowerReturn(node);
       return;
     }
     if (node.type === AST_NODE_TYPES.ExportDefaultDeclaration) {
@@ -154,103 +172,77 @@ class Lowerer {
       return;
     }
     if (node.type === AST_NODE_TYPES.ExportNamedDeclaration) {
-      if (node.declaration !== null) {this.statement(node.declaration);}
+      this.lowerExportNamed(node);
       return;
     }
     if (node.type === AST_NODE_TYPES.TSImportEqualsDeclaration) {
       this.defineOne(node.id.name, undefined, node.id);
+    }
+  }
+
+  private lowerFunctionDecl(node: TSESTree.FunctionDeclaration): void {
+    this.enqueue(node, node.id?.name);
+    if (node.id !== null) {this.defineOne(node.id.name, undefined, node.id);}
+  }
+
+  private lowerReturn(node: TSESTree.ReturnStatement): void {
+    if (node.argument === null) {
+      this.nodes.push({ op: 'return', ...this.loc(node) });
       return;
     }
-    if (
-      node.type === AST_NODE_TYPES.BreakStatement ||
-      node.type === AST_NODE_TYPES.ContinueStatement ||
-      node.type === AST_NODE_TYPES.EmptyStatement ||
-      node.type === AST_NODE_TYPES.DebuggerStatement ||
-      node.type === AST_NODE_TYPES.ImportDeclaration ||
-      node.type === AST_NODE_TYPES.ExportAllDeclaration ||
-      node.type === AST_NODE_TYPES.TSTypeAliasDeclaration ||
-      node.type === AST_NODE_TYPES.TSInterfaceDeclaration ||
-      node.type === AST_NODE_TYPES.TSDeclareFunction ||
-      node.type === AST_NODE_TYPES.TSEnumDeclaration ||
-      node.type === AST_NODE_TYPES.TSModuleDeclaration
-    ) {
-      return;
-    }
+    const value = this.lowerExpr(node.argument);
+    this.nodes.push({ op: 'return', ...this.loc(node), args: [value] });
+  }
+
+  private lowerExportNamed(node: TSESTree.ExportNamedDeclaration): void {
+    if (node.declaration !== null) {this.statement(node.declaration);}
   }
 
   private lowerExpr(node: TSESTree.Node, hint?: string): number {
     const current = this.unwrap(node);
+    const primary = this.lowerPrimaryExpr(current);
+    if (primary !== undefined) {return primary;}
+    return this.lowerSecondaryExpr(current, hint);
+  }
+
+  private lowerPrimaryExpr(current: TSESTree.Node): number | undefined {
     if (current.type === AST_NODE_TYPES.Identifier) {
       return this.env.get(current.name) ?? this.freeName(current.name, current);
     }
     if (current.type === AST_NODE_TYPES.Literal || current.type === AST_NODE_TYPES.TemplateLiteral) {
       return this.lowerLiteralLike(current);
     }
-    if (current.type === AST_NODE_TYPES.MemberExpression) {
-      return this.lowerMember(current);
-    }
+    if (current.type === AST_NODE_TYPES.MemberExpression) {return this.lowerMember(current);}
     if (current.type === AST_NODE_TYPES.CallExpression || current.type === AST_NODE_TYPES.NewExpression) {
       return this.lowerCall(current);
     }
-    if (current.type === AST_NODE_TYPES.AwaitExpression) {
-      const inner = this.lowerExpr(current.argument);
-      const dest = this.fresh();
-      this.nodes.push({ op: 'await', ...this.loc(current), dest, args: [inner] });
-      return dest;
-    }
-    if (current.type === AST_NODE_TYPES.AssignmentExpression) {
-      return this.lowerAssignment(current);
-    }
-    if (current.type === AST_NODE_TYPES.BinaryExpression) {
-      return this.lowerBinary(current);
-    }
-    if (current.type === AST_NODE_TYPES.LogicalExpression) {
-      const left = this.lowerExpr(current.left);
-      const right = this.lowerExpr(current.right);
-      return this.copy(current, [left, right]);
-    }
-    if (current.type === AST_NODE_TYPES.ConditionalExpression) {
-      return this.lowerConditional(current);
-    }
-    if (current.type === AST_NODE_TYPES.UnaryExpression) {
-      return this.lowerUnary(current);
-    }
-    if (current.type === AST_NODE_TYPES.UpdateExpression) {
-      return this.lowerUpdate(current);
-    }
-    if (current.type === AST_NODE_TYPES.ObjectExpression) {
-      return this.lowerObject(current);
-    }
-    if (current.type === AST_NODE_TYPES.ArrayExpression) {
-      return this.lowerArray(current);
-    }
+    if (current.type === AST_NODE_TYPES.AwaitExpression) {return this.lowerAwait(current);}
+    if (current.type === AST_NODE_TYPES.AssignmentExpression) {return this.lowerAssignment(current);}
+    if (current.type === AST_NODE_TYPES.BinaryExpression) {return this.lowerBinary(current);}
+    if (current.type === AST_NODE_TYPES.LogicalExpression) {return this.lowerLogical(current);}
+    if (current.type === AST_NODE_TYPES.ConditionalExpression) {return this.lowerConditional(current);}
+    if (current.type === AST_NODE_TYPES.UnaryExpression) {return this.lowerUnary(current);}
+    return undefined;
+  }
+
+  private lowerSecondaryExpr(current: TSESTree.Node, hint?: string): number {
+    const named = this.lowerNamedExpr(current);
+    if (named !== undefined) {return named;}
+    if (current.type === AST_NODE_TYPES.UpdateExpression) {return this.lowerUpdate(current);}
+    if (current.type === AST_NODE_TYPES.ObjectExpression) {return this.lowerObject(current);}
+    if (current.type === AST_NODE_TYPES.ArrayExpression) {return this.lowerArray(current);}
     if (current.type === AST_NODE_TYPES.FunctionExpression || current.type === AST_NODE_TYPES.ArrowFunctionExpression) {
-      const hintName = current.type === AST_NODE_TYPES.FunctionExpression && current.id !== null ? current.id.name : hint;
-      this.enqueue(current, hintName);
-      return this.freeValue(current, hintName);
+      return this.lowerFnExpr(current, hint);
     }
-    if (current.type === AST_NODE_TYPES.ClassExpression) {
-      return this.lowerClass(current, hint);
-    }
-    if (current.type === AST_NODE_TYPES.SequenceExpression) {
-      if (current.expressions.length === 0) {return this.unknown(current);}
-      let last = 0;
-      for (const expr of current.expressions) {last = this.lowerExpr(expr);}
-      return last;
-    }
-    if (current.type === AST_NODE_TYPES.TaggedTemplateExpression) {
-      return this.lowerTagged(current);
-    }
-    if (current.type === AST_NODE_TYPES.ImportExpression) {
-      const arg = this.lowerExpr(current.source);
-      const dest = this.fresh();
-      this.nodes.push({ op: 'call', ...this.loc(current), dest, name: 'import', args: [arg] });
-      return dest;
-    }
-    if (current.type === AST_NODE_TYPES.YieldExpression) {
-      if (current.argument === null) {return this.unknown(current);}
-      return this.copy(current, [this.lowerExpr(current.argument)]);
-    }
+    if (current.type === AST_NODE_TYPES.ClassExpression) {return this.lowerClass(current, hint);}
+    if (current.type === AST_NODE_TYPES.SequenceExpression) {return this.lowerSequence(current);}
+    if (current.type === AST_NODE_TYPES.TaggedTemplateExpression) {return this.lowerTagged(current);}
+    if (current.type === AST_NODE_TYPES.ImportExpression) {return this.lowerImportExpr(current);}
+    if (current.type === AST_NODE_TYPES.YieldExpression) {return this.lowerYield(current);}
+    return this.unknown(current);
+  }
+
+  private lowerNamedExpr(current: TSESTree.Node): number | undefined {
     if (current.type === AST_NODE_TYPES.MetaProperty) {
       return this.freeName(`${current.meta.name}.${current.property.name}`, current);
     }
@@ -260,7 +252,48 @@ class Lowerer {
     if (current.type === AST_NODE_TYPES.Super) {
       return this.env.get('super') ?? this.freeName('super', current);
     }
-    return this.unknown(current);
+    return undefined;
+  }
+
+  private lowerAwait(current: TSESTree.AwaitExpression): number {
+    const inner = this.lowerExpr(current.argument);
+    const dest = this.fresh();
+    this.nodes.push({ op: 'await', ...this.loc(current), dest, args: [inner] });
+    return dest;
+  }
+
+  private lowerLogical(current: TSESTree.LogicalExpression): number {
+    const left = this.lowerExpr(current.left);
+    const right = this.lowerExpr(current.right);
+    return this.copy(current, [left, right]);
+  }
+
+  private lowerFnExpr(
+    current: TSESTree.FunctionExpression | TSESTree.ArrowFunctionExpression,
+    hint?: string,
+  ): number {
+    const hintName = current.type === AST_NODE_TYPES.FunctionExpression && current.id !== null ? current.id.name : hint;
+    this.enqueue(current, hintName);
+    return this.freeValue(current, hintName);
+  }
+
+  private lowerSequence(current: TSESTree.SequenceExpression): number {
+    if (current.expressions.length === 0) {return this.unknown(current);}
+    let last = 0;
+    for (const expr of current.expressions) {last = this.lowerExpr(expr);}
+    return last;
+  }
+
+  private lowerImportExpr(current: TSESTree.ImportExpression): number {
+    const arg = this.lowerExpr(current.source);
+    const dest = this.fresh();
+    this.nodes.push({ op: 'call', ...this.loc(current), dest, name: 'import', args: [arg] });
+    return dest;
+  }
+
+  private lowerYield(current: TSESTree.YieldExpression): number {
+    if (current.argument === null) {return this.unknown(current);}
+    return this.copy(current, [this.lowerExpr(current.argument)]);
   }
 
   private lowerVariable(node: TSESTree.VariableDeclaration): void {
@@ -555,25 +588,38 @@ class Lowerer {
     return dest;
   }
 
-  private lowerClass(node: TSESTree.ClassDeclaration | TSESTree.ClassExpression, hint?: string): number {
-    for (const dec of node.decorators) {this.lowerExpr(dec.expression);}
-    if (node.superClass !== null) {this.lowerExpr(node.superClass);}
-    const className = node.id?.name ?? hint ?? '<class>';
-    for (const el of node.body.body) {
-      if (el.type === AST_NODE_TYPES.MethodDefinition && el.value.type === AST_NODE_TYPES.FunctionExpression) {
-        for (const dec of el.decorators) {this.lowerExpr(dec.expression);}
-        this.enqueue(el.value, `${className}.${this.keyText(el.key, el.computed)}`);
-        continue;
-      }
-      if (el.type === AST_NODE_TYPES.PropertyDefinition) {
-        for (const dec of el.decorators) {this.lowerExpr(dec.expression);}
-        if (el.value !== null) {this.lowerExpr(el.value);}
-        continue;
-      }
-      if (el.type === AST_NODE_TYPES.StaticBlock) {
-        for (const stmt of el.body) {this.statement(stmt);}
-      }
+  private classLabel(node: TSESTree.ClassDeclaration | TSESTree.ClassExpression, hint?: string): string {
+    const named = node.id?.name;
+    if (named !== undefined) {return named;}
+    if (hint !== undefined) {return hint;}
+    return '<class>';
+  }
+
+  private lowerDecorators(decorators: ReadonlyArray<{ expression: TSESTree.Expression }>): void {
+    for (const dec of decorators) {this.lowerExpr(dec.expression);}
+  }
+
+  private lowerClassElement(el: TSESTree.ClassElement, className: string): void {
+    if (el.type === AST_NODE_TYPES.MethodDefinition && el.value.type === AST_NODE_TYPES.FunctionExpression) {
+      this.lowerDecorators(el.decorators);
+      this.enqueue(el.value, `${className}.${this.keyText(el.key, el.computed)}`);
+      return;
     }
+    if (el.type === AST_NODE_TYPES.PropertyDefinition) {
+      this.lowerDecorators(el.decorators);
+      if (el.value !== null) {this.lowerExpr(el.value);}
+      return;
+    }
+    if (el.type === AST_NODE_TYPES.StaticBlock) {
+      for (const stmt of el.body) {this.statement(stmt);}
+    }
+  }
+
+  private lowerClass(node: TSESTree.ClassDeclaration | TSESTree.ClassExpression, hint?: string): number {
+    this.lowerDecorators(node.decorators);
+    if (node.superClass !== null) {this.lowerExpr(node.superClass);}
+    const className = this.classLabel(node, hint);
+    for (const el of node.body.body) {this.lowerClassElement(el, className);}
     const dest = this.fresh();
     this.nodes.push({ op: 'assign', ...this.loc(node), dest, name: className });
     if (node.id !== null) {this.env.set(node.id.name, dest);}

@@ -29,26 +29,41 @@ export function analyzeUrl(source: string, options?: { file?: string }): { findi
   const findings: UrlFinding[] = [];
   const env = new Map<string, AbstractString>();
   const walk = (stmts: readonly TSESTree.Statement[]): void => {
-    for (const stmt of stmts) {
-      if (stmt.type === 'FunctionDeclaration') {walk(stmt.body.body); continue;}
-      if (stmt.type === 'BlockStatement') {walk(stmt.body); continue;}
-      if (stmt.type === 'IfStatement') {
-        walk(stmt.consequent.type === 'BlockStatement' ? stmt.consequent.body : [stmt.consequent]);
-        if (stmt.alternate !== null) {walk(stmt.alternate.type === 'BlockStatement' ? stmt.alternate.body : [stmt.alternate]);}
-        continue;
-      }
-      if (stmt.type === 'VariableDeclaration') {
-        for (const decl of stmt.declarations) {
-          if (decl.id.type === 'Identifier' && decl.init !== null) {env.set(decl.id.name, abstractExpression(decl.init, env));}
-        }
-        continue;
-      }
-      if (stmt.type === 'ExpressionStatement' && stmt.expression.type === 'CallExpression') {note(stmt.expression, env, file, findings);}
-      if (stmt.type === 'ExpressionStatement' && stmt.expression.type === 'NewExpression') {noteNew(stmt.expression, env, file, findings);}
-    }
+    for (const stmt of stmts) {walkUrl(stmt, env, file, findings, walk);}
   };
   walk(program.body);
   return { findings };
+}
+
+function walkUrl(
+  stmt: TSESTree.Statement,
+  env: Map<string, AbstractString>,
+  file: string,
+  findings: UrlFinding[],
+  walk: (stmts: readonly TSESTree.Statement[]) => void,
+): void {
+  if (stmt.type === 'FunctionDeclaration') {walk(stmt.body.body); return;}
+  if (stmt.type === 'BlockStatement') {walk(stmt.body); return;}
+  if (stmt.type === 'IfStatement') {walkUrlIf(stmt, walk); return;}
+  if (stmt.type === 'VariableDeclaration') {bindUrlVars(stmt, env); return;}
+  noteUrlExpr(stmt, env, file, findings);
+}
+
+function walkUrlIf(stmt: TSESTree.IfStatement, walk: (stmts: readonly TSESTree.Statement[]) => void): void {
+  walk(stmt.consequent.type === 'BlockStatement' ? stmt.consequent.body : [stmt.consequent]);
+  if (stmt.alternate !== null) {walk(stmt.alternate.type === 'BlockStatement' ? stmt.alternate.body : [stmt.alternate]);}
+}
+
+function bindUrlVars(stmt: TSESTree.VariableDeclaration, env: Map<string, AbstractString>): void {
+  for (const decl of stmt.declarations) {
+    if (decl.id.type === 'Identifier' && decl.init !== null) {env.set(decl.id.name, abstractExpression(decl.init, env));}
+  }
+}
+
+function noteUrlExpr(stmt: TSESTree.Statement, env: Map<string, AbstractString>, file: string, findings: UrlFinding[]): void {
+  if (stmt.type !== 'ExpressionStatement') {return;}
+  if (stmt.expression.type === 'CallExpression') {note(stmt.expression, env, file, findings);}
+  if (stmt.expression.type === 'NewExpression') {noteNew(stmt.expression, env, file, findings);}
 }
 
 function note(call: TSESTree.CallExpression, env: ReadonlyMap<string, AbstractString>, file: string, findings: UrlFinding[]): void {

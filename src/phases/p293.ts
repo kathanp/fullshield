@@ -28,77 +28,145 @@ export function analyzeNest(source: string, options?: { file?: string }): { find
   const requestScoped = new Set<string>();
   const events: UnsoundEvent[] = [];
   const localClasses = new Set<string>();
-  for (const stmt of program.body) {
-    if (stmt.type !== 'ClassDeclaration' || stmt.id === null) {continue;}
-    localClasses.add(stmt.id.name);
-    if (isRequestScoped(stmt)) {requestScoped.add(stmt.id.name);}
-    const fields = new Map<string, FieldSafe>();
-    for (const element of stmt.body.body) {
-      if (element.type !== 'PropertyDefinition' || element.key.type !== 'Identifier') {continue;}
-      fields.set(element.key.name, { safe: decoratorNames(element).includes('IsInt') || decoratorNames(element).includes('IsUUID') || decoratorNames(element).includes('IsEnum') });
-    }
-    if (fields.size > 0) {dtoFields.set(stmt.id.name, fields);}
-  }
+  for (const stmt of program.body) {indexClass(stmt, dtoFields, requestScoped, localClasses);}
   const findings: NestFinding[] = [];
   const shared = new Map<string, boolean>();
-  for (const stmt of program.body) {
-    if (stmt.type !== 'ClassDeclaration') {continue;}
-    const scoped = stmt.id !== null && requestScoped.has(stmt.id.name) || injectedRequestScope(stmt, requestScoped);
-    for (const element of stmt.body.body) {
-      if (element.type !== 'MethodDefinition' || element.value.type !== 'FunctionExpression') {continue;}
-      const route = decoratorRoute(element) ?? (element.key.type === 'Identifier' ? element.key.name : 'handler');
-      const unknownPipe = hasUnknownPipe(element, localClasses);
-      if (unknownPipe) {events.push({ kind: 'unknown-callee', file, line: lineOf(element), reason: 'custom pipe' });}
-      const env = scoped ? new Map<string, boolean>() : shared;
-      analyzeMethod(element.value, route, dtoFields, unknownPipe, env, findings, file);
-    }
-  }
+  const nest: NestCtx = { dtoFields, localClasses, findings, events, file, shared, requestScoped };
+  for (const stmt of program.body) {scanClass(stmt, nest);}
   return { findings, events };
+}
+
+interface NestCtx {
+  dtoFields: Map<string, Map<string, FieldSafe>>;
+  localClasses: ReadonlySet<string>;
+  findings: NestFinding[];
+  events: UnsoundEvent[];
+  file: string;
+  shared: Map<string, boolean>;
+  requestScoped: ReadonlySet<string>;
+}
+
+function indexClass(
+  stmt: TSESTree.Statement,
+  dtoFields: Map<string, Map<string, FieldSafe>>,
+  requestScoped: Set<string>,
+  localClasses: Set<string>,
+): void {
+  if (stmt.type !== 'ClassDeclaration' || stmt.id === null) {return;}
+  localClasses.add(stmt.id.name);
+  if (isRequestScoped(stmt)) {requestScoped.add(stmt.id.name);}
+  const fields = classFields(stmt);
+  if (fields.size > 0) {dtoFields.set(stmt.id.name, fields);}
+}
+
+function classFields(stmt: TSESTree.ClassDeclaration): Map<string, FieldSafe> {
+  const fields = new Map<string, FieldSafe>();
+  for (const element of stmt.body.body) {
+    if (element.type !== 'PropertyDefinition' || element.key.type !== 'Identifier') {continue;}
+    fields.set(element.key.name, { safe: safeDecorators(element) });
+  }
+  return fields;
+}
+
+function safeDecorators(element: TSESTree.PropertyDefinition): boolean {
+  const names = decoratorNames(element);
+  return names.includes('IsInt') || names.includes('IsUUID') || names.includes('IsEnum');
+}
+
+function scanClass(stmt: TSESTree.Statement, nest: NestCtx): void {
+  if (stmt.type !== 'ClassDeclaration') {return;}
+  const scoped = classScoped(stmt, nest.requestScoped);
+  for (const element of stmt.body.body) {scanMethod(element, scoped, nest);}
+}
+
+function classScoped(stmt: TSESTree.ClassDeclaration, requestScoped: ReadonlySet<string>): boolean {
+  return stmt.id !== null && requestScoped.has(stmt.id.name) || injectedRequestScope(stmt, requestScoped);
+}
+
+function scanMethod(element: TSESTree.ClassElement, scoped: boolean, nest: NestCtx): void {
+  if (element.type !== 'MethodDefinition' || element.value.type !== 'FunctionExpression') {return;}
+  const route = decoratorRoute(element) ?? (element.key.type === 'Identifier' ? element.key.name : 'handler');
+  const unknownPipe = hasUnknownPipe(element, nest.localClasses);
+  if (unknownPipe) {nest.events.push({ kind: 'unknown-callee', file: nest.file, line: lineOf(element), reason: 'custom pipe' });}
+  const env = scoped ? new Map<string, boolean>() : nest.shared;
+  analyzeMethod(element.value, route, unknownPipe, env, nest);
 }
 
 function analyzeMethod(
   fn: TSESTree.FunctionExpression,
   route: string,
-  dtoFields: ReadonlyMap<string, ReadonlyMap<string, FieldSafe>>,
   unknownPipe: boolean,
   env: Map<string, boolean>,
-  findings: NestFinding[],
-  file: string,
+  nest: NestCtx,
 ): void {
+  const run: MethodRun = { params: methodParams(fn, env), env, route, unknownPipe, nest };
+  for (const stmt of fn.body.body) {analyzeNestStmt(stmt, run);}
+}
+
+interface MethodRun {
+  params: Map<string, string | null>;
+  env: Map<string, boolean>;
+  route: string;
+  unknownPipe: boolean;
+  nest: NestCtx;
+}
+
+function methodParams(fn: TSESTree.FunctionExpression, env: Map<string, boolean>): Map<string, string | null> {
   const params = new Map<string, string | null>();
-  for (const param of fn.params) {
-    if (param.type !== 'Identifier') {continue;}
-    const names = decoratorNames(param);
-    if (!names.includes('Body') && !names.includes('Query') && !names.includes('Param')) {continue;}
-    const typeName = param.typeAnnotation?.typeAnnotation.type === 'TSTypeReference' && param.typeAnnotation.typeAnnotation.typeName.type === 'Identifier'
-      ? param.typeAnnotation.typeAnnotation.typeName.name
-      : null;
-    params.set(param.name, typeName);
-    if (typeName === null) {env.set(param.name, true);}
-  }
-  const body = fn.body.body;
-  for (const stmt of body) {
-    if (stmt.type === 'ExpressionStatement' && stmt.expression.type === 'AssignmentExpression') {
-      const path = memberPath(stmt.expression.left);
-      if (path !== null && exprTainted(stmt.expression.right, params, env)) {env.set(path, true);}
-    }
-    if (stmt.type === 'ExpressionStatement' && stmt.expression.type === 'CallExpression') {
-      const call = stmt.expression;
-      const callee = stripNode(call.callee);
-      if (callee.type !== 'MemberExpression' || propName(callee) !== 'query') {continue;}
-      const arg = call.arguments[0];
-      if (arg === undefined || arg.type === 'SpreadElement') {continue;}
-      const field = fieldUse(arg, params);
-      if (field !== null && !unknownPipe) {
-        const safe = dtoFields.get(field.dto)?.get(field.name)?.safe === true;
-        if (safe) {continue;}
-      }
-      if (!exprTainted(arg, params, env) && field === null) {continue;}
-      if (field !== null && dtoFields.get(field.dto)?.get(field.name)?.safe === true && !unknownPipe) {continue;}
-      if (!exprTainted(arg, params, env)) {continue;}
-      findings.push({ file, line: lineOf(call), route, keys: field === null ? 'Unknown' : 'Finite' });
-    }
-  }
+  for (const param of fn.params) {bindParam(param, params, env);}
+  return params;
+}
+
+function bindParam(param: TSESTree.Parameter, params: Map<string, string | null>, env: Map<string, boolean>): void {
+  if (param.type !== 'Identifier' || !isBodyParam(param)) {return;}
+  const typeName = paramTypeName(param);
+  params.set(param.name, typeName);
+  if (typeName === null) {env.set(param.name, true);}
+}
+
+function isBodyParam(param: TSESTree.Identifier): boolean {
+  const names = decoratorNames(param);
+  return names.includes('Body') || names.includes('Query') || names.includes('Param');
+}
+
+function paramTypeName(param: TSESTree.Identifier): string | null {
+  const annotation = param.typeAnnotation?.typeAnnotation;
+  if (annotation?.type !== 'TSTypeReference' || annotation.typeName.type !== 'Identifier') {return null;}
+  return annotation.typeName.name;
+}
+
+function analyzeNestStmt(stmt: TSESTree.Statement, run: MethodRun): void {
+  if (stmt.type !== 'ExpressionStatement') {return;}
+  if (stmt.expression.type === 'AssignmentExpression') {noteAssign(stmt.expression, run);}
+  if (stmt.expression.type === 'CallExpression') {noteNestQuery(stmt.expression, run);}
+}
+
+function noteAssign(expr: TSESTree.AssignmentExpression, run: MethodRun): void {
+  const path = memberPath(expr.left);
+  if (path !== null && exprTainted(expr.right, run.params, run.env)) {run.env.set(path, true);}
+}
+
+function noteNestQuery(call: TSESTree.CallExpression, run: MethodRun): void {
+  const callee = stripNode(call.callee);
+  if (callee.type !== 'MemberExpression' || propName(callee) !== 'query') {return;}
+  const arg = call.arguments[0];
+  if (arg === undefined || arg.type === 'SpreadElement') {return;}
+  if (skipsQuery(arg, run)) {return;}
+  const field = fieldUse(arg, run.params);
+  run.nest.findings.push({ file: run.nest.file, line: lineOf(call), route: run.route, keys: field === null ? 'Unknown' : 'Finite' });
+}
+
+function skipsQuery(arg: TSESTree.Expression, run: MethodRun): boolean {
+  const field = fieldUse(arg, run.params);
+  const safe = field !== null && fieldSafe(field, run.nest.dtoFields) && !run.unknownPipe;
+  if (safe) {return true;}
+  if (!exprTainted(arg, run.params, run.env) && field === null) {return true;}
+  if (field !== null && fieldSafe(field, run.nest.dtoFields) && !run.unknownPipe) {return true;}
+  return !exprTainted(arg, run.params, run.env);
+}
+
+function fieldSafe(field: { dto: string; name: string }, dtoFields: ReadonlyMap<string, ReadonlyMap<string, FieldSafe>>): boolean {
+  return dtoFields.get(field.dto)?.get(field.name)?.safe === true;
 }
 
 function fieldUse(node: TSESTree.Node, params: ReadonlyMap<string, string | null>): { dto: string; name: string } | null {

@@ -25,31 +25,41 @@ export function analyzeIpc(source: string, facts: { sandbox: boolean; nodeIntegr
   const events: UnsoundEvent[] = [];
   const bridge = bridgeChannels(program, events, file);
   const findings: IpcFinding[] = [];
-  walkAst(program, (node) => {
-    if (node.type !== 'CallExpression') {return;}
-    const callee = stripNode(node.callee);
-    if (callee.type !== 'MemberExpression') {return;}
-    const name = propName(callee);
-    if (name !== 'handle' && name !== 'on') {return;}
-    const channelNode = node.arguments[0];
-    const handler = node.arguments[1];
-    if (channelNode === undefined || channelNode.type !== 'Literal' || typeof channelNode.value !== 'string') {return;}
-    if (handler === undefined || (handler.type !== 'ArrowFunctionExpression' && handler.type !== 'FunctionExpression')) {return;}
-    const channel = channelNode.value;
-    const exposed = bridge.has(channel);
-    const confidence: IpcFinding['confidence'] = exposed || facts.nodeIntegration ? 'high' : 'low';
-    if (guarded(handler)) {return;}
-    if (!usesArg(handler)) {return;}
-    findings.push({
-      file,
-      line: lineOf(node),
-      route: `IPC ${channel}`,
-      origin: 'renderer',
-      confidence,
-      witness: exposed ? 'bridge' : 'no bridge entry',
-    });
-  });
+  walkAst(program, (node) => {noteIpc(node, bridge, facts, file, findings);});
   return { findings, events };
+}
+
+function noteIpc(
+  node: TSESTree.Node,
+  bridge: ReadonlySet<string>,
+  facts: { sandbox: boolean; nodeIntegration: boolean },
+  file: string,
+  findings: IpcFinding[],
+): void {
+  const ipc = ipcHandler(node);
+  if (ipc === null || guarded(ipc.handler) || !usesArg(ipc.handler)) {return;}
+  const exposed = bridge.has(ipc.channel);
+  findings.push({
+    file,
+    line: lineOf(node),
+    route: `IPC ${ipc.channel}`,
+    origin: 'renderer',
+    confidence: exposed || facts.nodeIntegration ? 'high' : 'low',
+    witness: exposed ? 'bridge' : 'no bridge entry',
+  });
+}
+
+function ipcHandler(node: TSESTree.Node): { channel: string; handler: TSESTree.ArrowFunctionExpression | TSESTree.FunctionExpression } | null {
+  if (node.type !== 'CallExpression') {return null;}
+  const callee = stripNode(node.callee);
+  if (callee.type !== 'MemberExpression') {return null;}
+  const name = propName(callee);
+  if (name !== 'handle' && name !== 'on') {return null;}
+  const channelNode = node.arguments[0];
+  const handler = node.arguments[1];
+  if (channelNode === undefined || channelNode.type !== 'Literal' || typeof channelNode.value !== 'string') {return null;}
+  if (handler === undefined || (handler.type !== 'ArrowFunctionExpression' && handler.type !== 'FunctionExpression')) {return null;}
+  return { channel: channelNode.value, handler };
 }
 
 function bridgeChannels(program: TSESTree.Program, events: UnsoundEvent[], file: string): Set<string> {

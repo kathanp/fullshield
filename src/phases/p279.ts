@@ -85,34 +85,48 @@ export function analyzeSql(source: string, options?: { file?: string }): { findi
   const file = options?.file ?? 'inline.js';
   const findings: SqlFinding[] = [];
   const queries: SqlQuery[] = [];
-  const walk = (stmts: readonly TSESTree.Statement[], env: Map<string, AbstractString>): void => {
-    for (const stmt of stmts) {
-      if (stmt.type === 'FunctionDeclaration') {walk(stmt.body.body, new Map()); continue;}
-      if (stmt.type === 'BlockStatement') {walk(stmt.body, env); continue;}
-      if (stmt.type === 'IfStatement') {
-        walk(stmt.consequent.type === 'BlockStatement' ? stmt.consequent.body : [stmt.consequent], env);
-        if (stmt.alternate !== null) {
-          walk(stmt.alternate.type === 'BlockStatement' ? stmt.alternate.body : [stmt.alternate], env);
-        }
-        continue;
-      }
-      if (stmt.type === 'VariableDeclaration') {
-        for (const decl of stmt.declarations) {
-          if (decl.id.type === 'Identifier' && decl.init !== null) {env.set(decl.id.name, abstractExpression(decl.init, env));}
-        }
-        continue;
-      }
-      if (stmt.type === 'ExpressionStatement') {
-        const expr = stripNode(stmt.expression);
-        if (expr.type === 'AssignmentExpression' && expr.left.type === 'Identifier') {
-          env.set(expr.left.name, abstractExpression(expr.right, env));
-        }
-        if (expr.type === 'CallExpression') {noteQuery(expr, env, file, findings, queries);}
-      }
-    }
+  const bag: SqlWalk = { file, findings, queries, walk: () => undefined };
+  bag.walk = (stmts, env) => {
+    for (const stmt of stmts) {walkSql(stmt, env, bag);}
   };
-  walk(program.body, new Map());
+  bag.walk(program.body, new Map());
   return { findings, queries };
+}
+
+interface SqlWalk {
+  file: string;
+  findings: SqlFinding[];
+  queries: SqlQuery[];
+  walk: (stmts: readonly TSESTree.Statement[], env: Map<string, AbstractString>) => void;
+}
+
+function walkSql(stmt: TSESTree.Statement, env: Map<string, AbstractString>, bag: SqlWalk): void {
+  if (stmt.type === 'FunctionDeclaration') {bag.walk(stmt.body.body, new Map()); return;}
+  if (stmt.type === 'BlockStatement') {bag.walk(stmt.body, env); return;}
+  if (stmt.type === 'IfStatement') {walkSqlIf(stmt, env, bag); return;}
+  if (stmt.type === 'VariableDeclaration') {bindSqlVars(stmt, env); return;}
+  if (stmt.type === 'ExpressionStatement') {walkSqlExpr(stmt, env, bag);}
+}
+
+function walkSqlIf(stmt: TSESTree.IfStatement, env: Map<string, AbstractString>, bag: SqlWalk): void {
+  bag.walk(stmt.consequent.type === 'BlockStatement' ? stmt.consequent.body : [stmt.consequent], env);
+  if (stmt.alternate !== null) {
+    bag.walk(stmt.alternate.type === 'BlockStatement' ? stmt.alternate.body : [stmt.alternate], env);
+  }
+}
+
+function bindSqlVars(stmt: TSESTree.VariableDeclaration, env: Map<string, AbstractString>): void {
+  for (const decl of stmt.declarations) {
+    if (decl.id.type === 'Identifier' && decl.init !== null) {env.set(decl.id.name, abstractExpression(decl.init, env));}
+  }
+}
+
+function walkSqlExpr(stmt: TSESTree.ExpressionStatement, env: Map<string, AbstractString>, bag: SqlWalk): void {
+  const expr = stripNode(stmt.expression);
+  if (expr.type === 'AssignmentExpression' && expr.left.type === 'Identifier') {
+    env.set(expr.left.name, abstractExpression(expr.right, env));
+  }
+  if (expr.type === 'CallExpression') {noteQuery(expr, env, bag.file, bag.findings, bag.queries);}
 }
 
 function noteQuery(

@@ -71,30 +71,42 @@ interface PathClass {
 
 const LOOKS_LIKE_AUTH = new Set(['authenticate', 'requireAuth', 'isAuthenticated', 'guard']);
 
+const NAMED_KIND: Readonly<Record<string, AuthKind>> = {
+  'express-jwt': 'jwt',
+  jwt: 'jwt',
+  jsonwebtoken: 'jwt',
+  'express-session': 'session',
+  'cookie-session': 'session',
+  session: 'session',
+  apiKey: 'apikey',
+  apikey: 'apikey',
+  getServerSession: 'framework:next-auth',
+  NextAuth: 'framework:next-auth',
+  'next-auth': 'framework:next-auth',
+  UseGuards: 'framework:nest',
+  NestGuard: 'framework:nest',
+  'fastify-auth': 'framework:fastify',
+  fastifyAuth: 'framework:fastify',
+};
+
+function passportKind(step: GuardStep): AuthKind | undefined {
+  if (step.name !== 'passport.authenticate' && step.name !== 'passport') {
+    return undefined;
+  }
+  return `passport:${step.strategy ?? 'local'}`;
+}
+
 function catalogKind(step: GuardStep, config: AuthConfig): AuthKind | undefined {
   if (config.frameworkNames?.includes(step.name) === true) {
     return `framework:custom:${step.name}`;
   }
-  if (step.name === 'passport.authenticate' || step.name === 'passport') {
-    return `passport:${step.strategy ?? 'local'}`;
+  const passport = passportKind(step);
+  if (passport !== undefined) {
+    return passport;
   }
-  if (step.name === 'express-jwt' || step.name === 'jwt' || step.name === 'jsonwebtoken') {
-    return 'jwt';
-  }
-  if (step.name === 'express-session' || step.name === 'cookie-session' || step.name === 'session') {
-    return 'session';
-  }
-  if (step.name === 'apiKey' || step.name === 'apikey') {
-    return 'apikey';
-  }
-  if (step.name === 'getServerSession' || step.name === 'NextAuth' || step.name === 'next-auth') {
-    return 'framework:next-auth';
-  }
-  if (step.name === 'UseGuards' || step.name === 'NestGuard') {
-    return 'framework:nest';
-  }
-  if (step.name === 'fastify-auth' || step.name === 'fastifyAuth') {
-    return 'framework:fastify';
+  const named = NAMED_KIND[step.name];
+  if (named !== undefined) {
+    return named;
   }
   if (LOOKS_LIKE_AUTH.has(step.name)) {
     return 'unknown';

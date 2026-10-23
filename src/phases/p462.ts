@@ -60,6 +60,65 @@ function exampleKeys(text: string): string[] {
   return keys;
 }
 
+function astNode(value: unknown): value is TSESTree.Node {
+  return typeof value === 'object' && value !== null && 'type' in value;
+}
+
+function walkChild(child: unknown, visit: (node: TSESTree.Node) => void): void {
+  if (Array.isArray(child)) {
+    for (const item of child) {
+      if (astNode(item)) {
+        visit(item);
+      }
+    }
+    return;
+  }
+  if (astNode(child)) {
+    visit(child);
+  }
+}
+
+function nodeLine(node: TSESTree.Node): number {
+  return node.loc?.start.line ?? 1;
+}
+
+function isProcessEnv(node: TSESTree.MemberExpression): boolean {
+  if (node.object.type !== 'MemberExpression') {
+    return false;
+  }
+  const root = node.object.object;
+  const mid = node.object.property;
+  return root.type === 'Identifier' && root.name === 'process' && mid.type === 'Identifier' && mid.name === 'env';
+}
+
+function noteEnvMember(node: TSESTree.MemberExpression, file: string, events: PhaseEvent[], reads: Map<string, number>): void {
+  if (!isProcessEnv(node)) {
+    return;
+  }
+  if (node.computed && node.property.type !== 'Literal') {
+    events.push({ kind: 'parser-failure', file, line: nodeLine(node), reason: 'computed process.env key' });
+    return;
+  }
+  if (!node.computed && node.property.type === 'Identifier') {
+    reads.set(node.property.name, nodeLine(node));
+    return;
+  }
+  if (node.property.type === 'Literal' && typeof node.property.value === 'string') {
+    reads.set(node.property.value, nodeLine(node));
+  }
+}
+
+function visitEnv(node: TSESTree.Node, file: string, events: PhaseEvent[], reads: Map<string, number>): void {
+  if (node.type === 'MemberExpression') {
+    noteEnvMember(node, file, events, reads);
+  }
+  for (const child of Object.values(node as unknown as Record<string, unknown>)) {
+    walkChild(child, (item) => {
+      visitEnv(item, file, events, reads);
+    });
+  }
+}
+
 function envReads(file: string, text: string, events: PhaseEvent[]): Map<string, number> {
   const reads = new Map<string, number>();
   let ast: TSESTree.Program;
@@ -69,34 +128,7 @@ function envReads(file: string, text: string, events: PhaseEvent[]): Map<string,
     events.push({ kind: 'parser-failure', file, line: 1, reason: 'parse failure' });
     return reads;
   }
-  const visit = (node: TSESTree.Node): void => {
-    if (node.type === 'MemberExpression' && node.object.type === 'MemberExpression') {
-      const object = node.object;
-      const root = object.object;
-      const mid = object.property;
-      if (root.type === 'Identifier' && root.name === 'process' && mid.type === 'Identifier' && mid.name === 'env') {
-        if (node.computed && node.property.type !== 'Literal') {
-          events.push({ kind: 'parser-failure', file, line: node.loc?.start.line ?? 1, reason: 'computed process.env key' });
-        } else if (!node.computed && node.property.type === 'Identifier') {
-          reads.set(node.property.name, node.loc?.start.line ?? 1);
-        } else if (node.property.type === 'Literal' && typeof node.property.value === 'string') {
-          reads.set(node.property.value, node.loc?.start.line ?? 1);
-        }
-      }
-    }
-    for (const child of Object.values(node as unknown as Record<string, unknown>)) {
-      if (Array.isArray(child)) {
-        for (const item of child) {
-          if (typeof item === 'object' && item !== null && 'type' in item) {
-            visit(item as TSESTree.Node);
-          }
-        }
-      } else if (typeof child === 'object' && child !== null && 'type' in child) {
-        visit(child as TSESTree.Node);
-      }
-    }
-  };
-  visit(ast);
+  visitEnv(ast, file, events, reads);
   return reads;
 }
 

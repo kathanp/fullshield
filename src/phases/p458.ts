@@ -78,56 +78,87 @@ function publicEnv(key: string, value: string, formats: readonly SecretFormat[])
   return { ruleId: EDGE_PUBLIC, severity: 'high', file: '', line: 1, message: `public env ${key}`, snippet: '****' };
 }
 
-export function scanEdge(file: string, text: string, formats: readonly SecretFormat[] = DEFAULT_FORMATS, baseline: readonly PhaseFinding[] = []): PhaseFinding[] {
-  if (!enabled()) {
-    return [...baseline];
+function noteRedirect(destination: string, file: string, findings: PhaseFinding[]): void {
+  if (!queryRedirect(destination)) {
+    return;
   }
-  const findings: PhaseFinding[] = [];
-  let headers: string[] = [];
-  if (file.endsWith('.json')) {
-    const doc = asRecord(JSON.parse(text) as unknown);
-    const redirects = Array.isArray(doc?.redirects) ? doc.redirects : [];
-    for (const item of redirects) {
-      const destination = asRecord(item)?.destination;
-      if (typeof destination === 'string' && queryRedirect(destination)) {
-        findings.push({ ruleId: EDGE_REDIRECT, severity: 'high', file, line: 1, message: 'redirect target taken from a request parameter' });
-      }
-    }
-    headers = headerNames(doc?.headers);
-    const env = asRecord(doc?.env);
-    if (env !== null) {
-      for (const [key, value] of Object.entries(env)) {
-        if (typeof value === 'string') {
-          const hit = publicEnv(key, value, formats);
-          if (hit !== null) {
-            findings.push({ ...hit, file });
-          }
-        }
-      }
-    }
-  } else {
-    for (const line of text.split(/\r?\n/)) {
-      const header = /^\s{2,}([A-Za-z0-9-]+)\s*[:=]\s*(.*)$/.exec(line);
-      if (header?.[1] !== undefined) {
-        headers.push(header[1]);
-      }
-      const redirect = /(?:to|destination)\s*=\s*"([^"]+)"/.exec(line);
-      if (redirect?.[1] !== undefined && queryRedirect(redirect[1])) {
-        findings.push({ ruleId: EDGE_REDIRECT, severity: 'high', file, line: 1, message: 'redirect target taken from a request parameter' });
-      }
-      const env = /\b(NEXT_PUBLIC_[A-Z0-9_]+|VITE_[A-Z0-9_]+)\s*=\s*"?([^"\s]+)/.exec(line);
-      if (env?.[1] !== undefined && env[2] !== undefined) {
-        const hit = publicEnv(env[1], env[2], formats);
-        if (hit !== null) {
-          findings.push({ ...hit, file });
-        }
-      }
+  findings.push({ ruleId: EDGE_REDIRECT, severity: 'high', file, line: 1, message: 'redirect target taken from a request parameter' });
+}
+
+function noteJsonRedirects(doc: Record<string, unknown> | null, file: string, findings: PhaseFinding[]): void {
+  const redirects = Array.isArray(doc?.redirects) ? doc.redirects : [];
+  for (const item of redirects) {
+    const destination = asRecord(item)?.destination;
+    if (typeof destination === 'string') {
+      noteRedirect(destination, file, findings);
     }
   }
+}
+
+function noteJsonEnv(doc: Record<string, unknown> | null, file: string, formats: readonly SecretFormat[], findings: PhaseFinding[]): void {
+  const env = asRecord(doc?.env);
+  if (env === null) {
+    return;
+  }
+  for (const [key, value] of Object.entries(env)) {
+    if (typeof value !== 'string') {
+      continue;
+    }
+    const hit = publicEnv(key, value, formats);
+    if (hit !== null) {
+      findings.push({ ...hit, file });
+    }
+  }
+}
+
+function scanJson(file: string, text: string, formats: readonly SecretFormat[], findings: PhaseFinding[]): string[] {
+  const doc = asRecord(JSON.parse(text) as unknown);
+  noteJsonRedirects(doc, file, findings);
+  noteJsonEnv(doc, file, formats, findings);
+  return headerNames(doc?.headers);
+}
+
+function noteTextLine(line: string, file: string, formats: readonly SecretFormat[], headers: string[], findings: PhaseFinding[]): void {
+  const header = /^\s{2,}([A-Za-z0-9-]+)\s*[:=]\s*(.*)$/.exec(line);
+  if (header?.[1] !== undefined) {
+    headers.push(header[1]);
+  }
+  const redirect = /(?:to|destination)\s*=\s*"([^"]+)"/.exec(line);
+  if (redirect?.[1] !== undefined) {
+    noteRedirect(redirect[1], file, findings);
+  }
+  const env = /\b(NEXT_PUBLIC_[A-Z0-9_]+|VITE_[A-Z0-9_]+)\s*=\s*"?([^"\s]+)/.exec(line);
+  if (env?.[1] === undefined || env[2] === undefined) {
+    return;
+  }
+  const hit = publicEnv(env[1], env[2], formats);
+  if (hit !== null) {
+    findings.push({ ...hit, file });
+  }
+}
+
+function scanText(file: string, text: string, formats: readonly SecretFormat[], findings: PhaseFinding[]): string[] {
+  const headers: string[] = [];
+  for (const line of text.split(/\r?\n/)) {
+    noteTextLine(line, file, formats, headers, findings);
+  }
+  return headers;
+}
+
+function noteMissingHeaders(headers: readonly string[], file: string, findings: PhaseFinding[]): void {
   for (const name of CATALOG) {
     if (!headers.some((header) => header.toLowerCase() === name.toLowerCase())) {
       findings.push({ ruleId: EDGE_HEADER, severity: 'info', file, line: 1, message: `missing ${name}` });
     }
   }
+}
+
+export function scanEdge(file: string, text: string, formats: readonly SecretFormat[] = DEFAULT_FORMATS, baseline: readonly PhaseFinding[] = []): PhaseFinding[] {
+  if (!enabled()) {
+    return [...baseline];
+  }
+  const findings: PhaseFinding[] = [];
+  const headers = file.endsWith('.json') ? scanJson(file, text, formats, findings) : scanText(file, text, formats, findings);
+  noteMissingHeaders(headers, file, findings);
   return [...baseline, ...findings];
 }

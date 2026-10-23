@@ -48,6 +48,82 @@ function hostOf(url: string): string | null {
   return match?.[1] ?? null;
 }
 
+function astNode(value: unknown): value is TSESTree.Node {
+  return typeof value === 'object' && value !== null && 'type' in value;
+}
+
+function walkChild(child: unknown, visit: (node: TSESTree.Node) => void): void {
+  if (Array.isArray(child)) {
+    for (const item of child) {
+      if (astNode(item)) {
+        visit(item);
+      }
+    }
+    return;
+  }
+  if (astNode(child)) {
+    visit(child);
+  }
+}
+
+function noteChildImport(node: TSESTree.Node, facts: PermissionFacts): void {
+  if (node.type === 'ImportDeclaration' && node.source.value === 'node:child_process') {
+    facts.childProcess = true;
+  }
+}
+
+function noteRequire(node: TSESTree.CallExpression, facts: PermissionFacts): void {
+  if (node.callee.type !== 'Identifier' || node.callee.name !== 'require') {
+    return;
+  }
+  const spec = literalArg(node.arguments[0]);
+  if (spec === 'child_process' || spec === 'node:child_process') {
+    facts.childProcess = true;
+  }
+}
+
+function noteRead(node: TSESTree.CallExpression, facts: PermissionFacts): void {
+  const name = calleeName(node.callee);
+  if (name !== 'readFile' && name !== 'readFileSync') {
+    return;
+  }
+  const path = literalArg(node.arguments[0]);
+  if (path === null) {
+    facts.dynamicPaths.push('fs read is not a literal');
+    return;
+  }
+  facts.fsReads.push(path);
+}
+
+function noteFetch(node: TSESTree.CallExpression, facts: PermissionFacts): void {
+  if (calleeName(node.callee) !== 'fetch') {
+    return;
+  }
+  const host = hostOf(literalArg(node.arguments[0]) ?? '');
+  if (host !== null) {
+    facts.hosts.push(host);
+  }
+}
+
+function noteCall(node: TSESTree.Node, facts: PermissionFacts): void {
+  if (node.type !== 'CallExpression') {
+    return;
+  }
+  noteRequire(node, facts);
+  noteRead(node, facts);
+  noteFetch(node, facts);
+}
+
+function visitPerm(node: TSESTree.Node, facts: PermissionFacts): void {
+  noteChildImport(node, facts);
+  noteCall(node, facts);
+  for (const child of Object.values(node as unknown as Record<string, unknown>)) {
+    walkChild(child, (item) => {
+      visitPerm(item, facts);
+    });
+  }
+}
+
 export function collectFacts(files: Readonly<Record<string, string>>): PermissionFacts {
   const facts: PermissionFacts = { fsReads: [], hosts: [], childProcess: false, dynamicPaths: [] };
   for (const text of Object.values(files)) {
@@ -57,46 +133,7 @@ export function collectFacts(files: Readonly<Record<string, string>>): Permissio
     } catch {
       continue;
     }
-    const visit = (node: TSESTree.Node): void => {
-      if (node.type === 'ImportDeclaration' && node.source.value === 'node:child_process') {
-        facts.childProcess = true;
-      }
-      if (node.type === 'CallExpression' && node.callee.type === 'Identifier' && node.callee.name === 'require') {
-        const spec = literalArg(node.arguments[0]);
-        if (spec === 'child_process' || spec === 'node:child_process') {
-          facts.childProcess = true;
-        }
-      }
-      if (node.type === 'CallExpression') {
-        const name = calleeName(node.callee);
-        if (name === 'readFile' || name === 'readFileSync') {
-          const path = literalArg(node.arguments[0]);
-          if (path === null) {
-            facts.dynamicPaths.push('fs read is not a literal');
-          } else {
-            facts.fsReads.push(path);
-          }
-        }
-        if (name === 'fetch') {
-          const host = hostOf(literalArg(node.arguments[0]) ?? '');
-          if (host !== null) {
-            facts.hosts.push(host);
-          }
-        }
-      }
-      for (const child of Object.values(node as unknown as Record<string, unknown>)) {
-        if (Array.isArray(child)) {
-          for (const item of child) {
-            if (typeof item === 'object' && item !== null && 'type' in item) {
-              visit(item as TSESTree.Node);
-            }
-          }
-        } else if (typeof child === 'object' && child !== null && 'type' in child) {
-          visit(child as TSESTree.Node);
-        }
-      }
-    };
-    visit(ast);
+    visitPerm(ast, facts);
   }
   return facts;
 }

@@ -148,19 +148,39 @@ function applyMember(
 function applyReplace(object: AbstractString, call: TSESTree.CallExpression): AbstractString {
   const pattern = call.arguments[0];
   const replacement = call.arguments[1];
-  if (pattern === undefined || replacement === undefined || pattern.type === 'SpreadElement' || replacement.type === 'SpreadElement') {
-    return object;
-  }
-  if (pattern.type === 'Literal' && typeof pattern.value === 'string' && replacement.type === 'Literal' && typeof replacement.value === 'string') {
-    return replaceLiteral(object, pattern.value, replacement.value);
-  }
-  if (pattern.type === 'Literal' && 'regex' in pattern && pattern.regex !== null && pattern.regex !== undefined && replacement.type === 'Literal' && replacement.value === '') {
-    const source = pattern.regex.pattern;
-    if (source.includes("'") || source.includes('"') || source.includes('\\\\')) {
-      return retaint(object, 'no-quote');
-    }
-  }
+  if (!isExprArg(pattern) || !isExprArg(replacement)) {return object;}
+  const literal = literalReplace(object, pattern, replacement);
+  if (literal !== null) {return literal;}
+  return regexReplace(object, pattern, replacement);
+}
+
+function isExprArg(node: TSESTree.CallExpressionArgument | undefined): node is TSESTree.Expression {
+  return node !== undefined && node.type !== 'SpreadElement';
+}
+
+function literalReplace(object: AbstractString, pattern: TSESTree.Expression, replacement: TSESTree.Expression): AbstractString | null {
+  if (pattern.type !== 'Literal' || typeof pattern.value !== 'string') {return null;}
+  if (replacement.type !== 'Literal' || typeof replacement.value !== 'string') {return null;}
+  return replaceLiteral(object, pattern.value, replacement.value);
+}
+
+function regexReplace(object: AbstractString, pattern: TSESTree.Expression, replacement: TSESTree.Expression): AbstractString {
+  if (!isEmptyRegexReplace(pattern, replacement)) {return object;}
+  const source = pattern.regex.pattern;
+  if (source.includes("'") || source.includes('"') || source.includes('\\\\')) {return retaint(object, 'no-quote');}
   return object;
+}
+
+function isEmptyRegexReplace(
+  pattern: TSESTree.Expression,
+  replacement: TSESTree.Expression,
+): pattern is TSESTree.Literal & { regex: { pattern: string } } {
+  return pattern.type === 'Literal'
+    && 'regex' in pattern
+    && pattern.regex !== null
+    && pattern.regex !== undefined
+    && replacement.type === 'Literal'
+    && replacement.value === '';
 }
 
 function replaceLiteral(value: AbstractString, pattern: string, replacement: string): AbstractString {

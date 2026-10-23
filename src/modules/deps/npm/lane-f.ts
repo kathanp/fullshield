@@ -414,6 +414,44 @@ function nameFromPackagesKey(key: string): string | undefined {
   return name.length > 0 ? name : undefined;
 }
 
+function collectRootAliases(entry: Record<string, unknown>, aliasSpecs: DirectDep[]): void {
+  for (const field of DIRECT_FIELDS) {
+    const block = asRecord(entry[field]);
+    if (block === undefined) {continue;}
+    for (const [name, spec] of Object.entries(block)) {
+      if (typeof spec === 'string') {aliasSpecs.push({ name, spec });}
+    }
+  }
+}
+
+function lockPkg(keyName: string, entry: Record<string, unknown>): LockPkg {
+  const entryName = typeof entry.name === 'string' && entry.name.length > 0 ? entry.name : undefined;
+  const names = entryName !== undefined && entryName !== keyName ? [keyName, entryName] : [keyName];
+  return {
+    names,
+    subject: entryName ?? keyName,
+    resolved: typeof entry.resolved === 'string' ? entry.resolved : undefined,
+    deprecated: typeof entry.deprecated === 'string' ? entry.deprecated : undefined,
+  };
+}
+
+function pushLockRow(
+  key: string,
+  value: unknown,
+  packages: LockPkg[],
+  aliasSpecs: DirectDep[],
+): void {
+  const entry = asRecord(value);
+  if (entry === undefined) {return;}
+  if (key === '') {
+    collectRootAliases(entry, aliasSpecs);
+    return;
+  }
+  const keyName = nameFromPackagesKey(key);
+  if (keyName === undefined) {return;}
+  packages.push(lockPkg(keyName, entry));
+}
+
 function lockPackages(text: string | undefined): { packages: LockPkg[]; aliasSpecs: DirectDep[] } {
   const doc = parseJson(text);
   const table = asRecord(doc?.packages);
@@ -421,28 +459,7 @@ function lockPackages(text: string | undefined): { packages: LockPkg[]; aliasSpe
   const packages: LockPkg[] = [];
   const aliasSpecs: DirectDep[] = [];
   for (const [key, value] of Object.entries(table)) {
-    const entry = asRecord(value);
-    if (entry === undefined) {continue;}
-    if (key === '') {
-      for (const field of DIRECT_FIELDS) {
-        const block = asRecord(entry[field]);
-        if (block === undefined) {continue;}
-        for (const [name, spec] of Object.entries(block)) {
-          if (typeof spec === 'string') {aliasSpecs.push({ name, spec });}
-        }
-      }
-      continue;
-    }
-    const keyName = nameFromPackagesKey(key);
-    if (keyName === undefined) {continue;}
-    const entryName = typeof entry.name === 'string' && entry.name.length > 0 ? entry.name : undefined;
-    const names = entryName !== undefined && entryName !== keyName ? [keyName, entryName] : [keyName];
-    packages.push({
-      names,
-      subject: entryName ?? keyName,
-      resolved: typeof entry.resolved === 'string' ? entry.resolved : undefined,
-      deprecated: typeof entry.deprecated === 'string' ? entry.deprecated : undefined,
-    });
+    pushLockRow(key, value, packages, aliasSpecs);
   }
   return { packages, aliasSpecs };
 }
@@ -595,264 +612,350 @@ function isRegistryResolved(resolved: string): boolean {
   }
 }
 
-export async function laneFindings(input: NpmDepthInput): Promise<Finding[]> {
-  if (!laneEnabled()) {return [];}
+interface LaneAdd {
+  ruleId: string;
+  severity: Severity;
+  file: string;
+  snippet: string;
+  title: string;
+  message: string;
+  remediation: string;
+  confidence?: Confidence;
+}
+
+interface LaneState {
+  input: NpmDepthInput;
+  manifest: Record<string, unknown>;
+  direct: DirectDep[];
+  directSet: Set<string>;
+  lock: { packages: LockPkg[]; aliasSpecs: DirectDep[] };
+  lockedNames: string[];
+  findings: Finding[];
+  seen: Set<string>;
+}
+
+function pushLane(findings: Finding[], seen: Set<string>, row: LaneAdd): void {
+  const key = `${row.ruleId}\0${row.snippet}`;
+  if (seen.has(key)) {return;}
+  seen.add(key);
+  findings.push(npmFinding({
+    ruleId: row.ruleId,
+    severity: row.severity,
+    file: row.file,
+    snippet: row.snippet,
+    title: row.title,
+    message: row.message,
+    remediation: row.remediation,
+    confidence: row.confidence,
+  }));
+}
+
+function laneState(input: NpmDepthInput): LaneState {
   const manifest = parseJson(input.manifestRaw) ?? {};
   const direct = directDeps(manifest);
-  const directSet = new Set(direct.map((dep) => dep.name));
   const lock = lockPackages(input.lockTexts[LOCK]);
-  const lockedNames = [...new Set(lock.packages.flatMap((pkg) => pkg.names))];
-  const findings: Finding[] = [];
-  const seen = new Set<string>();
-
-  const add = (
-    ruleId: string,
-    severity: Severity,
-    file: string,
-    snippet: string,
-    title: string,
-    message: string,
-    remediation: string,
-    confidence: Confidence = 'high',
-  ): void => {
-    const key = `${ruleId}\0${snippet}`;
-    if (seen.has(key)) {return;}
-    seen.add(key);
-    findings.push(npmFinding(ruleId, severity, file, snippet, title, message, remediation, confidence));
+  return {
+    input,
+    manifest,
+    direct,
+    directSet: new Set(direct.map((dep) => dep.name)),
+    lock,
+    lockedNames: [...new Set(lock.packages.flatMap((pkg) => pkg.names))],
+    findings: [],
+    seen: new Set(),
   };
+}
 
+function locatedNames(state: LaneState): Map<string, string> {
   const located = new Map<string, string>();
-  for (const dep of direct) {located.set(dep.name, MANIFEST);}
-  for (const name of lockedNames) {
+  for (const dep of state.direct) {located.set(dep.name, MANIFEST);}
+  for (const name of state.lockedNames) {
     if (!located.has(name)) {located.set(name, LOCK);}
   }
+  return located;
+}
 
+function addLookalike(state: LaneState, name: string, file: string): void {
+  const directName = state.directSet.has(name);
+  const hits = lookalikeHits(name);
+  if (!directName && npmFlag('NPM_TYPO_TRANSITIVE') && hits.length > 0) {
+    const checks = hits.map((hit) => hit.check);
+    pushLane(state.findings, state.seen, {
+      ruleId: TYPO_TRANSITIVE,
+      severity: 'info',
+      file: LOCK,
+      snippet: name,
+      title: `Transitive name check: ${name}`,
+      message: `Transitive dependency "${name}" matches ${checkLabel(checks)}.`,
+      remediation: 'Confirm the transitive package name. This row is informational.',
+      confidence: 'medium',
+    });
+    return;
+  }
+  for (const hit of hits) {
+    if (!directName && (hit.check === 'scope typo' || hit.check === 'separator')) {continue;}
+    if (!npmFlag(hit.flag)) {continue;}
+    pushLane(state.findings, state.seen, {
+      ruleId: hit.ruleId,
+      severity: hit.severity,
+      file,
+      snippet: name,
+      title: hit.title,
+      message: hit.message,
+      remediation: hit.remediation,
+      confidence: hit.confidence,
+    });
+  }
+}
+
+function addScopeSyntax(state: LaneState, name: string, file: string): void {
+  if (!npmFlag('NPM_SCOPE_SYNTAX') || !name.startsWith('@') || SCOPED_OK.test(name)) {return;}
+  pushLane(state.findings, state.seen, {
+    ruleId: SCOPE_SYNTAX,
+    severity: 'high',
+    file,
+    snippet: name,
+    title: 'Dependency name is not a valid scoped package name',
+    message: `Dependency "${name}" starts with "@" and is not @scope/name.`,
+    remediation: 'Use a scoped name of the form @scope/name, with a single slash.',
+  });
+}
+
+function nameLengthMessage(name: string): string {
+  if (name.length === 0) {return 'A dependency name is empty. npm package names must be 1 to 214 characters.';}
+  return `Dependency "${name}" is ${String(name.length)} characters. npm's documented limit is 214.`;
+}
+
+function addNameLength(state: LaneState, name: string, file: string): void {
+  if (!npmFlag('NPM_NAME_LENGTH') || (name.length !== 0 && name.length <= NAME_LIMIT)) {return;}
+  const empty = name.length === 0;
+  pushLane(state.findings, state.seen, {
+    ruleId: NAME_LENGTH,
+    severity: 'high',
+    file,
+    snippet: empty ? '(empty)' : name,
+    title: 'Dependency name length is outside npm\'s limit',
+    message: nameLengthMessage(name),
+    remediation: 'Use a package name within npm\'s 214 character limit.',
+  });
+}
+
+function addNameEncoded(state: LaneState, name: string, file: string): void {
+  if (!npmFlag('NPM_NAME_ENCODED') || !name.includes('%')) {return;}
+  pushLane(state.findings, state.seen, {
+    ruleId: NAME_ENCODED,
+    severity: 'high',
+    file,
+    snippet: name,
+    title: 'Dependency name contains percent-encoding',
+    message: `Dependency "${name}" contains "%".`,
+    remediation: 'Depend on the package by its registry name, without percent-encoding.',
+  });
+}
+
+function addLocatedFindings(state: LaneState, located: Map<string, string>): void {
   for (const [name, file] of located) {
-    const directName = directSet.has(name);
-    const hits = lookalikeHits(name);
-    if (!directName && npmFlag('NPM_TYPO_TRANSITIVE') && hits.length > 0) {
-      const checks = hits.map((hit) => hit.check);
-      add(
-        TYPO_TRANSITIVE,
-        'info',
-        LOCK,
-        name,
-        `Transitive name check: ${name}`,
-        `Transitive dependency "${name}" matches ${checkLabel(checks)}.`,
-        'Confirm the transitive package name. This row is informational.',
-        'medium',
-      );
-    } else {
-      for (const hit of hits) {
-        if (!directName && (hit.check === 'scope typo' || hit.check === 'separator')) {continue;}
-        if (!npmFlag(hit.flag)) {continue;}
-        add(hit.ruleId, hit.severity, file, name, hit.title, hit.message, hit.remediation, hit.confidence);
-      }
-    }
-    if (npmFlag('NPM_SCOPE_SYNTAX') && name.startsWith('@') && !SCOPED_OK.test(name)) {
-      add(
-        SCOPE_SYNTAX,
-        'high',
-        file,
-        name,
-        'Dependency name is not a valid scoped package name',
-        `Dependency "${name}" starts with "@" and is not @scope/name.`,
-        'Use a scoped name of the form @scope/name, with a single slash.',
-      );
-    }
-    if (npmFlag('NPM_NAME_LENGTH') && (name.length === 0 || name.length > NAME_LIMIT)) {
-      const empty = name.length === 0;
-      add(
-        NAME_LENGTH,
-        'high',
-        file,
-        empty ? '(empty)' : name,
-        'Dependency name length is outside npm\'s limit',
-        empty
-          ? 'A dependency name is empty. npm package names must be 1 to 214 characters.'
-          : `Dependency "${name}" is ${String(name.length)} characters. npm's documented limit is 214.`,
-        'Use a package name within npm\'s 214 character limit.',
-      );
-    }
-    if (npmFlag('NPM_NAME_ENCODED') && name.includes('%')) {
-      add(
-        NAME_ENCODED,
-        'high',
-        file,
-        name,
-        'Dependency name contains percent-encoding',
-        `Dependency "${name}" contains "%".`,
-        'Depend on the package by its registry name, without percent-encoding.',
-      );
+    addLookalike(state, name, file);
+    addScopeSyntax(state, name, file);
+    addNameLength(state, name, file);
+    addNameEncoded(state, name, file);
+  }
+}
+
+function addRepeatFindings(state: LaneState): void {
+  if (!npmFlag('NPM_REPEAT')) {return;}
+  for (const dep of state.direct) {
+    const base = repeatBase(dep.name);
+    if (base === undefined) {continue;}
+    pushLane(state.findings, state.seen, {
+      ruleId: REPEAT,
+      severity: 'medium',
+      file: MANIFEST,
+      snippet: dep.name,
+      title: `Dependency name repeats ${base}`,
+      message: `Direct dependency "${dep.name}" repeats the popular package basename "${base}".`,
+      remediation: `Confirm you intended "${dep.name}".`,
+      confidence: 'medium',
+    });
+  }
+}
+
+function addSuffixFindings(state: LaneState): void {
+  if (!npmFlag('NPM_SUFFIX')) {return;}
+  for (const dep of state.direct) {
+    const base = suffixBase(dep.name);
+    if (base === undefined) {continue;}
+    pushLane(state.findings, state.seen, {
+      ruleId: SUFFIX,
+      severity: 'low',
+      file: MANIFEST,
+      snippet: dep.name,
+      title: `Dependency name adds a suffix to ${base}`,
+      message: `Confirm you intended to depend on "${dep.name}". It is the popular package "${base}" plus a common suffix.`,
+      remediation: 'Keep the dependency only if that name is the package you meant.',
+      confidence: 'low',
+    });
+  }
+}
+
+function addCaseFindings(state: LaneState): void {
+  if (!npmFlag('NPM_NAME_CASE')) {return;}
+  const groups = new Map<string, Set<string>>();
+  for (const name of state.lockedNames) {
+    const key = asciiLower(name);
+    const group = groups.get(key) ?? new Set<string>();
+    group.add(name);
+    groups.set(key, group);
+  }
+  for (const group of groups.values()) {
+    if (group.size < 2) {continue;}
+    const names = [...group].sort();
+    pushLane(state.findings, state.seen, {
+      ruleId: NAME_CASE,
+      severity: 'high',
+      file: LOCK,
+      snippet: names.join('|'),
+      title: 'Locked package names differ only by case',
+      message: `Locked names ${quoteList(names)} differ only by ASCII case.`,
+      remediation: 'Keep one spelling. npm package names are lowercase, and case-only variants collide on some file systems.',
+    });
+  }
+}
+
+function addAliasFindings(state: LaneState): void {
+  if (!npmFlag('NPM_ALIAS_SQUAT')) {return;}
+  for (const dep of [...state.direct, ...state.lock.aliasSpecs]) {
+    const target = aliasTarget(dep.spec);
+    if (target === undefined || target === dep.name || !popularSet.has(dep.name)) {continue;}
+    pushLane(state.findings, state.seen, {
+      ruleId: ALIAS_SQUAT,
+      severity: 'high',
+      file: MANIFEST,
+      snippet: `${dep.name} => ${target}`,
+      title: `Alias requests ${dep.name} and installs ${target}`,
+      message: `The alias requests popular package "${dep.name}" and installs "${target}".`,
+      remediation: `Point the alias at ${dep.name} if that is the package you meant, or rename the request so it does not look like ${dep.name}.`,
+    });
+  }
+}
+
+function addSelfNameFindings(state: LaneState): void {
+  const project = state.manifest.name;
+  if (!npmFlag('NPM_SELFNAME') || typeof project !== 'string') {return;}
+  for (const dep of state.direct) {
+    if (dep.name !== project) {continue;}
+    if (dep.spec.startsWith('file:') || dep.spec.startsWith('workspace:')) {continue;}
+    pushLane(state.findings, state.seen, {
+      ruleId: SELFNAME,
+      severity: 'medium',
+      file: MANIFEST,
+      snippet: dep.name,
+      title: 'Dependency name matches the project name',
+      message: `Dependency "${dep.name}" matches this project's name and is not a file: or workspace: path.`,
+      remediation: 'Use a workspace: or file: spec for the local package, or rename the dependency.',
+      confidence: 'high',
+    });
+  }
+}
+
+function addDeprecatedFindings(state: LaneState): void {
+  if (!npmFlag('NPM_DEPRECATED_REPLACE')) {return;}
+  for (const pkg of state.lock.packages) {
+    if (pkg.deprecated === undefined) {continue;}
+    const replacement = replacementName(pkg.deprecated);
+    if (replacement === undefined || state.directSet.has(replacement)) {continue;}
+    pushLane(state.findings, state.seen, {
+      ruleId: DEPRECATED_REPLACE,
+      severity: 'info',
+      file: LOCK,
+      snippet: `${pkg.subject} -> ${replacement}`,
+      title: `Deprecated package names ${replacement}`,
+      message: `"${pkg.subject}" is deprecated and names "${replacement}", which is not a direct dependency.`,
+      remediation: `Read the deprecation notice and decide whether to depend on ${replacement}.`,
+    });
+  }
+}
+
+async function addScopeNewFindings(state: LaneState): Promise<void> {
+  if (!npmFlag('NPM_SCOPE_NEW')) {return;}
+  const project = state.manifest.name;
+  const rootScope = typeof project === 'string' ? splitScoped(project)?.scope : undefined;
+  for (const dep of state.direct) {
+    const scope = splitScoped(dep.name)?.scope;
+    if (scope === undefined || scope === rootScope) {continue;}
+    const body = await readPackument(state.input.cacheDir, dep.name);
+    const earliest = body === undefined ? undefined : earliestVersionTime(body);
+    if (earliest === undefined || Date.now() - earliest >= WEEK_MS) {continue;}
+    pushLane(state.findings, state.seen, {
+      ruleId: SCOPE_NEW,
+      severity: 'medium',
+      file: MANIFEST,
+      snippet: dep.name,
+      title: `Scoped dependency ${dep.name} was first published recently`,
+      message: `Direct dependency "${dep.name}" was first published within the last 7 days, and its scope is not this project's scope.`,
+      remediation: 'Confirm the scope is one you trust before installing a newly published package.',
+      confidence: 'medium',
+    });
+  }
+}
+
+async function addTypesFindings(state: LaneState): Promise<void> {
+  if (!npmFlag('NPM_TYPES')) {return;}
+  for (const dep of state.direct) {
+    if (dep.name.startsWith('@') || dep.name.length === 0 || !state.directSet.has(`@types/${dep.name}`)) {continue;}
+    const body = await readPackument(state.input.cacheDir, dep.name);
+    if (body === undefined || !hasTypes(body)) {continue;}
+    pushLane(state.findings, state.seen, {
+      ruleId: TYPES,
+      severity: 'info',
+      file: MANIFEST,
+      snippet: dep.name,
+      title: `Redundant @types/${dep.name}`,
+      message: `"${dep.name}" already publishes types, and the project also depends on "@types/${dep.name}".`,
+      remediation: `Remove @types/${dep.name} if the package's own types are the ones TypeScript should use.`,
+    });
+  }
+}
+
+function registryWorkspaceNames(state: LaneState, wanted: ReadonlySet<string>): Set<string> {
+  const bad = new Set<string>();
+  for (const pkg of state.lock.packages) {
+    if (pkg.resolved === undefined || !isRegistryResolved(pkg.resolved)) {continue;}
+    for (const name of pkg.names) {
+      if (wanted.has(name)) {bad.add(name);}
     }
   }
+  return bad;
+}
 
-  if (npmFlag('NPM_REPEAT')) {
-    for (const dep of direct) {
-      const base = repeatBase(dep.name);
-      if (base === undefined) {continue;}
-      add(
-        REPEAT,
-        'medium',
-        MANIFEST,
-        dep.name,
-        `Dependency name repeats ${base}`,
-        `Direct dependency "${dep.name}" repeats the popular package basename "${base}".`,
-        `Confirm you intended "${dep.name}".`,
-        'medium',
-      );
-    }
+async function addWorkspaceFindings(state: LaneState): Promise<void> {
+  if (!npmFlag('NPM_WORKSPACE_NAME')) {return;}
+  const wanted = new Set(await workspacePackageNames(state.input.cwd, state.manifest));
+  for (const name of [...registryWorkspaceNames(state, wanted)].sort()) {
+    pushLane(state.findings, state.seen, {
+      ruleId: WORKSPACE_NAME,
+      severity: 'high',
+      file: LOCK,
+      snippet: name,
+      title: `Workspace package ${name} is resolved from the registry`,
+      message: `Workspace package "${name}" is resolved from registry.npmjs.org rather than a link: or file: path.`,
+      remediation: 'Link the workspace package with link: or file: so install does not fetch a registry package of the same name.',
+    });
   }
+}
 
-  if (npmFlag('NPM_SUFFIX')) {
-    for (const dep of direct) {
-      const base = suffixBase(dep.name);
-      if (base === undefined) {continue;}
-      add(
-        SUFFIX,
-        'low',
-        MANIFEST,
-        dep.name,
-        `Dependency name adds a suffix to ${base}`,
-        `Confirm you intended to depend on "${dep.name}". It is the popular package "${base}" plus a common suffix.`,
-        'Keep the dependency only if that name is the package you meant.',
-        'low',
-      );
-    }
-  }
-
-  if (npmFlag('NPM_NAME_CASE')) {
-    const groups = new Map<string, Set<string>>();
-    for (const name of lockedNames) {
-      const key = asciiLower(name);
-      const group = groups.get(key) ?? new Set<string>();
-      group.add(name);
-      groups.set(key, group);
-    }
-    for (const group of groups.values()) {
-      if (group.size < 2) {continue;}
-      const names = [...group].sort();
-      add(
-        NAME_CASE,
-        'high',
-        LOCK,
-        names.join('|'),
-        'Locked package names differ only by case',
-        `Locked names ${quoteList(names)} differ only by ASCII case.`,
-        'Keep one spelling. npm package names are lowercase, and case-only variants collide on some file systems.',
-      );
-    }
-  }
-
-  if (npmFlag('NPM_ALIAS_SQUAT')) {
-    for (const dep of [...direct, ...lock.aliasSpecs]) {
-      const target = aliasTarget(dep.spec);
-      if (target === undefined || target === dep.name || !popularSet.has(dep.name)) {continue;}
-      add(
-        ALIAS_SQUAT,
-        'high',
-        MANIFEST,
-        `${dep.name} => ${target}`,
-        `Alias requests ${dep.name} and installs ${target}`,
-        `The alias requests popular package "${dep.name}" and installs "${target}".`,
-        `Point the alias at ${dep.name} if that is the package you meant, or rename the request so it does not look like ${dep.name}.`,
-      );
-    }
-  }
-
-  if (npmFlag('NPM_SELFNAME') && typeof manifest.name === 'string') {
-    for (const dep of direct) {
-      if (dep.name !== manifest.name) {continue;}
-      if (dep.spec.startsWith('file:') || dep.spec.startsWith('workspace:')) {continue;}
-      add(
-        SELFNAME,
-        'medium',
-        MANIFEST,
-        dep.name,
-        'Dependency name matches the project name',
-        `Dependency "${dep.name}" matches this project's name and is not a file: or workspace: path.`,
-        'Use a workspace: or file: spec for the local package, or rename the dependency.',
-        'high',
-      );
-    }
-  }
-
-  if (npmFlag('NPM_DEPRECATED_REPLACE')) {
-    for (const pkg of lock.packages) {
-      if (pkg.deprecated === undefined) {continue;}
-      const replacement = replacementName(pkg.deprecated);
-      if (replacement === undefined || directSet.has(replacement)) {continue;}
-      add(
-        DEPRECATED_REPLACE,
-        'info',
-        LOCK,
-        `${pkg.subject} -> ${replacement}`,
-        `Deprecated package names ${replacement}`,
-        `"${pkg.subject}" is deprecated and names "${replacement}", which is not a direct dependency.`,
-        `Read the deprecation notice and decide whether to depend on ${replacement}.`,
-      );
-    }
-  }
-
-  if (npmFlag('NPM_SCOPE_NEW')) {
-    const rootScope = typeof manifest.name === 'string' ? splitScoped(manifest.name)?.scope : undefined;
-    for (const dep of direct) {
-      const scope = splitScoped(dep.name)?.scope;
-      if (scope === undefined || scope === rootScope) {continue;}
-      const body = await readPackument(input.cacheDir, dep.name);
-      const earliest = body === undefined ? undefined : earliestVersionTime(body);
-      if (earliest === undefined || Date.now() - earliest >= WEEK_MS) {continue;}
-      add(
-        SCOPE_NEW,
-        'medium',
-        MANIFEST,
-        dep.name,
-        `Scoped dependency ${dep.name} was first published recently`,
-        `Direct dependency "${dep.name}" was first published within the last 7 days, and its scope is not this project's scope.`,
-        'Confirm the scope is one you trust before installing a newly published package.',
-        'medium',
-      );
-    }
-  }
-
-  if (npmFlag('NPM_TYPES')) {
-    for (const dep of direct) {
-      if (dep.name.startsWith('@') || dep.name.length === 0 || !directSet.has(`@types/${dep.name}`)) {continue;}
-      const body = await readPackument(input.cacheDir, dep.name);
-      if (body === undefined || !hasTypes(body)) {continue;}
-      add(
-        TYPES,
-        'info',
-        MANIFEST,
-        dep.name,
-        `Redundant @types/${dep.name}`,
-        `"${dep.name}" already publishes types, and the project also depends on "@types/${dep.name}".`,
-        `Remove @types/${dep.name} if the package's own types are the ones TypeScript should use.`,
-      );
-    }
-  }
-
-  if (npmFlag('NPM_WORKSPACE_NAME')) {
-    const wanted = new Set(await workspacePackageNames(input.cwd, manifest));
-    const bad = new Set<string>();
-    for (const pkg of lock.packages) {
-      if (pkg.resolved === undefined || !isRegistryResolved(pkg.resolved)) {continue;}
-      for (const name of pkg.names) {
-        if (wanted.has(name)) {bad.add(name);}
-      }
-    }
-    for (const name of [...bad].sort()) {
-      add(
-        WORKSPACE_NAME,
-        'high',
-        LOCK,
-        name,
-        `Workspace package ${name} is resolved from the registry`,
-        `Workspace package "${name}" is resolved from registry.npmjs.org rather than a link: or file: path.`,
-        'Link the workspace package with link: or file: so install does not fetch a registry package of the same name.',
-      );
-    }
-  }
-
-  return findings;
+export async function laneFindings(input: NpmDepthInput): Promise<Finding[]> {
+  if (!laneEnabled()) {return [];}
+  const state = laneState(input);
+  addLocatedFindings(state, locatedNames(state));
+  addRepeatFindings(state);
+  addSuffixFindings(state);
+  addCaseFindings(state);
+  addAliasFindings(state);
+  addSelfNameFindings(state);
+  addDeprecatedFindings(state);
+  await addScopeNewFindings(state);
+  await addTypesFindings(state);
+  await addWorkspaceFindings(state);
+  return state.findings;
 }

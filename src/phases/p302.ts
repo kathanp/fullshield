@@ -41,27 +41,39 @@ export function analyzeQueue(source: string, options?: { file?: string }): { fin
       }
     }
   });
-  walkAst(program, (node) => {
-    if (node.type !== 'CallExpression') {return;}
-    const callee = stripNode(node.callee);
-    if (callee.type !== 'MemberExpression' || propName(callee) !== 'process') {return;}
-    const queue = node.arguments[0];
-    const handler = node.arguments[1];
-    if (queue === undefined || queue.type !== 'Literal' || typeof queue.value !== 'string') {return;}
-    if (handler === undefined || (handler.type !== 'ArrowFunctionExpression' && handler.type !== 'FunctionExpression')) {return;}
-    const param = handler.params[0];
-    const job = param !== undefined && param.type === 'Identifier' ? param.name : null;
-    if (job === null || !reachesExec(handler, job) || parameterized(handler, job)) {return;}
-    const linked = producers.some((producer) => producer.queue === queue.value && producer.request);
-    findings.push({
-      file,
-      line: lineOf(node),
-      origins: linked ? ['request', 'queue'] : ['queue'],
-      confidence: linked ? 'high' : 'medium',
-      queue: queue.value,
-    });
-  });
+  walkAst(program, (node) => {noteProcess(node, producers, file, findings);});
   return { findings };
+}
+
+function noteProcess(node: TSESTree.Node, producers: readonly Producer[], file: string, findings: QueueFinding[]): void {
+  const job = processJob(node);
+  if (job === null) {return;}
+  if (!reachesExec(job.handler, job.name) || parameterized(job.handler, job.name)) {return;}
+  const linked = producers.some((producer) => producer.queue === job.queue && producer.request);
+  findings.push({
+    file,
+    line: lineOf(node),
+    origins: linked ? ['request', 'queue'] : ['queue'],
+    confidence: linked ? 'high' : 'medium',
+    queue: job.queue,
+  });
+}
+
+function processJob(node: TSESTree.Node): { handler: TSESTree.ArrowFunctionExpression | TSESTree.FunctionExpression; name: string; queue: string } | null {
+  if (node.type !== 'CallExpression') {return null;}
+  const callee = stripNode(node.callee);
+  if (callee.type !== 'MemberExpression' || propName(callee) !== 'process') {return null;}
+  const queue = node.arguments[0];
+  const handler = node.arguments[1];
+  if (queue === undefined || queue.type !== 'Literal' || typeof queue.value !== 'string') {return null;}
+  if (!isFn(handler)) {return null;}
+  const param = handler.params[0];
+  if (param === undefined || param.type !== 'Identifier') {return null;}
+  return { handler, name: param.name, queue: queue.value };
+}
+
+function isFn(node: TSESTree.Node | undefined): node is TSESTree.ArrowFunctionExpression | TSESTree.FunctionExpression {
+  return node !== undefined && (node.type === 'ArrowFunctionExpression' || node.type === 'FunctionExpression');
 }
 
 function isRequest(node: TSESTree.Node): boolean {

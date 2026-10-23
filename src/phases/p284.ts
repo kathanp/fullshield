@@ -141,78 +141,104 @@ function hasLengthGuard(program: TSESTree.Program): boolean {
   return hit;
 }
 
+interface RxCursor { pattern: string; i: number }
+
 export function parsePattern(pattern: string): Rx {
   if (/\\[1-9]/.test(pattern) || /\(\?<[=!]/.test(pattern)) {return { type: 'unknown', start: 0, end: 0 };}
-  let i = 0;
-  const parseAlt = (): Rx => {
-    const start = i;
-    const options = [parseCat()];
-    while (pattern[i] === '|') {i += 1; options.push(parseCat());}
-    if (options.length === 1) {return options[0] ?? { type: 'eps', start, end: i };}
-    return { type: 'alt', options, start, end: i };
-  };
-  const parseCat = (): Rx => {
-    const start = i;
-    const parts: Rx[] = [];
-    while (i < pattern.length && pattern[i] !== ')' && pattern[i] !== '|') {parts.push(parseQuant());}
-    if (parts.length === 0) {return { type: 'eps', start, end: i };}
-    if (parts.length === 1) {return parts[0] ?? { type: 'eps', start, end: i };}
-    return { type: 'cat', parts, start, end: i };
-  };
-  const parseQuant = (): Rx => {
-    const atom = parseAtom();
-    const mark = pattern[i];
-    if (mark === '*' || mark === '+' || mark === '?') {
-      i += 1;
-      return { type: 'rep', body: atom, unbounded: mark !== '?', start: atom.start, end: i };
-    }
-    if (mark === '{') {
-      const close = pattern.indexOf('}', i);
-      const body = close === -1 ? '' : pattern.slice(i + 1, close);
-      if (close !== -1 && /^\d+(,\d*)?$/.test(body)) {
-        i = close + 1;
-        const unbounded = body.endsWith(',') || (body.includes(',') && body.split(',')[1] === '');
-        return { type: 'rep', body: atom, unbounded, start: atom.start, end: i };
-      }
-    }
-    return atom;
-  };
-  const parseAtom = (): Rx => {
-    const start = i;
-    const ch = pattern[i] ?? '';
-    if (ch === '^' || ch === '$') {i += 1; return { type: 'eps', start, end: i };}
-    if (ch === '.') {i += 1; return { type: 'atom', atom: 'any', start, end: i };}
-    if (ch === '\\') {
-      const esc = pattern[i + 1] ?? '';
-      i += 2;
-      if (esc === 'd') {return { type: 'atom', atom: 'digit', start, end: i };}
-      if (esc === 'w') {return { type: 'atom', atom: 'word', start, end: i };}
-      if (esc === 's') {return { type: 'atom', atom: 'space', start, end: i };}
-      return { type: 'atom', atom: `lit:${esc}`, start, end: i };
-    }
-    if (ch === '[') {
-      const close = pattern.indexOf(']', i + 1);
-      const body = close === -1 ? '' : pattern.slice(i + 1, close);
-      i = close === -1 ? pattern.length : close + 1;
-      const atom = body.includes('0-9') || body === '\\d' ? 'digit' : body.includes('a-z') || body.includes('A-Z') ? 'letter' : `class:${body}`;
-      return { type: 'atom', atom, start, end: i };
-    }
-    if (ch === '(') {
-      i += 1;
-      if (pattern.startsWith('?:', i)) {i += 2;}
-      else if (pattern[i] === '?' && pattern[i + 1] === '<') {
-        const endName = pattern.indexOf('>', i);
-        if (endName !== -1 && pattern[i + 2] !== '=' && pattern[i + 2] !== '!') {i = endName + 1;}
-      }
-      const inner = parseAlt();
-      if (pattern[i] === ')') {i += 1;}
-      return inner.type === 'eps' ? inner : { ...inner, start, end: i };
-    }
-    i += 1;
-    return { type: 'atom', atom: `lit:${ch}`, start, end: i };
-  };
-  const parsed = parseAlt();
-  return i < pattern.length ? { type: 'unknown', start: 0, end: i } : parsed;
+  const cursor: RxCursor = { pattern, i: 0 };
+  const parsed = parseAlt(cursor);
+  return cursor.i < pattern.length ? { type: 'unknown', start: 0, end: cursor.i } : parsed;
+}
+
+function parseAlt(cursor: RxCursor): Rx {
+  const start = cursor.i;
+  const options = [parseCat(cursor)];
+  while (cursor.pattern[cursor.i] === '|') {cursor.i += 1; options.push(parseCat(cursor));}
+  if (options.length === 1) {return options[0] ?? { type: 'eps', start, end: cursor.i };}
+  return { type: 'alt', options, start, end: cursor.i };
+}
+
+function parseCat(cursor: RxCursor): Rx {
+  const start = cursor.i;
+  const parts: Rx[] = [];
+  while (cursor.i < cursor.pattern.length && cursor.pattern[cursor.i] !== ')' && cursor.pattern[cursor.i] !== '|') {
+    parts.push(parseQuant(cursor));
+  }
+  if (parts.length === 0) {return { type: 'eps', start, end: cursor.i };}
+  if (parts.length === 1) {return parts[0] ?? { type: 'eps', start, end: cursor.i };}
+  return { type: 'cat', parts, start, end: cursor.i };
+}
+
+function parseQuant(cursor: RxCursor): Rx {
+  const atom = parseAtom(cursor);
+  const mark = cursor.pattern[cursor.i];
+  if (mark === '*' || mark === '+' || mark === '?') {
+    cursor.i += 1;
+    return { type: 'rep', body: atom, unbounded: mark !== '?', start: atom.start, end: cursor.i };
+  }
+  if (mark === '{') {return parseBrace(cursor, atom);}
+  return atom;
+}
+
+function parseBrace(cursor: RxCursor, atom: Rx): Rx {
+  const close = cursor.pattern.indexOf('}', cursor.i);
+  const body = close === -1 ? '' : cursor.pattern.slice(cursor.i + 1, close);
+  if (close !== -1 && /^\d+(,\d*)?$/.test(body)) {
+    cursor.i = close + 1;
+    const unbounded = body.endsWith(',') || (body.includes(',') && body.split(',')[1] === '');
+    return { type: 'rep', body: atom, unbounded, start: atom.start, end: cursor.i };
+  }
+  return atom;
+}
+
+function parseAtom(cursor: RxCursor): Rx {
+  const start = cursor.i;
+  const ch = cursor.pattern[cursor.i] ?? '';
+  if (ch === '^' || ch === '$') {cursor.i += 1; return { type: 'eps', start, end: cursor.i };}
+  if (ch === '.') {cursor.i += 1; return { type: 'atom', atom: 'any', start, end: cursor.i };}
+  if (ch === '\\') {return parseEscape(cursor, start);}
+  if (ch === '[') {return parseClass(cursor, start);}
+  if (ch === '(') {return parseGroup(cursor, start);}
+  cursor.i += 1;
+  return { type: 'atom', atom: `lit:${ch}`, start, end: cursor.i };
+}
+
+function parseEscape(cursor: RxCursor, start: number): Rx {
+  const esc = cursor.pattern[cursor.i + 1] ?? '';
+  cursor.i += 2;
+  if (esc === 'd') {return { type: 'atom', atom: 'digit', start, end: cursor.i };}
+  if (esc === 'w') {return { type: 'atom', atom: 'word', start, end: cursor.i };}
+  if (esc === 's') {return { type: 'atom', atom: 'space', start, end: cursor.i };}
+  return { type: 'atom', atom: `lit:${esc}`, start, end: cursor.i };
+}
+
+function parseClass(cursor: RxCursor, start: number): Rx {
+  const close = cursor.pattern.indexOf(']', cursor.i + 1);
+  const body = close === -1 ? '' : cursor.pattern.slice(cursor.i + 1, close);
+  cursor.i = close === -1 ? cursor.pattern.length : close + 1;
+  return { type: 'atom', atom: classAtom(body), start, end: cursor.i };
+}
+
+function classAtom(body: string): string {
+  if (body.includes('0-9') || body === '\\d') {return 'digit';}
+  if (body.includes('a-z') || body.includes('A-Z')) {return 'letter';}
+  return `class:${body}`;
+}
+
+function parseGroup(cursor: RxCursor, start: number): Rx {
+  cursor.i += 1;
+  skipGroupPrefix(cursor);
+  const inner = parseAlt(cursor);
+  if (cursor.pattern[cursor.i] === ')') {cursor.i += 1;}
+  return inner.type === 'eps' ? inner : { ...inner, start, end: cursor.i };
+}
+
+function skipGroupPrefix(cursor: RxCursor): void {
+  if (cursor.pattern.startsWith('?:', cursor.i)) {cursor.i += 2; return;}
+  if (cursor.pattern[cursor.i] !== '?' || cursor.pattern[cursor.i + 1] !== '<') {return;}
+  const endName = cursor.pattern.indexOf('>', cursor.i);
+  const named = endName !== -1 && cursor.pattern[cursor.i + 2] !== '=' && cursor.pattern[cursor.i + 2] !== '!';
+  if (named) {cursor.i = endName + 1;}
 }
 
 function ambiguity(rx: Rx): 'exponential' | 'polynomial' | 'none' {

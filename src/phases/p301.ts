@@ -28,44 +28,57 @@ export function analyzeServerless(source: string, manifest: string | null, optio
   const file = options?.file ?? 'inline.js';
   const program = parseProgram(source);
   if (program === null) {return { findings: [], events: [], routes: [] };}
-  let triggers: Trigger[] = [];
   const events: UnsoundEvent[] = [];
-  if (manifest === null || manifest.trim() === '') {
-    triggers = [{ handler: '*', kind: 'unknown', path: null }];
-  } else {
-    const parsed = parseYaml(manifest);
-    if (parsed === null) {
-      events.push({ kind: 'unresolved-import', file, line: 1, reason: 'manifest parse' });
-      triggers = [{ handler: '*', kind: 'unknown', path: null }];
-    } else {
-      triggers = triggersOf(parsed);
-    }
-  }
+  const triggers = loadTriggers(manifest, file, events);
   const exports = exportedFunctions(program);
   const findings: ServerlessFinding[] = [];
   const routes: string[] = [];
-  for (const trigger of triggers) {
-    const name = trigger.handler.split('.').pop() ?? trigger.handler;
-    if (trigger.handler !== '*' && !exports.has(name)) {continue;}
-    const fn = trigger.handler === '*' ? null : exports.get(name) ?? null;
-    if (fn === null && trigger.handler !== '*') {continue;}
-    const target = fn ?? program;
-    const sink = sinkOf(target);
-    if (sink === null) {continue;}
-    const http = trigger.kind === 'http';
-    const environment = sink.environment;
-    if (environment && !sink.request) {continue;}
-    routes.push(trigger.path ?? name);
-    findings.push({
-      file,
-      line: sink.line,
-      origin: http ? 'request' : 'event',
-      severity: http ? 'high' : 'medium',
-      trigger: trigger.kind,
-      route: trigger.handler === '*' ? null : name,
-    });
-  }
+  const out: ServerlessOut = { file, findings, routes };
+  for (const trigger of triggers) {noteTrigger(trigger, exports, program, out);}
   return { findings, events, routes };
+}
+
+function loadTriggers(manifest: string | null, file: string, events: UnsoundEvent[]): Trigger[] {
+  if (manifest === null || manifest.trim() === '') {return [{ handler: '*', kind: 'unknown', path: null }];}
+  const parsed = parseYaml(manifest);
+  if (parsed === null) {
+    events.push({ kind: 'unresolved-import', file, line: 1, reason: 'manifest parse' });
+    return [{ handler: '*', kind: 'unknown', path: null }];
+  }
+  return triggersOf(parsed);
+}
+
+interface ServerlessOut {
+  file: string;
+  findings: ServerlessFinding[];
+  routes: string[];
+}
+
+function noteTrigger(trigger: Trigger, exports: ReadonlyMap<string, TSESTree.Node>, program: TSESTree.Program, out: ServerlessOut): void {
+  const name = trigger.handler.split('.').pop() ?? trigger.handler;
+  const target = triggerTarget(trigger, name, exports, program);
+  if (target === null) {return;}
+  const sink = sinkOf(target);
+  if (sink === null || (sink.environment && !sink.request)) {return;}
+  out.routes.push(trigger.path ?? name);
+  out.findings.push(serverlessFinding(trigger, name, sink, out.file));
+}
+
+function triggerTarget(trigger: Trigger, name: string, exports: ReadonlyMap<string, TSESTree.Node>, program: TSESTree.Program): TSESTree.Node | null {
+  if (trigger.handler === '*') {return program;}
+  return exports.get(name) ?? null;
+}
+
+function serverlessFinding(trigger: Trigger, name: string, sink: { line: number }, file: string): ServerlessFinding {
+  const http = trigger.kind === 'http';
+  return {
+    file,
+    line: sink.line,
+    origin: http ? 'request' : 'event',
+    severity: http ? 'high' : 'medium',
+    trigger: trigger.kind,
+    route: trigger.handler === '*' ? null : name,
+  };
 }
 
 function sinkOf(node: TSESTree.Node): { line: number; request: boolean; environment: boolean } | null {
@@ -122,25 +135,47 @@ function exportedFunctions(program: TSESTree.Program): Map<string, TSESTree.Node
 function triggersOf(root: Record<string, unknown>): Trigger[] {
   const triggers: Trigger[] = [];
   const visit = (node: unknown, handler: string | null): void => {
-    if (Array.isArray(node)) {
-      for (const item of node) {visit(item, handler);}
-      return;
-    }
-    if (typeof node !== 'object' || node === null) {return;}
-    const record = node as Record<string, unknown>;
-    const nextHandler = typeof record.Handler === 'string' ? record.Handler : typeof record.handler === 'string' ? record.handler : handler;
-    const type = typeof record.Type === 'string' ? record.Type : '';
-    if (type === 'Api' || type === 'HttpApi' || record.http !== undefined) {
-      const path = nestedString(record.Properties, 'Path') ?? nestedString(record.http, 'path');
-      triggers.push({ handler: nextHandler ?? '*', kind: 'http', path });
-    }
-    if (type === 'Schedule' || record.schedule !== undefined) {
-      triggers.push({ handler: nextHandler ?? '*', kind: 'cron', path: null });
-    }
-    for (const value of Object.values(record)) {visit(value, nextHandler);}
+    visitTrigger(node, handler, triggers, visit);
   };
   visit(root, null);
   return triggers;
+}
+
+function visitTrigger(
+  node: unknown,
+  handler: string | null,
+  triggers: Trigger[],
+  visit: (node: unknown, handler: string | null) => void,
+): void {
+  if (Array.isArray(node)) {
+    for (const item of node) {visit(item, handler);}
+    return;
+  }
+  if (typeof node !== 'object' || node === null) {return;}
+  const record = node as Record<string, unknown>;
+  const nextHandler = handlerName(record, handler);
+  noteHttp(record, nextHandler, triggers);
+  noteCron(record, nextHandler, triggers);
+  for (const value of Object.values(record)) {visit(value, nextHandler);}
+}
+
+function handlerName(record: Record<string, unknown>, handler: string | null): string | null {
+  if (typeof record.Handler === 'string') {return record.Handler;}
+  if (typeof record.handler === 'string') {return record.handler;}
+  return handler;
+}
+
+function noteHttp(record: Record<string, unknown>, nextHandler: string | null, triggers: Trigger[]): void {
+  const type = typeof record.Type === 'string' ? record.Type : '';
+  if (type !== 'Api' && type !== 'HttpApi' && record.http === undefined) {return;}
+  const path = nestedString(record.Properties, 'Path') ?? nestedString(record.http, 'path');
+  triggers.push({ handler: nextHandler ?? '*', kind: 'http', path });
+}
+
+function noteCron(record: Record<string, unknown>, nextHandler: string | null, triggers: Trigger[]): void {
+  const type = typeof record.Type === 'string' ? record.Type : '';
+  if (type !== 'Schedule' && record.schedule === undefined) {return;}
+  triggers.push({ handler: nextHandler ?? '*', kind: 'cron', path: null });
 }
 
 function nestedString(node: unknown, key: string): string | null {

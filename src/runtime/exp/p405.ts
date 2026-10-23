@@ -87,16 +87,20 @@ function portOf(address: unknown): number {
   return 0;
 }
 
-export async function runCompatibilityMatrix(): Promise<RuntimeMatrix> {
-  const matrix: RuntimeMatrix = {
+function cellReason(error: unknown): string {
+  return error instanceof Error ? error.message : 'failed';
+}
+
+function emptyMatrix(): RuntimeMatrix {
+  return {
     date: new Date().toISOString().slice(0, 10),
     node: process.version,
     unreviewed: true,
     cells: [],
   };
-  if (!enabled()) {
-    return matrix;
-  }
+}
+
+async function httpCell(): Promise<MatrixCell> {
   try {
     await checkServer(async () => {
       const server = createServer((req, res) => {
@@ -119,53 +123,50 @@ export async function runCompatibilityMatrix(): Promise<RuntimeMatrix> {
         }),
       };
     });
-    matrix.cells.push({ framework: 'http.Server', status: 'pass', reason: '' });
+    return { framework: 'http.Server', status: 'pass', reason: '' };
   } catch (error) {
-    matrix.cells.push({
-      framework: 'http.Server',
-      status: 'fail',
-      reason: error instanceof Error ? error.message : 'failed',
-    });
+    return { framework: 'http.Server', status: 'fail', reason: cellReason(error) };
   }
+}
+
+async function expressCell(): Promise<MatrixCell> {
   if (!installed('express')) {
-    matrix.cells.push({ framework: 'express', status: 'not-in-matrix', reason: 'express is not installed' });
-  } else {
-    try {
-      const loaded = createRequire(import.meta.url)('express') as unknown;
-      if (typeof loaded !== 'function') {
-        throw new TypeError('express export is not a function');
-      }
-      const app = (loaded as () => MiniApp)();
-      app.use((req, res) => {
-        hook(req, res, () => {
-          res.statusCode = 200;
-          res.end('ok');
-        });
-      });
-      await checkServer(async () => {
-        const server = await new Promise<MiniServer>((resolve) => {
-          const listening = app.listen(0, '127.0.0.1', () => {
-            resolve(listening);
-          });
-        });
-        return {
-          port: portOf(server.address()),
-          close: () => new Promise((resolve) => {
-            server.close(() => {
-              resolve();
-            });
-          }),
-        };
-      });
-      matrix.cells.push({ framework: 'express', status: 'pass', reason: '' });
-    } catch (error) {
-      matrix.cells.push({
-        framework: 'express',
-        status: 'fail',
-        reason: error instanceof Error ? error.message : 'failed',
-      });
-    }
+    return { framework: 'express', status: 'not-in-matrix', reason: 'express is not installed' };
   }
+  try {
+    const loaded = createRequire(import.meta.url)('express') as unknown;
+    if (typeof loaded !== 'function') {
+      throw new TypeError('express export is not a function');
+    }
+    const app = (loaded as () => MiniApp)();
+    app.use((req, res) => {
+      hook(req, res, () => {
+        res.statusCode = 200;
+        res.end('ok');
+      });
+    });
+    await checkServer(async () => {
+      const server = await new Promise<MiniServer>((resolve) => {
+        const listening = app.listen(0, '127.0.0.1', () => {
+          resolve(listening);
+        });
+      });
+      return {
+        port: portOf(server.address()),
+        close: () => new Promise((resolve) => {
+          server.close(() => {
+            resolve();
+          });
+        }),
+      };
+    });
+    return { framework: 'express', status: 'pass', reason: '' };
+  } catch (error) {
+    return { framework: 'express', status: 'fail', reason: cellReason(error) };
+  }
+}
+
+function pushAbsentFrameworks(matrix: RuntimeMatrix): void {
   for (const framework of ['fastify', 'koa', 'next'] as const) {
     if (!installed(framework)) {
       matrix.cells.push({
@@ -175,5 +176,13 @@ export async function runCompatibilityMatrix(): Promise<RuntimeMatrix> {
       });
     }
   }
+}
+
+export async function runCompatibilityMatrix(): Promise<RuntimeMatrix> {
+  const matrix = emptyMatrix();
+  if (!enabled()) {return matrix;}
+  matrix.cells.push(await httpCell());
+  matrix.cells.push(await expressCell());
+  pushAbsentFrameworks(matrix);
   return matrix;
 }

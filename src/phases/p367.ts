@@ -57,6 +57,38 @@ function redact(url: URL): string {
   return clone.href;
 }
 
+function registryRaw(trimmed: string): string | undefined {
+  if (trimmed === '' || trimmed.startsWith('#') || trimmed.startsWith(';')) {
+    return undefined;
+  }
+  return /^(?:@[^:]+:)?registry=(.+)$/.exec(trimmed)?.[1]?.trim();
+}
+
+function registryRow(file: string, shown: string, severity: PrivRegFinding['severity'], message: string): PrivRegFinding {
+  return { ruleId: 'DEPS-PRIVREG-001', severity, file, registry: shown, message };
+}
+
+function urlFindings(file: string, raw: string, config: PrivRegConfig, insecure: ReadonlySet<string>): PrivRegFinding[] {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return [];
+  }
+  const shown = redact(url);
+  const findings: PrivRegFinding[] = [];
+  if (url.username !== '' || url.password !== '') {
+    findings.push(registryRow(file, shown, 'high', `Registry URL in ${file} embeds userinfo (${shown}).`));
+  }
+  if (url.protocol === 'http:' && !insecure.has(url.hostname)) {
+    findings.push(registryRow(file, shown, 'high', `Registry URL in ${file} is http (${shown}).`));
+  }
+  if (config.allowlist !== undefined && !config.allowlist.includes(url.host)) {
+    findings.push(registryRow(file, shown, 'medium', `Registry host ${url.host} is outside the policy allowlist.`));
+  }
+  return findings;
+}
+
 export function registryFindings(file: string, npmrc: string, config: PrivRegConfig = {}): PrivRegFinding[] {
   if (!enabled()) {
     return [];
@@ -67,52 +99,11 @@ export function registryFindings(file: string, npmrc: string, config: PrivRegCon
   const insecure = new Set(config.allowInsecureRegistryHosts ?? []);
   const findings: PrivRegFinding[] = [];
   for (const line of npmrc.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (trimmed === '' || trimmed.startsWith('#') || trimmed.startsWith(';')) {
-      continue;
-    }
-    const match = /^(?:@[^:]+:)?registry=(.+)$/.exec(trimmed);
-    const raw = match?.[1]?.trim();
+    const raw = registryRaw(line.trim());
     if (raw === undefined) {
       continue;
     }
-    let url: URL;
-    try {
-      url = new URL(raw);
-    } catch {
-      continue;
-    }
-    const shown = redact(url);
-    if (url.username !== '' || url.password !== '') {
-      findings.push({
-        ruleId: 'DEPS-PRIVREG-001',
-        severity: 'high',
-        file,
-        registry: shown,
-        message: `Registry URL in ${file} embeds userinfo (${shown}).`,
-      });
-    }
-    if (url.protocol === 'http:') {
-      const allowed = insecure.has(url.hostname);
-      if (!allowed) {
-        findings.push({
-          ruleId: 'DEPS-PRIVREG-001',
-          severity: 'high',
-          file,
-          registry: shown,
-          message: `Registry URL in ${file} is http (${shown}).`,
-        });
-      }
-    }
-    if (config.allowlist !== undefined && !config.allowlist.includes(url.host)) {
-      findings.push({
-        ruleId: 'DEPS-PRIVREG-001',
-        severity: 'medium',
-        file,
-        registry: shown,
-        message: `Registry host ${url.host} is outside the policy allowlist.`,
-      });
-    }
+    findings.push(...urlFindings(file, raw, config, insecure));
   }
   return findings;
 }
