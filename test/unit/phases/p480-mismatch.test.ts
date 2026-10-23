@@ -23,7 +23,7 @@ async function capture(run: () => Promise<number>): Promise<{ code: number; stde
   process.stderr.write = ((chunk: string | Uint8Array) => {
     stderr += String(chunk);
     return true;
-  }) as typeof process.stderr.write;
+  });
   try {
     const code = await run();
     return { code, stderr };

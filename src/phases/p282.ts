@@ -4,28 +4,23 @@ import { isRequestSource, lineOf, parseProgram, propName, stripNode, walkAst } f
 
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_HTMLCTX';
 
-const HTML_CONTEXTS = [
-  'text',
-  'quoted-attr',
-  'unquoted-attr',
-  'url-attr',
-  'event-handler',
-  'script',
-  'style',
-  'comment',
-] as const;
+export type HtmlContext =
+  | 'text'
+  | 'quoted-attr'
+  | 'unquoted-attr'
+  | 'url-attr'
+  | 'event-handler'
+  | 'script'
+  | 'style'
+  | 'comment';
 
-const HTML_SANITIZERS = [
-  'none',
-  'escapeHtml',
-  'encodeURIComponent',
-  'jsonStringify',
-  'dompurify',
-  'textContent',
-] as const;
-
-export type HtmlContext = (typeof HTML_CONTEXTS)[number];
-export type HtmlSanitizer = (typeof HTML_SANITIZERS)[number];
+export type HtmlSanitizer =
+  | 'none'
+  | 'escapeHtml'
+  | 'encodeURIComponent'
+  | 'jsonStringify'
+  | 'dompurify'
+  | 'textContent';
 
 export interface HtmlFinding {
   file: string;

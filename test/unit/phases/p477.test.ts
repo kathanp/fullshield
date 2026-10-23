@@ -16,11 +16,11 @@ async function capture(run: () => Promise<number>): Promise<{ code: number; stdo
   process.stdout.write = ((chunk: string | Uint8Array) => {
     stdout += String(chunk);
     return true;
-  }) as typeof process.stdout.write;
+  });
   process.stderr.write = ((chunk: string | Uint8Array) => {
     stderr += String(chunk);
     return true;
-  }) as typeof process.stderr.write;
+  });
   try {
     const code = await run();
     return { code, stdout, stderr };
@@ -74,7 +74,7 @@ describe('phase 477 module', () => {
     process.env[FUZZPARSE] = '1';
     try {
       expect(SEEDS.length).toBeGreaterThan(0);
-      expect(parseIr(SEEDS[0]!.source)).toBe('ok');
+      expect(parseIr(SEEDS[0].source)).toBe('ok');
       expect(parseIr('const =')).toBe('crash');
       expect(['ok', 'reject', 'crash']).toContain(parseIr(1 as unknown as string));
       const passed = await fuzz({ mutations: 1, parser: 'ir', fuelMs: 50 });

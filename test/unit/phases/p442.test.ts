@@ -77,7 +77,7 @@ describe('phase 442 rule docs', () => {
     process.stderr.write = ((chunk: string | Uint8Array) => {
       chunks.push(String(chunk));
       return true;
-    }) as typeof process.stderr.write;
+    });
     try {
       process.argv = ['node', '/tmp/src/phases/p442.ts'];
       process.exitCode = undefined;

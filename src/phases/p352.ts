@@ -18,8 +18,7 @@ export class DepFlagsError extends Error {
   }
 }
 
-const RISK_TOKENS = ['advisory-critical', 'install-script', 'new-direct', 'non-registry-host'] as const;
-export type RiskToken = (typeof RISK_TOKENS)[number];
+export type RiskToken = 'advisory-critical' | 'install-script' | 'new-direct' | 'non-registry-host';
 
 export interface DepFacts {
   installScript?: boolean;

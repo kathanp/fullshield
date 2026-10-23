@@ -80,13 +80,29 @@ function contentFindings(file: string, record: { sources?: unknown; sourcesConte
   }
   const findings: MapFinding[] = [];
   record.sourcesContent.forEach((content, index) => {
-    const source = Array.isArray(record.sources) ? record.sources[index] : file;
+    const source = sourceName(record.sources, index, file);
     const hit = contentHit(content, source, file, formats);
     if (hit !== undefined) {
       findings.push(hit);
     }
   });
   return findings;
+}
+
+function isRecord(value: unknown): value is { sources?: unknown; sourcesContent?: unknown } {
+  return typeof value === 'object' && value !== null;
+}
+
+function sourceName(sources: unknown, index: number, file: string): string {
+  if (!isUnknownList(sources)) {
+    return file;
+  }
+  const item = sources[index];
+  return typeof item === 'string' ? item : file;
+}
+
+function isUnknownList(value: unknown): value is readonly unknown[] {
+  return Array.isArray(value);
 }
 
 function parsedRecord(text: string): { sources?: unknown; sourcesContent?: unknown } | undefined {
@@ -96,10 +112,10 @@ function parsedRecord(text: string): { sources?: unknown; sourcesContent?: unkno
   } catch {
     return undefined;
   }
-  if (typeof parsed !== 'object' || parsed === null) {
+  if (!isRecord(parsed)) {
     return undefined;
   }
-  return parsed as { sources?: unknown; sourcesContent?: unknown };
+  return parsed;
 }
 
 export function sourceMapFindings(file: string, text: string, formats: readonly SecretFormat[], maxBytes = 1_000_000): MapResult {

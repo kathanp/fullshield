@@ -16,11 +16,11 @@ function capture(run: () => number): { code: number; stdout: string; stderr: str
   process.stdout.write = ((chunk: string | Uint8Array) => {
     stdout += String(chunk);
     return true;
-  }) as typeof process.stdout.write;
+  });
   process.stderr.write = ((chunk: string | Uint8Array) => {
     stderr += String(chunk);
     return true;
-  }) as typeof process.stderr.write;
+  });
   try {
     return { code: run(), stdout, stderr };
   } finally {

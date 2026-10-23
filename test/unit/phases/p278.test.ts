@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { parseProgram, walkAst } from '../../../src/phases/p271.js';
 import * as phase from '../../../src/phases/p278.js';
-import type { TSESTree } from '@typescript-eslint/typescript-estree';
+import { AST_NODE_TYPES, type TSESTree } from '@typescript-eslint/typescript-estree';
 
 afterEach(() => {
   delete process.env[phase.FLAG];
@@ -27,7 +27,7 @@ describe('phase 278', () => {
     let call: TSESTree.CallExpression | undefined;
     if (program !== null) {
       walkAst(program, (node) => {
-        if (node.type === 'CallExpression') {call = node;}
+        if (node.type === AST_NODE_TYPES.CallExpression) {call = node;}
       });
     }
     if (call !== undefined) {expect(phase.abstractExpression(call, new Map()).segments).toEqual([]);}

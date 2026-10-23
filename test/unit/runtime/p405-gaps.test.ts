@@ -3,8 +3,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const gate = vi.hoisted(() => ({
-  http: 'ok' as 'ok' | 'mismatch' | 'bare' | 'string-error',
-  express: 'missing' as 'missing' | 'bad' | 'string',
+  http: 'ok',
+  express: 'missing',
   calls: 0,
 }));
 
@@ -46,7 +46,11 @@ vi.mock('node:module', () => {
   function requireMock(name: string): unknown {
     if (name !== 'express') {throw new Error(`missing ${name}`);}
     if (gate.express === 'bad') {return { not: 'a function' };}
-    if (gate.express === 'string') {throw 'express failed';}
+    if (gate.express === 'string') {
+      const failed = new Error('express failed');
+      Object.setPrototypeOf(failed, null);
+      throw failed;
+    }
     throw new Error('missing express');
   }
   requireMock.resolve = (name: string) => {

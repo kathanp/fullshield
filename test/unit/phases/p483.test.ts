@@ -18,11 +18,11 @@ async function capture(run: () => Promise<number>): Promise<{ code: number; stdo
   process.stdout.write = ((chunk: string | Uint8Array) => {
     stdout += String(chunk);
     return true;
-  }) as typeof process.stdout.write;
+  });
   process.stderr.write = ((chunk: string | Uint8Array) => {
     stderr += String(chunk);
     return true;
-  }) as typeof process.stderr.write;
+  });
   try {
     const code = await run();
     return { code, stdout, stderr };
