@@ -44,6 +44,12 @@ describe('phase 282', () => {
       '`<script>${JSON.stringify(req.query.x)}</script>`',
       '`<div>${DOMPurify.sanitize(req.query.x)}</div>`',
       '`<img src=${name}>`',
+      '`<script>ok</script><b>${req.query.x}</b>`',
+      '`<style>ok</style><b>${req.query.x}</b>`',
+      '`<!--ok-->${req.query.x}`',
+      '`<a href="http://x" title="${req.query.x}">`',
+      '`<div>${JSON(req.query.x)}</div>`',
+      '`<div>${(0, escapeHtml)(req.query.x)}</div>`',
     ];
     const contexts = snippets.flatMap((snippet) => phase.analyzeHtml(`const html = ${snippet};`).findings.map((row) => row.htmlContext));
     expect(contexts).toContain('quoted-attr');
