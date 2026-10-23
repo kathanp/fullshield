@@ -40,6 +40,15 @@ export function historyKey(finding: HistoryFinding): string {
   return `${finding.ruleId}\0${finding.file}\0${finding.line}`;
 }
 
+/** SQLite TEXT drops the bytes after a NUL, so the stored key is hex. */
+function persistKey(key: string): string {
+  return Buffer.from(key, 'utf8').toString('hex');
+}
+
+function restoreKey(stored: string): string {
+  return Buffer.from(stored, 'hex').toString('utf8');
+}
+
 /** Until refactor-stable fingerprints are on, the history key includes the line. */
 export function historyNote(): string {
   if (process.env.FULLSHIELD_EXPERIMENTAL_STABLEFP === '1') {
@@ -81,12 +90,12 @@ export function recordScan(db: DatabaseSync, findings: readonly HistoryFinding[]
     const fingerprint = historyKey(finding);
     seen.add(fingerprint);
     const state = finding.suppressed === true ? 'suppressed' : 'open';
-    upsert.run(fingerprint, when, when, state, finding.ruleId, finding.file, finding.line);
+    upsert.run(persistKey(fingerprint), when, when, state, finding.ruleId, finding.file, finding.line);
   }
   const rows = db.prepare('SELECT fingerprint FROM history').all() as Array<{ fingerprint: string }>;
   const mark = db.prepare(`UPDATE history SET state = 'absent', last_seen = ? WHERE fingerprint = ?`);
   for (const row of rows) {
-    if (!seen.has(row.fingerprint)) {
+    if (!seen.has(restoreKey(row.fingerprint))) {
       mark.run(when, row.fingerprint);
     }
   }
@@ -108,7 +117,7 @@ export function readHistory(db: DatabaseSync): HistoryRow[] {
     line: number;
   }>;
   return rows.map((row) => ({
-    fingerprint: row.fingerprint,
+    fingerprint: restoreKey(row.fingerprint),
     firstSeen: row.first_seen,
     lastSeen: row.last_seen,
     state: row.state,
