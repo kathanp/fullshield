@@ -42,11 +42,15 @@ describe('phase 330 access report', () => {
     const report = buildAccessReport(routes, scan);
     expect(report.findingIds.find((entry) => entry.ruleId === 'SAST-IDOR-002')?.ids).toEqual(['a', 'SAST-IDOR-002']);
     expect(report.findingIds.some((entry) => entry.ruleId === 'SAST-SQLI-001')).toBe(false);
-    const safe = { ...routes[0], auth: 'safe', authz: 'none', ownerScope: 'not-computed' };
+    const head = routes[0];
+    if (head === undefined) {
+      throw new Error('fixture route missing');
+    }
+    const safe: MatrixRoute = { ...head, auth: 'safe', authz: 'none', ownerScope: 'not-computed' };
     expect(() => buildAccessReport([safe], scan)).toThrow(/forbidden cell/);
-    expect(() => buildAccessReport([{ ...routes[0], authz: 'safe' }], scan)).toThrow(/forbidden cell/);
+    expect(() => buildAccessReport([{ ...head, authz: 'safe' }], scan)).toThrow(/forbidden cell/);
     process.env.FULLSHIELD_EXPERIMENTAL_OWNERFLOW = '1';
-    expect(() => buildAccessReport([{ ...routes[0], ownerScope: 'safe' }], scan)).toThrow(/forbidden cell/);
+    expect(() => buildAccessReport([{ ...head, ownerScope: 'safe' }], scan)).toThrow(/forbidden cell/);
     delete process.env.FULLSHIELD_EXPERIMENTAL_OWNERFLOW;
   });
 });

@@ -82,7 +82,7 @@ describe('phase 442 rule docs', () => {
       process.argv = ['node', '/tmp/src/phases/p442.ts'];
       process.exitCode = undefined;
       vi.resetModules();
-      await import('../../../src/phases/p442.ts');
+      await import('../../../src/phases/p442.js');
       expect(chunks.join('')).toContain('usage: phase442-ruledocs');
       expect(process.exitCode).toBe(1);
       const { rules, out } = scratch();
@@ -91,12 +91,12 @@ describe('phase 442 rule docs', () => {
       process.argv = ['node', '/tmp/src/phases/p442.ts', rules];
       process.exitCode = undefined;
       vi.resetModules();
-      await import('../../../src/phases/p442.ts');
+      await import('../../../src/phases/p442.js');
       expect(process.exitCode).toBe(1);
       process.argv = ['node', '/tmp/src/phases/p442.ts', rules, out];
       process.exitCode = undefined;
       vi.resetModules();
-      await import('../../../src/phases/p442.ts');
+      await import('../../../src/phases/p442.js');
       expect(readFileSync(join(out, 'one.html'), 'utf8')).toContain('<h1>SAST-SQLI-001</h1>');
       expect(process.exitCode).toBeUndefined();
     } finally {
