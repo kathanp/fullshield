@@ -1,0 +1,305 @@
+{
+  "note": "Phase 266 dev corpus. HEAD pins verified with git ls-remote on 2026-10-22. Not cloned, not installed, not executed, not scanned. bench/realworld.json is unchanged.",
+  "repos": [
+    {
+      "name": "express",
+      "repo": "https://github.com/expressjs/express.git",
+      "sha": "0dee2c52c7c873498f8ed7d8ee4ddd0a04d3ada8",
+      "stratum": "express"
+    },
+    {
+      "name": "express-session",
+      "repo": "https://github.com/expressjs/session.git",
+      "sha": "8947e169ae838b22cc1af198e50e370e6fc09f96",
+      "stratum": "express"
+    },
+    {
+      "name": "json-server",
+      "repo": "https://github.com/typicode/json-server.git",
+      "sha": "89a34a44b7a6a5311dc84f3b8a1b8b45c0905aea",
+      "stratum": "express"
+    },
+    {
+      "name": "morgan",
+      "repo": "https://github.com/expressjs/morgan.git",
+      "sha": "b1272e70812dbc504321eeb5a43d14b0822c150d",
+      "stratum": "express"
+    },
+    {
+      "name": "multer",
+      "repo": "https://github.com/expressjs/multer.git",
+      "sha": "2c380d06cdaacc68bbef8b36244493a3d33d6b88",
+      "stratum": "express"
+    },
+    {
+      "name": "sails",
+      "repo": "https://github.com/balderdashy/sails.git",
+      "sha": "7b76422cc27823df033572bdda5c4910a68b697f",
+      "stratum": "express"
+    },
+    {
+      "name": "fast-json-stringify",
+      "repo": "https://github.com/fastify/fast-json-stringify.git",
+      "sha": "4f79d2f660745ca916dd2c4a62b882d4b19b3221",
+      "stratum": "fastify"
+    },
+    {
+      "name": "fastify",
+      "repo": "https://github.com/fastify/fastify.git",
+      "sha": "ce41dc0fbb4ed75e9a42f3972ac896333f6a7396",
+      "stratum": "fastify"
+    },
+    {
+      "name": "fastify-cors",
+      "repo": "https://github.com/fastify/fastify-cors.git",
+      "sha": "a4fb4823eaca3b99a960f7a341e332e2d47c140d",
+      "stratum": "fastify"
+    },
+    {
+      "name": "fastify-swagger",
+      "repo": "https://github.com/fastify/fastify-swagger.git",
+      "sha": "a072a9a83a5d41ab1cfbd8b86aaddfa3c5d94d15",
+      "stratum": "fastify"
+    },
+    {
+      "name": "light-my-request",
+      "repo": "https://github.com/fastify/light-my-request.git",
+      "sha": "6b17587fd5cc0daa6bf7b58daf747c030b0c949f",
+      "stratum": "fastify"
+    },
+    {
+      "name": "mercurius",
+      "repo": "https://github.com/mercurius-js/mercurius.git",
+      "sha": "a83d3273400c9d5cf2e7423491537c39476acd3c",
+      "stratum": "fastify"
+    },
+    {
+      "name": "nest",
+      "repo": "https://github.com/nestjs/nest.git",
+      "sha": "c828ad160f25bf347df9fd8632191d07b66d2fb7",
+      "stratum": "nest"
+    },
+    {
+      "name": "nest-config",
+      "repo": "https://github.com/nestjs/config.git",
+      "sha": "6681d47e2cdf3c22887b8c731eb1814aac937088",
+      "stratum": "nest"
+    },
+    {
+      "name": "nest-graphql",
+      "repo": "https://github.com/nestjs/graphql.git",
+      "sha": "22f8a375af48a304664112ce049ecd63fcbc26b8",
+      "stratum": "nest"
+    },
+    {
+      "name": "nest-passport",
+      "repo": "https://github.com/nestjs/passport.git",
+      "sha": "ea30aeaee06593d0eadacb936e31815db0e1de63",
+      "stratum": "nest"
+    },
+    {
+      "name": "nest-swagger",
+      "repo": "https://github.com/nestjs/swagger.git",
+      "sha": "576c966ee389f52e167b279a841441fa3f2c71fb",
+      "stratum": "nest"
+    },
+    {
+      "name": "nest-typeorm",
+      "repo": "https://github.com/nestjs/typeorm.git",
+      "sha": "95c0460361768cfe4b681f4102aca8e51cd15b39",
+      "stratum": "nest"
+    },
+    {
+      "name": "blitz",
+      "repo": "https://github.com/blitz-js/blitz.git",
+      "sha": "b18f81873e641934043f791fec06e22f5fe5a86e",
+      "stratum": "next"
+    },
+    {
+      "name": "commerce",
+      "repo": "https://github.com/vercel/commerce.git",
+      "sha": "f7521d57d29f0eb3d23c1399cf9bb299d61fcd21",
+      "stratum": "next"
+    },
+    {
+      "name": "next",
+      "repo": "https://github.com/vercel/next.js.git",
+      "sha": "e828f1e5dc7ba504621ff2a3ed7b3bf625c33e91",
+      "stratum": "next"
+    },
+    {
+      "name": "next-auth",
+      "repo": "https://github.com/nextauthjs/next-auth.git",
+      "sha": "a1a16a5a7780488c7449feece410033f445d0b31",
+      "stratum": "next"
+    },
+    {
+      "name": "payload",
+      "repo": "https://github.com/payloadcms/payload.git",
+      "sha": "57f39097aa17d0ee4db728e393a47409ee24e586",
+      "stratum": "next"
+    },
+    {
+      "name": "refine",
+      "repo": "https://github.com/refinedev/refine.git",
+      "sha": "2352eb5b6539e2f39ad9aef652279ad1dcf2c467",
+      "stratum": "next"
+    },
+    {
+      "name": "hono",
+      "repo": "https://github.com/honojs/hono.git",
+      "sha": "5ca49b0720755c585c9a9835f0a479ceea36fb52",
+      "stratum": "koa-hono"
+    },
+    {
+      "name": "hono-node-server",
+      "repo": "https://github.com/honojs/node-server.git",
+      "sha": "4b47a0d8a5c12ed69a9f8493df69918f62fb61c0",
+      "stratum": "koa-hono"
+    },
+    {
+      "name": "koa",
+      "repo": "https://github.com/koajs/koa.git",
+      "sha": "a82feec38a7c28e14f4db7525b8f500801214a76",
+      "stratum": "koa-hono"
+    },
+    {
+      "name": "koa-bodyparser",
+      "repo": "https://github.com/koajs/bodyparser.git",
+      "sha": "b9b77aa807c4888b15d9d1c9bd41c7bae9c5e225",
+      "stratum": "koa-hono"
+    },
+    {
+      "name": "koa-compose",
+      "repo": "https://github.com/koajs/compose.git",
+      "sha": "9a2a426b32c614835b812ecb8de5af06c6c87f6f",
+      "stratum": "koa-hono"
+    },
+    {
+      "name": "koa-router",
+      "repo": "https://github.com/koajs/router.git",
+      "sha": "e5146ebd8225780d60664ca2f79f87bf51a7f884",
+      "stratum": "koa-hono"
+    },
+    {
+      "name": "lerna",
+      "repo": "https://github.com/lerna/lerna.git",
+      "sha": "b00fa0321a42947bb4113bc7906021f04131d0db",
+      "stratum": "monorepo"
+    },
+    {
+      "name": "nx",
+      "repo": "https://github.com/nrwl/nx.git",
+      "sha": "d90f061bf59d48cb618474ce03d8c0c6c6e6d6ba",
+      "stratum": "monorepo"
+    },
+    {
+      "name": "pnpm",
+      "repo": "https://github.com/pnpm/pnpm.git",
+      "sha": "6f95957063d7655a939fc7c026ce514674cbe158",
+      "stratum": "monorepo"
+    },
+    {
+      "name": "rushstack",
+      "repo": "https://github.com/microsoft/rushstack.git",
+      "sha": "37aec0ac881c965ab60745984b20ae1b30e83796",
+      "stratum": "monorepo"
+    },
+    {
+      "name": "turborepo",
+      "repo": "https://github.com/vercel/turborepo.git",
+      "sha": "8003ff0fe919160f68367cd08465b179410e0692",
+      "stratum": "monorepo"
+    },
+    {
+      "name": "electron",
+      "repo": "https://github.com/electron/electron.git",
+      "sha": "a89731b06cc1003140f794db0f9b92b268dd407c",
+      "stratum": "electron"
+    },
+    {
+      "name": "electron-builder",
+      "repo": "https://github.com/electron-userland/electron-builder.git",
+      "sha": "5172ff6a3c59f11f490834439912bd41b9b54bdc",
+      "stratum": "electron"
+    },
+    {
+      "name": "etcher",
+      "repo": "https://github.com/balena-io/etcher.git",
+      "sha": "dbd6aaed37c4e844f7aed978db01d9f38680eff8",
+      "stratum": "electron"
+    },
+    {
+      "name": "signal-desktop",
+      "repo": "https://github.com/signalapp/Signal-Desktop.git",
+      "sha": "17502b9d1a9e34af689f31508c4ac4ccee5b5cb7",
+      "stratum": "electron"
+    },
+    {
+      "name": "vscode",
+      "repo": "https://github.com/microsoft/vscode.git",
+      "sha": "54d565d227f05c6b4dd9e109811128394125a753",
+      "stratum": "electron"
+    },
+    {
+      "name": "effect",
+      "repo": "https://github.com/Effect-TS/effect.git",
+      "sha": "35e748a854fed0aa0d7caed366f6a24d4ddfe21b",
+      "stratum": "ts-heavy"
+    },
+    {
+      "name": "prisma",
+      "repo": "https://github.com/prisma/prisma.git",
+      "sha": "10b7bedcefafc63484b0ac9a9ae34fdedee54b30",
+      "stratum": "ts-heavy"
+    },
+    {
+      "name": "trpc",
+      "repo": "https://github.com/trpc/trpc.git",
+      "sha": "1c9bf51ea572fd46fa52fb725999b8d0c6950386",
+      "stratum": "ts-heavy"
+    },
+    {
+      "name": "typeorm",
+      "repo": "https://github.com/typeorm/typeorm.git",
+      "sha": "da473df40df3933c1846f72144575d673aeef1cd",
+      "stratum": "ts-heavy"
+    },
+    {
+      "name": "zod",
+      "repo": "https://github.com/colinhacks/zod.git",
+      "sha": "afdac65e0f80c0ccf9e8909da97c411567908b57",
+      "stratum": "ts-heavy"
+    },
+    {
+      "name": "debug",
+      "repo": "https://github.com/debug-js/debug.git",
+      "sha": "666dbc50680933bde9e7fde3a6c3241102e8f60b",
+      "stratum": "js-only"
+    },
+    {
+      "name": "lodash",
+      "repo": "https://github.com/lodash/lodash.git",
+      "sha": "2b5e6f7399a7b48005140b5d5c6bc6c0e62919a8",
+      "stratum": "js-only"
+    },
+    {
+      "name": "mocha",
+      "repo": "https://github.com/mochajs/mocha.git",
+      "sha": "cb21a4eba550da665fb2c3fa1ce021777a191e23",
+      "stratum": "js-only"
+    },
+    {
+      "name": "moment",
+      "repo": "https://github.com/moment/moment.git",
+      "sha": "c2a703a4d84aa57ee2722ff8fb4a8016279fb3c4",
+      "stratum": "js-only"
+    },
+    {
+      "name": "qs",
+      "repo": "https://github.com/ljharb/qs.git",
+      "sha": "234d5051f5071efaa025a7ca9e4d34a56a460a1b",
+      "stratum": "js-only"
+    }
+  ]
+}

@@ -142,6 +142,15 @@ interface DepNode {
   deps: string[];
 }
 
+interface ScanBag {
+  findings: Finding[];
+  seen: Set<string>;
+  cwd: string;
+  bundleDeclared: Set<string>;
+  peers: Set<string>;
+  optionals: Set<string>;
+}
+
 export async function laneFindings(input: NpmDepthInput): Promise<Finding[]> {
   if (!FLAGS.some((name) => npmFlag(name))) {return [];}
   const findings: Finding[] = [];
@@ -149,142 +158,135 @@ export async function laneFindings(input: NpmDepthInput): Promise<Finding[]> {
   const manifest = parseObject(input.manifestRaw);
   const locks = npmLocks(input);
   const present = LOCK_NAMES.filter((name) => hasRoot(input.files, name));
-
-  if (npmFlag('NPM_SHRINKWRAP')) {
-    const shrink = input.lockTexts['npm-shrinkwrap.json'];
-    const pkgLock = input.lockTexts['package-lock.json'];
-    const onlyShrink = present.length === 1 && present[0] === 'npm-shrinkwrap.json';
-    if (onlyShrink && shrink !== undefined) {
-      push(findings, seen, npmFinding(
-        SHRINKWRAP_ONLY,
-        'info',
-        'npm-shrinkwrap.json',
-        'npm-shrinkwrap.json',
-        'npm-shrinkwrap.json is the only lockfile',
-        'npm-shrinkwrap.json is the only lockfile. It is parsed with the package-lock parser.',
-        'Commit package-lock.json as the project lockfile, or keep a single shrinkwrap on purpose.',
-      ));
-    }
-    if (shrink !== undefined && pkgLock !== undefined && nameSetsDiffer(shrink, pkgLock)) {
-      push(findings, seen, npmFinding(
-        SHRINKWRAP_DIFF,
-        'high',
-        'npm-shrinkwrap.json',
-        'npm-shrinkwrap.json package-lock.json',
-        'Shrinkwrap and package-lock name@version sets differ',
-        'npm-shrinkwrap.json and package-lock.json list different name@version sets.',
-        'Delete one lockfile, or regenerate both from the same install so the name@version sets match.',
-      ));
-    }
-  }
-
-  if (npmFlag('NPM_MULTLOCK') && present.length >= 2) {
-    const names = present.join(', ');
-    push(findings, seen, npmFinding(
-      MULTLOCK,
-      'medium',
-      present[0] ?? 'package-lock.json',
-      names,
-      'Multiple lockfiles at the repo root',
-      `Multiple lockfiles at the repo root: ${names}.`,
-      'Keep one lockfile. This check does not choose which file wins.',
-    ));
-  }
-
-  const bundleDeclared = bundleNames(manifest, locks);
-  const peerDeclared = peerNames(manifest, locks);
-  const peers = new Set<string>();
-  const optionals = new Set<string>();
+  pushShrinkwrap(findings, seen, input, present);
+  pushMultilock(findings, seen, present);
+  const bag: ScanBag = {
+    findings,
+    seen,
+    cwd: input.cwd,
+    bundleDeclared: bundleNames(manifest, locks),
+    peers: new Set<string>(),
+    optionals: new Set<string>(),
+  };
   const devEdges = new Map<string, Set<string>>();
+  const rootDeps = collectLocks(bag, locks, manifest, devEdges);
+  pushManifestSpecs(bag, manifest);
+  pushLockOmit(bag, manifest, locks, rootDeps);
+  pushDevProd(bag, locks, devEdges);
+  await pushPeerOptional(bag, input, peerNames(manifest, locks));
+  sortFindings(findings);
+  return findings;
+}
+
+function pushShrinkwrap(
+  findings: Finding[],
+  seen: Set<string>,
+  input: NpmDepthInput,
+  present: readonly string[],
+): void {
+  if (!npmFlag('NPM_SHRINKWRAP')) {return;}
+  const shrink = input.lockTexts['npm-shrinkwrap.json'];
+  const pkgLock = input.lockTexts['package-lock.json'];
+  const onlyShrink = present.length === 1 && present[0] === 'npm-shrinkwrap.json';
+  if (onlyShrink && shrink !== undefined) {
+    push(findings, seen, npmFinding({ ruleId: SHRINKWRAP_ONLY, severity: 'info', file: 'npm-shrinkwrap.json', snippet: 'npm-shrinkwrap.json', title: 'npm-shrinkwrap.json is the only lockfile', message: 'npm-shrinkwrap.json is the only lockfile. It is parsed with the package-lock parser.', remediation: 'Commit package-lock.json as the project lockfile, or keep a single shrinkwrap on purpose.' }));
+  }
+  if (shrink !== undefined && pkgLock !== undefined && nameSetsDiffer(shrink, pkgLock)) {
+    push(findings, seen, npmFinding({ ruleId: SHRINKWRAP_DIFF, severity: 'high', file: 'npm-shrinkwrap.json', snippet: 'npm-shrinkwrap.json package-lock.json', title: 'Shrinkwrap and package-lock name@version sets differ', message: 'npm-shrinkwrap.json and package-lock.json list different name@version sets.', remediation: 'Delete one lockfile, or regenerate both from the same install so the name@version sets match.' }));
+  }
+}
+
+function pushMultilock(findings: Finding[], seen: Set<string>, present: readonly string[]): void {
+  if (!npmFlag('NPM_MULTLOCK') || present.length < 2) {return;}
+  const names = present.join(', ');
+  push(findings, seen, npmFinding({ ruleId: MULTLOCK, severity: 'medium', file: present[0] ?? 'package-lock.json', snippet: names, title: 'Multiple lockfiles at the repo root', message: `Multiple lockfiles at the repo root: ${names}.`, remediation: 'Keep one lockfile. This check does not choose which file wins.' }));
+}
+
+function collectLocks(
+  bag: ScanBag,
+  locks: Array<{ file: string; json: NpmLock }>,
+  manifest: Record<string, unknown> | undefined,
+  devEdges: Map<string, Set<string>>,
+): Set<string> {
   const rootDeps = new Set<string>();
-
   for (const lock of locks) {
-    if (npmFlag('NPM_LOCKVER')) {pushLockver(findings, seen, lock);}
-    if (npmFlag('NPM_ROOTVER')) {pushRootver(findings, seen, lock, manifest);}
+    if (npmFlag('NPM_LOCKVER')) {pushLockver(bag.findings, bag.seen, lock);}
+    if (npmFlag('NPM_ROOTVER')) {pushRootver(bag.findings, bag.seen, lock, manifest);}
     for (const name of rootDepNames(lock.json)) {rootDeps.add(name);}
-    inspectLock(lock, findings, seen, input.cwd, bundleDeclared, peers, optionals, devEdges);
+    inspectLock(lock, bag, devEdges);
   }
+  return rootDeps;
+}
 
-  if (manifest !== undefined) {
-    for (const field of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
-      for (const { name, spec } of stringDeps(manifest[field])) {
-        pushSpec(findings, seen, 'package.json', name, spec, input.cwd);
-      }
+function pushManifestSpecs(bag: ScanBag, manifest: Record<string, unknown> | undefined): void {
+  if (manifest === undefined) {return;}
+  for (const field of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
+    for (const { name, spec } of stringDeps(manifest[field])) {
+      pushSpec(bag, 'package.json', name, spec);
     }
   }
+}
 
-  if (npmFlag('NPM_LOCKOMIT') && locks.length > 0 && manifest !== undefined) {
-    for (const name of Object.keys(record(manifest.dependencies))) {
-      if (rootDeps.has(name)) {continue;}
-      push(findings, seen, npmFinding(
-        LOCKOMIT,
-        'high',
-        'package.json',
-        name,
-        `Manifest dependency ${name} is absent from the lock root`,
-        `package.json dependencies names ${name}, which is absent from packages[""].dependencies and from the top-level dependencies object.`,
-        `Regenerate the lockfile so ${name} is a root dependency entry.`,
-      ));
+function pushLockOmit(
+  bag: ScanBag,
+  manifest: Record<string, unknown> | undefined,
+  locks: readonly { file: string }[],
+  rootDeps: ReadonlySet<string>,
+): void {
+  if (!npmFlag('NPM_LOCKOMIT') || locks.length === 0 || manifest === undefined) {return;}
+  for (const name of Object.keys(record(manifest.dependencies))) {
+    if (rootDeps.has(name)) {continue;}
+    push(bag.findings, bag.seen, npmFinding({ ruleId: LOCKOMIT, severity: 'high', file: 'package.json', snippet: name, title: `Manifest dependency ${name} is absent from the lock root`, message: `package.json dependencies names ${name}, which is absent from packages[""].dependencies and from the top-level dependencies object.`, remediation: `Regenerate the lockfile so ${name} is a root dependency entry.` }));
+  }
+}
+
+function pushDevProd(
+  bag: ScanBag,
+  locks: readonly { file: string }[],
+  devEdges: Map<string, Set<string>>,
+): void {
+  if (!npmFlag('NPM_DEVPROD')) {return;}
+  for (const [child, parents] of [...devEdges.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+    const listed = [...parents].sort().join(', ');
+    const file = locks[0]?.file ?? 'package-lock.json';
+    push(bag.findings, bag.seen, npmFinding({ ruleId: DEVPROD, severity: 'medium', file: file, snippet: `${listed} > ${child}`, title: `Dev package ${child} is required by production`, message: `${child} is marked dev and is required by ${listed}.`, remediation: `Move ${child} out of the production graph, or stop marking it dev.` }));
+  }
+}
+
+async function pushPeerOptional(bag: ScanBag, input: NpmDepthInput, peerDeclared: ReadonlySet<string>): Promise<void> {
+  if ((!npmFlag('NPM_PEER') && !npmFlag('NPM_OPTIONAL')) || (bag.peers.size === 0 && bag.optionals.size === 0)) {return;}
+  const sources = await readSources(input);
+  for (const source of sources) {
+    if (!isProductionSource(source.file)) {continue;}
+    noteImportSites(bag, source, peerDeclared);
+  }
+}
+
+function noteImportSites(
+  bag: ScanBag,
+  source: { file: string; text: string },
+  peerDeclared: ReadonlySet<string>,
+): void {
+  for (const site of importSites(source.text)) {
+    if (npmFlag('NPM_PEER') && bag.peers.has(site.name) && !peerDeclared.has(site.name)) {
+      const finding = npmFinding({ ruleId: PEER, severity: 'medium', file: source.file, snippet: site.name, title: `Undeclared peer ${site.name} is imported`, message: `${source.file} imports ${site.name}, which the lock marks peer and the root peerDependencies does not name.`, remediation: `Add ${site.name} to peerDependencies, or stop importing it.` });
+      finding.line = site.line;
+      push(bag.findings, bag.seen, finding);
+    }
+    if (npmFlag('NPM_OPTIONAL') && bag.optionals.has(site.name) && !site.guarded) {
+      const finding = npmFinding({ ruleId: OPTIONAL, severity: 'low', file: source.file, snippet: site.name, title: `Optional dependency ${site.name} is imported outside try/catch`, message: `${source.file} imports ${site.name}, which the lock marks optional, and the import is not inside a try/catch.`, remediation: `Import ${site.name} inside try/catch, or make the dependency required.` });
+      finding.line = site.line;
+      push(bag.findings, bag.seen, finding);
     }
   }
+}
 
-  if (npmFlag('NPM_DEVPROD')) {
-    for (const [child, parents] of [...devEdges.entries()].sort(([a], [b]) => a.localeCompare(b))) {
-      const listed = [...parents].sort().join(', ');
-      const file = locks[0]?.file ?? 'package-lock.json';
-      push(findings, seen, npmFinding(
-        DEVPROD,
-        'medium',
-        file,
-        `${listed} > ${child}`,
-        `Dev package ${child} is required by production`,
-        `${child} is marked dev and is required by ${listed}.`,
-        `Move ${child} out of the production graph, or stop marking it dev.`,
-      ));
-    }
-  }
-
-  if ((npmFlag('NPM_PEER') || npmFlag('NPM_OPTIONAL')) && (peers.size > 0 || optionals.size > 0)) {
-    const sources = await readSources(input);
-    for (const source of sources) {
-      if (!isProductionSource(source.file)) {continue;}
-      for (const site of importSites(source.text)) {
-        if (npmFlag('NPM_PEER') && peers.has(site.name) && !peerDeclared.has(site.name)) {
-          const finding = npmFinding(
-            PEER,
-            'medium',
-            source.file,
-            site.name,
-            `Undeclared peer ${site.name} is imported`,
-            `${source.file} imports ${site.name}, which the lock marks peer and the root peerDependencies does not name.`,
-            `Add ${site.name} to peerDependencies, or stop importing it.`,
-          );
-          finding.line = site.line;
-          push(findings, seen, finding);
-        }
-        if (npmFlag('NPM_OPTIONAL') && optionals.has(site.name) && !site.guarded) {
-          const finding = npmFinding(
-            OPTIONAL,
-            'low',
-            source.file,
-            site.name,
-            `Optional dependency ${site.name} is imported outside try/catch`,
-            `${source.file} imports ${site.name}, which the lock marks optional, and the import is not inside a try/catch.`,
-            `Import ${site.name} inside try/catch, or make the dependency required.`,
-          );
-          finding.line = site.line;
-          push(findings, seen, finding);
-        }
-      }
-    }
-  }
-
+function sortFindings(findings: Finding[]): void {
   findings.sort((a, b) => {
     const ak = `${a.ruleId}\0${a.file ?? ''}\0${a.line ?? 0}\0${a.snippet ?? ''}`;
     const bk = `${b.ruleId}\0${b.file ?? ''}\0${b.line ?? 0}\0${b.snippet ?? ''}`;
     return ak.localeCompare(bk);
   });
-  return findings;
 }
 
 function push(findings: Finding[], seen: Set<string>, finding: Finding): void {
@@ -409,15 +411,7 @@ function pushLockver(
     if (Number.isFinite(parsed) && parsed !== 1 && parsed <= 3) {return;}
   }
   const shown = value === undefined ? 'missing' : typeof value === 'string' || typeof value === 'number' ? String(value) : 'missing';
-  push(findings, seen, npmFinding(
-    LOCKVER,
-    'medium',
-    lock.file,
-    `lockfileVersion ${shown}`,
-    `Unsupported lockfileVersion ${shown}`,
-    `lockfileVersion is ${shown}. Supported npm lockfile versions are 2 and 3.`,
-    'Regenerate the lockfile with a current npm so lockfileVersion is 2 or 3.',
-  ));
+  push(findings, seen, npmFinding({ ruleId: LOCKVER, severity: 'medium', file: lock.file, snippet: `lockfileVersion ${shown}`, title: `Unsupported lockfileVersion ${shown}`, message: `lockfileVersion is ${shown}. Supported npm lockfile versions are 2 and 3.`, remediation: 'Regenerate the lockfile with a current npm so lockfileVersion is 2 or 3.' }));
 }
 
 function pushRootver(
@@ -431,25 +425,12 @@ function pushRootver(
   const manifestVersion = manifest.version;
   if (typeof manifestVersion === 'string' && manifestVersion === root.version) {return;}
   const shown = typeof manifestVersion === 'string' ? manifestVersion : '(none)';
-  push(findings, seen, npmFinding(
-    ROOTVER,
-    'medium',
-    lock.file,
-    `${root.version} != ${shown}`,
-    'Root package version differs from the lockfile',
-    `packages[""].version is ${root.version} and package.json version is ${shown}.`,
-    'Regenerate the lockfile so the root version matches package.json. Workspace package versions are not this check.',
-  ));
+  push(findings, seen, npmFinding({ ruleId: ROOTVER, severity: 'medium', file: lock.file, snippet: `${root.version} != ${shown}`, title: 'Root package version differs from the lockfile', message: `packages[""].version is ${root.version} and package.json version is ${shown}.`, remediation: 'Regenerate the lockfile so the root version matches package.json. Workspace package versions are not this check.' }));
 }
 
 function inspectLock(
   lock: { file: string; json: NpmLock },
-  findings: Finding[],
-  seen: Set<string>,
-  cwd: string,
-  bundleDeclared: Set<string>,
-  peers: Set<string>,
-  optionals: Set<string>,
+  bag: ScanBag,
   devEdges: Map<string, Set<string>>,
 ): void {
   const packages = lock.json.packages;
@@ -457,54 +438,55 @@ function inspectLock(
   if (packages !== undefined && typeof packages === 'object') {
     for (const [key, entry] of Object.entries(packages)) {
       if (!isEntry(entry)) {continue;}
-      const name = key === '' ? undefined : nameFromKey(key);
-      visitEntry(lock.file, key, entry, true, name, findings, seen, cwd, bundleDeclared, peers, optionals);
-      nodes.push({
-        label: key === '' ? 'root' : (name ?? key),
-        dev: entry.dev === true,
-        deps: requirementNames(entry),
-      });
-      for (const { name: depName, spec } of stringDeps(entry.dependencies)) {
-        pushSpec(findings, seen, lock.file, depName, spec, cwd);
-      }
-      for (const { name: depName, spec } of stringDeps(entry.optionalDependencies)) {
-        pushSpec(findings, seen, lock.file, depName, spec, cwd);
-      }
-      for (const { name: depName, spec } of stringDeps(entry.peerDependencies)) {
-        pushSpec(findings, seen, lock.file, depName, spec, cwd);
-      }
-      if (key === '') {
-        for (const { name: depName, spec } of stringDeps(entry.devDependencies)) {
-          pushSpec(findings, seen, lock.file, depName, spec, cwd);
-        }
-      }
+      notePackageEntry(lock.file, key, entry, bag, nodes);
     }
   } else if (lock.json.dependencies !== undefined) {
-    walkDeps(lock.json.dependencies, '', lock.file, findings, seen, cwd, bundleDeclared, peers, optionals, nodes);
+    walkDeps(lock.json.dependencies, '', lock.file, bag, nodes);
   }
   addDevEdges(nodes, devEdges);
+}
+
+function notePackageEntry(
+  file: string,
+  key: string,
+  entry: LockEntry,
+  bag: ScanBag,
+  nodes: DepNode[],
+): void {
+  const name = key === '' ? undefined : nameFromKey(key);
+  visitEntry(file, key, entry, true, bag);
+  nodes.push({
+    label: key === '' ? 'root' : (name ?? key),
+    dev: entry.dev === true,
+    deps: requirementNames(entry),
+  });
+  pushDepSpecs(file, entry.dependencies, bag);
+  pushDepSpecs(file, entry.optionalDependencies, bag);
+  pushDepSpecs(file, entry.peerDependencies, bag);
+  if (key === '') {pushDepSpecs(file, entry.devDependencies, bag);}
+}
+
+function pushDepSpecs(file: string, value: unknown, bag: ScanBag): void {
+  for (const { name, spec } of stringDeps(value)) {
+    pushSpec(bag, file, name, spec);
+  }
 }
 
 function walkDeps(
   deps: Record<string, LockEntry>,
   prefix: string,
   file: string,
-  findings: Finding[],
-  seen: Set<string>,
-  cwd: string,
-  bundleDeclared: Set<string>,
-  peers: Set<string>,
-  optionals: Set<string>,
+  bag: ScanBag,
   nodes: DepNode[],
 ): void {
   for (const [name, entry] of Object.entries(deps)) {
     if (!isEntry(entry)) {continue;}
     const key = prefix === '' ? `node_modules/${name}` : `${prefix}/node_modules/${name}`;
-    visitEntry(file, key, entry, false, name, findings, seen, cwd, bundleDeclared, peers, optionals);
+    visitEntry(file, key, entry, false, bag);
     nodes.push({ label: name, dev: entry.dev === true, deps: requirementNames(entry) });
     const nested = entry.dependencies;
     if (isRecord(nested)) {
-      walkDeps(nested as Record<string, LockEntry>, key, file, findings, seen, cwd, bundleDeclared, peers, optionals, nodes);
+      walkDeps(nested as Record<string, LockEntry>, key, file, bag, nodes);
     }
   }
 }
@@ -514,52 +496,46 @@ function visitEntry(
   key: string,
   entry: LockEntry,
   fromPackages: boolean,
-  name: string | undefined,
-  findings: Finding[],
-  seen: Set<string>,
-  cwd: string,
-  bundleDeclared: Set<string>,
-  peers: Set<string>,
-  optionals: Set<string>,
+  bag: ScanBag,
 ): void {
+  const name = fromPackages ? (key === '' ? undefined : nameFromKey(key)) : nameFromKey(key);
   const label = name ?? key;
-  if (typeof entry.version === 'string') {
-    pushVersion(findings, seen, file, label, entry.version);
-    pushSpec(findings, seen, file, label, entry.version, cwd);
-  }
-  if (typeof entry.resolved === 'string') {
-    pushResolved(findings, seen, file, label, entry.resolved, entry.integrity, cwd);
-  }
-  if (fromPackages && npmFlag('NPM_LOCKPATH') && key !== '' && (!key.startsWith('node_modules/') || key.includes('..'))) {
-    push(findings, seen, npmFinding(
-      LOCKPATH,
-      'high',
-      file,
-      key,
-      'Lockfile packages key has an unexpected shape',
-      `packages key ${key} is not "" and does not stay under node_modules/.`,
-      'Regenerate the lockfile so every packages key is "" or starts with node_modules/ and contains no .. segment.',
-    ));
-  }
+  noteLockedVersion(file, label, entry, bag);
+  noteLockedResolved(file, label, entry, bag);
+  noteLockPath(file, key, fromPackages, bag);
   if (fromPackages && npmFlag('NPM_NORESOLVED')) {
-    pushMissingResolved(findings, seen, file, key, entry);
+    pushMissingResolved(bag.findings, bag.seen, file, key, entry);
   }
-  if (npmFlag('NPM_BUNDLED') && name !== undefined && (entry.inBundle === true || entry.bundled === true) && !bundleDeclared.has(name)) {
-    push(findings, seen, npmFinding(
-      BUNDLED,
-      'medium',
-      file,
-      name,
-      `Bundled package ${name} is not in the root bundle list`,
-      `${name} is marked inBundle or bundled, and the root bundleDependencies / bundledDependencies array does not name it.`,
-      `Add ${name} to bundleDependencies, or remove the bundled flag and depend on it normally.`,
-    ));
-  }
-  if (name !== undefined && entry.peer === true) {peers.add(name);}
-  if (name !== undefined && entry.optional === true) {optionals.add(name);}
+  noteBundled(file, name, entry, bag);
+  if (name !== undefined && entry.peer === true) {bag.peers.add(name);}
+  if (name !== undefined && entry.optional === true) {bag.optionals.add(name);}
   if (typeof entry.integrity === 'string') {
-    pushIntegrity(findings, seen, file, label, entry.integrity);
+    pushIntegrity(bag.findings, bag.seen, file, label, entry.integrity);
   }
+}
+
+function noteLockedVersion(file: string, label: string, entry: LockEntry, bag: ScanBag): void {
+  if (typeof entry.version !== 'string') {return;}
+  pushVersion(bag.findings, bag.seen, file, label, entry.version);
+  pushSpec(bag, file, label, entry.version);
+}
+
+function noteLockedResolved(file: string, label: string, entry: LockEntry, bag: ScanBag): void {
+  if (typeof entry.resolved !== 'string') {return;}
+  pushResolved(bag, file, label, entry.resolved, entry.integrity);
+}
+
+function noteLockPath(file: string, key: string, fromPackages: boolean, bag: ScanBag): void {
+  if (!fromPackages || !npmFlag('NPM_LOCKPATH') || key === '') {return;}
+  if (key.startsWith('node_modules/') && !key.includes('..')) {return;}
+  push(bag.findings, bag.seen, npmFinding({ ruleId: LOCKPATH, severity: 'high', file: file, snippet: key, title: 'Lockfile packages key has an unexpected shape', message: `packages key ${key} is not "" and does not stay under node_modules/.`, remediation: 'Regenerate the lockfile so every packages key is "" or starts with node_modules/ and contains no .. segment.' }));
+}
+
+function noteBundled(file: string, name: string | undefined, entry: LockEntry, bag: ScanBag): void {
+  if (!npmFlag('NPM_BUNDLED') || name === undefined) {return;}
+  if (entry.inBundle !== true && entry.bundled !== true) {return;}
+  if (bag.bundleDeclared.has(name)) {return;}
+  push(bag.findings, bag.seen, npmFinding({ ruleId: BUNDLED, severity: 'medium', file: file, snippet: name, title: `Bundled package ${name} is not in the root bundle list`, message: `${name} is marked inBundle or bundled, and the root bundleDependencies / bundledDependencies array does not name it.`, remediation: `Add ${name} to bundleDependencies, or remove the bundled flag and depend on it normally.` }));
 }
 
 /** Production edges. Root devDependencies are the dev set and are not included. */
@@ -610,15 +586,7 @@ function pushMissingResolved(
   if (typeof entry.version !== 'string' || !SEMVER.test(entry.version)) {return;}
   if (licenseMetadataOnly(entry)) {return;}
   const label = nameFromKey(key) ?? key;
-  push(findings, seen, npmFinding(
-    NORESOLVED,
-    'medium',
-    file,
-    `${label}@${entry.version}`,
-    `Locked ${label}@${entry.version} has no resolved URL`,
-    `${key} has semver version ${entry.version} and no resolved URL.`,
-    'Regenerate the lockfile so this package has a resolved tarball URL.',
-  ));
+  push(findings, seen, npmFinding({ ruleId: NORESOLVED, severity: 'medium', file: file, snippet: `${label}@${entry.version}`, title: `Locked ${label}@${entry.version} has no resolved URL`, message: `${key} has semver version ${entry.version} and no resolved URL.`, remediation: 'Regenerate the lockfile so this package has a resolved tarball URL.' }));
 }
 
 function pushVersion(
@@ -629,56 +597,31 @@ function pushVersion(
   version: string,
 ): void {
   if (!npmFlag('NPM_NONSEMVER') || SEMVER.test(version)) {return;}
-  push(findings, seen, npmFinding(
-    NONSEMVER,
-    'medium',
-    file,
-    `${label}@${version}`,
-    `Locked version ${version} is not semver`,
-    `${label} is locked at ${version === '' ? 'an empty version' : version}, which is not MAJOR.MINOR.PATCH with an optional prerelease.`,
-    'Lock a MAJOR.MINOR.PATCH release. The locked text is not rewritten into a semver.',
-  ));
+  push(findings, seen, npmFinding({ ruleId: NONSEMVER, severity: 'medium', file: file, snippet: `${label}@${version}`, title: `Locked version ${version} is not semver`, message: `${label} is locked at ${version === '' ? 'an empty version' : version}, which is not MAJOR.MINOR.PATCH with an optional prerelease.`, remediation: 'Lock a MAJOR.MINOR.PATCH release. The locked text is not rewritten into a semver.' }));
 }
 
-function pushSpec(
-  findings: Finding[],
-  seen: Set<string>,
-  file: string,
-  requested: string,
-  spec: string,
-  cwd: string,
-): void {
+function pushSpec(bag: ScanBag, file: string, requested: string, spec: string): void {
   const trimmed = spec.trim();
   if (trimmed.startsWith('file:') || trimmed.startsWith('link:')) {
-    pushLink(findings, seen, file, trimmed, cwd);
+    pushLink(bag.findings, bag.seen, file, trimmed, bag.cwd);
   }
-  if (isGit(trimmed)) {pushGit(findings, seen, file, trimmed);}
+  if (isGit(trimmed)) {pushGit(bag.findings, bag.seen, file, trimmed);}
   if (!npmFlag('NPM_ALIAS')) {return;}
   const match = ALIAS.exec(trimmed);
   const target = match?.[1];
   const version = match?.[2];
   if (target === undefined || version === undefined || target === requested) {return;}
-  push(findings, seen, npmFinding(
-    NPMALIAS,
-    'medium',
-    file,
-    requested,
-    `npm alias ${requested} points at ${target}@${version}`,
-    `${requested} uses npm: and the target is ${target}@${version}.`,
-    `Depend on ${target} directly, or keep the alias only when the names match.`,
-  ));
+  push(bag.findings, bag.seen, npmFinding({ ruleId: NPMALIAS, severity: 'medium', file: file, snippet: requested, title: `npm alias ${requested} points at ${target}@${version}`, message: `${requested} uses npm: and the target is ${target}@${version}.`, remediation: `Depend on ${target} directly, or keep the alias only when the names match.` }));
 }
 
 function pushResolved(
-  findings: Finding[],
-  seen: Set<string>,
+  bag: ScanBag,
   file: string,
   label: string,
   resolved: string,
   integrity: unknown,
-  cwd: string,
 ): void {
-  pushSpec(findings, seen, file, label, resolved, cwd);
+  pushSpec(bag, file, label, resolved);
   let url: URL | undefined;
   try {
     url = new URL(resolved);
@@ -687,38 +630,14 @@ function pushResolved(
   }
   if (url === undefined) {return;}
   if (url.protocol === 'http:' && npmFlag('NPM_RESOLVED_HTTP')) {
-    push(findings, seen, npmFinding(
-      RESOLVED_HTTP,
-      'high',
-      file,
-      `${label} ${resolved}`,
-      'Lockfile tarball URL is cleartext http',
-      `${label} resolved ${resolved} uses http:.`,
-      'Use an https://registry.npmjs.org tarball URL.',
-    ));
+    push(bag.findings, bag.seen, npmFinding({ ruleId: RESOLVED_HTTP, severity: 'high', file: file, snippet: `${label} ${resolved}`, title: 'Lockfile tarball URL is cleartext http', message: `${label} resolved ${resolved} uses http:.`, remediation: 'Use an https://registry.npmjs.org tarball URL.' }));
   }
   if (url.protocol === 'https:' && url.hostname !== 'registry.npmjs.org' && npmFlag('NPM_RESOLVED_HOST')) {
-    push(findings, seen, npmFinding(
-      RESOLVED_HOST,
-      'high',
-      file,
-      `${label} ${url.hostname}`,
-      'Lockfile tarball host is not the npm registry',
-      `${label} resolved host is ${url.hostname}.`,
-      'Resolve the package from https://registry.npmjs.org.',
-    ));
+    push(bag.findings, bag.seen, npmFinding({ ruleId: RESOLVED_HOST, severity: 'high', file: file, snippet: `${label} ${url.hostname}`, title: 'Lockfile tarball host is not the npm registry', message: `${label} resolved host is ${url.hostname}.`, remediation: 'Resolve the package from https://registry.npmjs.org.' }));
   }
   const blankIntegrity = typeof integrity !== 'string' || integrity.trim() === '';
   if (url.protocol === 'https:' && url.hostname === 'registry.npmjs.org' && blankIntegrity && npmFlag('NPM_NOINTEGRITY')) {
-    push(findings, seen, npmFinding(
-      NOINTEGRITY,
-      'high',
-      file,
-      `${label} ${resolved}`,
-      'Registry tarball has no integrity',
-      `${label} resolved ${resolved} and integrity is missing or empty.`,
-      'Regenerate the lockfile so this entry has a sha512 integrity.',
-    ));
+    push(bag.findings, bag.seen, npmFinding({ ruleId: NOINTEGRITY, severity: 'high', file: file, snippet: `${label} ${resolved}`, title: 'Registry tarball has no integrity', message: `${label} resolved ${resolved} and integrity is missing or empty.`, remediation: 'Regenerate the lockfile so this entry has a sha512 integrity.' }));
   }
 }
 
@@ -733,26 +652,10 @@ function pushIntegrity(
   if (trimmed === '') {return;}
   const kind = classifyIntegrity(trimmed);
   if (kind.weak && npmFlag('NPM_WEAKINTEGRITY')) {
-    push(findings, seen, npmFinding(
-      WEAKINTEGRITY,
-      'medium',
-      file,
-      `${label} ${trimmed}`,
-      'Lockfile integrity uses a weak hash',
-      `${label} integrity uses sha1 or sha256. The registry algorithm is sha512.`,
-      'Regenerate the lockfile so integrity starts with sha512-.',
-    ));
+    push(findings, seen, npmFinding({ ruleId: WEAKINTEGRITY, severity: 'medium', file: file, snippet: `${label} ${trimmed}`, title: 'Lockfile integrity uses a weak hash', message: `${label} integrity uses sha1 or sha256. The registry algorithm is sha512.`, remediation: 'Regenerate the lockfile so integrity starts with sha512-.' }));
   }
   if (kind.bad && npmFlag('NPM_BADINTEGRITY')) {
-    push(findings, seen, npmFinding(
-      BADINTEGRITY,
-      'high',
-      file,
-      `${label} ${trimmed}`,
-      'Lockfile integrity is not a valid hash',
-      `${label} integrity is not algo-base64 for sha1, sha256, or sha512, or the base64 does not decode.`,
-      'Regenerate the lockfile so integrity is a sha512- base64 value.',
-    ));
+    push(findings, seen, npmFinding({ ruleId: BADINTEGRITY, severity: 'high', file: file, snippet: `${label} ${trimmed}`, title: 'Lockfile integrity is not a valid hash', message: `${label} integrity is not algo-base64 for sha1, sha256, or sha512, or the base64 does not decode.`, remediation: 'Regenerate the lockfile so integrity is a sha512- base64 value.' }));
   }
 }
 
@@ -791,19 +694,11 @@ function pushLink(
   if (!npmFlag('NPM_LINKDEP')) {return;}
   const severity = escapesRepo(cwd, spec) ? 'high' : 'medium';
   const kind = spec.startsWith('file:') ? 'file' : 'link';
-  push(findings, seen, npmFinding(
-    LINKDEP,
-    severity,
-    file,
-    spec,
-    severity === 'high' ? `${kind}: dependency escapes the repo root` : `${kind}: dependency`,
-    severity === 'high'
+  push(findings, seen, npmFinding({ ruleId: LINKDEP, severity: severity, file: file, snippet: spec, title: severity === 'high' ? `${kind}: dependency escapes the repo root` : `${kind}: dependency`, message: severity === 'high'
       ? `${spec} escapes the repo root.`
-      : `${spec} is a ${kind} dependency.`,
-    severity === 'high'
+      : `${spec} is a ${kind} dependency.`, remediation: severity === 'high'
       ? 'Keep the path inside the repo, or depend on a registry release.'
-      : 'Prefer a registry release with an integrity hash.',
-  ));
+      : 'Prefer a registry release with an integrity hash.' }));
 }
 
 function escapesRepo(cwd: string, spec: string): boolean {
@@ -822,15 +717,7 @@ function escapesRepo(cwd: string, spec: string): boolean {
 
 function pushGit(findings: Finding[], seen: Set<string>, file: string, spec: string): void {
   if (!npmFlag('NPM_GITDEP')) {return;}
-  push(findings, seen, npmFinding(
-    GITDEP,
-    'high',
-    file,
-    spec,
-    'Git dependency',
-    `${spec} is a git dependency. The URL is not cloned.`,
-    'Depend on a registry release. Do not clone this URL during the scan.',
-  ));
+  push(findings, seen, npmFinding({ ruleId: GITDEP, severity: 'high', file: file, snippet: spec, title: 'Git dependency', message: `${spec} is a git dependency. The URL is not cloned.`, remediation: 'Depend on a registry release. Do not clone this URL during the scan.' }));
 }
 
 function isGit(spec: string): boolean {
@@ -918,11 +805,15 @@ function packageName(spec: string): string | undefined {
   return name;
 }
 
+interface TryScan {
+  tryDepths: number[];
+  depth: number;
+  awaitBrace: boolean;
+  justClosedTry: boolean;
+}
+
 function insideTryCatch(source: string, offset: number): boolean {
-  const tryDepths: number[] = [];
-  let depth = 0;
-  let awaitBrace = false;
-  let justClosedTry = false;
+  const state: TryScan = { tryDepths: [], depth: 0, awaitBrace: false, justClosedTry: false };
   let i = 0;
   while (i < offset && i < source.length) {
     const skipped = skipTrivia(source, i);
@@ -931,44 +822,44 @@ function insideTryCatch(source: string, offset: number): boolean {
       i = skipped;
       continue;
     }
-    if (isWord(source, i, 'try')) {
-      awaitBrace = true;
-      justClosedTry = false;
-      i += 3;
-      continue;
-    }
-    if (justClosedTry && (isWord(source, i, 'catch') || isWord(source, i, 'finally'))) {
-      awaitBrace = true;
-      justClosedTry = false;
-      i += isWord(source, i, 'catch') ? 5 : 7;
-      continue;
-    }
-    const ch = source[i] ?? '';
-    if (ch === '{') {
-      if (awaitBrace) {
-        tryDepths.push(depth);
-        awaitBrace = false;
-      }
-      depth += 1;
-      i += 1;
-      continue;
-    }
-    if (ch === '}') {
-      depth -= 1;
-      const top = tryDepths[tryDepths.length - 1];
-      if (top === depth) {
-        tryDepths.pop();
-        justClosedTry = true;
-      } else {
-        justClosedTry = false;
-      }
-      i += 1;
-      continue;
-    }
-    if (justClosedTry && !/\s/.test(ch)) {justClosedTry = false;}
-    i += 1;
+    i = stepTryScan(source, i, state);
   }
-  return tryDepths.length > 0;
+  return state.tryDepths.length > 0;
+}
+
+function stepTryScan(source: string, index: number, state: TryScan): number {
+  if (isWord(source, index, 'try')) {
+    state.awaitBrace = true;
+    state.justClosedTry = false;
+    return index + 3;
+  }
+  if (state.justClosedTry && (isWord(source, index, 'catch') || isWord(source, index, 'finally'))) {
+    state.awaitBrace = true;
+    state.justClosedTry = false;
+    return index + (isWord(source, index, 'catch') ? 5 : 7);
+  }
+  return stepTryBrace(source, index, state);
+}
+
+function stepTryBrace(source: string, index: number, state: TryScan): number {
+  const ch = source[index] ?? '';
+  if (ch === '{') {
+    if (state.awaitBrace) {
+      state.tryDepths.push(state.depth);
+      state.awaitBrace = false;
+    }
+    state.depth += 1;
+    return index + 1;
+  }
+  if (ch === '}') {
+    state.depth -= 1;
+    const top = state.tryDepths[state.tryDepths.length - 1];
+    state.justClosedTry = top === state.depth;
+    if (top === state.depth) {state.tryDepths.pop();}
+    return index + 1;
+  }
+  if (state.justClosedTry && !/\s/.test(ch)) {state.justClosedTry = false;}
+  return index + 1;
 }
 
 function isWord(source: string, index: number, word: string): boolean {
@@ -979,16 +870,24 @@ function isWord(source: string, index: number, word: string): boolean {
 }
 
 function skipTrivia(source: string, index: number): number {
-  if (source.startsWith('//', index)) {
-    const nl = source.indexOf('\n', index);
-    return nl === -1 ? source.length : nl + 1;
-  }
-  if (source.startsWith('/*', index)) {
-    const end = source.indexOf('*/', index + 2);
-    return end === -1 ? source.length : end + 2;
-  }
+  if (source.startsWith('//', index)) {return skipLineComment(source, index);}
+  if (source.startsWith('/*', index)) {return skipBlockComment(source, index);}
   const quote = source[index];
   if (quote !== "'" && quote !== '"' && quote !== '`') {return index;}
+  return skipQuoted(source, index, quote);
+}
+
+function skipLineComment(source: string, index: number): number {
+  const nl = source.indexOf('\n', index);
+  return nl === -1 ? source.length : nl + 1;
+}
+
+function skipBlockComment(source: string, index: number): number {
+  const end = source.indexOf('*/', index + 2);
+  return end === -1 ? source.length : end + 2;
+}
+
+function skipQuoted(source: string, index: number, quote: string): number {
   let i = index + 1;
   while (i < source.length) {
     if (source[i] === '\\') {
@@ -996,17 +895,22 @@ function skipTrivia(source: string, index: number): number {
       continue;
     }
     if (quote === '`' && source[i] === '$' && source[i + 1] === '{') {
-      i += 2;
-      let depth = 1;
-      while (i < source.length && depth > 0) {
-        if (source[i] === '{') {depth += 1;}
-        else if (source[i] === '}') {depth -= 1;}
-        i += 1;
-      }
+      i = skipTemplateExpr(source, i + 2);
       continue;
     }
     if (source[i] === quote) {return i + 1;}
     i += 1;
   }
   return source.length;
+}
+
+function skipTemplateExpr(source: string, index: number): number {
+  let i = index;
+  let depth = 1;
+  while (i < source.length && depth > 0) {
+    if (source[i] === '{') {depth += 1;}
+    else if (source[i] === '}') {depth -= 1;}
+    i += 1;
+  }
+  return i;
 }

@@ -3,7 +3,7 @@
 > **UNREVIEWED DRAFT.** Every `bench/*/ground-truth.json` still has `"reviewed": false`.
 > Do not cite precision, recall, or headline counts from this file until the human flips that flag.
 
-- FullShield version: 1.2.0
+- Recorded package version: 1.2.0. These numbers are that run. They are not a 1.3.0 measurement.
 - Generated: 2026-10-20T21:43:56.603Z
 - Matching: same class + same file, line within ±3
 - In-scope score: true positives / in-scope ground-truth entries (unreviewed).

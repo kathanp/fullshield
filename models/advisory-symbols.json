@@ -1,0 +1,11 @@
+{
+  "rows": [
+    {
+      "osvId": "OSV-FIXTURE-0000",
+      "package": "fixture-left-pad",
+      "affectedExports": ["parse"],
+      "source": "https://example.invalid/advisory-symbols/OSV-FIXTURE-0000",
+      "reviewed": false
+    }
+  ]
+}

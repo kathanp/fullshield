@@ -23,6 +23,10 @@ FullShield prints `fullshield: FS-E### <message>`. The message is the same text 
 | FS-E015 | `--max-time` is not a positive number of seconds while the budget flag is on | Pass a positive number of seconds. Set `FULLSHIELD_EXPERIMENTAL_BUDGET=1` or pass `--experimental-budget`. |
 | FS-E016 | User Semgrep-style rules without the flag, a missing `yaml` peer, an unreadable rules file, or an unsupported construct | Set `FULLSHIELD_EXPERIMENTAL_SEMGREP_RULES=1`. Install the optional `yaml` peer. The message names the construct and the rule id. The whole file is rejected. |
 | FS-E017 | `npm-audit-diff` without its flag, or the audit file or scan JSON cannot be read | Set `FULLSHIELD_EXPERIMENTAL_NPM_AUDIT_DIFF=1`. Pass `--file` for an `npm audit --json` file you already produced. `--from` is a `scan --json` file. Without `--from` the command reads `.fullshield/last-scan.json`. The command does not run `npm audit`. |
+| FS-E330 | Access-control matrix report while `FULLSHIELD_EXPERIMENTAL_ACLREPORT` is off | Set the flag. The command does not write the report when the flag is off. |
+| FS-E341 | Secret allowlist file is missing, not JSON, incomplete, or contains a raw secret | Pass a local allow file. The scanner does not read it when `FULLSHIELD_EXPERIMENTAL_SECRETALLOW` is off. |
+| FS-E347 | Patch-diff symbol candidates while `FULLSHIELD_EXPERIMENTAL_PATCHDIFF` is off | Set the flag. The command does not read the diff when the flag is off. |
+| FS-E352 | Pull-request dependency flags while `FULLSHIELD_EXPERIMENTAL_DEPRFLAGS` is off, or the input has a score field | Set the flag. Remove any score field. The tokens are a closed set. |
 | FS-E000 | Any other command error | Read the message. Re-run with `--debug` if you need the stack. |
 
 ## Scan exit codes

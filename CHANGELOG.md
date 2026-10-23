@@ -2,6 +2,13 @@
 
 All notable changes to FullShield are documented here.
 
+## 1.3.0
+
+### Experimental
+
+- Phases 252–260 and 262–270: field-sensitive heap, call summaries, async flow, route model, per-class taint labels, IR types, dominating guards, dependency call graph, advisory symbol rows, machine-checkable proofs, Semgrep disagreement export, metamorphic variants, precision gate, shared sink catalog, runtime-observed reachability, incremental queries, and workspace shards. Each analysis stays behind its own `FULLSHIELD_EXPERIMENTAL_*` flag. Default scan output is unchanged. Phase 261 group flags alias the per-phase npm flags for one minor release. Phase 266 records 50 pinned repos in `bench/realworld-v2.json` and does not clone or install them.
+- Phases 271–465 and 467–500: deeper analysis, codemods, and local dev checks, each behind its own `FULLSHIELD_EXPERIMENTAL_*` flag or an unpackaged script. Default scan output is unchanged. Phase 466 stays parked until a human names ten holdout repos. It does not write `bench/holdouts.json`.
+
 ## 1.2.0
 
 ### Experimental

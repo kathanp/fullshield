@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { Finding, Severity } from '../../../core/finding.js';
+import { currentFacts } from './facts.js';
 import { npmFinding, npmFlag, npmRow, type NpmDepthInput, type NpmDepthRow } from './types.js';
 
 /** Phases 168–187. Direct production tarballs only. Cache only: this lane never fetches. */
@@ -248,50 +249,84 @@ function parseJson(text: string): unknown {
   }
 }
 
-function directProd(lockText: string, manifestRaw: string | undefined, lockFile: string): DirectDep[] {
-  const lock = asRecord(parseJson(lockText));
-  if (lock === undefined) {return [];}
-  const manifest = manifestRaw === undefined ? undefined : asRecord(parseJson(manifestRaw));
-  const packages = asRecord(lock.packages);
-  const root = packages === undefined ? undefined : asRecord(packages['']);
+function parsedManifest(manifestRaw: string | undefined): Record<string, unknown> | undefined {
+  if (manifestRaw === undefined) {return undefined;}
+  return asRecord(parseJson(manifestRaw));
+}
+
+function lockedPackage(packages: Record<string, unknown>, name: string, lockFile: string): DirectDep | undefined {
+  const entry = asRecord(packages[`node_modules/${name}`]);
+  const version = textField(entry, 'version');
+  if (entry === undefined || version === undefined) {return undefined;}
+  return {
+    name,
+    version,
+    integrity: textField(entry, 'integrity'),
+    resolved: textField(entry, 'resolved'),
+    lockFile,
+  };
+}
+
+function directFromPackages(
+  packages: Record<string, unknown>,
+  manifest: Record<string, unknown> | undefined,
+  lockFile: string,
+): DirectDep[] {
+  const root = asRecord(packages['']);
   const prod = new Set<string>([
     ...objectKeys(root?.dependencies),
     ...objectKeys(manifest?.dependencies),
   ]);
   const out: DirectDep[] = [];
-  if (packages !== undefined) {
-    for (const name of prod) {
-      const entry = asRecord(packages[`node_modules/${name}`]);
-      const version = textField(entry, 'version');
-      if (entry === undefined || version === undefined) {continue;}
-      out.push({
-        name,
-        version,
-        integrity: textField(entry, 'integrity'),
-        resolved: textField(entry, 'resolved'),
-        lockFile,
-      });
-    }
-    return out;
-  }
-  const tree = asRecord(lock.dependencies);
-  if (tree === undefined) {return [];}
-  const manifestProd = manifest === undefined ? undefined : new Set(objectKeys(manifest.dependencies));
-  for (const [name, value] of Object.entries(tree)) {
-    if (manifestProd !== undefined && !manifestProd.has(name)) {continue;}
-    const entry = asRecord(value);
-    const version = textField(entry, 'version');
-    if (entry === undefined || version === undefined) {continue;}
-    if (entry.dev === true || entry.optional === true) {continue;}
-    out.push({
-      name,
-      version,
-      integrity: textField(entry, 'integrity'),
-      resolved: textField(entry, 'resolved'),
-      lockFile,
-    });
+  for (const name of prod) {
+    const dep = lockedPackage(packages, name, lockFile);
+    if (dep !== undefined) {out.push(dep);}
   }
   return out;
+}
+
+function treeEntry(
+  name: string,
+  value: unknown,
+  manifestProd: ReadonlySet<string> | undefined,
+  lockFile: string,
+): DirectDep | undefined {
+  if (manifestProd !== undefined && !manifestProd.has(name)) {return undefined;}
+  const entry = asRecord(value);
+  const version = textField(entry, 'version');
+  if (entry === undefined || version === undefined) {return undefined;}
+  if (entry.dev === true || entry.optional === true) {return undefined;}
+  return {
+    name,
+    version,
+    integrity: textField(entry, 'integrity'),
+    resolved: textField(entry, 'resolved'),
+    lockFile,
+  };
+}
+
+function directFromTree(
+  tree: Record<string, unknown> | undefined,
+  manifest: Record<string, unknown> | undefined,
+  lockFile: string,
+): DirectDep[] {
+  if (tree === undefined) {return [];}
+  const manifestProd = manifest === undefined ? undefined : new Set(objectKeys(manifest.dependencies));
+  const out: DirectDep[] = [];
+  for (const [name, value] of Object.entries(tree)) {
+    const dep = treeEntry(name, value, manifestProd, lockFile);
+    if (dep !== undefined) {out.push(dep);}
+  }
+  return out;
+}
+
+function directProd(lockText: string, manifestRaw: string | undefined, lockFile: string): DirectDep[] {
+  const lock = asRecord(parseJson(lockText));
+  if (lock === undefined) {return [];}
+  const manifest = parsedManifest(manifestRaw);
+  const packages = asRecord(lock.packages);
+  if (packages !== undefined) {return directFromPackages(packages, manifest, lockFile);}
+  return directFromTree(asRecord(lock.dependencies), manifest, lockFile);
 }
 
 function isRegistryUrl(url: string | undefined): boolean {
@@ -320,6 +355,13 @@ async function readJson(path: string): Promise<unknown> {
 }
 
 async function readVersion(cacheDir: string, name: string, version: string): Promise<VersionDoc | undefined> {
+  const held = currentFacts()?.packuments.get(name);
+  if (held !== undefined) {
+    const doc = asRecord(held);
+    const packument = asRecord(doc?.packument) ?? doc;
+    const versions = asRecord(packument?.versions);
+    return asRecord(versions?.[version]);
+  }
   const paths = [
     join(cacheDir, 'registry', `${name}.json`),
     join(cacheDir, 'registry', `${name.replaceAll('/', '__')}.json`),
@@ -353,30 +395,38 @@ interface Loaded {
   entries: Record<string, string>;
 }
 
+function loadedFrom(doc: Record<string, unknown> | undefined): Loaded | undefined {
+  if (doc === undefined) {return undefined;}
+  const loaded: Loaded = { entries: {} };
+  if (typeof doc.bytesBase64 === 'string' && doc.bytesBase64.length > 0) {
+    loaded.bytes = Buffer.from(doc.bytesBase64, 'base64');
+  }
+  const entries = asRecord(doc.entries);
+  if (entries !== undefined) {
+    for (const [key, value] of Object.entries(entries)) {
+      if (typeof value === 'string') {loaded.entries[key] = value;}
+    }
+  }
+  return loaded;
+}
+
 async function loadDescriptor(cacheDir: string, name: string): Promise<Loaded | undefined> {
+  const held = currentFacts()?.tarballs.get(name);
+  if (held !== undefined) {return loadedFrom(asRecord(held));}
   const paths = [
     join(cacheDir, 'tarballs', `${name}.json`),
     join(cacheDir, 'tarballs', `${name.replaceAll('/', '%2f')}.json`),
   ];
   for (const path of paths) {
-    const doc = asRecord(await readJson(path));
-    if (doc === undefined) {continue;}
-    const loaded: Loaded = { entries: {} };
-    if (typeof doc.bytesBase64 === 'string' && doc.bytesBase64.length > 0) {
-      loaded.bytes = Buffer.from(doc.bytesBase64, 'base64');
-    }
-    const entries = asRecord(doc.entries);
-    if (entries !== undefined) {
-      for (const [key, value] of Object.entries(entries)) {
-        if (typeof value === 'string') {loaded.entries[key] = value;}
-      }
-    }
-    return loaded;
+    const loaded = loadedFrom(asRecord(await readJson(path)));
+    if (loaded !== undefined) {return loaded;}
   }
   return undefined;
 }
 
 async function loadIntegrityFile(cacheDir: string, integrity: string): Promise<Buffer | undefined> {
+  const held = currentFacts()?.tarballBytes.get(integrity);
+  if (held !== undefined) {return held;}
   try {
     return await readFile(join(cacheDir, 'tarballs', integrityFile(integrity)));
   } catch {
@@ -550,7 +600,7 @@ function report(findings: Finding[], row: NpmDepthRow, file: string, snippet: st
   if (meta === undefined) {return;}
   const key = `${row.ruleId}\0${file}\0${snippet}`;
   if (findings.some((finding) => `${finding.ruleId}\0${finding.file ?? ''}\0${finding.snippet ?? ''}` === key)) {return;}
-  findings.push(npmFinding(row.ruleId, meta.severity, file, snippet, meta.title, message, meta.remediation));
+  findings.push(npmFinding({ ruleId: row.ruleId, severity: meta.severity, file: file, snippet: snippet, title: meta.title, message: message, remediation: meta.remediation }));
 }
 
 const WALK_SKIP = new Set(['parent', 'loc', 'range', 'type']);
@@ -737,30 +787,40 @@ function installJsName(file: string): 'install' | 'preinstall' | 'postinstall' |
   return undefined;
 }
 
-async function inspectPackage(
-  dep: DirectDep,
-  input: NpmDepthInput,
-  findings: Finding[],
-): Promise<void> {
-  const versionDoc = await readVersion(input.cacheDir, dep.name, dep.version);
-  const packIntegrity = textField(asRecord(versionDoc?.dist), 'integrity');
-  const packTarball = textField(asRecord(versionDoc?.dist), 'tarball');
-  if (urlBlocks(dep.resolved) || urlBlocks(packTarball)) {return;}
+function packDist(versionDoc: VersionDoc | undefined): { integrity?: string; tarball?: string } {
+  const dist = asRecord(versionDoc?.dist);
+  return {
+    integrity: textField(dist, 'integrity'),
+    tarball: textField(dist, 'tarball'),
+  };
+}
+
+function refuseMissingIntegrity(dep: DirectDep, findings: Finding[], packTarball: string | undefined): boolean {
   const registryUrl = isRegistryUrl(dep.resolved) || isRegistryUrl(packTarball);
-  if (dep.integrity === undefined && registryUrl && flagFor(SKIP)) {
-    report(
-      findings,
-      SKIP,
-      dep.lockFile,
-      `${dep.name}@${dep.version} no integrity`,
-      `${dep.name}@${dep.version} is a direct production dependency with a registry tarball URL and no integrity, so its tarball is refused.`,
-    );
-    return;
-  }
-  const expected = dep.integrity ?? packIntegrity;
-  if (expected === undefined) {return;}
-  const described = await loadDescriptor(input.cacheDir, dep.name);
-  const bytes = described?.bytes ?? await loadIntegrityFile(input.cacheDir, expected);
+  if (dep.integrity !== undefined || !registryUrl || !flagFor(SKIP)) {return false;}
+  report(
+    findings,
+    SKIP,
+    dep.lockFile,
+    `${dep.name}@${dep.version} no integrity`,
+    `${dep.name}@${dep.version} is a direct production dependency with a registry tarball URL and no integrity, so its tarball is refused.`,
+  );
+  return true;
+}
+
+interface CheckedBytes {
+  bytes?: Buffer;
+  described?: Loaded;
+}
+
+async function loadCheckedBytes(
+  cacheDir: string,
+  dep: DirectDep,
+  findings: Finding[],
+  expected: string,
+): Promise<CheckedBytes | undefined> {
+  const described = await loadDescriptor(cacheDir, dep.name);
+  const bytes = described?.bytes ?? await loadIntegrityFile(cacheDir, expected);
   if (bytes !== undefined && !integrityMatches(expected, bytes)) {
     if (flagFor(HASH)) {
       report(
@@ -771,43 +831,66 @@ async function inspectPackage(
         `${dep.name}@${dep.version} cached tarball bytes do not match dist.integrity. Extraction stopped for this package.`,
       );
     }
-    return;
+    return undefined;
   }
-  if (
-    npmFlag('NPM_REG_INTEGRITY') &&
-    dep.integrity !== undefined &&
-    packIntegrity !== undefined &&
-    dep.integrity !== packIntegrity
-  ) {return;}
-  let entries = described?.entries;
-  if ((entries === undefined || Object.keys(entries).length === 0) && bytes !== undefined) {
-    entries = parseUstar(bytes);
+  return { bytes, described };
+}
+
+function registryIntegrityStops(dep: DirectDep, packIntegrity: string | undefined): boolean {
+  return npmFlag('NPM_REG_INTEGRITY')
+    && dep.integrity !== undefined
+    && packIntegrity !== undefined
+    && dep.integrity !== packIntegrity;
+}
+
+function resolveEntries(loaded: CheckedBytes): Record<string, string> | undefined {
+  let entries = loaded.described?.entries;
+  if ((entries === undefined || Object.keys(entries).length === 0) && loaded.bytes !== undefined) {
+    entries = parseUstar(loaded.bytes);
   }
-  if (entries === undefined) {return;}
-  const names = new Set(Object.keys(entries));
-  for (const name of names) {
+  return entries;
+}
+
+function reportEscapes(findings: Finding[], dep: DirectDep, entries: Record<string, string>): void {
+  for (const name of Object.keys(entries)) {
     if (!isEscape(name) || !flagFor(PATH)) {continue;}
     report(findings, PATH, dep.lockFile, `${dep.name}@${dep.version} ${name}`, `${dep.name}@${dep.version} tarball entry ${name} is absolute or contains .. and was not extracted.`);
   }
-  const safe: Record<string, string> = {};
-  for (const [name, text] of Object.entries(entries)) {
-    if (!isEscape(name)) {safe[name] = text;}
-  }
+}
+
+function measureEntries(entries: Record<string, string>): { count: number; unpacked: number } {
   let count = 0;
   let unpacked = 0;
   for (const text of Object.values(entries)) {
     count += 1;
     unpacked += Buffer.byteLength(text);
   }
-  if ((count > COUNT_CAP || unpacked > SIZE_CAP) && flagFor(SIZE)) {
+  return { count, unpacked };
+}
+
+function reportArchiveShape(findings: Finding[], dep: DirectDep, entries: Record<string, string>): void {
+  reportEscapes(findings, dep, entries);
+  const measured = measureEntries(entries);
+  if ((measured.count > COUNT_CAP || measured.unpacked > SIZE_CAP) && flagFor(SIZE)) {
     report(
       findings,
       SIZE,
       dep.lockFile,
-      `${dep.name}@${dep.version} ${count} entries ${unpacked} bytes`,
+      `${dep.name}@${dep.version} ${measured.count} entries ${measured.unpacked} bytes`,
       `${dep.name}@${dep.version} unpacked size or entry count exceeds the cap of 20 MB or 2000 entries. The cap is a limit, not a vulnerability count. Entries past the cap were not extracted.`,
     );
   }
+}
+
+function safeEntries(entries: Record<string, string>): Record<string, string> {
+  const safe: Record<string, string> = {};
+  for (const [name, text] of Object.entries(entries)) {
+    if (!isEscape(name)) {safe[name] = text;}
+  }
+  return safe;
+}
+
+function cappedExtract(safe: Record<string, string>): Record<string, string> {
   const extracted: Record<string, string> = {};
   let used = 0;
   let usedBytes = 0;
@@ -818,95 +901,186 @@ async function inspectPackage(
     used += 1;
     usedBytes += next;
   }
-  for (const name of Object.keys(safe)) {
-    if (flagFor(NATIVE) && name.endsWith('.node')) {
-      report(findings, NATIVE, dep.lockFile, `${dep.name}@${dep.version} ${name}`, `${dep.name}@${dep.version} contains ${name}. A prebuilt binary could not be reviewed as source.`);
-    }
-    const norm = normalizeSeparators(name);
-    if (flagFor(HOOK) && (norm.includes('.git/hooks/') || norm.includes('.github/workflows/'))) {
-      report(findings, HOOK, dep.lockFile, `${dep.name}@${dep.version} ${name}`, `${dep.name}@${dep.version} archives ${name}.`);
-    }
-    if (flagFor(HIDDEN) && norm.split('/').some((segment) => hiddenSegment(segment))) {
-      report(findings, HIDDEN, dep.lockFile, `${dep.name}@${dep.version} ${name}`, `${dep.name}@${dep.version} path ${name} uses a bidi override or a hidden non-latin segment.`);
-    }
-    const loose = installJsName(name);
-    if (loose !== undefined && flagFor(INSTALLJS)) {
-      const pkgText = extracted['package/package.json'];
-      const pkg = pkgText === undefined ? undefined : asRecord(parseJson(pkgText));
-      const scripts = pkg === undefined ? {} : scriptMap(pkg);
-      if (scripts[loose] === undefined) {
-        report(findings, INSTALLJS, dep.lockFile, `${dep.name}@${dep.version} ${name}`, `${dep.name}@${dep.version} contains ${name} and scripts has no ${loose} key.`);
-      }
-    }
+  return extracted;
+}
+
+function reportNative(findings: Finding[], dep: DirectDep, name: string): void {
+  if (flagFor(NATIVE) && name.endsWith('.node')) {
+    report(findings, NATIVE, dep.lockFile, `${dep.name}@${dep.version} ${name}`, `${dep.name}@${dep.version} contains ${name}. A prebuilt binary could not be reviewed as source.`);
   }
+}
+
+function reportHook(findings: Finding[], dep: DirectDep, name: string): void {
+  const norm = normalizeSeparators(name);
+  if (flagFor(HOOK) && (norm.includes('.git/hooks/') || norm.includes('.github/workflows/'))) {
+    report(findings, HOOK, dep.lockFile, `${dep.name}@${dep.version} ${name}`, `${dep.name}@${dep.version} archives ${name}.`);
+  }
+}
+
+function hiddenPath(name: string): boolean {
+  return normalizeSeparators(name).split('/').some((segment) => hiddenSegment(segment));
+}
+
+function reportHidden(findings: Finding[], dep: DirectDep, name: string): void {
+  if (flagFor(HIDDEN) && hiddenPath(name)) {
+    report(findings, HIDDEN, dep.lockFile, `${dep.name}@${dep.version} ${name}`, `${dep.name}@${dep.version} path ${name} uses a bidi override or a hidden non-latin segment.`);
+  }
+}
+
+function reportLooseInstall(findings: Finding[], dep: DirectDep, name: string, extracted: Record<string, string>): void {
+  const loose = installJsName(name);
+  if (loose === undefined || !flagFor(INSTALLJS)) {return;}
   const pkgText = extracted['package/package.json'];
   const pkg = pkgText === undefined ? undefined : asRecord(parseJson(pkgText));
-  if (pkg === undefined) {return;}
-  if (flagFor(ID)) {
-    const gotName = typeof pkg.name === 'string' ? pkg.name : '';
-    const gotVersion = typeof pkg.version === 'string' ? pkg.version : '';
-    if (gotName !== dep.name || gotVersion !== dep.version) {
-      report(findings, ID, dep.lockFile, `${dep.name}@${dep.version} package.json ${gotName}@${gotVersion}`, `${dep.name}@${dep.version} tarball package.json is ${gotName}@${gotVersion}.`);
-    }
+  const scripts = pkg === undefined ? {} : scriptMap(pkg);
+  if (scripts[loose] === undefined) {
+    report(findings, INSTALLJS, dep.lockFile, `${dep.name}@${dep.version} ${name}`, `${dep.name}@${dep.version} contains ${name} and scripts has no ${loose} key.`);
   }
+}
+
+function reportSafePaths(
+  findings: Finding[],
+  dep: DirectDep,
+  safe: Record<string, string>,
+  extracted: Record<string, string>,
+): void {
+  for (const name of Object.keys(safe)) {
+    reportNative(findings, dep, name);
+    reportHook(findings, dep, name);
+    reportHidden(findings, dep, name);
+    reportLooseInstall(findings, dep, name, extracted);
+  }
+}
+
+function reportIdentity(findings: Finding[], dep: DirectDep, pkg: Record<string, unknown>): void {
+  if (!flagFor(ID)) {return;}
+  const gotName = typeof pkg.name === 'string' ? pkg.name : '';
+  const gotVersion = typeof pkg.version === 'string' ? pkg.version : '';
+  if (gotName !== dep.name || gotVersion !== dep.version) {
+    report(findings, ID, dep.lockFile, `${dep.name}@${dep.version} package.json ${gotName}@${gotVersion}`, `${dep.name}@${dep.version} tarball package.json is ${gotName}@${gotVersion}.`);
+  }
+}
+
+function installScriptFlag(versionDoc: VersionDoc | undefined): unknown {
+  if (versionDoc?.hasInstallScript !== undefined) {return versionDoc.hasInstallScript;}
+  return asRecord(versionDoc)?.hasInstallScript;
+}
+
+function reportScriptBody(findings: Finding[], dep: DirectDep, key: string, body: string): void {
+  const snippet = `${dep.name}@${dep.version} ${key}`;
+  if (flagFor(NET) && containsToken(body, NET_TOKENS)) {
+    report(findings, NET, dep.lockFile, snippet, `${dep.name}@${dep.version} ${key} script contains a network token.`);
+  }
+  if (flagFor(SHELL) && containsToken(body, SHELL_TOKENS)) {
+    report(findings, SHELL, dep.lockFile, snippet, `${dep.name}@${dep.version} ${key} script contains a shell or downloader token.`);
+  }
+  if (flagFor(CRED) && containsToken(body, CRED_TOKENS)) {
+    report(findings, CRED, dep.lockFile, snippet, `${dep.name}@${dep.version} ${key} script reads a credential file or token.`);
+  }
+  if (flagFor(OBFUSC) && hasObfuscatedEval(body)) {
+    report(findings, OBFUSC, dep.lockFile, snippet, `${dep.name}@${dep.version} ${key} script passes a base64 literal of 32 or more characters to eval, Function, or spawn.`);
+  }
+}
+
+function reportLifecycle(findings: Finding[], dep: DirectDep, pkg: Record<string, unknown>, versionDoc: VersionDoc | undefined): void {
   const scripts = scriptMap(pkg);
   const lifecycle = lifecycleScripts(scripts);
-  const packumentFlag = versionDoc?.hasInstallScript !== undefined
-    ? versionDoc.hasInstallScript
-    : asRecord(versionDoc)?.hasInstallScript;
+  const packumentFlag = installScriptFlag(versionDoc);
   if (flagFor(LIFECYCLE) && packumentFlag === false && lifecycle.length > 0) {
     const listed = lifecycle.map(([key]) => key).join(', ');
     report(findings, LIFECYCLE, dep.lockFile, `${dep.name}@${dep.version} ${listed}`, `${dep.name}@${dep.version} tarball scripts include ${listed} while packument hasInstallScript is false.`);
   }
-  for (const [key, body] of lifecycle) {
-    const snippet = `${dep.name}@${dep.version} ${key}`;
-    if (flagFor(NET) && containsToken(body, NET_TOKENS)) {
-      report(findings, NET, dep.lockFile, snippet, `${dep.name}@${dep.version} ${key} script contains a network token.`);
+  for (const [key, body] of lifecycle) {reportScriptBody(findings, dep, key, body);}
+}
+
+function reportOneBin(findings: Finding[], dep: DirectDep, names: ReadonlySet<string>, bin: string): void {
+  if (isEscape(bin)) {
+    if (flagFor(PATH)) {
+      report(findings, PATH, dep.lockFile, `${dep.name}@${dep.version} bin ${bin}`, `${dep.name}@${dep.version} bin path ${bin} is absolute or contains .. and was not treated as a missing bin.`);
     }
-    if (flagFor(SHELL) && containsToken(body, SHELL_TOKENS)) {
-      report(findings, SHELL, dep.lockFile, snippet, `${dep.name}@${dep.version} ${key} script contains a shell or downloader token.`);
-    }
-    if (flagFor(CRED) && containsToken(body, CRED_TOKENS)) {
-      report(findings, CRED, dep.lockFile, snippet, `${dep.name}@${dep.version} ${key} script reads a credential file or token.`);
-    }
-    if (flagFor(OBFUSC) && hasObfuscatedEval(body)) {
-      report(findings, OBFUSC, dep.lockFile, snippet, `${dep.name}@${dep.version} ${key} script passes a base64 literal of 32 or more characters to eval, Function, or spawn.`);
-    }
+    return;
   }
-  if (flagFor(BIN) || flagFor(PATH)) {
-    for (const bin of binPaths(pkg.bin)) {
-      if (isEscape(bin)) {
-        if (flagFor(PATH)) {
-          report(findings, PATH, dep.lockFile, `${dep.name}@${dep.version} bin ${bin}`, `${dep.name}@${dep.version} bin path ${bin} is absolute or contains .. and was not treated as a missing bin.`);
-        }
-        continue;
-      }
-      if (flagFor(BIN) && !hasFile(names, bin)) {
-        report(findings, BIN, dep.lockFile, `${dep.name}@${dep.version} bin ${bin}`, `${dep.name}@${dep.version} bin path ${bin} is inside the package and is not a file in the tarball.`);
-      }
-    }
+  if (flagFor(BIN) && !hasFile(names, bin)) {
+    report(findings, BIN, dep.lockFile, `${dep.name}@${dep.version} bin ${bin}`, `${dep.name}@${dep.version} bin path ${bin} is inside the package and is not a file in the tarball.`);
   }
-  if (flagFor(LICENSE)) {
-    const packed = typeof pkg.license === 'string' ? pkg.license : undefined;
-    const published = typeof versionDoc?.license === 'string' ? versionDoc.license : undefined;
-    if (packed !== undefined && published !== undefined && packed !== published) {
-      report(findings, LICENSE, dep.lockFile, `${dep.name}@${dep.version} ${packed} ${published}`, `${dep.name}@${dep.version} tarball license ${packed} differs from packument license ${published}. This does not judge the license.`);
-    }
+}
+
+function reportBins(findings: Finding[], dep: DirectDep, pkg: Record<string, unknown>, names: ReadonlySet<string>): void {
+  if (!flagFor(BIN) && !flagFor(PATH)) {return;}
+  for (const bin of binPaths(pkg.bin)) {reportOneBin(findings, dep, names, bin);}
+}
+
+function reportLicense(findings: Finding[], dep: DirectDep, pkg: Record<string, unknown>, versionDoc: VersionDoc | undefined): void {
+  if (!flagFor(LICENSE)) {return;}
+  const packed = typeof pkg.license === 'string' ? pkg.license : undefined;
+  const published = typeof versionDoc?.license === 'string' ? versionDoc.license : undefined;
+  if (packed !== undefined && published !== undefined && packed !== published) {
+    report(findings, LICENSE, dep.lockFile, `${dep.name}@${dep.version} ${packed} ${published}`, `${dep.name}@${dep.version} tarball license ${packed} differs from packument license ${published}. This does not judge the license.`);
   }
-  if (flagFor(MANIFEST)) {
-    const packedDeps = stringMap(pkg.dependencies);
-    const publishedDeps = stringMap(versionDoc?.dependencies);
-    if (packedDeps !== undefined && publishedDeps !== undefined && !sameDeps(packedDeps, publishedDeps)) {
-      report(findings, MANIFEST, dep.lockFile, `${dep.name}@${dep.version} dependencies`, `${dep.name}@${dep.version} tarball dependencies differ from the packument dependencies.`);
-    }
+}
+
+function reportManifestDeps(findings: Finding[], dep: DirectDep, pkg: Record<string, unknown>, versionDoc: VersionDoc | undefined): void {
+  if (!flagFor(MANIFEST)) {return;}
+  const packedDeps = stringMap(pkg.dependencies);
+  const publishedDeps = stringMap(versionDoc?.dependencies);
+  if (packedDeps !== undefined && publishedDeps !== undefined && !sameDeps(packedDeps, publishedDeps)) {
+    report(findings, MANIFEST, dep.lockFile, `${dep.name}@${dep.version} dependencies`, `${dep.name}@${dep.version} tarball dependencies differ from the packument dependencies.`);
   }
-  if (flagFor(TOPLEVEL) || flagFor(ENV) || flagFor(DYNAMIC)) {
-    for (const spec of entrySpecs(pkg)) {
-      const text = fileText(extracted, spec);
-      if (text === undefined) {continue;}
-      await scanEntryFile(findings, dep, spec, text);
-    }
+}
+
+async function scanEntrySources(
+  findings: Finding[],
+  dep: DirectDep,
+  pkg: Record<string, unknown>,
+  extracted: Record<string, string>,
+): Promise<void> {
+  if (!flagFor(TOPLEVEL) && !flagFor(ENV) && !flagFor(DYNAMIC)) {return;}
+  for (const spec of entrySpecs(pkg)) {
+    const text = fileText(extracted, spec);
+    if (text === undefined) {continue;}
+    await scanEntryFile(findings, dep, spec, text);
   }
+}
+
+async function reportManifest(
+  findings: Finding[],
+  dep: DirectDep,
+  versionDoc: VersionDoc | undefined,
+  extracted: Record<string, string>,
+  names: ReadonlySet<string>,
+): Promise<void> {
+  const pkgText = extracted['package/package.json'];
+  const pkg = pkgText === undefined ? undefined : asRecord(parseJson(pkgText));
+  if (pkg === undefined) {return;}
+  reportIdentity(findings, dep, pkg);
+  reportLifecycle(findings, dep, pkg, versionDoc);
+  reportBins(findings, dep, pkg, names);
+  reportLicense(findings, dep, pkg, versionDoc);
+  reportManifestDeps(findings, dep, pkg, versionDoc);
+  await scanEntrySources(findings, dep, pkg, extracted);
+}
+
+async function inspectPackage(
+  dep: DirectDep,
+  input: NpmDepthInput,
+  findings: Finding[],
+): Promise<void> {
+  const versionDoc = await readVersion(input.cacheDir, dep.name, dep.version);
+  const pack = packDist(versionDoc);
+  if (urlBlocks(dep.resolved) || urlBlocks(pack.tarball)) {return;}
+  if (refuseMissingIntegrity(dep, findings, pack.tarball)) {return;}
+  const expected = dep.integrity ?? pack.integrity;
+  if (expected === undefined) {return;}
+  const loaded = await loadCheckedBytes(input.cacheDir, dep, findings, expected);
+  if (loaded === undefined) {return;}
+  if (registryIntegrityStops(dep, pack.integrity)) {return;}
+  const entries = resolveEntries(loaded);
+  if (entries === undefined) {return;}
+  reportArchiveShape(findings, dep, entries);
+  const safe = safeEntries(entries);
+  const extracted = cappedExtract(safe);
+  reportSafePaths(findings, dep, safe, extracted);
+  await reportManifest(findings, dep, versionDoc, extracted, new Set(Object.keys(entries)));
 }
 
 export async function laneFindings(input: NpmDepthInput): Promise<Finding[]> {

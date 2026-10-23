@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { Finding, Severity } from '../../../core/finding.js';
+import { currentFacts } from './facts.js';
 import {
   npmFinding,
   npmFlag,
@@ -185,118 +186,158 @@ interface PackageCtx {
   descriptors: Map<string, Descriptor | undefined>;
 }
 
-async function packageFindings(
-  input: NpmDepthInput,
-  entry: Pkg,
-  ctx: PackageCtx,
-): Promise<Finding[]> {
-  const out: Finding[] = [];
-  const prod = isProduction(entry, ctx.prodNames);
-  const direct = entry.path === `node_modules/${entry.name}` && ctx.directNames.has(entry.name);
-  const optionalHit = entry.optional && entry.hasInstallScript;
-  const transitiveHit = entry.hasInstallScript && prod && !direct;
-  const label = entry.version === '' ? entry.name : `${entry.name}@${entry.version}`;
+interface HitInput {
+  ruleId: string;
+  severity: Severity;
+  lockPath: string;
+  detail: string;
+  title: string;
+  message: string;
+  remediation: string;
+}
 
-  if (npmFlag('NPM_SCRIPT_OPTIONAL') && optionalHit) {
-    out.push(hit(
-      OPTIONAL,
-      'medium',
-      entry.path,
-      'optional hasInstallScript',
-      'Optional dependency install script',
-      `${label} is optional and the lock sets hasInstallScript.`,
-      'Review the optional package install script before installing it.',
-    ));
-  } else if (npmFlag('NPM_SCRIPT_TRANSITIVE') && transitiveHit) {
-    out.push(hit(
-      TRANSITIVE,
-      'medium',
-      entry.path,
-      'hasInstallScript',
-      'Transitive dependency install script',
-      `${label} is a transitive production dependency and the lock sets hasInstallScript.`,
-      'Review the transitive install script. Direct dependencies are not this finding.',
-    ));
-  }
+function hit(input: HitInput): Finding {
+  return npmFinding({
+    ruleId: input.ruleId,
+    severity: input.severity,
+    file: 'package-lock.json',
+    snippet: `${input.lockPath}: ${input.detail}`,
+    title: input.title,
+    message: input.message,
+    remediation: input.remediation,
+  });
+}
 
-  if (npmFlag('NPM_SCRIPT_DEV') && entry.dev && entry.hasInstallScript && !ctx.prodNames.has(entry.name)) {
-    out.push(hit(
-      DEV,
-      'info',
-      entry.path,
-      'dev hasInstallScript',
-      'Development dependency install script',
-      `${label} is a dev-only dependency and the lock sets hasInstallScript.`,
-      'Dev-only install scripts do not ship in production. Confirm the package is not also required by production.',
-    ));
-  }
+interface ScriptScan {
+  entry: Pkg;
+  ctx: PackageCtx;
+  label: string;
+  desc: Descriptor | undefined;
+  scripts: Scripts;
+  split: Split;
+  full: string;
+}
 
+function scriptScan(entry: Pkg, ctx: PackageCtx, label: string): ScriptScan {
   const desc = ctx.descriptors.get(entry.name);
   const scripts = desc?.scripts ?? {};
   const joined = joinScripts(scripts);
   const split = splitGates(joined);
-  const full = `${split.visible}\n${split.gated}`;
+  return {
+    entry,
+    label,
+    desc,
+    scripts,
+    split,
+    full: `${split.visible}\n${split.gated}`,
+    ctx,
+  };
+}
 
-  if (npmFlag('NPM_SCRIPT_PREPARE')) {
-    const prepare = scripts.prepare?.trim() ?? '';
-    if (prepare !== '') {
-      const git = isGitDep(entry, ctx);
-      out.push(hit(
-        PREPARE,
-        git ? 'high' : 'medium',
-        entry.path,
-        'prepare',
-        'Dependency prepare script',
-        `${label} sets scripts.prepare. prepare runs on local npm install for git dependencies.`,
-        'Read the prepare script before installing. Git dependencies run it on npm install.',
-      ));
-    }
+function pushInstallBits(out: Finding[], entry: Pkg, ctx: PackageCtx, label: string): void {
+  const prod = isProduction(entry, ctx.prodNames);
+  const direct = entry.path === `node_modules/${entry.name}` && ctx.directNames.has(entry.name);
+  const optionalHit = entry.optional && entry.hasInstallScript;
+  const transitiveHit = entry.hasInstallScript && prod && !direct;
+  if (npmFlag('NPM_SCRIPT_OPTIONAL') && optionalHit) {
+    out.push(hit({
+      ruleId: OPTIONAL,
+      severity: 'medium',
+      lockPath: entry.path,
+      detail: 'optional hasInstallScript',
+      title: 'Optional dependency install script',
+      message: `${label} is optional and the lock sets hasInstallScript.`,
+      remediation: 'Review the optional package install script before installing it.',
+    }));
+  } else if (npmFlag('NPM_SCRIPT_TRANSITIVE') && transitiveHit) {
+    out.push(hit({
+      ruleId: TRANSITIVE,
+      severity: 'medium',
+      lockPath: entry.path,
+      detail: 'hasInstallScript',
+      title: 'Transitive dependency install script',
+      message: `${label} is a transitive production dependency and the lock sets hasInstallScript.`,
+      remediation: 'Review the transitive install script. Direct dependencies are not this finding.',
+    }));
   }
-
-  if (npmFlag('NPM_SCRIPT_PREPUBLISH')) {
-    const prepublish = scripts.prepublish?.trim() ?? '';
-    const only = scripts.prepublishOnly?.trim() ?? '';
-    if (prepublish !== '') {
-      out.push(hit(
-        PREPUBLISH,
-        'high',
-        entry.path,
-        'prepublish',
-        'Dependency prepublish script',
-        `${label} sets scripts.prepublish. Old npm runs prepublish on install. The script key is prepublish.`,
-        'Remove prepublish or replace it with prepublishOnly, which current npm does not run on install.',
-      ));
-    } else if (only !== '') {
-      out.push(hit(
-        PREPUBLISH,
-        'medium',
-        entry.path,
-        'prepublishOnly',
-        'Dependency prepublishOnly script',
-        `${label} sets scripts.prepublishOnly. The script key is prepublishOnly.`,
-        'Confirm prepublishOnly only runs for a publish you intend.',
-      ));
-    }
+  if (npmFlag('NPM_SCRIPT_DEV') && entry.dev && entry.hasInstallScript && !ctx.prodNames.has(entry.name)) {
+    out.push(hit({
+      ruleId: DEV,
+      severity: 'info',
+      lockPath: entry.path,
+      detail: 'dev hasInstallScript',
+      title: 'Development dependency install script',
+      message: `${label} is a dev-only dependency and the lock sets hasInstallScript.`,
+      remediation: 'Dev-only install scripts do not ship in production. Confirm the package is not also required by production.',
+    }));
   }
+}
 
-  const patternHits: Array<{
-    id: string;
-    flag: string;
-    severity: Severity;
-    title: string;
-    detail: string;
-    message: string;
-    remediation: string;
-    match: (text: string) => boolean;
-    suppress: boolean;
-  }> = [
+function pushPrepare(out: Finding[], scan: ScriptScan): void {
+  if (!npmFlag('NPM_SCRIPT_PREPARE')) {return;}
+  const prepare = scan.scripts.prepare?.trim() ?? '';
+  if (prepare === '') {return;}
+  const git = isGitDep(scan.entry, scan.ctx);
+  out.push(hit({
+    ruleId: PREPARE,
+    severity: git ? 'high' : 'medium',
+    lockPath: scan.entry.path,
+    detail: 'prepare',
+    title: 'Dependency prepare script',
+    message: `${scan.label} sets scripts.prepare. prepare runs on local npm install for git dependencies.`,
+    remediation: 'Read the prepare script before installing. Git dependencies run it on npm install.',
+  }));
+}
+
+function pushPrepublish(out: Finding[], scan: ScriptScan): void {
+  if (!npmFlag('NPM_SCRIPT_PREPUBLISH')) {return;}
+  const prepublish = scan.scripts.prepublish?.trim() ?? '';
+  const only = scan.scripts.prepublishOnly?.trim() ?? '';
+  if (prepublish !== '') {
+    out.push(hit({
+      ruleId: PREPUBLISH,
+      severity: 'high',
+      lockPath: scan.entry.path,
+      detail: 'prepublish',
+      title: 'Dependency prepublish script',
+      message: `${scan.label} sets scripts.prepublish. Old npm runs prepublish on install. The script key is prepublish.`,
+      remediation: 'Remove prepublish or replace it with prepublishOnly, which current npm does not run on install.',
+    }));
+    return;
+  }
+  if (only === '') {return;}
+  out.push(hit({
+    ruleId: PREPUBLISH,
+    severity: 'medium',
+    lockPath: scan.entry.path,
+    detail: 'prepublishOnly',
+    title: 'Dependency prepublishOnly script',
+    message: `${scan.label} sets scripts.prepublishOnly. The script key is prepublishOnly.`,
+    remediation: 'Confirm prepublishOnly only runs for a publish you intend.',
+  }));
+}
+
+interface PatternSpec {
+  id: string;
+  flag: string;
+  severity: Severity;
+  title: string;
+  detail: string;
+  message: string;
+  remediation: string;
+  match: (text: string) => boolean;
+  suppress: boolean;
+}
+
+function pipePatterns(scan: ScriptScan): PatternSpec[] {
+  return [
     {
       id: CURL,
       flag: 'NPM_SCRIPT_CURL',
       severity: 'critical',
       title: 'Lifecycle script pipes a download to a shell',
       detail: 'curl|sh',
-      message: `${label} lifecycle script runs curl or wget and pipes it to sh, bash, or node.`,
+      message: `${scan.label} lifecycle script runs curl or wget and pipes it to sh, bash, or node.`,
       remediation: 'Do not install the package. A download piped to a shell is remote code execution.',
       match: hasCurlPipe,
       suppress: false,
@@ -307,10 +348,10 @@ async function packageFindings(
       severity: 'high',
       title: 'Lifecycle script decodes base64 into eval',
       detail: 'base64 eval',
-      message: `${label} passes a base64 literal of 32 or more characters to eval, Function, or spawn.`,
+      message: `${scan.label} passes a base64 literal of 32 or more characters to eval, Function, or spawn.`,
       remediation: 'Do not install the package. Treat decode-and-eval in an install script as malicious.',
       match: hasBase64Eval,
-      suppress: desc?.tarballObfuscReported === true,
+      suppress: scan.desc?.tarballObfuscReported === true,
     },
     {
       id: WRITE,
@@ -318,7 +359,7 @@ async function packageFindings(
       severity: 'high',
       title: 'Lifecycle script writes outside the package',
       detail: 'write outside',
-      message: `${label} lifecycle script writes a path that starts with .., /, ~/, or a home-directory variable.`,
+      message: `${scan.label} lifecycle script writes a path that starts with .., /, ~/, or a home-directory variable.`,
       remediation: 'Do not install the package until the write target is inside the package directory.',
       match: writesOutside,
       suppress: false,
@@ -329,18 +370,23 @@ async function packageFindings(
       severity: 'high',
       title: 'Lifecycle script writes the lockfile',
       detail: 'lockfile write',
-      message: `${label} lifecycle script mentions package-lock.json or npm-shrinkwrap.json next to a write.`,
+      message: `${scan.label} lifecycle script mentions package-lock.json or npm-shrinkwrap.json next to a write.`,
       remediation: 'Do not install a package that rewrites the lockfile during install.',
       match: writesLock,
       suppress: false,
     },
+  ];
+}
+
+function publishPatterns(scan: ScriptScan): PatternSpec[] {
+  return [
     {
       id: GIT,
       flag: 'NPM_SCRIPT_GIT',
       severity: 'high',
       title: 'Lifecycle script invokes git',
       detail: 'git',
-      message: `${label} lifecycle script contains a git command or .git/hooks.`,
+      message: `${scan.label} lifecycle script contains a git command or .git/hooks.`,
       remediation: 'Do not install a package whose install script invokes git or installs hooks.',
       match: touchesGit,
       suppress: false,
@@ -351,7 +397,7 @@ async function packageFindings(
       severity: 'critical',
       title: 'Lifecycle script reads an npm token',
       detail: 'npm token',
-      message: `${label} lifecycle script references NPM_TOKEN, NODE_AUTH_TOKEN, or npm_config__auth.`,
+      message: `${scan.label} lifecycle script references NPM_TOKEN, NODE_AUTH_TOKEN, or npm_config__auth.`,
       remediation: 'Do not install the package. Rotate npm tokens on machines that already installed it.',
       match: hasToken,
       suppress: false,
@@ -362,154 +408,187 @@ async function packageFindings(
       severity: 'high',
       title: 'Lifecycle script publishes',
       detail: 'npm publish',
-      message: `${label} lifecycle script contains npm publish or npm whoami.`,
+      message: `${scan.label} lifecycle script contains npm publish or npm whoami.`,
       remediation: 'Do not install a package whose install script publishes or queries the npm identity.',
       match: hasPublish,
-      suppress: wormCombination(full),
+      suppress: wormCombination(scan.full),
     },
   ];
+}
 
+function scriptPatterns(scan: ScriptScan): PatternSpec[] {
+  return [...pipePatterns(scan), ...publishPatterns(scan)];
+}
+
+function notePattern(
+  out: Finding[],
+  entry: Pkg,
+  pattern: PatternSpec,
+  split: Split,
+  conditional: boolean,
+): boolean {
+  if (pattern.match(split.visible)) {
+    if (npmFlag(pattern.flag) && !pattern.suppress) {
+      out.push(hit({
+        ruleId: pattern.id,
+        severity: pattern.severity,
+        lockPath: entry.path,
+        detail: pattern.detail,
+        title: pattern.title,
+        message: pattern.message,
+        remediation: pattern.remediation,
+      }));
+    }
+    return conditional;
+  }
+  if (pattern.match(split.gated)) {return true;}
+  return conditional;
+}
+
+function pushPatternHits(out: Finding[], scan: ScriptScan): boolean {
   let conditional = false;
-  for (const pattern of patternHits) {
-    const visible = pattern.match(split.visible);
-    const gated = pattern.match(split.gated);
-    if (visible) {
-      if (npmFlag(pattern.flag) && !pattern.suppress) {
-        out.push(hit(
-          pattern.id,
-          pattern.severity,
-          entry.path,
-          pattern.detail,
-          pattern.title,
-          pattern.message,
-          pattern.remediation,
-        ));
-      }
-    } else if (gated) {
-      conditional = true;
-    }
+  for (const pattern of scriptPatterns(scan)) {
+    conditional = notePattern(out, scan.entry, pattern, scan.split, conditional);
   }
+  return conditional;
+}
 
-  if (conditional && npmFlag('NPM_SCRIPT_COND')) {
-    out.push(hit(
-      COND,
-      'medium',
-      entry.path,
-      'conditional lifecycle',
-      'Lifecycle script hides behavior behind CI or NODE_ENV',
-      `${label} branches on process.env.CI or NODE_ENV, and the non-CI or production branch contains a dangerous install pattern.`,
-      'Read both branches. A check for CI or production does not make the other branch safe.',
-    ));
+function pushConditional(out: Finding[], scan: ScriptScan, conditional: boolean): void {
+  if (!conditional || !npmFlag('NPM_SCRIPT_COND')) {return;}
+  out.push(hit({
+    ruleId: COND,
+    severity: 'medium',
+    lockPath: scan.entry.path,
+    detail: 'conditional lifecycle',
+    title: 'Lifecycle script hides behavior behind CI or NODE_ENV',
+    message: `${scan.label} branches on process.env.CI or NODE_ENV, and the non-CI or production branch contains a dangerous install pattern.`,
+    remediation: 'Read both branches. A check for CI or production does not make the other branch safe.',
+  }));
+}
+
+function pushTrusted(out: Finding[], scan: ScriptScan): void {
+  if (!npmFlag('NPM_SCRIPT_TRUSTED') || !scan.ctx.trusted.has(scan.entry.name) || !trustedDanger(scan.full)) {return;}
+  out.push(hit({
+    ruleId: TRUSTED,
+    severity: 'medium',
+    lockPath: scan.entry.path,
+    detail: 'trusted',
+    title: 'Trusted dependency has a dangerous lifecycle script',
+    message: `${scan.label} is listed in trustedDependencies and its lifecycle script still matches a dangerous install pattern. The trust list does not clear that pattern.`,
+    remediation: 'Remove the package from trustedDependencies until the script is safe, or drop the dependency.',
+  }));
+}
+
+function pushMismatch(out: Finding[], scan: ScriptScan): void {
+  if (!npmFlag('NPM_SCRIPT_MISMATCH') || !scan.entry.hasInstallScript || scan.desc === undefined || hasInstallKey(scan.scripts)) {
+    return;
   }
+  out.push(hit({
+    ruleId: MISMATCH,
+    severity: 'medium',
+    lockPath: scan.entry.path,
+    detail: 'hasInstallScript mismatch',
+    title: 'Install-script flag disagrees with scripts',
+    message: `${scan.label} lock hasInstallScript is true, and the cached scripts object has no preinstall, install, or postinstall key.`,
+    remediation: 'Refresh the cached tarball manifest. Do not treat the lock bit as proof of which script runs.',
+  }));
+}
 
-  if (npmFlag('NPM_SCRIPT_TRUSTED') && ctx.trusted.has(entry.name) && trustedDanger(full)) {
-    out.push(hit(
-      TRUSTED,
-      'medium',
-      entry.path,
-      'trusted',
-      'Trusted dependency has a dangerous lifecycle script',
-      `${label} is listed in trustedDependencies and its lifecycle script still matches a dangerous install pattern. The trust list does not clear that pattern.`,
-      'Remove the package from trustedDependencies until the script is safe, or drop the dependency.',
-    ));
-  }
+function installScriptCount(scripts: Scripts): number {
+  return INSTALL_KEYS.filter((key) => (scripts[key]?.trim() ?? '') !== '').length;
+}
 
-  if (npmFlag('NPM_SCRIPT_MISMATCH') && entry.hasInstallScript && desc && !hasInstallKey(scripts)) {
-    out.push(hit(
-      MISMATCH,
-      'medium',
-      entry.path,
-      'hasInstallScript mismatch',
-      'Install-script flag disagrees with scripts',
-      `${label} lock hasInstallScript is true, and the cached scripts object has no preinstall, install, or postinstall key.`,
-      'Refresh the cached tarball manifest. Do not treat the lock bit as proof of which script runs.',
-    ));
-  }
+function pushMulti(out: Finding[], scan: ScriptScan): void {
+  const installCount = installScriptCount(scan.scripts);
+  if (!npmFlag('NPM_SCRIPT_MULTI') || scan.desc === undefined || installCount < 2) {return;}
+  out.push(hit({
+    ruleId: MULTI,
+    severity: 'info',
+    lockPath: scan.entry.path,
+    detail: 'multiple lifecycle scripts',
+    title: 'Package has several lifecycle scripts',
+    message: `${scan.label} sets ${installCount} of preinstall, install, and postinstall.`,
+    remediation: 'Read each lifecycle script. Several hooks are an inventory signal, not by themselves a compromise.',
+  }));
+}
 
-  const installCount = INSTALL_KEYS.filter((key) => (scripts[key]?.trim() ?? '') !== '').length;
-  if (npmFlag('NPM_SCRIPT_MULTI') && desc && installCount >= 2) {
-    out.push(hit(
-      MULTI,
-      'info',
-      entry.path,
-      'multiple lifecycle scripts',
-      'Package has several lifecycle scripts',
-      `${label} sets ${installCount} of preinstall, install, and postinstall.`,
-      'Read each lifecycle script. Several hooks are an inventory signal, not by themselves a compromise.',
-    ));
-  }
+function pushBin(out: Finding[], scan: ScriptScan): void {
+  if (!npmFlag('NPM_SCRIPT_BIN') || scan.desc === undefined || !binIsInstall(scan.entry.bin, scan.scripts)) {return;}
+  out.push(hit({
+    ruleId: BIN,
+    severity: 'medium',
+    lockPath: scan.entry.path,
+    detail: 'bin install',
+    title: 'Bin path is the install script',
+    message: `${scan.label} bin target is the same path as scripts.install or scripts.preinstall.`,
+    remediation: 'Confirm the executable you run is not the package install script.',
+  }));
+}
 
-  if (npmFlag('NPM_SCRIPT_BIN') && desc && binIsInstall(entry.bin, scripts)) {
-    out.push(hit(
-      BIN,
-      'medium',
-      entry.path,
-      'bin install',
-      'Bin path is the install script',
-      `${label} bin target is the same path as scripts.install or scripts.preinstall.`,
-      'Confirm the executable you run is not the package install script.',
-    ));
-  }
+async function pushNodeGyp(out: Finding[], input: NpmDepthInput, scan: ScriptScan): Promise<void> {
+  if (!npmFlag('NPM_SCRIPT_NODEGYP')) {return;}
+  const gyp = await bindingText(input, scan.entry.name, scan.desc);
+  if (gyp === undefined) {return;}
+  const host = foreignHosts(gyp)[0];
+  if (host === undefined) {return;}
+  out.push(hit({
+    ruleId: NODEGYP,
+    severity: 'medium',
+    lockPath: scan.entry.path,
+    detail: host,
+    title: 'binding.gyp fetches a non-registry URL',
+    message: `${scan.label} binding.gyp contains a URL whose host is ${host}, not registry.npmjs.org.`,
+    remediation: 'Do not compile the package. Review the binding.gyp URL before any node-gyp rebuild.',
+  }));
+}
 
-  if (npmFlag('NPM_SCRIPT_NODEGYP')) {
-    const gyp = await bindingText(input, entry.name, desc);
-    if (gyp !== undefined) {
-      const hosts = foreignHosts(gyp);
-      const host = hosts[0];
-      if (host !== undefined) {
-        out.push(hit(
-          NODEGYP,
-          'medium',
-          entry.path,
-          host,
-          'binding.gyp fetches a non-registry URL',
-          `${label} binding.gyp contains a URL whose host is ${host}, not registry.npmjs.org.`,
-          'Do not compile the package. Review the binding.gyp URL before any node-gyp rebuild.',
-        ));
-      }
-    }
-  }
+async function pushShebang(out: Finding[], input: NpmDepthInput, scan: ScriptScan): Promise<void> {
+  if (!npmFlag('NPM_SCRIPT_SHEBANG') || scan.desc === undefined) {return;}
+  const bad = await badShebang(input, scan.entry.name, scan.scripts, scan.desc);
+  if (bad === undefined) {return;}
+  out.push(hit({
+    ruleId: SHEBANG,
+    severity: 'medium',
+    lockPath: scan.entry.path,
+    detail: bad,
+    title: 'Install script shebang is not node or a shell',
+    message: `${scan.label} install script starts with a shebang for ${bad}, which is not node, sh, or bash.`,
+    remediation: 'Do not run the install script. A foreign interpreter in the shebang is code execution.',
+  }));
+}
 
-  if (npmFlag('NPM_SCRIPT_SHEBANG') && desc) {
-    const bad = await badShebang(input, entry.name, scripts, desc);
-    if (bad !== undefined) {
-      out.push(hit(
-        SHEBANG,
-        'medium',
-        entry.path,
-        bad,
-        'Install script shebang is not node or a shell',
-        `${label} install script starts with a shebang for ${bad}, which is not node, sh, or bash.`,
-        'Do not run the install script. A foreign interpreter in the shebang is code execution.',
-      ));
-    }
-  }
-
+async function packageFindings(
+  input: NpmDepthInput,
+  entry: Pkg,
+  ctx: PackageCtx,
+): Promise<Finding[]> {
+  const out: Finding[] = [];
+  const label = entry.version === '' ? entry.name : `${entry.name}@${entry.version}`;
+  pushInstallBits(out, entry, ctx, label);
+  const scan = scriptScan(entry, ctx, label);
+  pushPrepare(out, scan);
+  pushPrepublish(out, scan);
+  const conditional = pushPatternHits(out, scan);
+  pushConditional(out, scan, conditional);
+  pushTrusted(out, scan);
+  pushMismatch(out, scan);
+  pushMulti(out, scan);
+  pushBin(out, scan);
+  await pushNodeGyp(out, input, scan);
+  await pushShebang(out, input, scan);
   return out;
 }
 
 function rollupFinding(count: number): Finding {
-  return hit(
-    ROLLUP,
-    'info',
-    'package-lock.json',
-    `count ${count}`,
-    'Many production packages have install scripts',
-    `${count} production packages have hasInstallScript set. The threshold is 25 and is not a vulnerability count.`,
-    'Review the install scripts. Per-package rows stay on the transitive install-script rule.',
-  );
-}
-
-function hit(
-  ruleId: string,
-  severity: Severity,
-  lockPath: string,
-  detail: string,
-  title: string,
-  message: string,
-  remediation: string,
-): Finding {
-  return npmFinding(ruleId, severity, 'package-lock.json', `${lockPath}: ${detail}`, title, message, remediation);
+  return hit({
+    ruleId: ROLLUP,
+    severity: 'info',
+    lockPath: 'package-lock.json',
+    detail: `count ${count}`,
+    title: 'Many production packages have install scripts',
+    message: `${count} production packages have hasInstallScript set. The threshold is 25 and is not a vulnerability count.`,
+    remediation: 'Review the install scripts. Per-package rows stay on the transitive install-script rule.',
+  });
 }
 
 function isProduction(entry: Pkg, prodNames: Set<string>): boolean {
@@ -742,6 +821,8 @@ async function loadDescriptors(
 }
 
 async function readDescriptor(cacheDir: string, name: string): Promise<Descriptor | undefined> {
+  const held = currentFacts()?.tarballs.get(name);
+  if (held !== undefined) {return parseDescriptor(held);}
   let text: string;
   try {
     text = await readFile(join(cacheDir, 'tarballs', `${encodeURIComponent(name)}.json`), 'utf8');

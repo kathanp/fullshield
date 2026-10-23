@@ -1,0 +1,29 @@
+{
+  "sinks": [
+    {
+      "package": "pg",
+      "member": "Client.query",
+      "argIndex": 0,
+      "class": "sqli",
+      "staticSupported": true,
+      "runtimeHook": "pg.Client.prototype.query"
+    },
+    {
+      "package": "child_process",
+      "member": "execSync",
+      "argIndex": 0,
+      "class": "cmdi",
+      "staticSupported": true,
+      "runtimeHook": "child_process.execSync"
+    },
+    {
+      "package": "fixture-gap",
+      "member": "render",
+      "argIndex": 0,
+      "class": "ssti",
+      "staticSupported": true,
+      "runtimeHook": null,
+      "runtimeGap": "no in-process hook for this template engine"
+    }
+  ]
+}

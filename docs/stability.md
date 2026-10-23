@@ -67,3 +67,11 @@ Phase 56 (EPSS / CISA) is not in this release. Default scan does not contact
 
 The flag list in `api/fullshield.api.json` records what this commit implements.
 It is not a promise that each flag stays.
+
+## Phase 500
+
+Stable rule ids are the rules whose front matter says `stability: stable`. Experimental keys may disappear in a minor. This section does not say the product is complete.
+
+## 1.3.0
+
+1.3.0 adds experimental phases behind their own flags. Stable scan fields in this file are unchanged. Default `scan --json` is unchanged.
