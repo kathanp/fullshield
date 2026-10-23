@@ -35,13 +35,18 @@ export interface ExplainResult {
   text: string;
 }
 
+function experimentalFailure(message: string): ExplainResult {
+  const err = new FsError(message);
+  return { exitCode: 1, code: err.code, text: `${err.code} ${err.message}` };
+}
+
 export function explainWitness(fingerprint: string, witnesses: readonly ExplainWitness[]): ExplainResult {
   if (!enabled()) {
-    return { exitCode: 1, code: 'FS-E', text: 'FS-E explain is experimental' };
+    return experimentalFailure('explain is experimental');
   }
   const found = witnesses.find((row) => row.fingerprint === fingerprint);
   if (found === undefined) {
-    return { exitCode: 1, code: 'FS-E', text: `FS-E unknown fingerprint ${fingerprint}` };
+    return experimentalFailure(`unknown fingerprint ${fingerprint}`);
   }
   const truncated = found.steps.length > STEP_CAP;
   const steps = found.steps.slice(0, STEP_CAP);

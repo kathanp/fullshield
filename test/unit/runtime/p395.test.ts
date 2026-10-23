@@ -30,5 +30,23 @@ describe('phase 395 canary', () => {
 
   it('rejects a fraction outside 0 to 1', () => {
     expect(() => canaryDecision(1.5, 'req-1')).toThrow(FsError);
+    expect(() => canaryDecision(Number.NaN, 'req-1')).toThrow(FsError);
+    expect(() => canaryDecision(-0.1, 'req-1')).toThrow(FsError);
+  });
+
+  it('blocks some request ids and monitors others at the same fraction', () => {
+    process.env[FLAG] = '1';
+    try {
+      let blocked = 0;
+      let monitored = 0;
+      for (let i = 0; i < 64; i += 1) {
+        if (canaryDecision(0.5, `req-${i}`) === 'block') {blocked += 1;}
+        else {monitored += 1;}
+      }
+      expect(blocked).toBeGreaterThan(0);
+      expect(monitored).toBeGreaterThan(0);
+    } finally {
+      delete process.env[FLAG];
+    }
   });
 });

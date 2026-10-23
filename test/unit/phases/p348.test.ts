@@ -28,5 +28,20 @@ describe('phase 348', () => {
       new Map(),
     );
     expect(missing[0]?.linkedAdvisory).toBe('unresolved');
+    const plain = phase.linkDeprecations(
+      [{ packageName: 'fixture-pkg', ruleId: 'DEPS-DEPRECATED-001', severity: 'low' as const }],
+      new Map(),
+    );
+    expect(plain[0]?.linkedAdvisory).toBeUndefined();
+    const blank = phase.linkDeprecations(
+      [{ packageName: 'fixture-pkg', ruleId: 'DEPS-DEPRECATED-001', severity: 'low' as const, deprecated: 'use the successor' }],
+      new Map([['fixture-pkg', ['CVE-2024-1000']]]),
+    );
+    expect(blank[0]?.linkedAdvisory).toBeUndefined();
+    const cve = phase.linkDeprecations(
+      [{ packageName: 'fixture-pkg', ruleId: 'DEPS-DEPRECATED-001', severity: 'high' as const, deprecated: 'see cve-2024-1000 and MAL-2024-9' }],
+      new Map([['fixture-pkg', ['cve-2024-1000']]]),
+    );
+    expect(cve[0]?.linkedAdvisory).toBe('cve-2024-1000');
   });
 });

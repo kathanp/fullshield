@@ -61,4 +61,54 @@ describe('phase 331 secret flow', () => {
     }, formats);
     expect(prefix).toEqual([]);
   });
+
+  it('follows env names and stops on a binding cycle', () => {
+    process.env[FLAG] = '1';
+    const bindings = [
+      { name: 'token', from: 'env' as const, envName: 'API_TOKEN' },
+      { name: 'secret', from: 'env' as const, envName: 'SECRET' },
+      { name: 'session', from: 'env' as const, envName: 'SESSION_SECRET' },
+      { name: 'tok', from: 'env' as const, envName: 'TOKEN' },
+      { name: 'custom', from: 'env' as const, envName: 'MY_SECRET' },
+      { name: 'plain', from: 'env' as const, envName: 'PORT' },
+      { name: 'blank', from: 'env' as const },
+      { name: 'loose', from: 'literal' as const },
+      { name: 'a', from: 'binding' as const, binding: 'b' },
+      { name: 'b', from: 'binding' as const, binding: 'a' },
+      { name: 'dangling', from: 'binding' as const },
+    ];
+    const sinks = ['response', 'bundle', 'error', 'child', 'log'] as const;
+    const program = {
+      bindings,
+      sinks: [
+        ...sinks.map((kind, index) => ({ kind, arg: 'token', file: 'a.js', line: index + 1 })),
+        { kind: 'log' as const, arg: 'custom', file: 'a.js', line: 8 },
+        { kind: 'log' as const, arg: 'plain', file: 'a.js', line: 9 },
+        { kind: 'log' as const, arg: 'blank', file: 'a.js', line: 10 },
+        { kind: 'log' as const, arg: 'loose', file: 'a.js', line: 11 },
+        { kind: 'log' as const, arg: 'a', file: 'a.js', line: 12 },
+        { kind: 'log' as const, arg: 'missing', file: 'a.js', line: 13 },
+        { kind: 'log' as const, arg: 'dangling', file: 'a.js', line: 14 },
+      ],
+    };
+    const findings = secretFlow(program, formats, { envNames: ['MY_SECRET'] });
+    expect(findings.map((finding) => finding.witness)).toEqual([
+      'env-name response',
+      'env-name client-bundle',
+      'env-name error',
+      'env-name child-process',
+      'env-name log',
+      'env-name log',
+    ]);
+    const chain = Array.from({ length: 34 }, (_, index) => ({
+      name: `n${String(index)}`,
+      from: 'binding' as const,
+      binding: `n${String(index + 1)}`,
+    }));
+    chain.push({ name: 'n34', from: 'literal', binding: undefined, literal: TOKEN } as unknown as typeof chain[number]);
+    expect(secretFlow({
+      bindings: chain,
+      sinks: [{ kind: 'log', arg: 'n0', file: 'a.js', line: 1 }],
+    }, formats)).toEqual([]);
+  });
 });

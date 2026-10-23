@@ -57,4 +57,24 @@ describe('phase 256 labels', () => {
     expect(sqlConcatReports('db.query(sql + Number(req.query.id))')).toBe(false);
     expect(sqlConcatReports('db.query("select 1")')).toBe(false);
   });
+
+  it('applies member sanitizers and ignores unknown callees', () => {
+    expect(applySanitizer(sourceLabels(), 'not-a-sanitizer').has('sqli')).toBe(true);
+    process.env[LABEL_FLAG] = '1';
+    expect(sqlConcatReports('db.query(sql + unknown(req.query.id))')).toBe(true);
+    expect(sqlConcatReports('db.query(sql + he.escape(req.query.id))')).toBe(true);
+    expect(sqlConcatReports('db.query(sql + validator.escape(req.query.id))')).toBe(true);
+    expect(sqlConcatReports('db.query(sql + z.number().parse(req.query.id))')).toBe(false);
+    expect(sqlConcatReports('db.query(sql + JSON.parse(req.query.id))')).toBe(true);
+    expect(sqlConcatReports('db.query(sql + z.string().parse(req.query.id))')).toBe(true);
+    expect(sqlConcatReports('db.query(sql + encodeURI(req.query.id))')).toBe(true);
+    expect(sqlConcatReports('db.query(sql + decodeURIComponent(req.query.id))')).toBe(true);
+    expect(sqlConcatReports('db.query(sql + foo.encodeURIComponent(req.query.id))')).toBe(true);
+    expect(sqlConcatReports('db.query(sql + encodeURIComponent.encode(req.query.id))')).toBe(true);
+    expect(sqlConcatReports('db.query(req.query.a + req.query.b)')).toBe(true);
+    expect(sqlConcatReports('db.query([req.query.id])')).toBe(false);
+    expect(sqlConcatReports('db.query(...req.query)')).toBe(false);
+    expect(sqlConcatReports('query(req.query.id)')).toBe(false);
+    delete process.env[LABEL_FLAG];
+  });
 });

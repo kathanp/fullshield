@@ -4,6 +4,31 @@ import { spawnSync } from 'node:child_process';
 
 import { describe, expect, it } from 'vitest';
 
+import { fuzzLock, HEADER_SEED, LOCK_SEED, main, PACKUMENT_SEED, parseHeader, parseLock, parsePackument } from '../../../src/phases/p478.js';
+
+const FUZZLOCK = 'FULLSHIELD_EXPERIMENTAL_FUZZLOCK';
+
+function capture(run: () => number): { code: number; stdout: string; stderr: string } {
+  let stdout = '';
+  let stderr = '';
+  const writeOut = process.stdout.write.bind(process.stdout);
+  const writeErr = process.stderr.write.bind(process.stderr);
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    stdout += String(chunk);
+    return true;
+  }) as typeof process.stdout.write;
+  process.stderr.write = ((chunk: string | Uint8Array) => {
+    stderr += String(chunk);
+    return true;
+  }) as typeof process.stderr.write;
+  try {
+    return { code: run(), stdout, stderr };
+  } finally {
+    process.stdout.write = writeOut;
+    process.stderr.write = writeErr;
+  }
+}
+
 const root = process.cwd();
 const script = join(root, 'scripts', 'phase478-fuzzlock.mjs');
 
@@ -38,5 +63,41 @@ describe('phase 478 lockfile fuzzer', () => {
     const result = run(['--parser', 'crash'], false);
     expect(result.status).toBe(0);
     expect(result.stdout).toBe('');
+  });
+});
+
+describe('phase 478 module', () => {
+  it('parses seeds and fails planted parsers', () => {
+    process.env[FUZZLOCK] = '1';
+    try {
+      expect(parseLock(LOCK_SEED)).toBe('ok');
+      expect(parseLock('{')).toBe('reject');
+      expect(parseLock('{"packages":null}')).toBe('reject');
+      expect(parsePackument(PACKUMENT_SEED)).toBe('ok');
+      expect(parsePackument('null')).toBe('reject');
+      expect(parsePackument('[]')).toBe('reject');
+      expect(parsePackument('{"name":""}')).toBe('reject');
+      expect(parsePackument('{"name":1}')).toBe('reject');
+      expect(parsePackument('1')).toBe('reject');
+      expect(parsePackument('{')).toBe('reject');
+      expect(parseHeader(HEADER_SEED)).toBe('ok');
+      expect(parseHeader('nope')).toBe('reject');
+      expect(parseHeader('path:\n')).toBe('reject');
+      expect(parseHeader('path: /etc/passwd\n')).toBe('reject');
+      expect(parseHeader('path: ../etc/passwd\n')).toBe('reject');
+      expect(fuzzLock('ir')).toMatchObject({ code: 0, text: 'fuzz lock passed\n' });
+      expect(fuzzLock('crash').text).toContain('failed case: crash');
+      expect(fuzzLock('reject').text).toContain('zero successes');
+      const ok = capture(() => main(['--parser', 'ir']));
+      expect(ok.code).toBe(0);
+      expect(ok.stdout).toContain('fuzz lock passed');
+      const crashed = capture(() => main(['--parser', 'crash']));
+      expect(crashed.code).toBe(1);
+      expect(crashed.stderr).toContain('failed case: crash');
+      expect(capture(() => main([])).code).toBe(0);
+      expect(capture(() => main(['--parser'])).code).toBe(0);
+    } finally {
+      delete process.env[FUZZLOCK];
+    }
   });
 });

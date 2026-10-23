@@ -44,4 +44,16 @@ describe('phase 315 idor edge', () => {
     expect(idorFindings(input({ authKind: 'none' }))).toEqual([]);
     expect(idorFindings(input({ scope: 'unknown' }))).toEqual([]);
   });
+
+  it('accepts jwt, apikey, passport, and framework and drops a non-request lookup', () => {
+    process.env[FLAG] = '1';
+    for (const authKind of ['jwt', 'apikey', 'passport:local', 'framework:nest']) {
+      expect(idorFindings(input({ authKind }))).toHaveLength(1);
+    }
+    expect(idorFindings(input({ lookupOrigin: 'principal' }))).toEqual([]);
+    expect(idorFindings(input({ authzKind: 'policy' }))).toEqual([]);
+    expect(idorFindings(input({ authzKind: 'unknown' }))).toEqual([]);
+    expect(idorFindings(input({ authKind: '' }))).toEqual([]);
+    expect(idorFindings(input({ authKind: 'basic' }))).toEqual([]);
+  });
 });

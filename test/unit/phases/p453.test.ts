@@ -52,4 +52,75 @@ describe('phase 453', () => {
     const src = readFileSync(join(root, 'src/phases/p453.ts'), 'utf8');
     expect(src.includes('KUBECONFIG')).toBe(false);
   });
+
+  it('reports privileged containers, token mounts, labels, and unrendered Helm without a secret', () => {
+    process.env[FLAG] = '1';
+    try {
+      const deploy = `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: demo
+spec:
+  template:
+    spec:
+      automountServiceAccountToken: true
+      containers:
+        - name: app
+          image: node:20
+          command: ["node", "server.js"]
+          args: ["demo"]
+          securityContext:
+            privileged: true
+            runAsNonRoot: false
+          resources:
+            limits:
+              memory: 128Mi
+          volumeMounts:
+            - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+            - "not-a-mount"
+        - null
+      volumes:
+        - name: empty
+`;
+      const result = scanManifests('deploy.yaml', deploy, 'demo');
+      expect(result.findings.some((row) => row.ruleId === 'CONFIG-K8S-PRIVILEGED-001')).toBe(true);
+      expect(result.findings.some((row) => row.ruleId === 'CONFIG-K8S-SATOKEN-001' && row.severity === 'high')).toBe(true);
+      expect(result.findings.some((row) => row.ruleId === K8S_ROOT && row.severity === 'medium')).toBe(true);
+      expect(result.findings.some((row) => row.ruleId === K8S_MEM)).toBe(false);
+      expect(result.findings.some((row) => row.ruleId === K8S_HOSTPATH)).toBe(false);
+
+      const labeled = `apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app.kubernetes.io/name: node:20
+spec:
+  automountServiceAccountToken: true
+  containers:
+    - name: app
+      image: redis
+      securityContext:
+        runAsUser: 1000
+      volumeMounts: "nope"
+  volumes: nope
+`;
+      const info = scanManifests('pod.yaml', labeled, 'demo');
+      expect(info.findings.some((row) => row.ruleId === 'CONFIG-K8S-SATOKEN-001' && row.severity === 'info')).toBe(true);
+      expect(info.findings.some((row) => row.ruleId === K8S_ROOT)).toBe(false);
+
+      const bare = scanManifests('pod.yaml', 'apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - image: node:20\n', 'demo');
+      expect(bare.findings.some((row) => row.ruleId === K8S_MEM)).toBe(true);
+      expect(bare.findings.some((row) => row.ruleId === K8S_ROOT)).toBe(false);
+
+      const helm = scanManifests('chart.yaml', 'image: {{ .Values.image }}\n', 'demo');
+      expect(helm.events).toHaveLength(1);
+      expect(helm.findings.some((row) => row.ruleId === K8S_SECRET)).toBe(false);
+      expect(scanManifests('pod.yaml', 'just a string\n---\n', 'demo').findings).toEqual([]);
+      const noContainers = 'apiVersion: v1\nkind: Pod\nmetadata:\n  labels:\n    app: demo\n    note: skip\nspec: {}\n';
+      expect(scanManifests('pod.yaml', noContainers, 'demo').findings).toEqual([]);
+    } finally {
+      delete process.env[FLAG];
+    }
+  });
 });

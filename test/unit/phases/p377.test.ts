@@ -59,4 +59,19 @@ describe('phase 377 duplicate advisories', () => {
     expect(result.events.map((event) => event.code)).toEqual(['271']);
     expect(result.vulns).toEqual([vuln]);
   });
+
+  it('reports an id that exists only on the second copy and ignores a single copy', () => {
+    process.env[FLAG] = '1';
+    const result = duplicateAdvisories(
+      [
+        { name: 'left-pad', version: '1.0.0', lockPath: 'a', advisoryIds: ['FIXTURE-OSV-1'] },
+        { name: 'left-pad', version: '1.1.0', lockPath: 'b', advisoryIds: ['FIXTURE-OSV-2'] },
+        { name: 'ms', version: '2.0.0', lockPath: 'c', advisoryIds: ['FIXTURE-OSV-1'] },
+      ],
+      [],
+    );
+    expect(result.findings[0]?.onlyOne).toEqual(['FIXTURE-OSV-1', 'FIXTURE-OSV-2']);
+    expect(result.findings.map((row) => row.name)).toEqual(['left-pad']);
+    delete process.env[FLAG];
+  });
 });

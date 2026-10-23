@@ -42,4 +42,41 @@ describe('phase 451', () => {
     const src = readFileSync(join(root, 'src/phases/p451.ts'), 'utf8');
     expect(src.includes('child_process')).toBe(false);
   });
+
+  it('reports copied stages, orphan root stages, and a secret ARG', () => {
+    process.env[FLAG] = '1';
+    const token = `AKIA${'Z'.repeat(16)}`;
+    try {
+      const copied = scanDockerfile(
+        'Dockerfile',
+        'FROM node:20 AS builder\nRUN echo ok\nFROM node:20\nCOPY --from=builder /app /app\nUSER node\n',
+      );
+      expect(copied.findings.some((row) => row.ruleId === 'CONFIG-DOCKER-ROOT-STAGE-001')).toBe(false);
+      const orphan = scanDockerfile('Dockerfile', 'FROM node:20 AS tools\nFROM node:20\nUSER node\n');
+      expect(orphan.findings.some((row) => row.ruleId === 'CONFIG-DOCKER-ROOT-STAGE-001')).toBe(true);
+      const secret = scanDockerfile('Dockerfile', `FROM node:20\nARG TOKEN=${token}\nUSER node\n`);
+      expect(secret.findings.some((row) => row.ruleId === 'CONFIG-DOCKER-ARG-001')).toBe(true);
+      const hidden = scanDockerfile('Dockerfile', `FROM node:20 AS build\nARG TOKEN=${token}\nFROM node:20\nUSER node\n`);
+      expect(hidden.findings.some((row) => row.ruleId === 'CONFIG-DOCKER-ARG-001')).toBe(false);
+      const forwarded = scanDockerfile(
+        'Dockerfile',
+        `FROM node:20 AS build\nARG TOKEN=${token}\nFROM node:20\nCOPY --from=build /opt /opt\nUSER node\n`,
+      );
+      expect(forwarded.findings.some((row) => row.ruleId === 'CONFIG-DOCKER-ARG-001')).toBe(true);
+      process.env.FULLSHIELD_EXPERIMENTAL_DOCKERARG = '1';
+      const skipped = scanDockerfile('Dockerfile', `FROM node:20\nARG TOKEN=${token}\nUSER 0\n`);
+      expect(skipped.findings.some((row) => row.ruleId === 'CONFIG-DOCKER-ARG-001')).toBe(false);
+      expect(skipped.findings.some((row) => row.ruleId === DOCKER_USER)).toBe(true);
+      const rootUser = scanDockerfile('Dockerfile', 'FROM node:20\nUSER root\n');
+      expect(rootUser.findings.some((row) => row.ruleId === DOCKER_USER)).toBe(true);
+      const envFile = scanDockerfile('Dockerfile', 'FROM node:20\nCOPY secrets .env\nUSER node\n');
+      expect(envFile.findings.some((row) => row.ruleId === DOCKER_ENV_COPY)).toBe(true);
+      const spaced = scanDockerfile('Dockerfile', 'FROM node:20\r\n# note\r\n\r\nRUN echo early\r\nUSER node\r\n');
+      expect(spaced.clean).toBe(true);
+      expect(spaced.events).toEqual([]);
+    } finally {
+      delete process.env[FLAG];
+      delete process.env.FULLSHIELD_EXPERIMENTAL_DOCKERARG;
+    }
+  });
 });

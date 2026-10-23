@@ -24,4 +24,31 @@ describe('phase 273', () => {
     expect(phase.diffCallEdges(['a'], ['a'])).toEqual({ gained: [], lost: [] });
     expect(phase.diffCallEdges(['a'], ['b']).gained).toEqual(['b']);
   });
+
+  it('resolves computed keys and records an unknown callee', () => {
+    process.env[phase.FLAG] = '1';
+    expect(phase.analyzeCallGraph(':::').edges).toEqual([]);
+    expect(phase.diffCallEdges(['a', 'b'], ['b']).lost).toEqual(['a']);
+    const source = [
+      'const handlers = {',
+      '  q: function () { db.query(req.query.id + "x"); },',
+      '  r: () => db.query(`${req.query.id}`),',
+      '  s: function () { db.query("1"); },',
+      '};',
+      'function run(key) {',
+      '  handlers.q();',
+      '  handlers["r"]();',
+      '  handlers[key]();',
+      '  handlers[req.query.id]();',
+      '  handlers.missing();',
+      '  mystery();',
+      '}',
+      'run("q");',
+      'run(req.query.id);',
+    ].join('\n');
+    const graph = phase.analyzeCallGraph(source);
+    expect(graph.edges.some((edge) => edge.target === 'r')).toBe(true);
+    expect(graph.events.length).toBeGreaterThan(0);
+    delete process.env[phase.FLAG];
+  });
 });

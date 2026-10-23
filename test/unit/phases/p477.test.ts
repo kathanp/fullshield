@@ -4,6 +4,32 @@ import { spawnSync } from 'node:child_process';
 
 import { describe, expect, it } from 'vitest';
 
+import { fuzz, main, parseIr, plantHang, SEEDS } from '../../../src/phases/p477.js';
+
+const FUZZPARSE = 'FULLSHIELD_EXPERIMENTAL_FUZZPARSE';
+
+async function capture(run: () => Promise<number>): Promise<{ code: number; stdout: string; stderr: string }> {
+  let stdout = '';
+  let stderr = '';
+  const writeOut = process.stdout.write.bind(process.stdout);
+  const writeErr = process.stderr.write.bind(process.stderr);
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    stdout += String(chunk);
+    return true;
+  }) as typeof process.stdout.write;
+  process.stderr.write = ((chunk: string | Uint8Array) => {
+    stderr += String(chunk);
+    return true;
+  }) as typeof process.stderr.write;
+  try {
+    const code = await run();
+    return { code, stdout, stderr };
+  } finally {
+    process.stdout.write = writeOut;
+    process.stderr.write = writeErr;
+  }
+}
+
 const root = process.cwd();
 const script = join(root, 'scripts', 'phase477-fuzzparse.mjs');
 
@@ -40,5 +66,39 @@ describe('phase 477 parser fuzzer', () => {
     expect(harness.includes('node:vm')).toBe(false);
     expect(harness.includes('vm.run')).toBe(false);
     expect(harness.includes('vm.Script')).toBe(false);
+  }, 30_000);
+});
+
+describe('phase 477 module', () => {
+  it('parses seeds and reports reject, crash, and hang', async () => {
+    process.env[FUZZPARSE] = '1';
+    try {
+      expect(SEEDS.length).toBeGreaterThan(0);
+      expect(parseIr(SEEDS[0]!.source)).toBe('ok');
+      expect(parseIr('const =')).toBe('crash');
+      expect(['ok', 'reject', 'crash']).toContain(parseIr(1 as unknown as string));
+      const passed = await fuzz({ mutations: 1, parser: 'ir', fuelMs: 50 });
+      expect(passed.code).toBe(0);
+      expect(passed.text).toContain('fuzz parse passed');
+      expect((await fuzz({ mutations: 0, parser: 'reject', fuelMs: 50 })).text).toContain('zero successes');
+      expect((await fuzz({ mutations: 0, parser: 'crash', fuelMs: 50 })).text).toContain('failed case: crash');
+      const hang = await fuzz({ mutations: 0, parser: 'hang', fuelMs: 150 });
+      expect(hang.code).toBe(1);
+      expect(hang.text).toContain('failed case: hang');
+      await plantHang(30);
+      const ok = await capture(() => main(['--mutations', '0', '--parser', 'ir']));
+      expect(ok.code).toBe(0);
+      expect(ok.stdout).toContain('fuzz parse passed');
+      const bad = await capture(() => main(['--parser', 'crash']));
+      expect(bad.code).toBe(1);
+      expect(bad.stderr).toContain('failed case: crash');
+      const rejected = await capture(() => main(['--parser', 'reject']));
+      expect(rejected.code).toBe(1);
+      expect(rejected.stderr).toContain('zero successes');
+      expect((await capture(() => main(['--mutations']))).code).toBe(0);
+      expect((await capture(() => main(['--fuel-ms']))).code).toBe(0);
+    } finally {
+      delete process.env[FUZZPARSE];
+    }
   }, 30_000);
 });

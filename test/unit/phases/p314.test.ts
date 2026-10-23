@@ -45,4 +45,14 @@ describe('phase 314 ownership flow', () => {
     const cell = ownerCell(query({ filterKeys: 'unresolved', flow: 'may-alias' }), model);
     expect(cell).toBe('unknown');
   });
+
+  it('returns unknown when the model, the alias, or the origin is not an owner edge', () => {
+    process.env[FLAG] = '1';
+    expect(ownerCell(query(), undefined)).toBe('unknown');
+    expect(ownerCell(query(), { ownerField: 'accountOwner', understood: false })).toBe('unknown');
+    expect(ownerCell(query({ filterKeys: 'unknown' }), model)).toBe('unknown');
+    expect(ownerCell(query({ flow: 'must-alias', mustAliasOn: false }), model)).toBe('unknown');
+    expect(ownerCell(query({ flow: 'must-alias', mustAliasOn: true }), model)).toBe('owner-scoped');
+    expect(ownerCell(query({ origins: { accountOwner: 'request' }, lookupOrigin: 'principal' }), model)).toBe('unknown');
+  });
 });

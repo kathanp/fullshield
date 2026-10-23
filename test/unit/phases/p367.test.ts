@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { enabled, FLAG, FsError, PHASE_139_FLAG, readRegistrySources, registryFindings } from '../../../src/phases/p367.js';
+import { assertInsecureHosts, enabled, FLAG, FsError, homeNpmrcAllowed, PHASE_139_FLAG, readRegistrySources, registryFindings } from '../../../src/phases/p367.js';
 
 describe('phase 367 private registry', () => {
   it('adds nothing when the flag is off', () => {
@@ -58,5 +58,33 @@ describe('phase 367 private registry', () => {
     const source = readFileSync(new URL('../../../src/phases/p367.ts', import.meta.url), 'utf8');
     expect(source).not.toContain('node:http');
     expect(source).not.toContain('node:https');
+  });
+
+  it('accepts localhost, skips comments, and reports a host outside the allowlist', () => {
+    process.env[FLAG] = '1';
+    expect(assertInsecureHosts(['localhost', '127.0.0.1'])).toBeUndefined();
+    expect(homeNpmrcAllowed()).toBe(false);
+    const npmrc = [
+      '',
+      '# comment',
+      '; also',
+      'ignore=this',
+      '@scope:registry=https://npm.example.invalid/',
+      'registry=not a url',
+      'registry=https://:secret@npm.example.invalid/extra',
+      'registry=http://127.0.0.1:4873/',
+    ].join('\n');
+    const findings = registryFindings('.npmrc', npmrc, {
+      allowlist: ['127.0.0.1:4873'],
+      allowInsecureRegistryHosts: ['127.0.0.1'],
+    });
+    expect(findings.some((row) => row.severity === 'medium' && row.message.includes('npm.example.invalid'))).toBe(true);
+    expect(findings.some((row) => row.message.includes('http ('))).toBe(false);
+    expect(JSON.stringify(findings)).not.toContain('secret');
+    expect(JSON.stringify(findings)).toContain('redacted');
+    expect(readRegistrySources(null, null)).toEqual([]);
+    expect(readRegistrySources('registry=https://npm.example.invalid/\n', null, { allowlist: ['other.example'] }).length).toBeGreaterThan(0);
+    delete process.env[FLAG];
+    expect(readRegistrySources('registry=http://registry.example.invalid/', null)).toEqual([]);
   });
 });

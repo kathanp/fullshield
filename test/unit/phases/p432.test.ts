@@ -50,4 +50,24 @@ describe('phase 432 CycloneDX 1.6', () => {
       'components must be an array',
     ]);
   });
+
+  it('keeps a purl and a license on the 1.5 document and rejects a non-object', () => {
+    process.env[FLAG] = '1';
+    const doc = renderBom(request({
+      spec: '1.5',
+      components: [
+        { name: 'left-pad', version: '1.0.0', purl: 'pkg:npm/left-pad@1.0.0', license: 'MIT' },
+        { name: 'ms', version: '2.0.0', purl: 'pkg:npm/ms@2.0.0' },
+        { name: 'debug', version: '4.0.0', license: 'MIT' },
+      ],
+    }));
+    const components = doc.components as Array<Record<string, unknown>>;
+    expect(components[0]?.purl).toBe('pkg:npm/left-pad@1.0.0');
+    expect(components[0]?.licenses).toEqual([{ license: { id: 'MIT' } }]);
+    expect(components[2]?.licenses).toEqual([{ license: { id: 'MIT' } }]);
+    expect(validateCycloneDx16(null)).toEqual(['CycloneDX document must be an object']);
+    expect(validateCycloneDx16([])).toEqual(['CycloneDX document must be an object']);
+    expect(validateCycloneDx16({ bomFormat: 'nope', specVersion: '1.6', components: [] })).toContain('bomFormat must be "CycloneDX"');
+    delete process.env[FLAG];
+  });
 });

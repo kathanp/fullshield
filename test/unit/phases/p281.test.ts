@@ -17,4 +17,34 @@ describe('phase 281', () => {
     expect(phase.analyzeUrl('fetch(req.query.url);').findings.length).toBeGreaterThan(0);
     expect(phase.analyzeUrl('fetch("https://example.invalid/a");').findings).toEqual([]);
   });
+
+  it('classifies path, query, fragment, and URL constructors', () => {
+    process.env[phase.FLAG] = '1';
+    expect(phase.analyzeUrl(':::').findings).toEqual([]);
+    const source = [
+      'function f(req) {',
+      '  fetch(req.query.x);',
+      '  http.get("https://ex/" + req.query.x);',
+      '  fetch("https://ex" + req.query.x);',
+      '  fetch("https://ex/a?q=" + req.query.x);',
+      '  fetch("https://ex/a#f" + req.query.x);',
+      '  new URL(req.query.x);',
+      '  new URL(Number(req.query.x));',
+      '  new URL(Number(req.query.x), "https://ex/a/");',
+      '  fetch(mystery(req.query.x));',
+      '  fetch(other[name](req.query.x));',
+      '  notASink(req.query.x);',
+      '  new URL(...args);',
+      '  if (cond) { fetch(req.query.x); } else fetch(req.query.y);',
+      '  const u = "https://ex/" + req.query.x;',
+      '  request(u);',
+      '  fetch(...args);',
+      '}',
+    ].join('\n');
+    const contexts = phase.analyzeUrl(source).findings.map((row) => row.ssrfContext);
+    expect(contexts).toContain('path');
+    expect(contexts).toContain('query');
+    expect(contexts).toContain('fragment');
+    delete process.env[phase.FLAG];
+  });
 });

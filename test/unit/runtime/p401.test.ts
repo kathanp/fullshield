@@ -22,5 +22,16 @@ describe('phase 401 response masking', () => {
     expect(stripped.log).not.toContain(secret);
     const kept = maskResponse({ password: secret, name: 'ada' }, { strip: false });
     expect(kept.body.password).toBe(secret);
+    expect(responseFinding(['password', 'resetToken'], ['password', 'resetToken'], ['password'])?.field).toBe('resetToken');
+    expect(responseFinding(['secret'], ['name'])).toBeNull();
+    const nested = maskResponse(
+      { user: { secret, name: 'ada' }, password: secret, token: secret },
+      { strip: true, fields: ['token'], nested: ['user.secret', 'missing.secret', 'user'] },
+    );
+    expect(nested.body).not.toHaveProperty('user');
+    expect(nested.body).not.toHaveProperty('token');
+    expect(nested.body.password).toBe(secret);
+    expect(nested.log).not.toContain(secret);
+    expect(nested.log).toContain('stripped');
   });
 });

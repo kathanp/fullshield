@@ -42,4 +42,22 @@ describe('phase 428 stable fingerprints', () => {
     expect(baselineKey(sample({ witnessShape: 'db.query("SELECT * " + userId)' }))).not.toBe(baselineKey(left));
     expect(baselineKey(sample({ file: 'src/other.js' }))).not.toBe(baselineKey(left));
   });
+
+  it('keeps escaped quotes, backticks, and an unterminated string', () => {
+    process.env[FLAG] = '1';
+    expect(normalizeIdentifiers("a('b\\'c')")).toBe("v1('b\\'c')");
+    expect(normalizeIdentifiers('a`b`')).toBe('v1`b`');
+    expect(normalizeIdentifiers("a('bc")).toBe("v1('bc");
+    expect(normalizeIdentifiers('"ab\\\\')).toBe('"ab\\\\');
+    expect(normalizeIdentifiers('const foo')).toBe('const v1');
+    expect(normalizeIdentifiers('let bar')).toBe('let v1');
+    expect(normalizeIdentifiers('var baz')).toBe('var v1');
+    expect(normalizeIdentifiers('function qux')).toBe('function v1');
+    expect(normalizeIdentifiers('new Date')).toBe('new v1');
+    expect(normalizeIdentifiers('await value')).toBe('await v1');
+    expect(normalizeIdentifiers('async function run')).toBe('async function v1');
+    expect(normalizeIdentifiers('if (ok) else')).toBe('if (v1) else');
+    expect(normalizeIdentifiers('$a')).toBe('v1');
+    delete process.env[FLAG];
+  });
 });

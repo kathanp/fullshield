@@ -34,4 +34,26 @@ describe('phase 465', () => {
     const src = readFileSync(join(root, 'src/phases/p465.ts'), 'utf8');
     expect(src.includes('child_process')).toBe(false);
   });
+
+  it('reports root and secrets in a pm2 ecosystem file', () => {
+    process.env[FLAG] = '1';
+    try {
+      const text = `module.exports = { apps: [
+        { name: 'api', uid: 0, node_args: '--inspect', extra: true, env: { TOKEN: '${token}', COUNT: 1, ok: true, 1: 'x' } },
+        { user: 'root', node_args: 1 },
+        { User: 'root' },
+        { 'uid': 0 },
+        { name: 'plain' },
+        { ...{ skipped: true } },
+      ] };\n`;
+      const findings = scanUnits([{ path: 'ecosystem.config.js', text }]);
+      expect(findings.some((row) => row.ruleId === UNIT_ROOT)).toBe(true);
+      expect(findings.some((row) => row.ruleId === UNIT_SECRET)).toBe(true);
+      expect(findings.some((row) => row.ruleId === INSPECT_RULE)).toBe(true);
+      expect(JSON.stringify(findings)).not.toContain(token);
+      expect(scanUnits([{ path: 'ecosystem.config.js', text: 'const =' }])).toEqual([]);
+    } finally {
+      delete process.env[FLAG];
+    }
+  });
 });

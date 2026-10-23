@@ -43,4 +43,22 @@ describe('phase 292 fastify schema', () => {
     const comment = analyzeFastifySchema("// coerceTypes: true\nfastify.get('/c', { schema: { querystring: { type: 'object', properties: { name: { type: 'string' } } } } }, (req) => { db.query(req.query.name); });");
     expect(comment.findings[0]?.coerceTypes).toBe(false);
   });
+
+  it('skips schemas that are not objects and treats enums as safe', () => {
+    process.env[FLAG] = '1';
+    expect(analyzeFastifySchema(':::')).toEqual({ findings: [], events: [] });
+    const source = [
+      'const x = 1;',
+      'fastify.addSchema(1);',
+      'fastify.addSchema({ type: "object" });',
+      'fastify.listen();',
+      'fastify.get("/a", () => {});',
+      'fastify.post("/b", { schema: { body: { type: "object", properties: { flag: { type: "boolean" }, role: { enum: ["a"] }, code: { type: "string", pattern: "^[a-z]+$" }, n: { type: "number" } } } } }, function (req) { db.query(req.body.flag); db.query(req.body.role); db.query(req.body.missing); });',
+      'fastify.route({ schema: { headers: { type: "string" } } }, (req) => { db.query(req.headers.name); db.query(1); });',
+    ].join('\n');
+    const result = analyzeFastifySchema(source);
+    expect(result.findings.some((row) => row.field === 'missing')).toBe(true);
+    expect(result.findings.some((row) => row.field === 'flag')).toBe(false);
+    delete process.env[FLAG];
+  });
 });

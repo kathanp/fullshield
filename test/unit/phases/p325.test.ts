@@ -39,4 +39,20 @@ describe('phase 325 tenant isolation', () => {
     expect(stopped.some((row) => row.witness === 'edge stopped')).toBe(true);
     expect(tenantFindings([access({ query: query({ filterKeys: 'unresolved', flow: 'may-alias' }) })]).findings).toEqual([]);
   });
+
+  it('records a bypass and a dynamic include without a finding', () => {
+    process.env[FLAG] = '1';
+    const bypassed = tenantFindings([access({ bypass: 'admin' })]);
+    expect(bypassed.bypasses).toEqual(['admin']);
+    expect(bypassed.findings).toEqual([]);
+    const dynamic = tenantFindings([access({ dynamicInclude: true })]);
+    expect(dynamic.events[0]).toMatchObject({ code: 271, detail: 'dynamic include' });
+    expect(dynamic.findings).toEqual([]);
+    expect(tenantFindings([access({
+      authenticated: false,
+      query: query({ filterKeys: ['id'], origins: { id: 'request' }, lookupOrigin: 'request' }),
+    })]).findings).toEqual([]);
+    expect(tenantFindings([access({ relation: { literal: true, tenantOwned: true } })]).findings).toEqual([]);
+    expect(tenantFindings([access({ relation: { literal: false, tenantOwned: false } })]).findings).toEqual([]);
+  });
 });

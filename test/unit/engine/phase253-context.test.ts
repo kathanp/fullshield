@@ -40,4 +40,28 @@ describe('phase 253 context', () => {
     expect(contextFindings(recursive)).toHaveLength(1);
     expect(contextFindings(chain(12), 3).length).toBeGreaterThan(0);
   });
+
+  it('classifies binary arguments and saturates past the fixpoint cap', () => {
+    process.env[CONTEXT_FLAG] = '1';
+    const source = [
+      'function f(a, b, ...rest) {',
+      '  db.query(a + "x");',
+      '  db.query("x" + b);',
+      '  db.query(req.query.z + "x");',
+      '  db.query("x" + req.query.z);',
+      '  db.query(unknown + "x");',
+      '  db.exec(a);',
+      '  db.query(...args);',
+      '  other(a);',
+      '}',
+      'function g() { return 1; }',
+      'f(req.query.y, 1);',
+      'missing(req.query.y);',
+      'f("no", "no");',
+      'notACall;',
+    ].join('\n');
+    expect(contextFindings(source).some((row) => row.callee === 'f')).toBe(true);
+    expect(contextFindings(chain(4), 1).length).toBeGreaterThan(0);
+    delete process.env[CONTEXT_FLAG];
+  });
 });

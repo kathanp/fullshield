@@ -18,4 +18,19 @@ describe('phase 350', () => {
     expect(phase.bumpCompatibility({ current: '1.2.0', proposed: '2.0.0', imports: [] })).toBe('review');
     expect(phase.bumpCompatibility({ current: '1.2.0', proposed: '1.3.0', imports: [{ specifier: './ok', dynamic: false }], metadata: { exports: ['./ok'], declarations: [] } })).toBe('mechanical');
   });
+
+  it('returns not-computed for a dynamic import or missing metadata', () => {
+    process.env[phase.FLAG] = '1';
+    const dynamic = { current: '1.2.0', proposed: '1.3.0', imports: [{ specifier: './ok', dynamic: true }] };
+    expect(phase.bumpCompatibility(dynamic)).toBe('not-computed');
+    expect(phase.bumpCompatibility({ current: '1.2.0', proposed: '1.3.0', imports: [{ specifier: './ok', dynamic: false }] })).toBe('not-computed');
+    expect(phase.bumpCompatibility({ current: '1.2.0', proposed: '1.3.0', imports: [{ specifier: './ok', dynamic: false }], metadata: null })).toBe('not-computed');
+  });
+
+  it('reviews a missing export and accepts a subpath that the declarations still name', () => {
+    process.env[phase.FLAG] = '1';
+    const metadata = { exports: [] as string[], declarations: ['util'] };
+    expect(phase.bumpCompatibility({ current: '1.2.0', proposed: '1.3.0', imports: [{ specifier: 'pkg/gone', dynamic: false }], metadata })).toBe('review');
+    expect(phase.bumpCompatibility({ current: '1.2.0', proposed: '1.3.0', imports: [{ specifier: 'pkg/util', dynamic: false }], metadata })).toBe('mechanical');
+  });
 });

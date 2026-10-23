@@ -30,4 +30,14 @@ describe('phase 345', () => {
     expect(phase.errorSecretFindings([{ ...handler, redactsSecret: true }])).toEqual([]);
     expect(phase.errorSecretFindings([{ ...handler, value: 'err', env: 'development', redactsStack: false }])).toEqual([]);
   });
+
+  it('reports a production stack and ignores a logger sink', () => {
+    process.env[phase.FLAG] = '1';
+    expect(phase.errorSecretFindings([{ ...handler, value: 'err', env: 'production', redactsStack: false }])[0]?.witness).toBe('stack');
+    expect(phase.errorSecretFindings([{ ...handler, value: 'err-spread', env: 'unknown', redactsStack: false }])[0]?.witness).toBe('stack');
+    expect(phase.errorSecretFindings([{ ...handler, value: 'err', env: undefined, redactsStack: false }])).toHaveLength(1);
+    expect(phase.errorSecretFindings([{ ...handler, value: 'err', redactsStack: true }])).toEqual([]);
+    expect(phase.errorSecretFindings([{ ...handler, sink: 'logger.error', value: 'err', redactsStack: false }])).toEqual([]);
+    expect(phase.errorSecretFindings([{ ...handler, sink: 'other', value: 'secret-field' }])).toEqual([]);
+  });
 });

@@ -52,4 +52,25 @@ describe('phase 431 GitLab report files', () => {
     expect(result.unmapped).toEqual({ findings: [floating] });
     expect(validateGitLabSast({ vulnerabilities: [] })).toContain('header must name unmapped.json');
   });
+
+  it('rejects a non-object report and a vulnerability row that is not an object', () => {
+    process.env[FLAG] = '1';
+    const noCwe = emitGitLab([{ ...located, cwe: undefined, file: 'src/a.js', line: 4 }]);
+    const row = (noCwe.sast?.vulnerabilities as Array<Record<string, unknown>>)[0];
+    expect(row?.identifiers).toEqual([]);
+    expect(emitGitLab([{ ...floating, file: 'src/a.js' }]).unmapped).toEqual({ findings: [{ ...floating, file: 'src/a.js' }] });
+    expect(emitGitLab([{ ...floating, line: 3 }]).unmapped).toEqual({ findings: [{ ...floating, line: 3 }] });
+    expect(validateGitLabSast(null)).toEqual(['GitLab report must be an object']);
+    expect(validateGitLabSast([])).toEqual(['GitLab report must be an object']);
+    expect(validateGitLabSast('x')).toEqual(['GitLab report must be an object']);
+    const header = { header: { sidecar: SIDECAR }, vulnerabilities: 'nope' };
+    expect(validateGitLabSast(header)).toContain('vulnerabilities must be an array');
+    const partial = validateGitLabSast({
+      header: { sidecar: SIDECAR },
+      vulnerabilities: [null, { id: '1' }],
+    });
+    expect(partial).toContain('vulnerability must be an object');
+    expect(partial).toContain('missing category');
+    delete process.env[FLAG];
+  });
 });

@@ -15,6 +15,8 @@ describe('phase 390 prototype freeze', () => {
     const finding = prototypeFinding('__proto__', true, true);
     expect(finding?.ruleId).toBe('SAST-PROTO-001');
     expect(finding?.message).toContain('opt-in');
+    expect(prototypeFinding('user', true, true)?.key).toBe('user');
+    expect(prototypeFinding('user', false, false)).toBeNull();
   });
 
   it('freezes only when config asks, and import does not freeze builtins', () => {
@@ -28,5 +30,9 @@ describe('phase 390 prototype freeze', () => {
     const source = readFileSync(new URL('../../../src/runtime/exp/p390.ts', import.meta.url), 'utf8');
     expect(source).not.toMatch(/^Object\.freeze/m);
     expect(Object.isExtensible(Object.prototype)).toBe(true);
+    delete process.env[FLAG];
+    const again = { objectPrototype: {}, arrayPrototype: {}, functionPrototype: {} };
+    freezeBuiltins(again, true);
+    expect(Object.isFrozen(again.objectPrototype)).toBe(false);
   });
 });

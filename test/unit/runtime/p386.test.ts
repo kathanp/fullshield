@@ -22,4 +22,24 @@ describe('phase 386 windows paths', () => {
     expect(hookRejects('C:\\data', '\\\\other\\share', 'win32')).toBe(true);
     expect(hookRejects('C:\\data', '\\\\other\\share', 'posix')).toBe(false);
   });
+
+  it('classifies device, drive-relative, short, and alternate-data-stream forms', () => {
+    process.env[FLAG] = '1';
+    try {
+      expect(staticWindowsPath('\\\\?\\C:\\Windows', true, false)?.form).toBe('device');
+      expect(staticWindowsPath('\\\\.\\pipe', true, false)?.form).toBe('device');
+      expect(staticWindowsPath('C:foo', true, false)?.form).toBe('drive-relative');
+      expect(staticWindowsPath('PROGRA~1', true, false)?.form).toBe('short');
+      expect(staticWindowsPath('file.txt:stream', true, false)?.form).toBe('ads');
+      expect(staticWindowsPath('readme.txt', true, false)).toBeNull();
+      expect(staticWindowsPath('\\\\server\\share', false, false)).toBeNull();
+      expect(hookRejects('C:\\data\\', 'D:\\other', 'win32')).toBe(true);
+      expect(hookRejects('C:\\data', 'C:\\data', 'win32')).toBe(false);
+      expect(hookRejects('C:/data', 'C:/data/child', 'win32')).toBe(false);
+      expect(hookRejects('C:\\data', 'E:rel', 'win32')).toBe(true);
+    } finally {
+      delete process.env[FLAG];
+    }
+    expect(hookRejects('C:\\data', 'D:\\other', 'win32')).toBe(false);
+  });
 });

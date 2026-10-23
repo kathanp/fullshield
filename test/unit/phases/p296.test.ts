@@ -32,4 +32,26 @@ describe('phase 296 graphql', () => {
     expect(result.routes).toEqual(['GRAPHQL Query.user', 'GRAPHQL Query.other', 'GRAPHQL Mutation.set']);
     expect(result.findings.map((finding) => finding.route)).toEqual(['GRAPHQL Query.user']);
   });
+
+  it('follows template arguments and skips enum fields', () => {
+    process.env[FLAG] = '1';
+    expect(analyzeGraphql(':::')).toEqual({ findings: [], routes: [], events: [] });
+    const source = [
+      'const resolvers = {',
+      '  Query: {',
+      '    user: (parent, args) => { db.query(`select ${args.id}`); },',
+      '    kind(parent, args) { db.query(args.kind); },',
+      '    bare: (parent) => parent,',
+      '    short: (parent, args) => args.id,',
+      '  },',
+      '  skip: 1,',
+      '};',
+      'const schema = { kind: { enum: ["a"] }, other: { name: "x" } };',
+      'const unused = 1;',
+    ].join('\n');
+    const result = analyzeGraphql(source);
+    expect(result.findings.map((row) => row.route)).toEqual(['GRAPHQL Query.user']);
+    expect(result.routes).toContain('GRAPHQL Query.kind');
+    delete process.env[FLAG];
+  });
 });

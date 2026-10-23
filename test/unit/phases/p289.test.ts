@@ -33,4 +33,19 @@ describe('phase 289 cross request', () => {
     expect(result.findings).toEqual([]);
     expect(result.events.map((event) => event.kind)).toEqual(['dynamic-property']);
   });
+
+  it('links a session write to another route and a cache get', () => {
+    process.env[FLAG] = '1';
+    expect(analyzeCrossRequest(':::').findings).toEqual([]);
+    const source = [
+      'app.post("/in", (req) => { req.session.user = req.body.id; cache.set("card", req.query.x); cache.set(name, 1); });',
+      'app.get("/out", (req) => { res.send(req.session.user); res.write(cache.get("card")); });',
+      'app.get("/safe", (req) => { res.send(req.session.other); });',
+      'app.get(id, () => {});',
+    ].join('\n');
+    const result = analyzeCrossRequest(source);
+    expect(result.findings.map((row) => row.origin).sort()).toEqual(['cache', 'session']);
+    expect(result.events.length).toBeGreaterThan(0);
+    delete process.env[FLAG];
+  });
 });

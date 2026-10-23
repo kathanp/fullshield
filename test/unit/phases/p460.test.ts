@@ -30,4 +30,30 @@ describe('phase 460', () => {
     const baseline: PhaseFinding[] = [{ ruleId: SOURCEMAP_RULE, severity: 'low', file: 'next.config.js', line: 1, message: 'kept' }];
     expect(scanSourceMapConfig('next.config.js', 'module.exports = { productionBrowserSourceMaps: true };\n', baseline)).toEqual(baseline);
   });
+
+  it('reports devtool strings, an else branch, and a config that does not parse', () => {
+    process.env[FLAG] = '1';
+    try {
+      const devtool = scanSourceMapConfig('webpack.config.js', "module.exports = { devtool: 'source-map', productionServerSourceMaps: true, 'cheap': false };\n");
+      expect(devtool.some((row) => row.ruleId === SOURCEMAP_RULE)).toBe(true);
+      expect(scanSourceMapConfig('webpack.config.js', "module.exports = { devtool: 'eval', productionBrowserSourceMaps: false };\n")).toEqual([]);
+      const literal = scanSourceMapConfig('next.config.js', "module.exports = { 'productionBrowserSourceMaps': true, 1: true, computed: enabled };\n");
+      expect(literal.some((row) => row.ruleId === SOURCEMAP_RULE)).toBe(true);
+      const alt = scanSourceMapConfig(
+        'next.config.js',
+        "if (process.env.NODE_ENV !== 'production') {\n  module.exports = { devtool: 'eval' };\n} else {\n  module.exports = { productionBrowserSourceMaps: true };\n}\n",
+      );
+      expect(alt.some((row) => row.ruleId === SOURCEMAP_RULE)).toBe(true);
+      const baseline: PhaseFinding[] = [{ ruleId: SOURCEMAP_RULE, severity: 'low', file: 'next.config.js', line: 1, message: 'kept' }];
+      expect(scanSourceMapConfig('next.config.js', 'const =', baseline)).toEqual(baseline);
+      expect(scanSourceMapConfig('next.config.js', 'if (ready) {\n  module.exports = { productionBrowserSourceMaps: true };\n}\n')).toEqual([]);
+      expect(scanSourceMapConfig('next.config.js', "if (process.env.NODE_ENV === 'production') {\n  module.exports = { productionBrowserSourceMaps: true };\n}\n")).toEqual([]);
+      expect(scanSourceMapConfig('next.config.js', "if (NODE_ENV !== 'production') {\n  module.exports = { productionBrowserSourceMaps: true };\n}\n")).toEqual([]);
+      expect(scanSourceMapConfig('next.config.js', "if (process.env.NODE_ENV !== 'dev') {\n  module.exports = { productionBrowserSourceMaps: true };\n}\n")).toEqual([]);
+      expect(scanSourceMapConfig('next.config.js', "if (process.env.OTHER !== 'production') {\n  module.exports = { productionBrowserSourceMaps: true };\n}\n")).toEqual([]);
+      expect(scanSourceMapConfig('next.config.js', "if (env.NODE_ENV !== 'production') {\n  module.exports = { productionBrowserSourceMaps: true };\n}\n")).toEqual([]);
+    } finally {
+      delete process.env[FLAG];
+    }
+  });
 });

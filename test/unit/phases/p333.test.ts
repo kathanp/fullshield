@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { EMPTY_SHA256, enabled, entropyFindings, FLAG, thresholdOwnership } from '../../../src/phases/p333.js';
+import { EMPTY_SHA256, enabled, entropyFindings, entropyReject, FLAG, isMinifiedDensity, shannon, thresholdOwnership } from '../../../src/phases/p333.js';
 import { MINIFIED_MIN_BYTES } from '../../../src/phases/p363.js';
 
 const RANDOM = 'abcdefghijklmnopqrstuvwxyz012345';
@@ -36,5 +36,20 @@ describe('phase 333 entropy', () => {
     expect(() => thresholdOwnership({ author: 'Ada', files: ['quality/entropy-thresholds.json'] })).not.toThrow();
     const source = readFileSync(new URL('../../../src/phases/p333.ts', import.meta.url), 'utf8');
     expect(source.includes('writeFile')).toBe(false);
+  });
+
+  it('rejects an empty span, a short file, a matched format, and a low-entropy span', () => {
+    process.env[FLAG] = '1';
+    expect(shannon('')).toBe(0);
+    expect(shannon('aa')).toBe(0);
+    expect(isMinifiedDensity('short')).toBe(false);
+    expect(isMinifiedDensity('a\n'.repeat(30_000))).toBe(false);
+    expect(entropyReject({ span: RANDOM, file: 'a.js', line: 1, formatMatched: true })).toBe('format');
+    expect(entropyReject({ span: 'abc', file: 'a.js', line: 1 })).toBe('hex-color');
+    expect(entropyReject({ span: 'abcdefff', file: 'a.js', line: 1 })).toBe('hex-color');
+    expect(entropyReject({ span: 'aaaa', file: 'a.js', line: 1 })).toBe('below-threshold');
+    expect(entropyFindings([{ span: '   ', file: 'a.js', line: 1 }])).toEqual([]);
+    expect(() => thresholdOwnership({ author: 'automation bot', files: ['quality\\entropy-thresholds.json'] })).toThrow(/human-owned/);
+    expect(() => thresholdOwnership({ author: 'cursor', files: ['src/app.ts'] })).not.toThrow();
   });
 });

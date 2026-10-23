@@ -31,5 +31,13 @@ describe('phase 399 graphql caps', () => {
     expect(counted.reject).toBe(true);
     const finding = graphqlStatic('type Query { hero: String } # graphql', null);
     expect(finding?.severity).toBe('info');
+    expect(graphqlGuard(deep(20), { exempt: ['abc'] }, 'abc').reject).toBe(false);
+    expect(graphqlGuard('mutation { a { b } } # note\nsubscription { c }').reject).toBe(false);
+    expect(graphqlGuard('}}}').depth).toBe(0);
+    expect(graphqlGuard('').fields).toBe(0);
+    expect(graphqlStatic('nope', 'depth: 1\nfields: 2')).toBeNull();
+    expect(graphqlStatic('type Query { hero: String } # graphql', 'depth: 1')).not.toBeNull();
+    delete process.env[FLAG];
+    expect(graphqlStatic('graphql', null)).toBeNull();
   });
 });

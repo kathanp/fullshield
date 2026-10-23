@@ -47,4 +47,24 @@ describe('phase 378 supply-chain policy', () => {
     process.env[FLAG] = '1';
     expect(loadSupplyPolicy(null).policy).toBeNull();
   });
+
+  it('rejects malformed JSON, a non-object, a bad list, and an invalid pin mode', () => {
+    process.env[FLAG] = '1';
+    expect(() => loadSupplyPolicy('{')).toThrow(FsError);
+    expect(() => loadSupplyPolicy('null')).toThrow(/object/);
+    expect(() => loadSupplyPolicy('[]')).toThrow(/object/);
+    expect(() => loadSupplyPolicy('"x"')).toThrow(/object/);
+    expect(() => loadSupplyPolicy('{"allowedRegistries":"nope"}')).toThrow(/array of strings/);
+    expect(() => loadSupplyPolicy('{"allowedScriptCapabilities":[1]}')).toThrow(/array of strings/);
+    expect(() => loadSupplyPolicy('{"secretAllow":[true]}')).toThrow(/array of strings/);
+    expect(() => loadSupplyPolicy('{"privateRegistryHosts":{}}')).toThrow(/array of strings/);
+    expect(() => loadSupplyPolicy('{"pinMode":"loose"}')).toThrow(/pinMode/);
+    expect(() => loadSupplyPolicy('{"pinMode":1}')).toThrow(/pinMode/);
+    expect(() => loadSupplyPolicy(valid, 'http://example.invalid/policy.json')).toThrow(/remote/);
+    const loaded = loadSupplyPolicy('{"pinSeverity":"low"}');
+    expect(loaded.policy?.pinSeverity).toBe('low');
+    expect(loaded.policy?.pinMode).toBeNull();
+    expect(loadSupplyPolicy('{}').policy?.allowedRegistries).toEqual([]);
+    delete process.env[FLAG];
+  });
 });

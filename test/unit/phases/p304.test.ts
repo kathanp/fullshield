@@ -24,4 +24,24 @@ describe('phase 304 electron ipc', () => {
     const emitted = analyzeIpc("ipcMain.emit('open', null, 'fixed');", { sandbox: false, nodeIntegration: false });
     expect(emitted.findings).toEqual([]);
   });
+
+  it('records a computed bridge and the sink names that use a later argument', () => {
+    process.env[FLAG] = '1';
+    const result = analyzeIpc(`
+      contextBridge.exposeInMainWorld('api');
+      contextBridge.exposeInMainWorld('api', api);
+      contextBridge.exposeInMainWorld('api', { open() {}, [key]: 1, ...rest });
+      ipcMain.handle('open', (event, file) => { fs.readFileSync(file.name); exec(file); execSync(path.join(file)); open(file); (0, readFile)(file); readFile(...file); });
+      ipcMain.on(channel, (event, file) => { readFile(file); });
+      ipcMain.handle('noarg', (event) => { readFile('x'); });
+      ipcMain.handle('literal', (event, file) => { readFile(1); });
+      handle('x', (event, file) => { readFile(file); });
+      ipcMain.handle('x', notFn);
+    `, { sandbox: true, nodeIntegration: false }, { file: 'main.js' });
+    expect(result.events.map((event) => event.reason)).toEqual(['computed expose', 'computed expose', 'computed expose']);
+    expect(result.findings.find((finding) => finding.route === 'IPC open')).toMatchObject({ file: 'main.js', confidence: 'high', witness: 'bridge' });
+    expect(result.findings.find((finding) => finding.route === 'IPC literal')).toBeUndefined();
+    expect(result.findings.find((finding) => finding.route === 'IPC noarg')).toBeUndefined();
+    expect(analyzeIpc('???', { sandbox: true, nodeIntegration: false }).findings).toEqual([]);
+  });
 });

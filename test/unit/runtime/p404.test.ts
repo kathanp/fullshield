@@ -17,6 +17,14 @@ describe('phase 404 runtime config', () => {
     process.env[FLAG] = '1';
     expect(validateConfig({ mode: 'monitor', advisoryMaxAge: '48h' }).listen).toBe(true);
     expect(() => validateConfig({ ssrfAllow: ['169.254.169.254'] })).toThrow(/metadata/);
+    expect(() => validateConfig({ mode: 'block', fraction: 0 })).toThrow(/monitor logger/);
+    expect(() => validateConfig({ redis: 'redis' })).toThrow(/no URL/);
+    expect(() => validateConfig({ redis: 'redis', redisUrl: '' })).toThrow(/no URL/);
+    expect(validateConfig({ mode: 'block', fraction: 0, monitorLogger: true }).listen).toBe(true);
+    expect(validateConfig({ redis: 'redis', redisUrl: 'redis://local' }).listen).toBe(true);
+    expect(validateConfig({ ssrfAllow: ['10.0.0.1'] }).listen).toBe(true);
+    expect(validateConfig({ ssrfAllow: 'nope' }).listen).toBe(true);
+    expect(validateConfig({ mode: 'block', fraction: 1 }).listen).toBe(true);
   });
 
   it('uses one schema for a scanner fixture and a runtime fixture', () => {

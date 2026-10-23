@@ -31,4 +31,22 @@ describe('phase 323 cors', () => {
     const unknown = corsFindings({ file: 'a.js', line: 6, origin: { kind: 'regex', source: '(evil)\\1' }, credentials: false });
     expect(unknown.findings[0]?.message.toLowerCase()).not.toContain('safe');
   });
+
+  it('classifies literals, functions, fuel, and a regex that does not name a host', () => {
+    process.env[FLAG] = '1';
+    expect(corsFindings({ file: 'a.js', line: 1, origin: { kind: 'reflect-request' }, credentials: false }).findings).toEqual([]);
+    expect(corsFindings({ file: 'a.js', line: 1, origin: { kind: 'literals', values: ['https://app.example'] }, credentials: false }).findings).toEqual([]);
+    expect(corsFindings({ file: 'a.js', line: 1, origin: { kind: 'literals', values: ['null'] }, credentials: false }).findings[0]?.witness).toBe('null');
+    expect(corsFindings({ file: 'a.js', line: 1, origin: { kind: 'null' }, credentials: false }).findings[0]?.witness).toBe('null');
+    expect(corsFindings({ file: 'a.js', line: 1, origin: { kind: 'function', identity: true }, credentials: true }).findings).toEqual([]);
+    expect(corsFindings({ file: 'a.js', line: 1, origin: { kind: 'function', identity: false }, credentials: false }).findings[0]?.witness).toBe('function');
+    const fuel = corsFindings({ file: 'a.js', line: 1, origin: { kind: 'regex', source: 'app\\.example' }, credentials: false, fuel: 0 });
+    expect(fuel.findings[0]?.witness).toBe('fuel');
+    expect(fuel.events[0]?.detail).toContain('fuel');
+    expect(corsFindings({ file: 'a.js', line: 1, origin: { kind: 'regex', source: '(' }, credentials: false }).findings[0]?.confidence).toBe('low');
+    expect(corsFindings({ file: 'a.js', line: 1, origin: { kind: 'regex', source: '.*' }, credentials: false }).findings[0]?.confidence).toBe('low');
+    const loose = corsFindings({ file: 'a.js', line: 1, origin: { kind: 'regex', source: 'app\\.example' }, credentials: false });
+    expect(loose.findings[0]?.severity).toBe('medium');
+    expect(loose.findings[0]?.witness.length).toBeGreaterThan(0);
+  });
 });

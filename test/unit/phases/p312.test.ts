@@ -46,4 +46,22 @@ describe('phase 312 authorization', () => {
     const first = out[0];
     expect(first && 'authz' in first ? first.authz.kind : '').toBe('none');
   });
+
+  it('recognizes permission, policy, and ownership checks and a computed name', () => {
+    process.env[FLAG] = '1';
+    const names = ['can', 'CASL', 'Ability', 'authorize', 'casbin', 'enforcer', 'isOwner', 'ownership'] as const;
+    for (const name of names) {
+      const out = annotateSinks([sink([{ name, order: 1, shape: 'return-or-throw', catalog: true, computed: false }])]);
+      const first = out[0];
+      expect(first && 'authz' in first ? first.authz.kind : '').not.toBe('none');
+    }
+    const computed = annotateSinks([sink([{ name: 'hasRole', order: 1, shape: 'return-or-throw', catalog: true, computed: true }])]);
+    expect(computed[0] && 'authz' in computed[0] ? computed[0].authz : undefined).toMatchObject({ kind: 'unknown', check: 'hasRole' });
+    const other = annotateSinks([sink([{ name: 'hasRole', order: 1, shape: 'other', catalog: true, computed: false }])]);
+    expect(other[0] && 'authz' in other[0] ? other[0].authz.kind : '').toBe('none');
+    const same = annotateSinks([sink([{ name: 'hasRole', order: 5, shape: 'return-or-throw', catalog: true, computed: false }])]);
+    expect(same[0] && 'authz' in same[0] ? same[0].authz.kind : '').toBe('none');
+    const missing = annotateSinks([sink([{ name: 'custom', order: 1, shape: 'return-or-throw', catalog: true, computed: false }])]);
+    expect(missing[0] && 'authz' in missing[0] ? missing[0].authz.kind : '').toBe('none');
+  });
 });

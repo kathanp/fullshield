@@ -22,5 +22,13 @@ describe('phase 447', () => {
     const on = emitScanJson({ ...doc, experimental: { note: 'local' } });
     expect(on.keys).toContain('experimental');
     expect(on.keys).not.toContain('schemaVersion');
+    expect(emitScanJson(doc).json).toContain('experimental');
+    expect(validateScanDocument(null)).toEqual(['scan document must be an object']);
+    expect(validateScanDocument([])).toEqual(['scan document must be an object']);
+    expect(validateScanDocument('nope')).toEqual(['scan document must be an object']);
+    expect(validateScanDocument({ summary: {}, metadata: {} })).toEqual(['missing findings']);
+    expect(validateScanDocument({ findings: [], summary: {} })).toEqual(['missing metadata']);
+    expect(() => assertSemverCompatible([...STABLE_REQUIRED], [...STABLE_REQUIRED])).not.toThrow();
+    delete process.env[FLAG];
   });
 });

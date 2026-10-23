@@ -45,4 +45,18 @@ describe('phase 319 session configuration', () => {
     expect(sessionFindings([cookie({ name: 'csrf', httpOnly: false })]).some((row) => row.ruleId === 'CONFIG-SESSION-HTTPONLY-001')).toBe(false);
     expect(sessionFindings([cookie({ name: 'token', httpOnly: false })]).some((row) => row.ruleId === 'CONFIG-SESSION-HTTPONLY-001')).toBe(true);
   });
+
+  it('keeps a missing secure cookie and skips extra csrf names', () => {
+    process.env[FLAG] = '1';
+    const dev = sessionFindings([cookie({ sameSite: undefined, secure: undefined, envLiteral: 'development' })]);
+    expect(dev.some((row) => row.ruleId === 'CONFIG-SESSION-SAMESITE-001')).toBe(true);
+    expect(dev.some((row) => row.message.includes('development literal'))).toBe(true);
+    const prod = sessionFindings([cookie({ secure: false, envLiteral: 'production' })]);
+    expect(prod.some((row) => row.ruleId === 'CONFIG-SESSION-SECURE-001' && !row.message.includes('development literal'))).toBe(true);
+    expect(sessionFindings([cookie({ name: '_csrf', httpOnly: false })]).some((row) => row.ruleId === 'CONFIG-SESSION-HTTPONLY-001')).toBe(false);
+    expect(sessionFindings([cookie({ name: 'xsrf', httpOnly: false })], { extraCsrfNames: ['xsrf'] }).some((row) => row.ruleId === 'CONFIG-SESSION-HTTPONLY-001')).toBe(false);
+    const longSecret = 'a'.repeat(32);
+    expect(sessionFindings([cookie({ secret: { kind: 'literal', value: longSecret } })]).some((row) => row.ruleId === 'CONFIG-SESSION-SECRET-001')).toBe(false);
+    expect(sessionFindings([cookie({ secret: undefined, saveUninitialized: false })]).some((row) => row.ruleId === 'CONFIG-SESSION-SECRET-001')).toBe(false);
+  });
 });

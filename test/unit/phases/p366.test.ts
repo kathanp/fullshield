@@ -41,4 +41,21 @@ describe('phase 366 public scope', () => {
       }),
     ).toEqual([]);
   });
+
+  it('ignores an unscoped name, a bad url, another host, and a public root whose scope does not match', () => {
+    process.env[FLAG] = '1';
+    expect(publicScopeFindings({ ...base, dependencyName: 'left-pad', rootName: 'app', rootPrivate: false })).toEqual([]);
+    expect(publicScopeFindings({ ...base, dependencyName: '@noslash', rootName: 'app', rootPrivate: false })).toEqual([]);
+    expect(publicScopeFindings({ ...base, resolved: 'not a url' })).toEqual([]);
+    expect(publicScopeFindings({ ...base, resolved: 'file:./pkg.tgz' })).toEqual([]);
+    expect(publicScopeFindings({ ...base, resolved: 'https://npm.example.invalid/pkg.tgz' })).toEqual([]);
+    expect(publicScopeFindings({ ...base, rootPrivate: false, rootName: '@other/app', dependencyName: '@root/pkg' })).toEqual([]);
+    const matched = publicScopeFindings({ ...base, rootPrivate: false, rootName: '@root/app', dependencyName: '@root/pkg' });
+    expect(matched).toHaveLength(1);
+    process.env[POLICY_FLAG] = '1';
+    expect(publicScopeFindings({ ...base, policyPrivateHosts: ['npm.example.invalid'] })).toHaveLength(1);
+    expect(publicScopeFindings({ ...base, policyPrivateHosts: null })).toHaveLength(1);
+    delete process.env[FLAG];
+    delete process.env[POLICY_FLAG];
+  });
 });

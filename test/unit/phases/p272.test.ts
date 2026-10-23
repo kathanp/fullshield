@@ -67,4 +67,28 @@ describe('phase 272 points-to', () => {
     expect(overflow.calls.every((call) => call.sink === false)).toBe(true);
     expect(overflow.variables.a).toEqual(['unknown']);
   });
+
+  it('tracks class constructors, assignments, and unknown values', () => {
+    process.env[FLAG] = '1';
+    expect(analyzePointsTo(':::').findings).toEqual([]);
+    const source = [
+      "const pg = require('pg');",
+      'class Service { constructor(db) { this.db = db; } }',
+      'class Empty {}',
+      'function make(db) {',
+      '  if (flag) { return new Service(db); }',
+      '  return { field: db, query(s) { return s; } };',
+      '}',
+      'let client;',
+      'client = new Service(new pg.Pool());',
+      'const lit = 1;',
+      'const dyn = client[name];',
+      'const ret = make(client);',
+      'client.db.query("x");',
+      'other(lit);',
+    ].join('\n');
+    const result = analyzePointsTo(source);
+    expect(result.calls.length).toBeGreaterThan(0);
+    delete process.env[FLAG];
+  });
 });

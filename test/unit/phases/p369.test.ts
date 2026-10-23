@@ -44,5 +44,29 @@ describe('phase 369 VEX evidence', () => {
     const document = buildVex([{ id: 'FIXTURE-SYMBOL', reachability: 'symbol-not-called', witness: 'export unused' }]);
     expect(document.statements[0]?.justification).toBe('export unused');
     expect(document.statements[0]?.justification).not.toContain(DYNAMIC_IMPORT_LIMIT);
+    const bad = {
+      statements: [{ id: 'FIXTURE-SYMBOL', status: 'fixed', reachability: 'reachable', evidence: '', justification: '' }],
+      remainInScan: [],
+    };
+    expect(validateVex(bad as unknown as Parameters<typeof validateVex>[0])).toEqual([
+      'FIXTURE-SYMBOL lacks evidence',
+      'FIXTURE-SYMBOL status',
+      'FIXTURE-SYMBOL class',
+    ]);
+  });
+
+  it('keeps a blank witness in the scan and omits the dynamic-import limit for a symbol', () => {
+    process.env[FLAG] = '1';
+    delete process.env[DYNAMIC_IMPORT_FLAG];
+    const symbol = buildVex([{ id: 'FIXTURE-SYMBOL-OFF', reachability: 'symbol-not-called', witness: 'export unused' }]);
+    expect(symbol.statements[0]?.justification).toBe('export unused');
+    const blank = buildVex([{ id: 'FIXTURE-BLANK', reachability: 'not-imported', witness: '' }]);
+    expect(blank.remainInScan).toEqual(['FIXTURE-BLANK']);
+    const missing = validateVex({
+      statements: [{ id: 'D', status: 'not_affected', reachability: 'symbol-not-called', evidence: undefined as unknown as string, justification: '' }],
+      remainInScan: [],
+    });
+    expect(missing).toContain('D lacks evidence');
+    delete process.env[FLAG];
   });
 });

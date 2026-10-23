@@ -42,7 +42,8 @@ const HEADER = 'local unreviewed counts';
 
 export function renderTrend(rows: readonly TrendRow[], options: TrendOptions): TrendResult {
   if (!enabled()) {
-    return { exitCode: 1, code: 'FS-E', text: 'FS-E trend is experimental', json: null, startedScan: false };
+    const err = new FsError('trend is experimental');
+    return { exitCode: 1, code: err.code, text: `${err.code} ${err.message}`, json: null, startedScan: false };
   }
   const startedScan = options.scan === true;
   const body = rows.map((row) => `${row.scanId} ${row.ruleId} ${row.count}`).join('\n');

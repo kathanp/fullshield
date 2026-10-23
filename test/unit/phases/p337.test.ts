@@ -33,4 +33,17 @@ describe('phase 337 dockerfile args', () => {
     const echoed = `FROM node:20\nARG SECRET=${TOKEN}\nRUN echo $SECRET\n`;
     expect(dockerFindings('Dockerfile', echoed, formats).findings[0]?.severity).toBe('high');
   });
+
+  it('treats a missing stage as incomplete and ignores an ARG that is not a secret', () => {
+    process.env[FLAG] = '1';
+    expect(dockerFindings('Dockerfile', 'RUN echo hello\n', formats)).toEqual({ findings: [], events: [] });
+    const plain = dockerFindings('Dockerfile', 'FROM scratch\nARG NAME\nENV MODE=dev\n', formats);
+    expect(plain.findings).toEqual([]);
+    const missing = dockerFindings('Dockerfile', `FROM node:20 AS final\nARG SECRET=${TOKEN}\nCOPY --from=ghost /src /src\nRUN --mount=type=secret,id=npmrc npm ci\n`, formats);
+    expect(missing.findings[0]?.severity).toBe('high');
+    expect(missing.events.some((event) => event.detail === 'stage graph incomplete')).toBe(true);
+    const cycle = `FROM node:20 AS one\nARG SECRET=${TOKEN}\nCOPY --from=two /a /a\nFROM node:20 AS two\nCOPY --from=one /b /b\n`;
+    expect(dockerFindings('Dockerfile', cycle, formats).findings[0]?.witness).toBe('final');
+    expect(dockerFindings('Dockerfile', `FROM node:20\nARG SECRET=${TOKEN}\nRUN echo $SECRET\n`, formats).findings[0]?.witness).toBe('echo');
+  });
 });

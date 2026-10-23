@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { enabled, FLAG, readLockedVersion, resetVersionCache, selectRow } from '../../../src/phases/p310.js';
+import { enabled, FLAG, readLockedVersion, resetVersionCache, satisfiesRange, selectRow } from '../../../src/phases/p310.js';
 
 const ROWS = [
   { id: 'express-4', appliesTo: '>=4 <5' },
@@ -54,5 +54,63 @@ describe('phase 310 version selector', () => {
     const assumed = selectRow(ROWS, null, 'node_modules/deleted');
     expect(assumed.versionAssumed).toBe(true);
     expect(assumed.row?.id).toBe('express-5');
+  });
+
+  it('rejects a lockfile that is not a package map', () => {
+    expect(readLockedVersion('{', 'node_modules/express')).toBeNull();
+    expect(readLockedVersion('null', 'node_modules/express')).toBeNull();
+    expect(readLockedVersion('[]', 'node_modules/express')).toBeNull();
+    expect(readLockedVersion('{"packages":null}', 'node_modules/express')).toBeNull();
+    expect(readLockedVersion('{"packages":{"node_modules/express":null}}', 'node_modules/express')).toBeNull();
+    expect(readLockedVersion('{"packages":{"node_modules/express":{}}}', 'node_modules/express')).toBeNull();
+    expect(readLockedVersion('{"packages":{"node_modules/express":{"version":1}}}', 'node_modules/express')).toBeNull();
+  });
+
+  it('matches caret, tilde, and exact ranges and assumes a non-semver version', () => {
+    expect(satisfiesRange('1.2.3', '*')).toBe(true);
+    expect(satisfiesRange('1.2.3', 'x')).toBe(true);
+    expect(satisfiesRange('1.2.3', '^1.2.0')).toBe(true);
+    expect(satisfiesRange('2.0.0', '^1.2.0')).toBe(false);
+    expect(satisfiesRange('1.2.0', '^1.2.3')).toBe(false);
+    expect(satisfiesRange('0.2.3', '^0.2.1')).toBe(true);
+    expect(satisfiesRange('0.3.0', '^0.2.1')).toBe(false);
+    expect(satisfiesRange('0.0.1', '^0.0.1')).toBe(true);
+    expect(satisfiesRange('0.0.2', '^0.0.1')).toBe(false);
+    expect(satisfiesRange('1.2.3', '^nope')).toBe(false);
+    expect(satisfiesRange('1.2.5', '~1.2.3')).toBe(true);
+    expect(satisfiesRange('1.3.0', '~1.2.3')).toBe(false);
+    expect(satisfiesRange('1.2.3', '~nope')).toBe(false);
+    expect(satisfiesRange('1.2.3', '>=1.2.3')).toBe(true);
+    expect(satisfiesRange('1.2.2', '>=1.2.3')).toBe(false);
+    expect(satisfiesRange('1.3.0', '>=1.4.0')).toBe(false);
+    expect(satisfiesRange('2.0.0', '>=1.9.0')).toBe(true);
+    expect(satisfiesRange('1.0.1', '>1.0.0')).toBe(true);
+    expect(satisfiesRange('1.0.0', '>1.0.0')).toBe(false);
+    expect(satisfiesRange('1.0.0', '<=1.0.0')).toBe(true);
+    expect(satisfiesRange('1.0.1', '<=1.0.0')).toBe(false);
+    expect(satisfiesRange('0.9.0', '<1.0.0')).toBe(true);
+    expect(satisfiesRange('1.0.0', '<1.0.0')).toBe(false);
+    expect(satisfiesRange('1.2.3', '>=nope')).toBe(false);
+    expect(satisfiesRange('1.2.3', '>nope')).toBe(false);
+    expect(satisfiesRange('1.2.3', '<=nope')).toBe(false);
+    expect(satisfiesRange('1.2.3', '<nope')).toBe(false);
+    expect(satisfiesRange('1.2.3', '1.x')).toBe(true);
+    expect(satisfiesRange('1.2.3', '1.*')).toBe(true);
+    expect(satisfiesRange('2.0.0', '1.x')).toBe(false);
+    expect(satisfiesRange('v1.2.3', '1.2.3')).toBe(true);
+    expect(satisfiesRange('1.2', '1.2.0')).toBe(true);
+    expect(satisfiesRange('1.2.4', '1.2.3')).toBe(false);
+    expect(satisfiesRange('git+https://example.invalid/pkg.git', '>=1')).toBe(false);
+    expect(satisfiesRange('not-a-version', '>=1')).toBe(false);
+    process.env[FLAG] = '1';
+    expect(selectRow(ROWS, 'latest', 'node_modules/latest').row?.id).toBe('express-5');
+    expect(selectRow(ROWS, 'github:expressjs/express', 'node_modules/github').versionAssumed).toBe(true);
+    expect(selectRow([], null, 'node_modules/empty').row).toBeNull();
+    const tied = selectRow([
+      { id: 'star', appliesTo: '*' },
+      { id: 'four-a', appliesTo: '>=4 <5' },
+      { id: 'four-b', appliesTo: '>=4.1 <5' },
+    ], null, 'node_modules/tied');
+    expect(tied.row?.id).toBe('four-b');
   });
 });

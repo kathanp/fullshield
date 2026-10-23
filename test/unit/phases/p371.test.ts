@@ -71,4 +71,40 @@ describe('phase 371 pin policy', () => {
     process.env[POLICY_FLAG] = '1';
     expect(() => loadSupplyPolicy('{"pinMode":"exact","pinSeverity":"critical"}')).toThrow(FsError);
   });
+
+  it('emits the lower float id for an open range and skips a bounded range', () => {
+    process.env[FLAG] = '1';
+    process.env[FLOAT_FLAG] = '1';
+    const policy = {
+      allowedRegistries: [],
+      allowedScriptCapabilities: [],
+      pinMode: 'exact' as const,
+      secretAllow: [],
+      privateRegistryHosts: [],
+      pinSeverity: null,
+    };
+    const open = pinPolicyFindings(
+      [
+        { name: 'a', spec: '>=1.0.0' },
+        { name: 'b', spec: '>1.0.0' },
+        { name: 'c', spec: 'x' },
+        { name: 'd', spec: 'X' },
+        { name: 'e', spec: 'latest' },
+        { name: 'f', spec: '' },
+        { name: 'g', spec: '^1.2.3' },
+        { name: 'h', spec: '>=1.0.0 <2.0.0' },
+        { name: 'i', spec: '1.2.3-beta.1' },
+        { name: 'j', spec: '1.2.3+build.1' },
+      ],
+      policy,
+    );
+    expect(open.filter((row) => row.ruleId === 'DEPS-FLOAT-002').map((row) => row.name)).toEqual(['a', 'b']);
+    expect(open.filter((row) => row.ruleId === 'DEPS-FLOAT-001').map((row) => row.name)).toEqual(['c', 'd', 'e', 'f']);
+    expect(open.filter((row) => row.name === 'g').map((row) => row.ruleId)).toEqual(['DEPS-PIN-POLICY-001']);
+    expect(open.filter((row) => row.name === 'h').map((row) => row.ruleId)).toEqual(['DEPS-PIN-POLICY-001']);
+    expect(open.filter((row) => row.name === 'i' || row.name === 'j')).toEqual([]);
+    expect(pinPolicyFindings([{ name: 'left-pad', spec: '^1.0.0' }], { ...policy, pinMode: 'range' })).toEqual([]);
+    delete process.env[FLAG];
+    delete process.env[FLOAT_FLAG];
+  });
 });

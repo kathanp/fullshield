@@ -39,4 +39,20 @@ describe('phase 322 csrf', () => {
     expect(csrfFindings([route({ authKind: 'jwt' })])).toEqual([]);
     expect(csrfFindings([route({ method: 'GET' })])).toEqual([]);
   });
+
+  it('records an absent SameSite and a header that is outside the catalog', () => {
+    process.env[FLAG] = '1';
+    const absent = csrfFindings([route()]);
+    expect(absent[0]?.witness).toBe('sameSite=absent');
+    expect(csrfFindings([route({ method: 'post' })]).length).toBe(1);
+    expect(csrfFindings([route({ authKind: 'passport:local' })]).length).toBe(1);
+    expect(csrfFindings([route({ authKind: 'passport:local', passportSession: false })])).toEqual([]);
+    expect(csrfFindings([route({ tokenCompare: true })])).toEqual([]);
+    expect(csrfFindings([route({ customHeader: 'x-csrf', headerDominates: true })])).toEqual([]);
+    expect(csrfFindings([route({ customHeader: 'x-csrf', headerDominates: true })], { headerNames: ['x-csrf'] })).toEqual([]);
+    const unknown = csrfFindings([route({ customHeader: 'x-other' })], { headerNames: ['x-csrf'] });
+    expect(unknown[0]?.message).toContain('not in the catalog');
+    expect(csrfFindings([route({ method: 'PURGE' })]).length).toBe(0);
+    expect(csrfFindings([route({ method: 'PURGE' })], { methods: ['purge'] }).length).toBe(1);
+  });
 });

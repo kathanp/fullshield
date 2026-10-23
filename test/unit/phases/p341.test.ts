@@ -58,4 +58,15 @@ describe('phase 341 allowlist', () => {
     const wrongPrefix = JSON.stringify({ entries: [{ fingerprint: row.fingerprint, prefix: 'nope', suffix: row.suffix, reason: 'mismatch', ruleId: row.ruleId }] });
     expect(applyAllowFile([row], () => wrongPrefix, formats, ['SECRETS-FORMAT-001'], '2026-01-01')).toHaveLength(1);
   });
+
+  it('rejects a file that is not an entry list and a rule that is not known', () => {
+    process.env[FLAG] = '1';
+    const row = finding();
+    expect(() => applyAllowFile([row], () => '{', formats, ['SECRETS-FORMAT-001'], '2026-01-01')).toThrow(/not JSON/);
+    expect(() => applyAllowFile([row], () => JSON.stringify({ entries: 'no', nested: ['x', 1, null] }), formats, ['SECRETS-FORMAT-001'], '2026-01-01')).toThrow(/missing entries/);
+    expect(() => applyAllowFile([row], () => JSON.stringify({ entries: [{}] }), formats, ['SECRETS-FORMAT-001'], '2026-01-01')).toThrow(/incomplete/);
+    expect(() => applyAllowFile([row], () => JSON.stringify({ entries: [{ fingerprint: 'fp', prefix: 'pre', suffix: 'suf', reason: 'why', ruleId: 'NOPE' }] }), formats, ['SECRETS-FORMAT-001'], '2026-01-01')).toThrow(/unknown rule/);
+    const forever = JSON.stringify({ entries: [{ fingerprint: row.fingerprint, prefix: row.prefix, suffix: row.suffix, reason: 'standing', ruleId: row.ruleId, until: 1 }] });
+    expect(applyAllowFile([row], () => forever, formats, ['SECRETS-FORMAT-001'], '2026-01-01')).toEqual([]);
+  });
 });

@@ -42,6 +42,25 @@ describe('phase 375 import maps', () => {
     expect(result.findings.some((row) => row.severity === 'medium')).toBe(true);
   });
 
+  it('reports a dynamic url import, an export without a source, and a map that is not an object', () => {
+    process.env[FLAG] = '1';
+    const dynamic = urlImports('export async function load() { return import("https://cdn.example.invalid/a.js?x=1"); }\nimport(name);\nimport("./local.js");\n', null);
+    expect(dynamic.findings.some((row) => row.specifier === 'https://cdn.example.invalid/a.js' && row.severity === 'medium')).toBe(true);
+    const exported = urlImports('export function local() { return 1; }\nexport * from "data:text/javascript,1";\n', null);
+    expect(exported.findings.some((row) => row.severity === 'high')).toBe(true);
+    expect(urlImports('import (', null).findings).toEqual([]);
+    const number = urlImports('', '1');
+    expect(number.events.map((event) => event.code)).toEqual(['271']);
+    expect(number.findings.some((row) => row.specifier === '<importmap>')).toBe(true);
+    const empty = urlImports('', 'null');
+    expect(empty.findings.some((row) => row.specifier === '<importmap>')).toBe(true);
+    expect(urlImports('', '{}').findings).toEqual([]);
+    expect(urlImports('', '{"imports":null}').findings).toEqual([]);
+    const mixed = urlImports('', JSON.stringify({ imports: { a: 1, b: 'https://cdn.example.invalid/b.js' }, integrity: 'nope' }));
+    expect(mixed.findings.some((row) => row.specifier === 'https://cdn.example.invalid/b.js')).toBe(true);
+    delete process.env[FLAG];
+  });
+
   it('does not fetch', () => {
     const source = readFileSync(new URL('../../../src/phases/p375.ts', import.meta.url), 'utf8');
     expect(source).not.toContain('node:http');

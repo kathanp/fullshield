@@ -23,5 +23,10 @@ describe('phase 388 deserialization', () => {
   it('reports eval of JSON.parse of a request body', () => {
     process.env[FLAG] = '1';
     expect(deserFinding({ sink: 'eval', origin: 'json-parse-request' })).not.toBeNull();
+    expect(deserFinding({ sink: 'js-yaml', origin: 'json-parse-request', schema: 'default' })).toBeNull();
+    expect(deserRuntime({ sink: 'js-yaml', origin: 'request', schema: 'safe' }, true)).toEqual({ event: false, blocked: false });
+    expect(deserRuntime({ sink: 'eval', origin: 'request' }, true)).toEqual({ event: true, blocked: true });
+    delete process.env[FLAG];
+    expect(deserRuntime({ sink: 'eval', origin: 'request' }, true)).toEqual({ event: false, blocked: false });
   });
 });

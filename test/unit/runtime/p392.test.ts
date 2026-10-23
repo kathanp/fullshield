@@ -48,4 +48,29 @@ describe('phase 392 redis counters', () => {
     });
     expect(calls).toBe(0);
   });
+
+  it('rejects a non-integer count and a redis config without a url', async () => {
+    process.env[FLAG] = '1';
+    try {
+      const memory = await openCounter({ store: 'memory' }, () => Promise.resolve(null));
+      expect(() => memory.set('ip', 1.5)).toThrow(/integer/);
+      await expect(openCounter({ store: 'redis' }, () => Promise.resolve(null))).rejects.toThrow(/no URL/);
+      await expect(openCounter({ store: 'redis', url: '' }, () => Promise.resolve(null))).rejects.toThrow(/no URL/);
+      const seen: number[] = [];
+      const redis = await openCounter({ store: 'redis', url: 'redis://127.0.0.1:6379' }, (name) => {
+        if (name === 'redis') {return Promise.resolve(null);}
+        return Promise.resolve({
+          set(_key: string, value: number) {
+            seen.push(value);
+          },
+        });
+      });
+      expect(redis.imported).toBe(true);
+      await redis.set('ip', 4);
+      expect(seen).toEqual([4]);
+      await expect(redis.set('ip', 1.2)).rejects.toThrow(/integer/);
+    } finally {
+      delete process.env[FLAG];
+    }
+  });
 });

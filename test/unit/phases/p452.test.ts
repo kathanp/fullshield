@@ -54,4 +54,24 @@ describe('phase 452', () => {
     const src = readFileSync(join(root, 'src/phases/p452.ts'), 'utf8');
     expect(src.includes('child_process')).toBe(false);
   });
+
+  it('reads string volumes and env files, and ignores a document without services', () => {
+    process.env[FLAG] = '1';
+    try {
+      const withFile = `services:\n  api:\n    image: shop-api\n    env_file: .env\n    volumes: /var/run/docker.sock:/var/run/docker.sock\n    ports: "3000:3000"\n    environment:\n      RAW: "AA\\n${token}"\n      SAFE: "\${FOO:-plain}"\n      NUM: 1\n`;
+      const findings = scanCompose('compose.yml', withFile, 'shop-api', { '.env': `TOKEN=${token}\n` });
+      expect(findings.some((row) => row.ruleId === COMPOSE_ENVFILE)).toBe(true);
+      expect(findings.some((row) => row.ruleId === COMPOSE_SOCKET)).toBe(true);
+      expect(findings.find((row) => row.ruleId === COMPOSE_PORT)?.severity).toBe('medium');
+      expect(findings.find((row) => row.message.includes('secret literal'))?.line).toBe(1);
+      expect(scanCompose('compose.yml', 'version: "3.8"\n', 'web')).toEqual([]);
+      expect(scanCompose('compose.yml', 'services:\n  web: "nope"\n', 'web')).toEqual([]);
+      const imageObj = 'services:\n  web:\n    image:\n      name: demo\n    ports:\n      - "1:1"\n';
+      expect(scanCompose('compose.yml', imageObj, 'demo').find((row) => row.ruleId === COMPOSE_PORT)?.severity).toBe('low');
+      const quietEnv = 'services:\n  web:\n    image: demo\n    env_file: missing.env\n';
+      expect(scanCompose('compose.yml', quietEnv, 'other', {}).some((row) => row.ruleId === COMPOSE_ENVFILE)).toBe(false);
+    } finally {
+      delete process.env[FLAG];
+    }
+  });
 });

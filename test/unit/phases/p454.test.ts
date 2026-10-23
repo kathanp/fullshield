@@ -35,4 +35,48 @@ describe('phase 454', () => {
     const src = readFileSync(join(root, 'src/phases/p454.ts'), 'utf8');
     expect(src.includes('node:http')).toBe(false);
   });
+
+  it('covers string triggers, nested expressions, cache keys, and env artifacts', () => {
+    process.env[FLAG] = '1';
+    const token = `AKIA${'Z'.repeat(16)}`;
+    try {
+      expect(scanWorkflow('ci.yml', '[]\n')).toEqual([]);
+      expect(scanWorkflow('ci.yml', 'hello\n')).toEqual([]);
+      expect(scanWorkflow('ci.yml', '')).toEqual([]);
+      const target = scanWorkflow(
+        'ci.yml',
+        'on: pull_request_target\njobs:\n  t:\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          ref: ${{ github.event.pull_request.head.sha }}\n',
+      );
+      expect(target.some((row) => row.ruleId === GHA_TARGET)).toBe(true);
+      const listed = scanWorkflow(
+        'ci.yml',
+        'on:\n  - push\njobs:\n  t:\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          ref: ${{ github.event.pull_request.head.sha }}\n',
+      );
+      expect(listed.some((row) => row.ruleId === GHA_TARGET)).toBe(false);
+      const nested = scanWorkflow('ci.yml', 'jobs:\n  t:\n    steps:\n      - run: echo ${{ ${{ github.event.name }} }}\n      - run: echo hello\n');
+      expect(nested.some((row) => row.ruleId === GHA_INJECT)).toBe(true);
+      const cache = scanWorkflow(
+        'ci.yml',
+        'jobs:\n  t:\n    steps:\n      - uses: actions/cache@v4\n        with:\n          key: ${{ github.event.pull_request.head.ref }}\n          path: dist\n',
+      );
+      expect(cache.some((row) => row.ruleId === GHA_CACHE)).toBe(true);
+      const info = scanWorkflow('ci.yml', 'jobs:\n  t:\n    steps:\n      - uses: actions/upload-artifact@v4\n        with:\n          path: .env\n');
+      expect(info.some((row) => row.ruleId === 'CI-GHA-ARTIFACT-001' && row.severity === 'info')).toBe(true);
+      const secret = scanWorkflow(
+        'ci.yml',
+        'jobs:\n  t:\n    steps:\n      - uses: actions/upload-artifact@v4\n        with:\n          path: build/.env\n',
+        { 'build/.env': token },
+      );
+      expect(secret.some((row) => row.ruleId === 'SECRET-AWS-001')).toBe(true);
+      expect(JSON.stringify(secret)).not.toContain(token);
+      const plain = scanWorkflow(
+        'ci.yml',
+        'true:\n  pull_request_target:\njobs:\n  t:\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          ref: main\n          path: dist\n          key: 1\n',
+      );
+      expect(plain.some((row) => row.ruleId === GHA_TARGET)).toBe(false);
+      expect(plain.some((row) => row.ruleId === 'CI-GHA-ARTIFACT-001')).toBe(false);
+    } finally {
+      delete process.env[FLAG];
+    }
+  });
 });

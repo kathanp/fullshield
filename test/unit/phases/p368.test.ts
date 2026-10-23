@@ -25,4 +25,21 @@ describe('phase 368 SBOM fields', () => {
     expect(report?.header).toContain('not a grade');
     expect(report).not.toHaveProperty('score');
   });
+
+  it('counts a missing name, version, and purl, and keeps an explicit purl', () => {
+    process.env[FLAG] = '1';
+    const report = sbomFieldReport([
+      { name: '@scope/pkg', version: '1.0.0', integrity: '' },
+      { purl: 'pkg:npm/kept@1.0.0', integrity: null },
+      { name: 'spaced name' },
+    ]);
+    expect(report?.components[0]?.purl).toBe('pkg:npm/@scope%2Fpkg@1.0.0');
+    expect(report?.components[0]?.hash).toBeNull();
+    expect(report?.components[1]?.purl).toBe('pkg:npm/kept@1.0.0');
+    expect(report?.counts.name).toBeGreaterThan(0);
+    expect(report?.counts.version).toBeGreaterThan(0);
+    expect(report?.counts.purl).toBeGreaterThan(0);
+    expect(report?.rows.some((row) => row.component === '<unnamed>')).toBe(true);
+    delete process.env[FLAG];
+  });
 });

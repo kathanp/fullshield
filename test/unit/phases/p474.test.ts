@@ -5,6 +5,32 @@ import { spawnSync } from 'node:child_process';
 
 import { describe, expect, it } from 'vitest';
 
+import { main, mine } from '../../../src/phases/p474.js';
+
+const FNMINE = 'FULLSHIELD_EXPERIMENTAL_FNMINE';
+
+async function capture(run: () => Promise<number>): Promise<{ code: number; stdout: string; stderr: string }> {
+  let stdout = '';
+  let stderr = '';
+  const writeOut = process.stdout.write.bind(process.stdout);
+  const writeErr = process.stderr.write.bind(process.stderr);
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    stdout += String(chunk);
+    return true;
+  }) as typeof process.stdout.write;
+  process.stderr.write = ((chunk: string | Uint8Array) => {
+    stderr += String(chunk);
+    return true;
+  }) as typeof process.stderr.write;
+  try {
+    const code = await run();
+    return { code, stdout, stderr };
+  } finally {
+    process.stdout.write = writeOut;
+    process.stderr.write = writeErr;
+  }
+}
+
 const root = process.cwd();
 const script = join(root, 'scripts', 'phase474-fnmine.mjs');
 
@@ -63,4 +89,41 @@ describe('phase 474 miss list', () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toBe('');
   });
+});
+
+describe('phase 474 module', () => {
+  it('mines a list through the exported functions', async () => {
+    process.env[FNMINE] = '1';
+    try {
+      const dir = join(tmpdir(), 'fs474-mod');
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, 'app.js'), source);
+      const list = join(dir, 'list.json');
+      const items = {
+        items: [
+          { id: 'local-hit', file: 'app.js', line: 3, class: 'SAST-SQLI-001' },
+          { id: 'local-cwe', file: 'app.js', line: 3, class: 'CWE-89' },
+          { id: 'local-far', file: 'app.js', line: 7, class: 'SAST-SQLI-001' },
+          { id: 'local-other', file: 'missing.js', line: 3, class: 'SAST-SQLI-001' },
+          { id: 'local-style', file: 'app.js', line: 1, class: 'style' },
+        ],
+      };
+      writeFileSync(list, JSON.stringify({ ...items, outOfScope: ['style'] }));
+      const result = await capture(() => main(['--dir', dir, '--list', list]));
+      expect(result.code).toBe(0);
+      const doc = JSON.parse(result.stdout) as { misses: Array<{ id: string }>; outOfScope: Array<{ id: string }> };
+      expect(doc.misses.map((row) => row.id)).not.toContain('local-hit');
+      expect(doc.misses.map((row) => row.id)).toContain('local-far');
+      expect(doc.outOfScope.map((row) => row.id)).toContain('local-style');
+      const mined = JSON.parse(await mine(dir, items)) as { misses: Array<{ id: string }>; outOfScope: Array<{ id: string }> };
+      expect(mined.outOfScope).toEqual([]);
+      expect(mined.misses.map((row) => row.id)).toContain('local-style');
+      expect(mined.misses.map((row) => row.id)).toContain('local-other');
+      expect((await capture(() => main(['--dir', dir]))).code).toBe(2);
+      expect((await capture(() => main([]))).code).toBe(2);
+      expect((await capture(() => main(['--list', list]))).code).toBe(2);
+    } finally {
+      delete process.env[FNMINE];
+    }
+  }, 60_000);
 });

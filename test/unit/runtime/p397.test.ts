@@ -22,4 +22,23 @@ describe('phase 397 CSP suggestion', () => {
     expect(suggestion?.section).toContain("omit 'unsafe-inline'");
     expect(suggestion?.section).not.toContain("script-src 'unsafe-inline'");
   });
+
+  it('ignores a comment, a broken URL, and a dynamic script reference', () => {
+    process.env[FLAG] = '1';
+    try {
+      const suggestion = cspSuggestion([
+        { name: 'a.html', text: '<a href="https://[/broken"></a><a href="https://cdn.example.invalid/a.js"></a><a href="https://cdn.example.invalid/b.js"></a><!-- <script src="https://hidden.example/a.js"></script> -->' },
+        { name: 'b.tsx', text: '<script></script><img href={dynamic} />' },
+      ]);
+      expect(suggestion?.section).toContain('cdn.example.invalid');
+      expect(suggestion?.section).toContain('strict-dynamic');
+      expect(suggestion?.section).toContain("omit 'unsafe-inline'");
+      expect(suggestion?.section).not.toContain('hidden.example');
+      const none = cspSuggestion([{ name: 'c.html', text: '<p>hello</p>' }]);
+      expect(none?.section).toContain("'none'");
+      expect(none?.section).toContain("does not include 'unsafe-inline'");
+    } finally {
+      delete process.env[FLAG];
+    }
+  });
 });

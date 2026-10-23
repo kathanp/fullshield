@@ -30,4 +30,21 @@ describe('phase 309 koa and hono', () => {
     const open = analyzeKoaHono("app.get('/x', (c) => { db.query(c.req.query('id')); });");
     expect(open.findings).toHaveLength(1);
   });
+
+  it('ignores a bad program, a non-function use, and a validator that is not numeric', () => {
+    process.env[FLAG] = '1';
+    expect(analyzeKoaHono('???', { file: 'bad.js' })).toEqual({ findings: [], covers: [] });
+    expect(analyzeKoaHono('const Hono = 1;\napp.put(\'/x\', (c) => { db.query(c.req.query(\'q\')); });').findings).toEqual([]);
+    expect(analyzeKoaHono('app.use(handler);\nuse(async (ctx) => { db.query(ctx.query.q); });').covers).toEqual([]);
+    const post = analyzeKoaHono('app.post(\'/x\', (c) => { db.query(c.req.query(\'q\')); });', { file: 'hono.js' });
+    expect(post.findings[0]).toMatchObject({ framework: 'hono', file: 'hono.js' });
+    const expr = analyzeKoaHono('app.use(async (ctx, next) => await next());\napp.use(async (ctx) => { db.query(ctx.query.q); });');
+    expect(expr.covers[0]).toMatchObject({ covers: true, dominates: false });
+    expect(analyzeKoaHono('app.get(\'/x\', \'nope\');').findings).toEqual([]);
+    expect(analyzeKoaHono('app.get(\'/x\', validator(\'query\', { type: \'number\' }), (c) => { db.query(c.req.query(\'id\')); });').findings).toEqual([]);
+    expect(analyzeKoaHono('app.get(\'/x\', z.validator(\'query\', { id: z.number() }), (c) => { db.query(c.req.query(\'id\')); });').findings).toEqual([]);
+    expect(analyzeKoaHono('app.get(\'/x\', zValidator(\'query\', { ...shape, type: \'number\' }), (c) => { db.query(c.req.query(\'id\')); });').findings).toEqual([]);
+    expect(analyzeKoaHono('app.get(\'/x\', (0, zValidator)(\'query\', { type: \'string\' }), (c) => { db.query(c.req.query(\'id\')); });').findings).toHaveLength(1);
+    expect(analyzeKoaHono('app.get(\'/x\', auth(), (c) => { db.query(c.req.query(\'id\')); });').findings).toHaveLength(1);
+  });
 });

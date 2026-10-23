@@ -26,4 +26,18 @@ describe('phase 419', () => {
     expect(rewritten.source).toContain('__proto__');
     expect(rewritten.witnessVerifies).toBe(false);
   });
+
+  it('refuses a rewrite when the flag is off or the key is constant, and uses a null prototype otherwise', () => {
+    const source = 'obj[req.body.k] = v;';
+    const options = { tainted: true, callsMethod: false, constantKey: false, freeFormMap: false };
+    expect(rewriteProto(source, options)).toMatchObject({ source, refused: false, edit: null, witnessVerifies: false });
+    process.env[FLAG] = '1';
+    expect(rewriteProto(source, { ...options, constantKey: true })).toMatchObject({ refused: true, edit: null });
+    expect(rewriteProto(source, { ...options, tainted: false })).toMatchObject({ refused: true, edit: null });
+    const rewritten = rewriteProto(source, options);
+    expect(rewritten.refused).toBe(false);
+    expect(rewritten.source).toContain('Object.create(null)');
+    expect(rewritten.disposition).toBe('safe');
+    delete process.env[FLAG];
+  });
 });

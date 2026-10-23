@@ -106,4 +106,38 @@ describe('phase 271 soundness', () => {
       await rm(dir, { recursive: true, force: true });
     }
   });
+
+  it('joins sound branches and skips a repeated event on the same line', () => {
+    process.env[FLAG] = '1';
+    expect(analyzeSoundness(':::').events).toEqual([]);
+    const source = [
+      "import { known } from './known.js';",
+      "export { extra } from './extra.js';",
+      'const arrow = () => mystery(req.query.x);',
+      'function f(req) {',
+      '  {',
+      '    const y = req.query.x + "a";',
+      '    const z = `${req.query.x}`;',
+      '    y = mystery(z.field);',
+      '    if (cond) { return y; } else { db.query(y); }',
+      '  }',
+      '  db.query(obj[key]);',
+      '  db.query(obj["name"]);',
+      '  const cast = req.query.x as string;',
+      '}',
+      'eval(a); eval(b);',
+      'new Function("return 1");',
+      'require(name);',
+      "import('./known.js');",
+    ].join('\n');
+    const sound = analyzeSoundness(source, { mode: 'sound', resolvedSpecifiers: ['./known.js'] });
+    expect(sound.events.some((event) => event.kind === 'eval')).toBe(true);
+    expect(sound.findings.length).toBeGreaterThan(0);
+    const tied = buildSoundnessReport([
+      { kind: 'eval', file: 'b.js', line: 1, reason: 'eval' },
+      { kind: 'eval', file: 'a.js', line: 1, reason: 'eval' },
+    ]);
+    expect(tied.topFiles.map((row) => row.file)).toEqual(['a.js', 'b.js']);
+    delete process.env[FLAG];
+  });
 });

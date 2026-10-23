@@ -30,4 +30,20 @@ describe('phase 455', () => {
     const src = readFileSync(join(root, 'src/phases/p455.ts'), 'utf8');
     expect(src.includes('node:http')).toBe(false);
   });
+
+  it('accepts a script string, a braced variable, and ignores a scalar document', () => {
+    process.env[FLAG] = '1';
+    try {
+      const braced = scanGitlabCi('gitlab-ci.yml', 'job:\n  script: echo ${CI_COMMIT_MESSAGE}\n  before_script:\n    - echo ok\n    - 1\n');
+      expect(braced.some((row) => row.ruleId === GL_INJECT && row.message.includes('CI_COMMIT_MESSAGE'))).toBe(true);
+      const before = scanGitlabCi('gitlab-ci.yml', 'build:\n  before_script:\n    - echo $CI_COMMIT_TAG\n');
+      expect(before.some((row) => row.message.includes('CI_COMMIT_TAG'))).toBe(true);
+      expect(scanGitlabCi('gitlab-ci.yml', '[]\n')).toEqual([]);
+      expect(scanGitlabCi('gitlab-ci.yml', 'hello\n')).toEqual([]);
+      expect(scanGitlabCi('gitlab-ci.yml', 'job: hello\n')).toEqual([]);
+      expect(scanGitlabCi('gitlab-ci.yml', 'job:\n  script: 1\n')).toEqual([]);
+    } finally {
+      delete process.env[FLAG];
+    }
+  });
 });

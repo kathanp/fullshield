@@ -48,6 +48,19 @@ describe('phase 262 proof', () => {
     delete process.env[PROOF_FLAG];
     expect(buildProof({ file: 'app.js', sourceLine: 1, sinkLine: 2, sinkClass: 'sqli', labelsAtSink: [], steps: [] })).toBeUndefined();
   });
+
+  it('uses a source step when the proof has no operations', () => {
+    process.env[PROOF_FLAG] = '1';
+    expect(buildProof({
+      file: 'app.js',
+      sourceLine: 1,
+      sinkLine: 2,
+      sinkClass: 'sqli',
+      labelsAtSink: [],
+      steps: [],
+    })?.source.kind).toBe('source');
+    delete process.env[PROOF_FLAG];
+  });
 });
 
 describe('phase 267 sink catalog', () => {
@@ -62,6 +75,40 @@ describe('phase 267 sink catalog', () => {
     expect(gapMarkdown(missing)).toContain('pg.query');
     expect(readFileSync('RASP-SINKS.md', 'utf8')).toContain('runtimeGap');
   });
+
+  it('ignores the catalog when the flag is off and skips rows that are not sinks', () => {
+    expect(readSinkCatalog({ sinks: [{ package: 'pg', member: 'query' }] })).toEqual([]);
+    process.env[SINKCATALOG_FLAG] = '1';
+    expect(readSinkCatalog(null)).toEqual([]);
+    expect(readSinkCatalog({})).toEqual([]);
+    expect(readSinkCatalog({ sinks: 'no' })).toEqual([]);
+    const rows = readSinkCatalog({
+      sinks: [
+        null,
+        1,
+        { package: 'p' },
+        { package: 'p', member: 'm', argIndex: 'x', class: 1, runtimeHook: 1, runtimeGap: 1, staticSupported: false },
+      ],
+    });
+    expect(rows).toEqual([{
+      package: 'p',
+      member: 'm',
+      argIndex: 0,
+      class: '',
+      staticSupported: false,
+      runtimeHook: null,
+      runtimeGap: undefined,
+    }]);
+    expect(catalogGaps([
+      { package: 'a', member: 'm', argIndex: 0, class: 'c', staticSupported: true, runtimeHook: 'hook' },
+      { package: 'b', member: 'm', argIndex: 0, class: 'c', staticSupported: true, runtimeHook: null, runtimeGap: 'later' },
+      { package: 'c', member: 'm', argIndex: 0, class: 'c', staticSupported: false, runtimeHook: 'hook' },
+      { package: 'd', member: 'm', argIndex: 0, class: 'c', staticSupported: false, runtimeHook: null },
+      { package: 'e', member: 'm', argIndex: 0, class: 'c', staticSupported: false, runtimeHook: '', runtimeGap: '' },
+    ]).map((row) => row.package)).toEqual(['c']);
+    expect(gapMarkdown([])).toContain('No undocumented gaps.');
+    delete process.env[SINKCATALOG_FLAG];
+  });
 });
 
 describe('phase 268 runtime reach', () => {
@@ -75,6 +122,18 @@ describe('phase 268 runtime reach', () => {
     expect(missed.reachability).toBe('reachable');
     expect(observeOrFailOpen('reachable', () => { throw new Error('hook down'); }).reachability).toBe('reachable');
     expect(readFileSync('src/engine/runtimereach.ts', 'utf8').includes('fetch(')).toBe(false);
+  });
+
+  it('keeps the static result when the flag is off or the hook returns no rows', () => {
+    expect(markObserved('reachable', 'b', 'parse', [{ module: 'b', exportName: 'parse', calls: 2 }])).toEqual({
+      reachability: 'reachable',
+      runtimeObserved: false,
+    });
+    process.env[RUNTIMEREACH_FLAG] = '1';
+    expect(observeOrFailOpen('reachable', () => []).runtimeObserved).toBe(false);
+    expect(observeOrFailOpen('reachable', () => [{ module: 'm', exportName: 'e', calls: 1 }]).runtimeObserved).toBe(true);
+    expect(markObserved('reachable', 'b', 'parse', [{ module: 'other', exportName: 'parse', calls: 3 }]).runtimeObserved).toBe(false);
+    delete process.env[RUNTIMEREACH_FLAG];
   });
 });
 

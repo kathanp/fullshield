@@ -44,4 +44,32 @@ describe('phase 334 structured secrets', () => {
     expect(result.findings.map((row) => row.ruleId)).toEqual(['SECRETS-PLACEHOLDER-001']);
     expect(result.findings[0]?.severity).toBe('info');
   });
+
+  it('scans toml, notebooks, and plain text, and skips fixture paths', () => {
+    process.env[FLAG] = '1';
+    const random = 'abcdefghijklmnopqrstuvwxyz012345';
+    expect(scanDocument('models/app.yaml', `password: ${TOKEN}`, formats).findings).toEqual([]);
+    expect(scanDocument('src/models/app.yaml', `password: ${TOKEN}`, formats).findings).toEqual([]);
+    expect(scanDocument('test/fixtures/app.yaml', `password: ${TOKEN}`, formats).findings).toEqual([]);
+    expect(scanDocument('pkg\\models\\app.yaml', `password: ${TOKEN}`, formats).findings).toEqual([]);
+    expect(scanDocument('app.toml', `password: ${TOKEN}`, formats).findings[0]?.ruleId).toBe('SECRETS-FORMAT-001');
+    expect(scanDocument('app.ini', `password: ${random}`, formats).findings[0]?.ruleId).toBe('SECRETS-ENTROPY-001');
+    expect(scanDocument('app.properties', 'password: abc\n# note\n: empty\nname: app', formats).findings).toEqual([]);
+    expect(scanDocument('app.yaml', 'note: "ab\\\\cd"', formats).findings).toEqual([]);
+    expect(scanDocument('app.yaml', 'password: "abc', formats).events[0]?.detail).toBe('structured parse failed');
+    expect(scanDocument('readme.md', TOKEN, formats).findings[0]?.witness).toBe('synth');
+    expect(scanDocument('readme.md', 'hello', formats).findings).toEqual([]);
+    const notebook = JSON.stringify({
+      cells: [
+        null,
+        { source: 'plain' },
+        { source: ['left', TOKEN], outputs: 'no' },
+        { outputs: [null, { text: 'right' }, { text: [TOKEN] }] },
+      ],
+    });
+    expect(scanDocument('note.ipynb', notebook, formats).findings.length).toBeGreaterThan(0);
+    expect(scanDocument('note.ipynb', '{', formats).events[0]?.detail).toBe('notebook parse failed');
+    expect(scanDocument('note.ipynb', 'null', formats).events[0]?.detail).toBe('notebook parse failed');
+    expect(scanDocument('note.ipynb', '{"cells":{}}', formats).events[0]?.detail).toBe('notebook parse failed');
+  });
 });

@@ -16,8 +16,10 @@ import {
   runIrQuery,
   writeCachedIr,
   type FunctionIr,
+  type IrNode,
   type ModuleIr,
 } from '../../../src/engine/ir.js';
+import { queryModule } from '../../../src/engine/ir-query.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 const cacheDirs: string[] = [];
@@ -313,5 +315,189 @@ describe('phase 251 IR', () => {
     const ir = lowerSource(source, 'forms.ts');
     expect(ir.functions.length).toBeGreaterThan(1);
     expect(ir.functions.some((fn) => fn.name === 'exported')).toBe(true);
+  });
+
+  it('lowers expression forms, import shapes, and cache validators', async () => {
+    const forms = `
+      import './side';
+      import type { T } from './types';
+      import * as ns from './ns';
+      export type { A } from './a';
+      export * from './all';
+      export * as bundled from './bundled';
+      export { local as renamed, type B } from './c';
+      import eq = require('./eq');
+      const { read: alias, extra } = require('./util');
+      const member = require('./util').read;
+      const skipped = require();
+      const computedReq = require(name);
+      const dynamic = import('./dyn');
+      function* gen(a = 1, ...rest) {
+        yield;
+        yield a;
+        yield* other();
+      }
+      const arrow = (x) => x + 1;
+      const seq = (1, 2);
+      const meta = import.meta.url;
+      class Box {
+        #priv = 1;
+        static { const s = 1; }
+        method() { return this.#priv; }
+        constructor(n = 1) { return this; }
+      }
+      class Child extends Base {
+        m() { return super.m(); }
+      }
+      const tagged = tag\`a\${1}\`;
+      const taggedMember = obj.tag\`b\`;
+      const arr = [1, , ...rest];
+      const obj = { ...rest, ['k']: 1, m() {}, 2: 2 };
+      ({ a } = obj);
+      [b] = arr;
+      for (i = 0; i < 1; i++) {}
+      for (;;) {}
+      async function pull() { for await (const item of list) { item; } }
+      switch (x) {}
+      switch (y) { case 1: break; }
+      try { z = 1; } finally { z = 2; }
+      const re = /a/;
+      const nil = null;
+      const bit = true;
+      const tmpl = \`a\${x}\`;
+      const callExpr = (0, foo)(1, ...rest);
+      new Ctor(1);
+      ++x;
+      obj.n++;
+      void 0;
+      typeof x;
+      delete obj.n;
+      !x;
+      +x;
+      const samePhi = flag ? kept : kept;
+      const namedFn = function named() { return 1; };
+      const namedAgain = function named() { return 2; };
+      const anon = function () { return 3; };
+      const klass = class { go() { return 1; } };
+      (x as string);
+      (x)!;
+      (x satisfies string);
+    `;
+    const ir = lowerSource(forms, 'forms-extra.ts', { tsPaths: { '@app/*': ['./lib/*'] } });
+    expect(ir.functions.length).toBeGreaterThan(2);
+    expect(ir.imports.some((link) => link.imported === '*')).toBe(true);
+    lowerSource('export default class Def {}\n', 'default-class.ts');
+    lowerSource('export default 1;\n', 'default-expr.ts');
+    lowerSource('export default function already() { return 1; }\n', 'default-fn.ts');
+    lowerSource('with (obj) { x = 1; }\n', 'with.js');
+    lowerSource('class C { constructor(private n) { this.n = n; } }\n', 'param.ts');
+
+    const node = (partial: IrNode): IrNode => partial;
+    const queried = queryModule({
+      file: 'q.js',
+      imports: [],
+      functions: [{
+        name: 'f',
+        file: 'q.js',
+        line: 1,
+        col: 0,
+        params: [],
+        nodes: [
+          node({ op: 'assign', file: 'q.js', line: 1, col: 0, dest: 1, name: 'req' }),
+          node({ op: 'assign', file: 'q.js', line: 1, col: 0, dest: 2, name: 'req', args: [9] }),
+          node({ op: 'assign', file: 'q.js', line: 1, col: 0, literal: 1, dest: 3 }),
+          node({ op: 'assign', file: 'q.js', line: 1, col: 0, name: 'x' }),
+          node({ op: 'property-load', file: 'q.js', line: 1, col: 0, dest: 4, name: 'query', args: [1] }),
+          node({ op: 'property-load', file: 'q.js', line: 1, col: 0, name: 'query', args: [1] }),
+          node({ op: 'property-load', file: 'q.js', line: 1, col: 0, dest: 5 }),
+          node({ op: 'property-load', file: 'q.js', line: 1, col: 0, dest: 6, name: 'id', args: [4] }),
+          node({ op: 'property-load', file: 'q.js', line: 1, col: 0, dest: 7, name: '<dynamic>', args: [4] }),
+          node({ op: 'property-load', file: 'q.js', line: 1, col: 0, dest: 8, name: '*', args: [4] }),
+          node({ op: 'property-store', file: 'q.js', line: 1, col: 0, args: [10, 4] }),
+          node({ op: 'property-store', file: 'q.js', line: 1, col: 0, args: [10, 4] }),
+          node({ op: 'property-store', file: 'q.js', line: 1, col: 0, args: [11] }),
+          node({ op: 'property-store', file: 'q.js', line: 1, col: 0, args: [12, 3] }),
+          node({ op: 'property-load', file: 'q.js', line: 1, col: 0, dest: 13, name: 'z', args: [10] }),
+          node({ op: 'await', file: 'q.js', line: 1, col: 0 }),
+          node({ op: 'phi', file: 'q.js', line: 1, col: 0, dest: 15, args: [13] }),
+          node({ op: 'call', file: 'q.js', line: 1, col: 0, name: 'query', args: [13] }),
+          node({ op: 'call', file: 'q.js', line: 1, col: 0, name: 'other', dest: 16, args: [13] }),
+          node({ op: 'call', file: 'q.js', line: 1, col: 0, name: 'query', args: [3] }),
+          node({ op: 'call', file: 'q.js', line: 1, col: 0, name: 'query' }),
+          node({ op: 'return', file: 'q.js', line: 1, col: 0 }),
+        ],
+      }],
+    });
+    expect(queried.some((row) => row.sink === 'query')).toBe(true);
+
+    const dir = await mkdtemp(join(tmpdir(), 'fullshield-ir-gap-'));
+    cacheDirs.push(dir);
+    const hash = irConfigHash('gap.js', {
+      files: new Set(['b.js', 'a.js']),
+      tsPaths: { '@app/*': ['./lib/*'] },
+      packageExports: { './db': './db.js' },
+    });
+    expect(irConfigHash('gap.js')).not.toBe(hash);
+    expect(irConfigHash('gap.js', {})).not.toBe('');
+    const key = irCacheKey('gap-source', hash);
+    process.env.FULLSHIELD_IR_CACHE_DIR = '';
+    process.env.FULLSHIELD_EXPERIMENTAL_IR = '1';
+    expect(readCachedIr(key, hash)).toBeUndefined();
+    process.env.FULLSHIELD_IR_CACHE_DIR = dir;
+    expect(() => readCachedIr('not-a-key', hash)).toThrow(/sha256/);
+    const valid: ModuleIr = {
+      file: 'gap.js',
+      imports: [{
+        local: 'a',
+        specifier: './a',
+        imported: 'a',
+        mappedSpecifier: './a',
+        packageName: 'pkg',
+        exportTarget: './a.js',
+        resolved: 'a.js',
+      }],
+      functions: [{
+        name: 'f',
+        file: 'gap.js',
+        line: 1,
+        col: 0,
+        params: [{ name: 'p', id: 1 }],
+        nodes: [{ op: 'assign', file: 'gap.js', line: 1, col: 0, dest: 1, name: 'p', args: [1], literal: null, cond: 1, object: 1 }],
+      }],
+    };
+    const cachePath = join(dir, `${key}.json`);
+    const badShapes: unknown[] = [
+      { v: 2, configHash: hash, ir: valid },
+      { v: 1, configHash: 1, ir: valid },
+      { v: 1, configHash: hash, ir: null },
+      { v: 1, configHash: hash, ir: [] },
+      { v: 1, configHash: hash, ir: { file: 'gap.js', imports: [null], functions: [] } },
+      { v: 1, configHash: hash, ir: { file: 'gap.js', imports: [{ local: 1 }], functions: [] } },
+      { v: 1, configHash: hash, ir: { file: 'gap.js', imports: [{ local: 'a', specifier: 'b', imported: 'c', mappedSpecifier: 1 }], functions: [] } },
+      { v: 1, configHash: hash, ir: { file: 'gap.js', imports: [{ local: 'a', specifier: 'b', imported: 'c', packageName: 1 }], functions: [] } },
+      { v: 1, configHash: hash, ir: { file: 'gap.js', imports: [], functions: [null] } },
+      { v: 1, configHash: hash, ir: { file: 'gap.js', imports: [], functions: [{ name: 1, file: 'gap.js', line: 1, col: 0, params: [], nodes: [] }] } },
+      { v: 1, configHash: hash, ir: { file: 'gap.js', imports: [], functions: [{ name: 'f', file: 'gap.js', line: 1.5, col: 0, params: [], nodes: [] }] } },
+      { v: 1, configHash: hash, ir: { file: 'gap.js', imports: [], functions: [{ name: 'f', file: 'gap.js', line: 1, col: 0, params: [{ name: 'p', id: 0 }], nodes: [] }] } },
+      { v: 1, configHash: hash, ir: { file: 'gap.js', imports: [], functions: [{ name: 'f', file: 'gap.js', line: 1, col: 0, params: [], nodes: [{ op: 'nope', file: 'a', line: 1, col: 0 }] }] } },
+      { v: 1, configHash: hash, ir: { file: 'gap.js', imports: [], functions: [{ name: 'f', file: 'gap.js', line: 1, col: 0, params: [], nodes: [{ op: 'assign', file: 1, line: 1, col: 0 }] }] } },
+      { v: 1, configHash: hash, ir: { file: 'gap.js', imports: [], functions: [{ name: 'f', file: 'gap.js', line: 1, col: 0, params: [], nodes: [{ op: 'assign', file: 'a', line: 1, col: 0, dest: 0 }] }] } },
+      { v: 1, configHash: hash, ir: { file: 'gap.js', imports: [], functions: [{ name: 'f', file: 'gap.js', line: 1, col: 0, params: [], nodes: [{ op: 'assign', file: 'a', line: 1, col: 0, name: 1 }] }] } },
+      { v: 1, configHash: hash, ir: { file: 'gap.js', imports: [], functions: [{ name: 'f', file: 'gap.js', line: 1, col: 0, params: [], nodes: [{ op: 'assign', file: 'a', line: 1, col: 0, args: ['x'] }] }] } },
+      { v: 1, configHash: hash, ir: { file: 'gap.js', imports: [], functions: [{ name: 'f', file: 'gap.js', line: 1, col: 0, params: [], nodes: [{ op: 'assign', file: 'a', line: 1, col: 0, literal: {} }] }] } },
+      { v: 1, configHash: hash, ir: { imports: [], functions: [] } },
+      { v: 1, configHash: hash, ir: { file: 'gap.js', imports: 'no', functions: [] } },
+    ];
+    for (const shape of badShapes) {
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(cachePath, JSON.stringify(shape));
+      expect(readCachedIr(key, hash)).toBeUndefined();
+    }
+    writeCachedIr(key, valid, hash);
+    expect(readCachedIr(key, hash)?.file).toBe('gap.js');
+    delete process.env.FULLSHIELD_EXPERIMENTAL_IR;
+    writeCachedIr(key, valid, hash);
+    expect(readCachedIr(key, hash)).toBeUndefined();
+    delete process.env.FULLSHIELD_IR_CACHE_DIR;
   });
 });

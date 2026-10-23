@@ -1,8 +1,10 @@
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { assertHooksMatchCatalog, enabled, FLAG, installCatalog, invokeHook, type CatalogSink } from '../../../src/runtime/exp/p381.js';
+import { assertHooksMatchCatalog, enabled, FLAG, installCatalog, invokeHook, loadCatalog, type CatalogSink } from '../../../src/runtime/exp/p381.js';
 
 const row: CatalogSink = { package: 'inert-db', member: 'query', argumentIndex: 0, class: 'sql' };
 
@@ -44,5 +46,30 @@ describe('phase 381 catalog hooks', () => {
     expect(source).not.toContain('src/phases');
     expect(source).not.toContain('src/core');
     expect(source).not.toContain('node:sqlite');
+  });
+
+  it('loads catalog JSON, skips a runtime gap, and monitors other payloads', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'p381-'));
+    const path = join(dir, 'catalog.json');
+    writeFileSync(path, JSON.stringify({ not: 'array' }));
+    expect(loadCatalog(path)).toEqual([]);
+    writeFileSync(path, JSON.stringify([
+      row,
+      { package: 'gap', member: 'skip', argumentIndex: 0, class: 'not-a-class', runtimeGap: true },
+      { package: 'sh', member: 'exec', argumentIndex: 0, class: 'shell' },
+    ]));
+    process.env[FLAG] = '1';
+    try {
+      const loaded = loadCatalog(path);
+      const { installed, log } = installCatalog(loaded);
+      expect(installed.map((hook) => hook.member)).toEqual(['query', 'exec']);
+      expect(log).toEqual([]);
+      expect(invokeHook(installed, 'sh', 'exec', ['../etc/passwd'], 'monitor').action).toBe('monitor');
+      expect(invokeHook(installed, 'inert-db', 'query', ['$where'], 'block').action).toBe('block');
+      expect(invokeHook(installed, 'inert-db', 'query', [1], 'block').action).toBe('allow');
+      expect(() => assertHooksMatchCatalog(['inert-db.query'], [row])).not.toThrow();
+    } finally {
+      delete process.env[FLAG];
+    }
   });
 });

@@ -63,4 +63,34 @@ describe('phase 255 routes', () => {
     expect(routes[0]?.fullPath).toBe('/health');
     expect(routes[0]?.authState).not.toBe('present');
   });
+
+  it('records routers, absent auth, and paths that are not string literals', () => {
+    process.env[ROUTE_FLAG] = '1';
+    const routes = buildRoutes([
+      {
+        file: 'app.js',
+        source: [
+          "import express from 'express';",
+          "import kind from './missing.js';",
+          'const router = express.Router();',
+          'const skipped = other.notRouter();',
+          'let bare;',
+          'const { destructured } = express();',
+          'export const published = 1;',
+          "router.use('/a/', logger, child);",
+          "router.get(pathName, ...mws);",
+          "router.post('health', validate, handler);",
+          'router.listen(3000);',
+          'app.use();',
+        ].join('\n'),
+      },
+      {
+        file: 'child.js',
+        source: "export const child = express.Router();\nchild.delete('leaf', handler);\n",
+      },
+    ]);
+    expect(routes.some((route) => route.authState === 'absent')).toBe(true);
+    expect(routes.some((route) => route.method === 'POST')).toBe(true);
+    delete process.env[ROUTE_FLAG];
+  });
 });

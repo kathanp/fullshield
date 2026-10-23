@@ -89,6 +89,40 @@ describe('phase 259 dep graph', () => {
     });
     expect(read).not.toContain('b');
   });
+
+  it('stays idle when the flag is off and stops at the depth cap', () => {
+    const idle = functionReachable({
+      current: 'not-imported',
+      rootExport: 'app.main',
+      vulnerable: 'd.fn',
+      edges: new Map([['app.main', ['a.fn']]]),
+      malicious: new Set(),
+      readPackage: () => undefined,
+    });
+    expect(idle).toEqual({ reachability: 'not-imported', path: [], read: [] });
+    process.env[DEPGRAPH_FLAG] = '1';
+    const read: string[] = [];
+    const capped = functionReachable({
+      current: 'imported-not-called',
+      rootExport: 'app.main',
+      vulnerable: 'e.fn',
+      edges: new Map([
+        ['app.main', ['app.helper', 'a.fn']],
+        ['app.helper', ['app.main']],
+        ['a.fn', ['b.fn']],
+        ['b.fn', ['c.fn']],
+        ['c.fn', ['e.fn']],
+      ]),
+      malicious: new Set(['skip']),
+      readPackage: (name) => {
+        read.push(name);
+      },
+    });
+    expect(capped.reachability).toBe('reachable-via-dependency');
+    expect(read.filter((name) => name === 'app')).toHaveLength(1);
+    expect(upgradeReach('not-imported', 'reachable')).toBe('reachable');
+    delete process.env[DEPGRAPH_FLAG];
+  });
 });
 
 describe('phase 260 advisory symbols', () => {
@@ -104,5 +138,26 @@ describe('phase 260 advisory symbols', () => {
     expect(symbolReach(rows[0]!, ['parse'])).toMatchObject({ reachability: 'symbol-reachable', label: 'unreviewed' });
     const listed = spawnSync(process.execPath, ['scripts/advisory-symbols-candidates.mjs', '--write'], { encoding: 'utf8' });
     expect(listed.status).not.toBe(0);
+  });
+
+  it('rejects malformed rows and labels a reviewed symbol only under the flag', () => {
+    expect(() => loadAdvisorySymbols(null)).toThrow(/rows/);
+    expect(() => loadAdvisorySymbols(1)).toThrow(/rows/);
+    expect(() => loadAdvisorySymbols({})).toThrow(/rows/);
+    expect(() => loadAdvisorySymbols({ rows: 'no' })).toThrow(/rows/);
+    expect(() => loadAdvisorySymbols({ rows: [null] })).toThrow(/source/);
+    expect(() => loadAdvisorySymbols({ rows: [1] })).toThrow(/source/);
+    expect(() => loadAdvisorySymbols({ rows: [{ source: '', osvId: 'a', package: 'p', affectedExports: [] }] })).toThrow(/source/);
+    expect(() => loadAdvisorySymbols({ rows: [{ source: 's', package: 'p', affectedExports: [] }] })).toThrow(/source/);
+    expect(() => loadAdvisorySymbols({ rows: [{ source: 's', osvId: 'a', package: 1, affectedExports: [] }] })).toThrow(/source/);
+    expect(() => loadAdvisorySymbols({ rows: [{ source: 's', osvId: 'a', package: 'p', affectedExports: 'x' }] })).toThrow(/source/);
+    const rows = loadAdvisorySymbols({
+      rows: [{ source: 's', osvId: 'OSV', package: 'p', affectedExports: ['ok', 1, null], reviewed: true }],
+    });
+    expect(rows[0]?.affectedExports).toEqual(['ok']);
+    expect(symbolReach(rows[0]!, ['ok'])).toBeUndefined();
+    process.env[ADVSYMBOLS_FLAG] = '1';
+    expect(symbolReach(rows[0]!, ['ok'])).toMatchObject({ reachability: 'symbol-reachable', label: 'reviewed' });
+    delete process.env[ADVSYMBOLS_FLAG];
   });
 });

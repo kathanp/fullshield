@@ -42,4 +42,49 @@ describe('phase 458', () => {
     const src = readFileSync(join(root, 'src/phases/p458.ts'), 'utf8');
     expect(src.includes('node:http')).toBe(false);
   });
+
+  it('scans text config, array headers, and env values that are not public secrets', () => {
+    process.env[FLAG] = '1';
+    try {
+      const text = [
+        '[[headers]]',
+        '  X-Content-Type-Options = "nosniff"',
+        '  Referrer-Policy: no-referrer',
+        '[[redirects]]',
+        '  to = "/go?next=1"',
+        '  destination = "https://evil.example/:path"',
+        `  NEXT_PUBLIC_TOKEN = "${token}"`,
+        '  VITE_TOKEN = "plain"',
+        '  SECRET = "nope"',
+      ].join('\n');
+      const findings = scanEdge('netlify.toml', text);
+      expect(findings.some((row) => row.ruleId === EDGE_REDIRECT)).toBe(true);
+      expect(findings.some((row) => row.ruleId === EDGE_PUBLIC)).toBe(true);
+      expect(JSON.stringify(findings)).not.toContain(token);
+
+      const headers = scanEdge('vercel.json', JSON.stringify({
+        headers: [{ key: 'X-Content-Type-Options' }, { name: 'Referrer-Policy' }, { other: 1 }, 'nope'],
+        redirects: [{ destination: 'https://x.example/q' }, { destination: 1 }, 'nope'],
+        env: { SECRET: token, NEXT_PUBLIC_TOKEN: 1, VITE_OK: 'plain' },
+      }));
+      expect(headers.some((row) => row.ruleId === EDGE_HEADER)).toBe(false);
+      expect(headers.some((row) => row.ruleId === EDGE_PUBLIC)).toBe(false);
+
+      const queryWord = scanEdge('vercel.json', JSON.stringify({
+        redirects: [{ destination: 'next-query' }],
+        headers: { 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' },
+      }));
+      expect(queryWord.some((row) => row.ruleId === EDGE_REDIRECT)).toBe(true);
+      const colon = scanEdge('vercel.json', JSON.stringify({
+        redirects: [{ destination: '/out:path' }],
+        headers: { 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' },
+      }));
+      expect(colon.some((row) => row.ruleId === EDGE_REDIRECT)).toBe(true);
+      const designed = [{ id: 'public-sample', pattern: /PUB_[A-Z0-9]+/, publicByDesign: true }];
+      const skipped = scanEdge('netlify.toml', '  VITE_TOKEN = "PUB_ABCD"\n', designed);
+      expect(skipped.some((row) => row.ruleId === EDGE_PUBLIC)).toBe(false);
+    } finally {
+      delete process.env[FLAG];
+    }
+  });
 });

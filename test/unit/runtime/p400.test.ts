@@ -22,5 +22,12 @@ describe('phase 400 websocket cap', () => {
     const source = readFileSync(new URL('../../../src/runtime/exp/p400.ts', import.meta.url), 'utf8');
     expect(source).not.toContain('node:net');
     expect(source).not.toContain('process.exit');
+    expect(guardMessage('not-json', { maxBytes: 100 }).delivered).toBe(true);
+    expect(guardMessage('{"a":1}', { schema: { a: 'number' } }).drop).toBe(false);
+    expect(guardMessage('{"a":1,"b":2}', { schema: { a: 'number' } }).drop).toBe(true);
+    expect(guardMessage('[1,{"n":null}]', { schema: { a: 'number' }, maxDepth: 8 }).drop).toBe(false);
+    expect(guardMessage('null').drop).toBe(false);
+    expect(guardMessage('"hi"').delivered).toBe(true);
+    expect(guardMessage('{"a":1}').delivered).toBe(true);
   });
 });

@@ -28,4 +28,23 @@ describe('phase 280 shell context', () => {
     ]);
     expect(closed.findings).toEqual([]);
   });
+
+  it('classifies spawn, numeric options, and quoted holes', () => {
+    process.env[FLAG] = '1';
+    expect(analyzeShell(':::').findings).toEqual([]);
+    const source = [
+      'function f(req) {',
+      '  if (cond) exec(req.query.x); else execSync(req.query.x);',
+      '  spawn("cmd", ["-" + user], { shell: true });',
+      '  spawn("cmd", [Number(req.query.x)]);',
+      '  execFile("git", ["log", ...rest, null, "--", user]);',
+      '  const n = Number(req.query.x);',
+      '  exec("echo " + n);',
+      '  exec(...args);',
+      '}',
+    ].join('\n');
+    const result = analyzeShell(source);
+    expect(result.findings.length).toBeGreaterThan(0);
+    delete process.env[FLAG];
+  });
 });

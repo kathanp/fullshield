@@ -5,6 +5,32 @@ import { spawnSync } from 'node:child_process';
 
 import { describe, expect, it } from 'vitest';
 
+import { main, NOT_ATTRIBUTED, replayDirs } from '../../../src/phases/p467.js';
+
+const CVEREPLAY = 'FULLSHIELD_EXPERIMENTAL_CVEREPLAY';
+
+async function capture(run: () => Promise<number>): Promise<{ code: number; stdout: string; stderr: string }> {
+  let stdout = '';
+  let stderr = '';
+  const writeOut = process.stdout.write.bind(process.stdout);
+  const writeErr = process.stderr.write.bind(process.stderr);
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    stdout += String(chunk);
+    return true;
+  }) as typeof process.stdout.write;
+  process.stderr.write = ((chunk: string | Uint8Array) => {
+    stderr += String(chunk);
+    return true;
+  }) as typeof process.stderr.write;
+  try {
+    const code = await run();
+    return { code, stdout, stderr };
+  } finally {
+    process.stdout.write = writeOut;
+    process.stderr.write = writeErr;
+  }
+}
+
 const root = process.cwd();
 const script = join(root, 'scripts', 'phase467-cvereplay.mjs');
 
@@ -54,4 +80,34 @@ describe('phase 467 advisory replay', () => {
     expect(off.status).toBe(0);
     expect(off.stdout).toBe('');
   });
+});
+
+describe('phase 467 module', () => {
+  it('replays directories through the exported functions', async () => {
+    process.env[CVEREPLAY] = '1';
+    try {
+      const before = tree('fs467-mod-before', twoBugs);
+      const after = tree('fs467-mod-after', clean);
+      const bugs = tree('fs467-mod-bugs', twoBugs);
+      const safe = tree('fs467-mod-safe', clean);
+      const result = await capture(() => main(['--before', before, '--after', after, '--id', 'label-only']));
+      expect(result.code).toBe(0);
+      expect(result.stdout).toContain(NOT_ATTRIBUTED);
+      expect(result.stdout).toContain('present-before');
+      expect(result.stdout).toContain('id-label: label-only');
+      const same = await replayDirs(bugs, bugs, 'label-both');
+      expect(same).toContain('not-distinguishing');
+      expect(same.includes('present-before')).toBe(false);
+      const regressed = await replayDirs(safe, bugs, 'label-regressed');
+      expect(regressed).toContain('regressed');
+      const usage = await capture(() => main([]));
+      expect(usage.code).toBe(2);
+      expect(usage.stderr).toContain('usage');
+      expect((await capture(() => main(['--before', before]))).code).toBe(2);
+      expect((await capture(() => main(['--before', before, '--after', after]))).code).toBe(2);
+      expect((await capture(() => main(['--before', before, '--after', after, '--id']))).code).toBe(2);
+    } finally {
+      delete process.env[CVEREPLAY];
+    }
+  }, 60_000);
 });

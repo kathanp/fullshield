@@ -25,4 +25,16 @@ describe('phase 407', () => {
     expect(rewriteSql(value, 'value', 'unknown').refused).toBe(true);
     expect(rewriteSql('q; ${x}', 'value', 'mysql').source).toBe('q; ${x}');
   });
+
+  it('uses a question mark for mysql and refuses a value hole it cannot see', () => {
+    process.env[FLAG] = '1';
+    const mysql = rewriteSql(value, 'value', 'mysql');
+    expect(mysql.refused).toBe(false);
+    expect(mysql.source).toContain('?');
+    expect(mysql.source).not.toContain('$1');
+    expect(rewriteSql('db.query("select " + id)', 'value', 'pg')).toMatchObject({ refused: true, message: 'refused' });
+    expect(rewriteSql(value, 'unknown', 'pg').refused).toBe(true);
+    expect(rewriteSql(value, 'statement', 'mysql').refused).toBe(true);
+    delete process.env[FLAG];
+  });
 });

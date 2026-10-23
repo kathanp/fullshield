@@ -70,4 +70,22 @@ describe('phase 436 language server', () => {
       error: { code: 'method-not-found', message: 'workspace/symbol' },
     });
   });
+
+  it('uses an untitled document when params or the text document are missing', () => {
+    expect(handleLsp({ method: 'initialize' }).id).toBeNull();
+    process.env[FLAG] = '1';
+    expect(handleLsp({ method: 'initialize' })).toMatchObject({ id: null, result: { capabilities: { diagnosticProvider: true } } });
+    const missing = handleLsp({ id: 7, method: 'textDocument/diagnostic' });
+    expect(missing.result).toEqual({ items: [] });
+    const empty = handleLsp({ id: 8, method: 'textDocument/diagnostic', params: null });
+    expect(empty.result).toEqual({ items: [] });
+    const noDoc = handleLsp({ id: 9, method: 'textDocument/diagnostic', params: { textDocument: null } });
+    expect(noDoc.result).toEqual({ items: [] });
+    const untyped = handleLsp({ id: 10, method: 'textDocument/diagnostic', params: { textDocument: { uri: 1, text: 2 } } });
+    expect((untyped.result as { items: Diagnostic[] }).items).toEqual([]);
+    expect(handleLsp({})).toEqual({ jsonrpc: '2.0', id: null, error: { code: 'method-not-found', message: '' } });
+    const template = 'db.query(`SELECT ${name}`);\n';
+    expect(scanKeys(file, template)).toEqual([`SAST-SQLI-001\u0000${file}\u00001\u0000high`]);
+    delete process.env[FLAG];
+  });
 });

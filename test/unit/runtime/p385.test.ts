@@ -20,6 +20,12 @@ describe('phase 385 cmd tokenizer', () => {
   it('does not flag execFile arguments that contain percent', () => {
     process.env[FLAG] = '1';
     expect(commandEvent({ program: 'execFile', shell: false, args: ['tool', '100%'] })).toBe(false);
+    expect(commandEvent({ program: 'node', shell: false, args: [] })).toBe(false);
+    expect(commandEvent({ program: 'node', shell: false, args: ['app;id'] })).toBe(true);
+    expect(commandEvent({ program: 'cmd.exe', shell: false, args: ['/c'] })).toBe(false);
+    expect(commandEvent({ program: 'cmd.exe', shell: false, args: ['/c', '&'] })).toBe(true);
+    expect(commandEvent({ program: 'execFile', shell: true, args: ['100%'] })).toBe(true);
+    expect(commandEvent({ program: 'sh', shell: false, args: ['-c', 'plain'] })).toBe(false);
   });
 
   it('does not spawn a process', () => {

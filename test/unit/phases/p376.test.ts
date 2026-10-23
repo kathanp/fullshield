@@ -38,4 +38,19 @@ describe('phase 376 unused symbols', () => {
     process.env[FLAG] = '1';
     expect(unusedSymbols('export async function load(name) { return import(name); }\n', ['pkg'])).toEqual([]);
   });
+
+  it('reports a default import, ignores a relative import, and skips a package that is also imported dynamically', () => {
+    process.env[FLAG] = '1';
+    const unused = unusedSymbols("import local from 'pkg';\nimport * as ns from 'other';\nexport const n = 1;\n", ['pkg', 'other']);
+    expect(unused.map((row) => row.packageName).sort()).toEqual(['other', 'pkg']);
+    expect(unusedSymbols("import { a } from './pkg';\nimport { readFileSync } from 'node:fs';\n", ['./pkg', 'node:fs'])).toEqual([]);
+    expect(unusedSymbols("import { a, b } from 'pkg';\nexport const n = a;\n", ['pkg'])).toEqual([]);
+    expect(unusedSymbols("import { a } from 'pkg';\nexport const load = () => import('pkg');\n", ['pkg'])).toEqual([]);
+    expect(unusedSymbols('import {', ['pkg'])).toEqual([]);
+    process.env[TYPEONLY_FLAG] = '1';
+    const named = unusedSymbols('import { "a-b" as ab } from "pkg";\nexport const n = 1;\n', ['pkg']);
+    expect(named[0]?.names).toEqual(['ab']);
+    delete process.env[FLAG];
+    delete process.env[TYPEONLY_FLAG];
+  });
 });

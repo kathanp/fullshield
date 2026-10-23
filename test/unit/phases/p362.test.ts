@@ -40,4 +40,28 @@ describe('phase 362 time and locale gates', () => {
     process.env[FLAG] = '1';
     expect(timeGates('pkg', 'fetch("https://example.invalid")')).toEqual([]);
   });
+
+  it('reports filesystem and shell sinks, locale and Intl conditions, and ignores a broken script', () => {
+    process.env[FLAG] = '1';
+    const write = timeGates('pkg', 'if (Date.now() > 0) fs.writeFileSync("a", "b")');
+    expect(write[0]?.sinkClass).toBe('fs-write');
+    expect(write[0]?.condition).toBe('Date');
+    const shell = timeGates('pkg', 'if (new Date() > 0) child.execSync("ls")');
+    expect(shell[0]?.sinkClass).toBe('shell');
+    const tz = timeGates('pkg', 'if (process.env.TZ === "UTC") fetch("https://example.invalid")');
+    expect(tz[0]?.condition).toBe('process.env.TZ');
+    const intl = timeGates('pkg', 'if (Intl) fetch("https://example.invalid")');
+    expect(intl[0]?.condition).toBe('Intl');
+    const member = timeGates('pkg', 'if (Intl.DateTimeFormat) fetch("https://example.invalid")');
+    expect(member[0]?.condition).toBe('Intl');
+    const alternate = timeGates('pkg', 'if (new Date() > 0) { const x = 1; } else { fs.appendFileSync("a", "b"); }');
+    expect(alternate[0]?.sinkClass).toBe('fs-write');
+    const both = timeGates('pkg', 'if (new Date() > 0) fetch("https://example.invalid");\nif (new Date() > 0) fs.writeFileSync("a", "b");');
+    expect(both).toHaveLength(1);
+    expect(both[0]?.sinkClass).toBe('net');
+    expect(timeGates('pkg', 'if (new Date() > 0) obj["fetch"]("https://example.invalid")')).toEqual([]);
+    expect(timeGates('pkg', 'if (a[b].c) fetch("https://example.invalid")')).toEqual([]);
+    expect(timeGates('pkg', 'if (')).toEqual([]);
+    delete process.env[FLAG];
+  });
 });

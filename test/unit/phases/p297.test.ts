@@ -35,4 +35,26 @@ describe('phase 297 trpc', () => {
     expect(byId).toMatchObject({ authState: 'present', injection: true });
     expect(result.events.map((event) => event.reason)).toContain('custom');
   });
+
+  it('classifies regex, enum, any, and nested routers', () => {
+    process.env[FLAG] = '1';
+    expect(analyzeTrpc(':::').routes).toEqual([]);
+    const source = [
+      'const nested = router({ child: { deep: t.procedure.mutation(({ input }) => { db.query(input + "x"); }) } });',
+      'const direct = query(({ input }) => { db.query(input.name); });',
+      'const rx = t.procedure.input(z.string().regex(/^\\d+$/)).query(({ input }) => { db.query(input); });',
+      'const open = t.procedure.input(z.string().regex(/\\d+/)).query(({ input }) => { db.query(input); });',
+      'const word = t.procedure.input(z.string().regex("^a$")).query(({ input }) => { db.query(input); });',
+      'const loose = t.procedure.input(z.any()).query(({ input }) => { db.query(input); });',
+      'const anyIn = t.procedure.input(z.custom()).subscription(({ input }) => { db.query(input); });',
+      'const listed = t.procedure.input(z.enum(["a"])).query(({ input }) => { db.query(input); });',
+      'const plain = t.procedure.input(z.string()).query(({ input }) => { db.query(input); });',
+    ].join('\n');
+    const result = analyzeTrpc(source);
+    expect(result.routes.some((route) => route.path === 'nested.child.deep')).toBe(true);
+    expect(result.routes.find((route) => route.path === 'rx')?.injection).toBe(false);
+    expect(result.routes.find((route) => route.path === 'anyIn')?.injection).toBe(true);
+    expect(result.events.length).toBeGreaterThan(0);
+    delete process.env[FLAG];
+  });
 });

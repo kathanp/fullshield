@@ -33,4 +33,32 @@ describe('phase 252 heap', () => {
     ].join('\n');
     expect(heapFindings(source).map((row) => row.path)).toEqual(['o.a.b.c']);
   });
+
+  it('tracks tainted names, calls, and skips fields that are not stored objects', () => {
+    process.env[HEAP_FLAG] = '1';
+    expect(collapseKeepsTaint(['a'], false)).toBe(false);
+    expect(collapsePath(['only'])).toBe('only');
+    const source = [
+      'const x = req.user.query.id;',
+      'const y = req["query"];',
+      'const z = foo.bar.baz;',
+      'const called = wrap(x, ...items);',
+      'const logic = x || clean;',
+      'const text = `no`;',
+      'let bare;',
+      'const { skipped } = other;',
+      'const o = { bad: x, also: logic, call: called, ["dyn"]: x, ...rest, safe: text, nested: z };',
+      'db.query(o.bad);',
+      'db.exec(o.also);',
+      'db.run(o.bad);',
+      'db.query(...o);',
+      'db.query(o["bad"]);',
+      'db.query(foo().bad);',
+      'db.query(missing.field);',
+      'db.query(o.safe + o.bad);',
+    ].join('\n');
+    const paths = heapFindings(source).map((row) => row.path);
+    expect(paths).toContain('o.bad');
+    delete process.env[HEAP_FLAG];
+  });
 });

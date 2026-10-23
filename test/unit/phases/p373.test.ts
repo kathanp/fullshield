@@ -34,4 +34,51 @@ describe('phase 373 SRI tags', () => {
     expect(source).not.toContain('node:http');
     expect(source).not.toContain('node:net');
   });
+
+  it('reports a stylesheet link and skips comments, icons, and tags with no url', () => {
+    process.env[FLAG] = '1';
+    const html = [
+      '<!-- <script src="https://cdn.example.invalid/hidden.js"></script> -->',
+      '<link rel="stylesheet" href="https://cdn.example.invalid/a.css">',
+      '<link rel="icon" href="https://cdn.example.invalid/a.ico">',
+      '<script nonce="n"></script>',
+      '<script src="http://cdn.example.invalid/b.js"></script>',
+      '<script src="https://["></script>',
+    ].join('\n');
+    const findings = sriTags('a.html', html, 'html');
+    expect(findings.map((row) => row.url)).toEqual([
+      'https://cdn.example.invalid/a.css',
+      'http://cdn.example.invalid/b.js',
+    ]);
+    expect(sriTags('a.html', '<script src="https://cdn.example.invalid/a.js"></script>', 'html', ['cdn.example.invalid'])).toEqual([]);
+    delete process.env[FLAG];
+  });
+
+  it('reports jsx script and link tags and ignores the rest', () => {
+    process.env[FLAG] = '1';
+    const source = [
+      'const view = (',
+      '  <div>',
+      '    <script src="https://cdn.example.invalid/a.js" />',
+      '    <script src="https://cdn.example.invalid/safe.js" integrity="sha384-aaaa" />',
+      '    <script integrity />',
+      '    <script src={remote} />',
+      '    <link rel="stylesheet" href="https://cdn.example.invalid/a.css" />',
+      '    <link href="https://cdn.example.invalid/skip.css" />',
+      '    <ns.script src="https://cdn.example.invalid/member.js" />',
+      '    <script {...props} src="http://cdn.example.invalid/spread.js" />',
+      '  </div>',
+      ');',
+    ].join('\n');
+    const findings = sriTags('a.jsx', source, 'jsx');
+    expect(findings.map((row) => row.url).sort()).toEqual([
+      'http://cdn.example.invalid/spread.js',
+      'https://cdn.example.invalid/a.css',
+      'https://cdn.example.invalid/a.js',
+    ]);
+    expect(sriTags('a.jsx', 'const view = <script src="https://cdn.example.invalid/a.js" />;', 'jsx', ['cdn.example.invalid'])).toEqual([]);
+    expect(sriTags('a.jsx', 'const view = <script src="https://[" />;', 'jsx')).toEqual([]);
+    expect(sriTags('a.jsx', 'const view = <', 'jsx')).toEqual([]);
+    delete process.env[FLAG];
+  });
 });

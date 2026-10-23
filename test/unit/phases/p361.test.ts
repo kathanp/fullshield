@@ -64,4 +64,30 @@ describe('phase 361 manifest mismatch', () => {
     );
     expect(findings).toEqual([]);
   });
+
+  it('reports a version mismatch, a dependency that does not canonicalize, and skips a missing tarball and packument', () => {
+    process.env[FLAG] = '1';
+    const version = manifestMismatches(input({
+      lock: { version: '1.0.0' },
+      packument: { version: '2.0.0' },
+      tarball: null,
+    }));
+    expect(version.map((row) => row.field)).toContain('version');
+    expect(version[0]?.severity).toBe('high');
+    const deps = manifestMismatches(input({
+      lock: { dependencies: { ms: '1.0.0', left: 'latest' } },
+      packument: { dependencies: { ms: '2.0.0' } },
+      tarball: { dependencies: { ms: '1.0.0', left: 'latest' } },
+    }));
+    expect(deps.some((row) => row.field === 'dependencies.ms' && row.severity === 'low')).toBe(true);
+    expect(deps.some((row) => row.field === 'dependencies.left' && (row.left === '<absent>' || row.right === '<absent>'))).toBe(true);
+    expect(manifestMismatches(input({ packument: null, tarball: null }))).toEqual([]);
+    const scriptsOnly = manifestMismatches(input({
+      lock: { scripts: {} },
+      packument: null,
+      tarball: { scripts: { postinstall: 'node build.js' } },
+    }));
+    expect(scriptsOnly.map((row) => row.field)).toContain('scripts.postinstall');
+    delete process.env[FLAG];
+  });
 });
