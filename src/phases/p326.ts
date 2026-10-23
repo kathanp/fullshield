@@ -5,13 +5,13 @@
  */
 
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_APIKEYQUERY';
-export const RULE = 'SAST-APIKEY-QUERY-001';
+const RULE = 'SAST-APIKEY-QUERY-001';
 
 export function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 
-export const DEFAULT_APIKEY_NAMES = ['apiKey', 'api_key', 'api-key', 'accessToken', 'access_token'] as const;
+const DEFAULT_APIKEY_NAMES = ['apiKey', 'api_key', 'api-key', 'accessToken', 'access_token'] as const;
 
 export interface ApiKeyRead {
   file: string;

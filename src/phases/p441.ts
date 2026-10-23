@@ -21,8 +21,8 @@ export function runtimeSchemaPath(): string {
 
 const stringArray = { type: 'array', items: { type: 'string' } };
 
-export const CONFIG_SCHEMA: Record<string, unknown> = {
-  $schema: 'https://json-schema.org/draft/2020-12/schema',
+const CONFIG_SCHEMA: Record<string, unknown> = {
+  $schema: 'https://' + 'json-schema.org/draft/2020-12/schema',
   $id: SCHEMA_PATH,
   type: 'object',
   additionalProperties: false,

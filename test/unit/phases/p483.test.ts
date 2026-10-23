@@ -11,8 +11,8 @@ const script = join(root, 'scripts', 'phase483-ablation.mjs');
 
 function run(args: readonly string[], flag: boolean) {
   const env = { ...process.env };
-  if (flag) env.FULLSHIELD_EXPERIMENTAL_ABLATION = '1';
-  else delete env.FULLSHIELD_EXPERIMENTAL_ABLATION;
+  if (flag) {env.FULLSHIELD_EXPERIMENTAL_ABLATION = '1';}
+  else {delete env.FULLSHIELD_EXPERIMENTAL_ABLATION;}
   return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8', env });
 }
 

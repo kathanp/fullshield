@@ -7,7 +7,7 @@
 import { computeOwnerCell, type AccessQuery, type ModelOwner } from './p314.js';
 
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_TENANT';
-export const RULE = 'SAST-TENANT-001';
+const RULE = 'SAST-TENANT-001';
 
 export function enabled(): boolean {
   return process.env[FLAG] === '1';

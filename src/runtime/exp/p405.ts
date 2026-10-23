@@ -73,7 +73,7 @@ async function checkServer(start: () => Promise<{ port: number; close: () => Pro
     const benign = await status(server.port, '/');
     const attack = await status(server.port, '/attack');
     if (benign !== 200 || attack !== 403) {
-      throw new Error(`status benign=${benign} attack=${attack}`);
+      throw new TypeError(`status benign=${benign} attack=${attack}`);
     }
   } finally {
     await server.close();
@@ -133,7 +133,7 @@ export async function runCompatibilityMatrix(): Promise<RuntimeMatrix> {
     try {
       const loaded = createRequire(import.meta.url)('express') as unknown;
       if (typeof loaded !== 'function') {
-        throw new Error('express export is not a function');
+        throw new TypeError('express export is not a function');
       }
       const app = (loaded as () => MiniApp)();
       app.use((req, res) => {

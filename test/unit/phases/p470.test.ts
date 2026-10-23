@@ -11,8 +11,8 @@ const script = join(root, 'scripts', 'phase470-kappa.mjs');
 
 function run(args: readonly string[], flag: boolean) {
   const env = { ...process.env };
-  if (flag) env.FULLSHIELD_EXPERIMENTAL_KAPPA = '1';
-  else delete env.FULLSHIELD_EXPERIMENTAL_KAPPA;
+  if (flag) {env.FULLSHIELD_EXPERIMENTAL_KAPPA = '1';}
+  else {delete env.FULLSHIELD_EXPERIMENTAL_KAPPA;}
   return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8', env });
 }
 

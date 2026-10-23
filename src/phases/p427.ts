@@ -6,7 +6,7 @@
  */
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_TREND';
 
-export class FsError extends Error {
+class FsError extends Error {
   readonly code = 'FS-E' as const;
   constructor(message: string) {
     super(message);

@@ -7,7 +7,7 @@ export function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 
-export function secretName(token: string): string {
+function secretName(token: string): string {
   const hash = createHash('sha256').update(token).digest('hex').slice(0, 8);
   return `SECRET_${hash}`;
 }

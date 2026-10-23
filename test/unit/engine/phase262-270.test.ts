@@ -9,7 +9,7 @@ import { INCR_FLAG, sameAfterEdits } from '../../../src/engine/incr.js';
 import { PROOF_FLAG, buildProof } from '../../../src/engine/proof.js';
 import { markObserved, observeOrFailOpen, RUNTIMEREACH_FLAG } from '../../../src/engine/runtimereach.js';
 import { SHARDS_FLAG, planShards, summariesMatch } from '../../../src/engine/shards.js';
-import { SINKCATALOG_FLAG, catalogGaps, readSinkCatalog } from '../../../src/engine/sinks.js';
+import { SINKCATALOG_FLAG, catalogGaps, gapMarkdown, readSinkCatalog } from '../../../src/engine/sinks.js';
 
 afterEach(() => {
   delete process.env[PROOF_FLAG];
@@ -56,7 +56,10 @@ describe('phase 267 sink catalog', () => {
     const raw = JSON.parse(readFileSync('models/sinks.json', 'utf8')) as { sinks: { runtimeHook: string | null; runtimeGap?: string }[] };
     const rows = readSinkCatalog(raw);
     expect(catalogGaps(rows)).toEqual([]);
-    expect(catalogGaps([{ package: 'pg', member: 'query', argIndex: 0, class: 'sqli', staticSupported: true, runtimeHook: null }])).toHaveLength(1);
+    const missing = [{ package: 'pg', member: 'query', argIndex: 0, class: 'sqli', staticSupported: true, runtimeHook: null }];
+    expect(catalogGaps(missing)).toHaveLength(1);
+    expect(gapMarkdown(rows)).toContain('No undocumented gaps.');
+    expect(gapMarkdown(missing)).toContain('pg.query');
     expect(readFileSync('RASP-SINKS.md', 'utf8')).toContain('runtimeGap');
   });
 });

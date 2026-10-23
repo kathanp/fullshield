@@ -7,7 +7,7 @@
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_PRLINES';
 export const PARTIAL_HEADER = 'partial view: untouched issues are omitted from this invocation';
 
-export function enabled(): boolean {
+function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 

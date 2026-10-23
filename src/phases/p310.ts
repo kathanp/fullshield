@@ -56,7 +56,7 @@ export function selectRow(rows: readonly ModelRow[], version: string | null, pac
   const cached = cache.get(packagePath);
   if (cached !== undefined) {return cached;}
   for (const row of rows) {
-    if (row.appliesTo === undefined || row.appliesTo.trim() === '') {throw new Error('schema: appliesTo required');}
+    if (row.appliesTo === undefined || row.appliesTo.trim() === '') {throw new TypeError('schema: appliesTo required');}
   }
   const selection = choose(rows, version, packagePath);
   cache.set(packagePath, selection);
@@ -72,7 +72,7 @@ function choose(rows: readonly ModelRow[], version: string | null, packagePath: 
     return { row: newest(rows), versionAssumed: true, fallback: false, events: [] };
   }
   const matches = rows.filter((row) => satisfiesRange(version, row.appliesTo ?? ''));
-  if (matches.length > 1) {throw new Error('ambiguous appliesTo');}
+  if (matches.length > 1) {throw new TypeError('ambiguous appliesTo');}
   const only = matches[0];
   if (only === undefined) {
     return {

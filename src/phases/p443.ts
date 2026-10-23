@@ -7,7 +7,7 @@
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_EXPLAIN';
 export const STEP_CAP = 40;
 
-export class FsError extends Error {
+class FsError extends Error {
   readonly code = 'FS-E' as const;
   constructor(message: string) {
     super(message);

@@ -5,7 +5,7 @@ export const NOT_ATTRIBUTED = 'These keys are not attributed to the id.';
 
 function arg(argv: readonly string[], name: string): string | undefined {
   const index = argv.indexOf(name);
-  if (index === -1) return undefined;
+  if (index === -1) {return undefined;}
   return argv[index + 1];
 }
 
@@ -30,7 +30,7 @@ export async function replayDirs(beforeDir: string, afterDir: string, id: string
   }
   for (const finding of after.findings) {
     const key = keyOf(finding);
-    if (!beforeKeys.has(key)) lines.push(`regressed ${key}`);
+    if (!beforeKeys.has(key)) {lines.push(`regressed ${key}`);}
   }
   return lines.join('\n');
 }

@@ -12,8 +12,8 @@ const vitestConfig = join(root, 'vitest.config.ts');
 
 function run(args: readonly string[], flag: boolean) {
   const env = { ...process.env };
-  if (flag) env.FULLSHIELD_EXPERIMENTAL_FIXPIPE = '1';
-  else delete env.FULLSHIELD_EXPERIMENTAL_FIXPIPE;
+  if (flag) {env.FULLSHIELD_EXPERIMENTAL_FIXPIPE = '1';}
+  else {delete env.FULLSHIELD_EXPERIMENTAL_FIXPIPE;}
   return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8', env });
 }
 

@@ -6,13 +6,13 @@
  */
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_NODEFLAGS';
 export const INSPECT_RULE = 'CONFIG-INSPECT-001';
-export const PARSER_RULE = 'CONFIG-NODE-PARSER-001';
-export const EVAL_RULE = 'CONFIG-NODE-EVAL-001';
+const PARSER_RULE = 'CONFIG-NODE-PARSER-001';
+const EVAL_RULE = 'CONFIG-NODE-EVAL-001';
 
 const SECRET = /\bAKIA[0-9A-Z]{16}\b/;
 const LOOPBACK = new Set(['127.0.0.1', 'localhost', '::1']);
 
-export function enabled(): boolean {
+function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 
@@ -25,7 +25,7 @@ export interface PhaseFinding {
   snippet?: string;
 }
 
-export function tokenize(command: string): string[] {
+function tokenize(command: string): string[] {
   const tokens: string[] = [];
   const pattern = /"[^"]*"|'[^']*'|\S+/g;
   for (const match of command.matchAll(pattern)) {

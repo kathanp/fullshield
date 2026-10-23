@@ -14,12 +14,12 @@ export const HEADER_SEED = 'path: package/lib/index.js\n';
 
 function arg(argv: readonly string[], name: string): string | undefined {
   const index = argv.indexOf(name);
-  if (index === -1) return undefined;
+  if (index === -1) {return undefined;}
   return argv[index + 1];
 }
 
 function isReject(err: unknown): boolean {
-  if (!(err instanceof Error)) return false;
+  if (!(err instanceof Error)) {return false;}
   return err.name === 'SyntaxError' || err.message.includes('rejected');
 }
 
@@ -35,7 +35,7 @@ export function parseLock(text: string): 'ok' | 'reject' | 'crash' {
 export function parsePackument(text: string): 'ok' | 'reject' | 'crash' {
   try {
     const doc: unknown = JSON.parse(text);
-    if (doc === null || typeof doc !== 'object' || Array.isArray(doc)) return 'reject';
+    if (doc === null || typeof doc !== 'object' || Array.isArray(doc)) {return 'reject';}
     const name = (doc as { name?: unknown }).name;
     return typeof name === 'string' && name.length > 0 ? 'ok' : 'reject';
   } catch (err) {
@@ -47,9 +47,9 @@ export function parsePackument(text: string): 'ok' | 'reject' | 'crash' {
 export function parseHeader(text: string): 'ok' | 'reject' | 'crash' {
   try {
     const line = text.split(/\r?\n/).find((row) => row.startsWith('path:'));
-    if (line === undefined) return 'reject';
+    if (line === undefined) {return 'reject';}
     const name = line.slice('path:'.length).trim();
-    if (name.length === 0 || name.startsWith('/') || name.includes('..')) return 'reject';
+    if (name.length === 0 || name.startsWith('/') || name.includes('..')) {return 'reject';}
     return 'ok';
   } catch (err) {
     return isReject(err) ? 'reject' : 'crash';
@@ -65,8 +65,8 @@ const FAMILIES: Record<string, { seed: string; parse: (text: string) => 'ok' | '
 export function fuzzLock(parser: string): { code: number; text: string } {
   for (const [family, spec] of Object.entries(FAMILIES)) {
     const status = parser === 'crash' ? 'crash' : parser === 'reject' ? 'reject' : spec.parse(spec.seed);
-    if (status === 'crash') return { code: 1, text: 'failed case: crash\n' };
-    if (status !== 'ok') return { code: 1, text: `zero successes ${family}\n` };
+    if (status === 'crash') {return { code: 1, text: 'failed case: crash\n' };}
+    if (status !== 'ok') {return { code: 1, text: `zero successes ${family}\n` };}
     if (parser === 'ir' && family === 'header' && spec.parse('path: ../etc/passwd\n') !== 'reject') {
       return { code: 1, text: 'hostile path was not rejected\n' };
     }
@@ -77,7 +77,7 @@ export function fuzzLock(parser: string): { code: number; text: string } {
 export function main(argv: readonly string[]): number {
   const parser = arg(argv, '--parser') ?? 'ir';
   const result = fuzzLock(parser);
-  if (result.code === 0) process.stdout.write(result.text);
-  else process.stderr.write(result.text);
+  if (result.code === 0) {process.stdout.write(result.text);}
+  else {process.stderr.write(result.text);}
   return result.code;
 }

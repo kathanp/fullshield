@@ -18,7 +18,7 @@ const SECRET = /\bAKIA[0-9A-Z]{16}\b/;
 const BARE_INTERP = /\$\{[A-Za-z_][A-Za-z0-9_]*\}/;
 const DEFAULT_INTERP = /\$\{[A-Za-z_][A-Za-z0-9_]*:-[^}]+\}/;
 
-export function enabled(): boolean {
+function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 

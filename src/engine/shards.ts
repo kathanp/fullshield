@@ -1,7 +1,7 @@
 /** Phase 270. Workspace shards. Cross-shard facts are exported summaries only. */
 export const SHARDS_FLAG = 'FULLSHIELD_EXPERIMENTAL_SHARDS';
 
-export function shardsEnabled(): boolean {
+function shardsEnabled(): boolean {
   return process.env[SHARDS_FLAG] === '1';
 }
 

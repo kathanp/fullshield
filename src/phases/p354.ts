@@ -5,7 +5,7 @@
  */
 
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_DEOBFUSC';
-export const FOLD_MAX_LENGTH = 256;
+const FOLD_MAX_LENGTH = 256;
 
 export function enabled(): boolean {
   return process.env[FLAG] === '1';

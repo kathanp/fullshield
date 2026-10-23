@@ -14,7 +14,7 @@ interface AdvisoryFile {
 
 function arg(argv: readonly string[], name: string): string | undefined {
   const index = argv.indexOf(name);
-  if (index === -1) return undefined;
+  if (index === -1) {return undefined;}
   return argv[index + 1];
 }
 
@@ -35,7 +35,7 @@ export async function mine(dir: string, list: AdvisoryFile): Promise<string> {
       const sameFile = file === item.file || file.endsWith(`/${item.file}`) || file.endsWith(`\\${item.file}`);
       return sameClass && sameFile && Math.abs(line - item.line) <= 3;
     });
-    if (!hit) misses.push(item);
+    if (!hit) {misses.push(item);}
   }
   return JSON.stringify({ unreviewed: true, misses, outOfScope });
 }

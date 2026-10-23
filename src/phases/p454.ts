@@ -10,11 +10,11 @@ export const FLAG = 'FULLSHIELD_EXPERIMENTAL_GHAEXPR';
 export const GHA_INJECT = 'CI-GHA-INJECT-001';
 export const GHA_TARGET = 'CI-GHA-TARGET-001';
 export const GHA_CACHE = 'CI-GHA-CACHE-001';
-export const GHA_ENV_ARTIFACT = 'CI-GHA-ARTIFACT-001';
+const GHA_ENV_ARTIFACT = 'CI-GHA-ARTIFACT-001';
 
 const SECRET = /\bAKIA[0-9A-Z]{16}\b/;
 
-export function enabled(): boolean {
+function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 
@@ -27,7 +27,7 @@ export interface PhaseFinding {
   snippet?: string;
 }
 
-export function extractExpressions(text: string): string[] {
+function extractExpressions(text: string): string[] {
   const found: string[] = [];
   let i = 0;
   while (i < text.length) {

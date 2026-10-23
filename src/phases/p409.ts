@@ -19,6 +19,6 @@ export function pathGuard(
       refused: false,
     };
   }
-  const guard = "if (!resolved.startsWith(root + path.sep) && resolved !== root) { throw new Error('path'); }";
+  const guard = "if (!resolved.startsWith(root + path.sep) && resolved !== root) { throw new TypeError('path'); }";
   return { source: `${source}\n${guard}`, refused: false };
 }

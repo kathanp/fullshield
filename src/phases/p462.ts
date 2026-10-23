@@ -11,7 +11,7 @@ export const FLAG = 'FULLSHIELD_EXPERIMENTAL_ENVDRIFT';
 export const ENV_MISSING = 'CONFIG-ENV-MISSING-001';
 export const ENV_UNREAD = 'CONFIG-ENV-UNREAD-001';
 
-export function enabled(): boolean {
+function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 

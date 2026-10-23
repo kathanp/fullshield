@@ -11,7 +11,7 @@ export function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 
-export const DEFAULT_PRIVILEGE = ['role', 'isAdmin', 'permissions', 'tenantId'] as const;
+const DEFAULT_PRIVILEGE = ['role', 'isAdmin', 'permissions', 'tenantId'] as const;
 
 export interface MassModel {
   tags?: Readonly<Record<string, 'privilege' | 'plain'>>;

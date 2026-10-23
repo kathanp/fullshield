@@ -25,7 +25,7 @@ interface IrCacheEnvelope {
 }
 
 /** Directory under the parse cache, or `FULLSHIELD_IR_CACHE_DIR` when a test sets it. */
-export function irCacheDir(): string {
+function irCacheDir(): string {
   const override = process.env.FULLSHIELD_IR_CACHE_DIR;
   if (override !== undefined && override.length > 0) {return override;}
   return join(parseCacheDir(), 'ir');
@@ -93,7 +93,7 @@ export function writeCachedIr(key: string, ir: ModuleIr, configHash: string): vo
 
 function cacheFile(key: string): string {
   if (!/^[a-f0-9]{64}$/.test(key)) {
-    throw new Error('IR cache key must be a sha256 hex digest');
+    throw new TypeError('IR cache key must be a sha256 hex digest');
   }
   return join(irCacheDir(), `${key}.json`);
 }

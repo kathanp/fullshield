@@ -8,7 +8,7 @@ export const FLAG = 'FULLSHIELD_EXPERIMENTAL_PROXYPAIR';
 export const PROXY_RULE = 'CONFIG-PROXY-001';
 export const PROXY_SENTENCE = 'only the in-repo proxy was compared';
 
-export function enabled(): boolean {
+function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 

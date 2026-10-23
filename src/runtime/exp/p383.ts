@@ -9,7 +9,7 @@ export function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 
-export const DIALECTS = ['pg', 'mysql2', 'sqlite', 'mssql'] as const;
+const DIALECTS = ['pg', 'mysql2', 'sqlite', 'mssql'] as const;
 export type SqlDialect = (typeof DIALECTS)[number] | 'generic';
 
 export interface SqlVector {
@@ -44,7 +44,7 @@ function quoteOf(dialect: SqlDialect): "'" {
 }
 
 /** True when `before` ends inside a string literal. */
-export function insideLiteral(before: string, dialect: SqlDialect): boolean {
+function insideLiteral(before: string, dialect: SqlDialect): boolean {
   const quote = quoteOf(dialect);
   let open = false;
   for (let i = 0; i < before.length; i += 1) {

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { enabled, FLAG, protoKey } from '../../../src/phases/p419.js';
+import { enabled, FLAG, protoKey, rewriteProto } from '../../../src/phases/p419.js';
 
 afterEach(() => {
   delete process.env[FLAG];
@@ -20,5 +20,10 @@ describe('phase 419', () => {
     expect(protoKey({ tainted: true, callsMethod: false, constantKey: false, freeFormMap: false }).edit).toBe('Object.create(null)');
     expect(protoKey({ tainted: true, callsMethod: false, constantKey: true, freeFormMap: false }).edit).toBeNull();
     expect(protoKey({ tainted: true, callsMethod: false, constantKey: false, freeFormMap: true }).disposition).toBe('review');
+    const source = 'obj[req.body.k] = v;';
+    const rewritten = rewriteProto(source, { tainted: true, callsMethod: true, constantKey: false, freeFormMap: false });
+    expect(rewritten.refused).toBe(false);
+    expect(rewritten.source).toContain('__proto__');
+    expect(rewritten.witnessVerifies).toBe(false);
   });
 });

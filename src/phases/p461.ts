@@ -13,7 +13,7 @@ export const ENV_CLIENT_RULE = 'SAST-ENV-CLIENT-001';
 const SECRET_NAMES = ['SECRET', 'PASSWORD', 'TOKEN', 'API_KEY', 'PRIVATE_KEY', 'DATABASE_URL', 'AWS_SECRET_ACCESS_KEY', 'AWS_ACCESS_KEY_ID'];
 const PUBLIC_PREFIXES = ['NEXT_PUBLIC_', 'VITE_'];
 
-export function enabled(): boolean {
+function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 

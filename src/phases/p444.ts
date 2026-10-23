@@ -44,7 +44,7 @@ function compile(pattern: string): Pattern {
   return { regex, owner: '', anywhere: !pattern.includes('/') };
 }
 
-export function parseCodeowners(text: string): Pattern[] {
+function parseCodeowners(text: string): Pattern[] {
   const patterns: Pattern[] = [];
   const lines = text.split(/\r?\n/);
   for (const raw of lines) {
@@ -77,7 +77,7 @@ function matches(pattern: Pattern, file: string): boolean {
   return pattern.regex.test(base);
 }
 
-export function ownerFor(file: string, patterns: readonly Pattern[]): string {
+function ownerFor(file: string, patterns: readonly Pattern[]): string {
   let owner = 'unowned';
   for (const pattern of patterns) {
     if (matches(pattern, file)) {

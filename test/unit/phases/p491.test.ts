@@ -12,8 +12,8 @@ const publish = join(root, '.github', 'workflows', 'publish.yml');
 
 function run(args: readonly string[], flag: boolean) {
   const env = { ...process.env };
-  if (flag) env.FULLSHIELD_EXPERIMENTAL_PROVSHAPE = '1';
-  else delete env.FULLSHIELD_EXPERIMENTAL_PROVSHAPE;
+  if (flag) {env.FULLSHIELD_EXPERIMENTAL_PROVSHAPE = '1';}
+  else {delete env.FULLSHIELD_EXPERIMENTAL_PROVSHAPE;}
   return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8', env });
 }
 

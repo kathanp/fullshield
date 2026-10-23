@@ -1,7 +1,7 @@
 /** Phase 257. A number, boolean, or literal union drops string-injection labels. `any` does not. */
 export const IRTYPES_FLAG = 'FULLSHIELD_EXPERIMENTAL_IRTYPES';
 
-export function irTypesEnabled(): boolean {
+function irTypesEnabled(): boolean {
   return process.env[IRTYPES_FLAG] === '1';
 }
 

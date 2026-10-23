@@ -10,7 +10,7 @@ export function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 
-export const DEFAULT_CSRF_NAMES = ['csrf', '_csrf'] as const;
+const DEFAULT_CSRF_NAMES = ['csrf', '_csrf'] as const;
 
 export interface SessionCookie {
   file: string;

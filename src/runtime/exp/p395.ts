@@ -21,7 +21,7 @@ export class FsError extends Error {
   }
 }
 
-export function assertFraction(fraction: number): void {
+function assertFraction(fraction: number): void {
   if (!Number.isFinite(fraction) || fraction < 0 || fraction > 1) {
     throw new FsError('fraction must be between 0 and 1');
   }

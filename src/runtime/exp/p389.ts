@@ -9,7 +9,7 @@ export function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 
-export const TEMPLATE_ARGUMENT: Record<string, number> = {
+const TEMPLATE_ARGUMENT: Record<string, number> = {
   'ejs.render': 0,
   'pug.render': 0,
   'handlebars.compile': 0,

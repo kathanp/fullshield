@@ -36,7 +36,7 @@ function redact(text: string, secret: string | undefined): string {
   return without.replace(SECRET, (token) => `${token.slice(0, 4)}****`);
 }
 
-export function renderHtml(findings: readonly HtmlFinding[]): string {
+function renderHtml(findings: readonly HtmlFinding[]): string {
   const rows = findings
     .map((finding) => {
       const title = escapeHtml(redact(finding.title, finding.secret));

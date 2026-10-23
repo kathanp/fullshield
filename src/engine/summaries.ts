@@ -109,7 +109,7 @@ function callEdge(node: TSESTree.CallExpression, params: readonly string[], line
 }
 
 /** Param indexes that reach a sink. Past `cap` rounds, every param flows (sound). */
-export function sinkParams(fns: ReadonlyMap<string, FnFact>, cap = 10): Map<string, Set<number>> {
+function sinkParams(fns: ReadonlyMap<string, FnFact>, cap = 10): Map<string, Set<number>> {
   const summary = new Map<string, Set<number>>();
   for (const [name, fact] of fns) {summary.set(name, new Set(fact.directSinks));}
   let saturated = false;

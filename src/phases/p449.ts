@@ -16,7 +16,7 @@ export class FsError extends Error {
   }
 }
 
-export function enabled(): boolean {
+function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 

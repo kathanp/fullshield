@@ -10,8 +10,8 @@ const script = join(root, 'scripts', 'phase468-synth.mjs');
 
 function run(args: readonly string[], flag: boolean) {
   const env = { ...process.env };
-  if (flag) env.FULLSHIELD_EXPERIMENTAL_SYNTH = '1';
-  else delete env.FULLSHIELD_EXPERIMENTAL_SYNTH;
+  if (flag) {env.FULLSHIELD_EXPERIMENTAL_SYNTH = '1';}
+  else {delete env.FULLSHIELD_EXPERIMENTAL_SYNTH;}
   return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8', env });
 }
 

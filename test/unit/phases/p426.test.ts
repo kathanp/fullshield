@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   enabled,
   FLAG,
+  HISTORY_DB_PATH,
   historyCounts,
   historyKey,
   historyNote,
@@ -23,6 +24,7 @@ const finding: HistoryFinding = { ruleId: 'SAST-SQLI-001', file: 'src/db.js', li
 describe('phase 426 local finding history', () => {
   it('does not create the history table when the flag is off', () => {
     expect(enabled()).toBe(false);
+    expect(HISTORY_DB_PATH).toBe('.fullshield/history.sqlite');
     const db = openHistory(':memory:');
     recordScan(db, [finding], '2026-01-01');
     expect(schemaObjects(db)).not.toContain('history');

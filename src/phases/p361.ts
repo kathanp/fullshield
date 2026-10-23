@@ -38,7 +38,7 @@ export interface ManifestMismatch {
 const ABSENT = '<absent>';
 
 /** Canonical numeric form so `1.0` and `1.0.0` compare equal. */
-export function canonicalDependency(spec: string): string {
+function canonicalDependency(spec: string): string {
   const match = /^([\^~>=<]*v?)(\d+)\.(\d+)(?:\.(\d+))?([\s\S]*)$/.exec(spec.trim());
   if (match === null) {
     return spec.trim();

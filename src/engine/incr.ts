@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 /** Phase 269. A derived fact records what it read. Unchanged hashes stop the spread. */
 export const INCR_FLAG = 'FULLSHIELD_EXPERIMENTAL_INCR2';
 
-export function incrEnabled(): boolean {
+function incrEnabled(): boolean {
   return process.env[INCR_FLAG] === '1';
 }
 
@@ -18,7 +18,7 @@ interface Derived {
   value: string;
 }
 
-export class QueryEngine {
+class QueryEngine {
   private inputs = new Map<string, string>();
   private derived = new Map<string, Derived>();
   recomputed: string[] = [];

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { enabled, FLAG, MINIFIED_MIN_BYTES, minifiedPackages, type PackageFile } from '../../../src/phases/p363.js';
+import { enabled, ENTROPY_FLOOR, FLAG, MINIFIED_MIN_BYTES, minifiedPackages, type PackageFile } from '../../../src/phases/p363.js';
 
 function file(path: string, text: string): PackageFile {
   return { path, text, bytes: Buffer.byteLength(text) };
@@ -14,6 +14,7 @@ function huge(newlines: boolean): string {
 describe('phase 363 minified files', () => {
   it('adds nothing when the flag is off', () => {
     expect(enabled()).toBe(false);
+    expect(ENTROPY_FLOOR).toBe(4.5);
     expect(minifiedPackages('pkg', [file('dist/app.js', huge(false))])).toEqual([]);
   });
 

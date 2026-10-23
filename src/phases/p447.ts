@@ -8,7 +8,7 @@ export const FLAG = 'FULLSHIELD_EXPERIMENTAL_JSONSCHEMA';
 
 export const STABLE_REQUIRED = ['findings', 'summary', 'metadata'] as const;
 
-export function enabled(): boolean {
+function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 
@@ -59,7 +59,7 @@ export function validateScanDocument(doc: unknown): string[] {
   return errors;
 }
 
-export function diffStableRequired(previous: readonly string[], next: readonly string[]): string[] {
+function diffStableRequired(previous: readonly string[], next: readonly string[]): string[] {
   const kept = new Set(next);
   return previous.filter((key) => !kept.has(key));
 }
@@ -67,6 +67,6 @@ export function diffStableRequired(previous: readonly string[], next: readonly s
 export function assertSemverCompatible(previous: readonly string[], next: readonly string[]): void {
   const removed = diffStableRequired(previous, next);
   if (removed.length > 0) {
-    throw new Error(`stable required key removed: ${removed.join(',')}`);
+    throw new TypeError(`stable required key removed: ${removed.join(',')}`);
   }
 }

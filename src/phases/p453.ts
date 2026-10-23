@@ -8,16 +8,16 @@ import { parseAllDocuments } from 'yaml';
 
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_K8SMANIFEST';
 export const K8S_ROOT = 'CONFIG-K8S-ROOT-001';
-export const K8S_PRIVILEGED = 'CONFIG-K8S-PRIVILEGED-001';
+const K8S_PRIVILEGED = 'CONFIG-K8S-PRIVILEGED-001';
 export const K8S_HOSTPATH = 'CONFIG-K8S-HOSTPATH-001';
 export const K8S_MEM = 'CONFIG-K8S-MEMLIMIT-001';
-export const K8S_TOKEN = 'CONFIG-K8S-SATOKEN-001';
+const K8S_TOKEN = 'CONFIG-K8S-SATOKEN-001';
 export const K8S_SECRET = 'CONFIG-K8S-SECRET-001';
 
 const SECRET = /\bAKIA[0-9A-Z]{16}\b/;
 const LABEL_KEYS = new Set(['app', 'app.kubernetes.io/name']);
 
-export function enabled(): boolean {
+function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 

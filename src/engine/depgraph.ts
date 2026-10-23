@@ -1,7 +1,7 @@
 /** Phase 259. Upgrade reachability across a dependency boundary. Never downgrade. */
 export const DEPGRAPH_FLAG = 'FULLSHIELD_EXPERIMENTAL_DEPGRAPH';
 
-export function depGraphEnabled(): boolean {
+function depGraphEnabled(): boolean {
   return process.env[DEPGRAPH_FLAG] === '1';
 }
 

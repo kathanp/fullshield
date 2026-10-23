@@ -12,8 +12,8 @@ const packageJson = join(root, 'package.json');
 
 function run(args: readonly string[], flag: boolean) {
   const env = { ...process.env };
-  if (flag) env.FULLSHIELD_EXPERIMENTAL_DEPMIN = '1';
-  else delete env.FULLSHIELD_EXPERIMENTAL_DEPMIN;
+  if (flag) {env.FULLSHIELD_EXPERIMENTAL_DEPMIN = '1';}
+  else {delete env.FULLSHIELD_EXPERIMENTAL_DEPMIN;}
   return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8', env });
 }
 

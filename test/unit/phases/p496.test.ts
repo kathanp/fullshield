@@ -11,8 +11,8 @@ const spec = readFileSync(join(root, 'SECURITY_SCANNER_SPEC.md'), 'utf8');
 
 function run(args: readonly string[], flag: boolean) {
   const env = { ...process.env };
-  if (flag) env.FULLSHIELD_EXPERIMENTAL_THREATDOC = '1';
-  else delete env.FULLSHIELD_EXPERIMENTAL_THREATDOC;
+  if (flag) {env.FULLSHIELD_EXPERIMENTAL_THREATDOC = '1';}
+  else {delete env.FULLSHIELD_EXPERIMENTAL_THREATDOC;}
   return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8', env });
 }
 
@@ -24,7 +24,7 @@ function openingPhrases(text: string): string[] {
   for (const line of section.split('\n')) {
     const match = /^- \[ X \] (.+)$/.exec(line);
     const body = match?.[1];
-    if (body === undefined) continue;
+    if (body === undefined) {continue;}
     const dot = body.indexOf('.');
     const colon = body.indexOf(':');
     const cuts = [dot, colon].filter((index) => index >= 0);
@@ -53,8 +53,8 @@ describe('phase 496 threat model', () => {
     const doc = readFileSync(out, 'utf8');
     expect(doc).toContain('reviewed: false');
     expect(doc.includes('reviewed: true')).toBe(false);
-    for (const phrase of openingPhrases(spec)) expect(doc).toContain(phrase);
-    for (const phrase of banned) expect(doc.includes(phrase)).toBe(false);
+    for (const phrase of openingPhrases(spec)) {expect(doc).toContain(phrase);}
+    for (const phrase of banned) {expect(doc.includes(phrase)).toBe(false);}
     expect(doc).toContain('source under scan');
     expect(doc).toContain('is untrusted and is not executed');
     expect(doc).toContain('R15 host list');

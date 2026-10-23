@@ -7,7 +7,7 @@
 import { foldSource } from './p354.js';
 
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_SCRIPTABS';
-export const DEOBFUSC_FLAG = 'FULLSHIELD_EXPERIMENTAL_DEOBFUSC';
+const DEOBFUSC_FLAG = 'FULLSHIELD_EXPERIMENTAL_DEOBFUSC';
 
 export function enabled(): boolean {
   return process.env[FLAG] === '1';

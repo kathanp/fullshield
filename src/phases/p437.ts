@@ -28,7 +28,7 @@ export interface ToolResult {
   body: Record<string, unknown>;
 }
 
-export const TOOLS: readonly McpTool[] = [
+const TOOLS: readonly McpTool[] = [
   { name: 'route_matrix', description: 'Return the route matrix JSON the CLI writes.' },
   { name: 'get_witness', description: 'Return one witness. Fixes are dry-run unless the user passes apply.' },
   { name: 'proof_json', description: 'Return the proof JSON for a finding id.' },

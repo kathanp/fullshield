@@ -115,7 +115,7 @@ function memberText(node: TSESTree.MemberExpression): string | null {
 }
 
 /** Condition shapes this phase cares about. `process.version` is intentionally absent. */
-export function conditionShape(node: TSESTree.Node): string | null {
+function conditionShape(node: TSESTree.Node): string | null {
   if (node.type === 'NewExpression' && node.callee.type === 'Identifier' && node.callee.name === 'Date') {
     return 'Date';
   }

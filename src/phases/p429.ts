@@ -49,7 +49,7 @@ function field(text: string, name: string): string | null {
   return plain?.[1] ?? null;
 }
 
-export function parseSuppression(comment: string): ParsedSuppression | null {
+function parseSuppression(comment: string): ParsedSuppression | null {
   const match = /fullshield-suppress\s+(\S+)/.exec(comment);
   const ruleId = match?.[1];
   if (ruleId === undefined) {

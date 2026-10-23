@@ -4,7 +4,7 @@ import { isRequestSource, parseProgram, propName, stripNode } from './p271.js';
 
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_STRDOMAIN';
 
-export const SEGMENT_LIMIT = 8;
+const SEGMENT_LIMIT = 8;
 
 export type CharClass = 'any' | 'digits' | 'numeric' | 'letters' | 'no-quote' | 'no-dash' | 'path-sep-free';
 
@@ -44,7 +44,7 @@ export function concatAbs(left: AbstractString, right: AbstractString): Abstract
   return { segments: normalize([...left.segments, ...right.segments]) };
 }
 
-export function applyStringOp(value: AbstractString, op: StringOp): AbstractString {
+function applyStringOp(value: AbstractString, op: StringOp): AbstractString {
   if (!enabled()) {return value;}
   if (op.op === 'concat') {return concatAbs(value, op.right);}
   if (op.op === 'upper' || op.op === 'lower') {return mapLiterals(value, (text) => (op.op === 'upper' ? text.toUpperCase() : text.toLowerCase()));}
@@ -197,7 +197,7 @@ function widen(value: AbstractString): AbstractString {
   return { segments: [{ kind: 'tainted', labels, charClass: 'any' }] };
 }
 
-export function normalize(segments: readonly Segment[]): Segment[] {
+function normalize(segments: readonly Segment[]): Segment[] {
   const merged: Segment[] = [];
   for (const seg of segments) {
     if (seg.kind === 'literal' && seg.text === '') {continue;}

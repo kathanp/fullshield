@@ -7,7 +7,7 @@
 import { interpretScript } from './p353.js';
 
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_NETDEST';
-export const RULE = 'DEPS-SCRIPT-HOST-001';
+const RULE = 'DEPS-SCRIPT-HOST-001';
 
 export function enabled(): boolean {
   return process.env[FLAG] === '1';

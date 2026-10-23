@@ -119,6 +119,15 @@
     "zod": "^4.6.7"
   },
   "knip": {
+    "entry": [
+      "scripts/*.{mjs,js}",
+      "src/phases/p467.ts",
+      "src/phases/p474.ts",
+      "src/phases/p477.ts",
+      "src/phases/p478.ts",
+      "src/phases/p480.ts",
+      "src/phases/p483.ts"
+    ],
     "ignore": ["test/fixtures/**", "scripts/doc-version-check.mjs", "scripts/autopilot/guard.mjs", "docs/current/guard.mjs"]
   }
 }

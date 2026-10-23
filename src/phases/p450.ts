@@ -6,7 +6,7 @@
  */
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_PERFREPT';
 
-export function enabled(): boolean {
+function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 

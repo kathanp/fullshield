@@ -9,7 +9,7 @@ import type { TSESTree } from '@typescript-eslint/typescript-estree';
 
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_PERMMODEL';
 
-export function enabled(): boolean {
+function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 

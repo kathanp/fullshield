@@ -10,8 +10,8 @@ const script = join(root, 'scripts', 'phase472-toolchainpin.mjs');
 
 function run(args: readonly string[], flag: boolean) {
   const env = { ...process.env };
-  if (flag) env.FULLSHIELD_EXPERIMENTAL_TOOLCHAINPIN = '1';
-  else delete env.FULLSHIELD_EXPERIMENTAL_TOOLCHAINPIN;
+  if (flag) {env.FULLSHIELD_EXPERIMENTAL_TOOLCHAINPIN = '1';}
+  else {delete env.FULLSHIELD_EXPERIMENTAL_TOOLCHAINPIN;}
   return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8', env });
 }
 

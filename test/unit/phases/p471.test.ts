@@ -10,8 +10,8 @@ const script = join(root, 'scripts', 'phase471-benchhtml.mjs');
 
 function run(args: readonly string[], flag: boolean) {
   const env = { ...process.env };
-  if (flag) env.FULLSHIELD_EXPERIMENTAL_BENCHHTML = '1';
-  else delete env.FULLSHIELD_EXPERIMENTAL_BENCHHTML;
+  if (flag) {env.FULLSHIELD_EXPERIMENTAL_BENCHHTML = '1';}
+  else {delete env.FULLSHIELD_EXPERIMENTAL_BENCHHTML;}
   return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8', env });
 }
 

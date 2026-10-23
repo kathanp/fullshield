@@ -7,7 +7,7 @@
 import { matchGrammar, type SecretFormat } from './p332.js';
 
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_SECRETFLOW';
-export const RULE = 'SECRETS-FLOW-001';
+const RULE = 'SECRETS-FLOW-001';
 
 export function enabled(): boolean {
   return process.env[FLAG] === '1';

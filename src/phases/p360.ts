@@ -31,7 +31,7 @@ export interface RepoResult {
   events: { code: 271; file: string; detail: string }[];
 }
 
-export function normalizeRepoUrl(raw: string): string {
+function normalizeRepoUrl(raw: string): string {
   let url = raw.trim().replace(/#.*$/, '').replace(/^git\+/, '');
   const scp = /^git@([^:]+):(.+)$/.exec(url);
   if (scp?.[1] !== undefined && scp[2] !== undefined) {

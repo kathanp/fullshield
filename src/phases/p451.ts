@@ -9,10 +9,10 @@ export const FLAG = 'FULLSHIELD_EXPERIMENTAL_DOCKERFILE';
 export const DOCKER_USER = 'CONFIG-DOCKER-USER-001';
 export const DOCKER_ENV_COPY = 'CONFIG-DOCKER-ENVFILE-001';
 export const DOCKER_NPM = 'CONFIG-DOCKER-NPM-001';
-export const DOCKER_ARG = 'CONFIG-DOCKER-ARG-001';
-export const DOCKER_ROOT_STAGE = 'CONFIG-DOCKER-ROOT-STAGE-001';
+const DOCKER_ARG = 'CONFIG-DOCKER-ARG-001';
+const DOCKER_ROOT_STAGE = 'CONFIG-DOCKER-ROOT-STAGE-001';
 
-export function enabled(): boolean {
+function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 

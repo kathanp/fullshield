@@ -4,8 +4,8 @@
  * Cost is 1 per field. Caps apply only when the hook is on.
  */
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_GQLDEPTH';
-export const DEFAULT_DEPTH = 12;
-export const DEFAULT_FIELDS = 200;
+const DEFAULT_DEPTH = 12;
+const DEFAULT_FIELDS = 200;
 
 export function enabled(): boolean {
   return process.env[FLAG] === '1';
@@ -17,7 +17,7 @@ export interface GqlFinding {
   message: string;
 }
 
-export function countDocument(document: string): { depth: number; fields: number } {
+function countDocument(document: string): { depth: number; fields: number } {
   let depth = 0;
   let max = 0;
   let fields = 0;

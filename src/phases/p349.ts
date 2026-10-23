@@ -7,7 +7,7 @@
 import { compareSemver, rangeSatisfies } from '../modules/deps/semver.js';
 
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_MINUPGRADE';
-export const UNPUBLISHED_FLAG = 'FULLSHIELD_EXPERIMENTAL_NPM_REG_UNPUBLISHED';
+const UNPUBLISHED_FLAG = 'FULLSHIELD_EXPERIMENTAL_NPM_REG_UNPUBLISHED';
 
 export function enabled(): boolean {
   return process.env[FLAG] === '1';

@@ -5,7 +5,7 @@
  */
 
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_ERRSECRET';
-export const RULE = 'SAST-ERRSECRET-001';
+const RULE = 'SAST-ERRSECRET-001';
 
 export function enabled(): boolean {
   return process.env[FLAG] === '1';

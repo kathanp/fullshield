@@ -10,8 +10,8 @@ const script = join(root, 'scripts', 'phase481-unsoundreg.mjs');
 
 function run(args: readonly string[], flag: boolean) {
   const env = { ...process.env };
-  if (flag) env.FULLSHIELD_EXPERIMENTAL_UNSOUNDREG = '1';
-  else delete env.FULLSHIELD_EXPERIMENTAL_UNSOUNDREG;
+  if (flag) {env.FULLSHIELD_EXPERIMENTAL_UNSOUNDREG = '1';}
+  else {delete env.FULLSHIELD_EXPERIMENTAL_UNSOUNDREG;}
   return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8', env });
 }
 

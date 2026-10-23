@@ -10,7 +10,7 @@ export const FLAG = 'FULLSHIELD_EXPERIMENTAL_GITLABCI';
 export const GL_INJECT = 'CI-GL-INJECT-001';
 
 /** Committed untrusted names. CI_JOB_ID is intentionally absent. */
-export const UNTRUSTED_GITLAB_VARS = [
+const UNTRUSTED_GITLAB_VARS = [
   'CI_COMMIT_MESSAGE',
   'CI_COMMIT_TITLE',
   'CI_COMMIT_DESCRIPTION',
@@ -23,7 +23,7 @@ export const UNTRUSTED_GITLAB_VARS = [
   'CI_EXTERNAL_PULL_REQUEST_SOURCE_BRANCH_NAME',
 ] as const;
 
-export function enabled(): boolean {
+function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 

@@ -10,8 +10,8 @@ const script = join(root, 'scripts', 'phase482-rulecheck.mjs');
 
 function run(args: readonly string[], flag: boolean) {
   const env = { ...process.env };
-  if (flag) env.FULLSHIELD_EXPERIMENTAL_RULECHECK = '1';
-  else delete env.FULLSHIELD_EXPERIMENTAL_RULECHECK;
+  if (flag) {env.FULLSHIELD_EXPERIMENTAL_RULECHECK = '1';}
+  else {delete env.FULLSHIELD_EXPERIMENTAL_RULECHECK;}
   return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8', env });
 }
 
@@ -24,7 +24,7 @@ function rule(dir: string, id: string, withNegative: boolean) {
     `---\nid: ${id}\nprecision: ungated\n---\nFP paragraph: a human wrote this.\n`,
   );
   writeFileSync(join(dir, 'fixtures', id, 'positive.js'), 'positive\n');
-  if (withNegative) writeFileSync(join(dir, 'fixtures', id, 'negative.js'), 'negative\n');
+  if (withNegative) {writeFileSync(join(dir, 'fixtures', id, 'negative.js'), 'negative\n');}
   writeFileSync(join(dir, 'mutants', `${id}.js`), 'mutant\n');
 }
 

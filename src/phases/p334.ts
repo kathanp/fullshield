@@ -8,7 +8,7 @@ import { entropyReject } from './p333.js';
 import { matchGrammar, type SecretFormat } from './p332.js';
 
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_SECRETDOCS';
-export const PLACEHOLDERS = ['changeme', 'password', 'secret', 'example', 'test', 'todo', 'placeholder'] as const;
+const PLACEHOLDERS = ['changeme', 'password', 'secret', 'example', 'test', 'todo', 'placeholder'] as const;
 
 export function enabled(): boolean {
   return process.env[FLAG] === '1';
@@ -57,7 +57,7 @@ function quoteOdd(line: string): boolean {
   return count % 2 === 1;
 }
 
-export function parseYamlSubset(text: string): { ok: true; pairs: { key: string; value: string; line: number }[]; comments: { text: string; line: number }[] } | { ok: false } {
+function parseYamlSubset(text: string): { ok: true; pairs: { key: string; value: string; line: number }[]; comments: { text: string; line: number }[] } | { ok: false } {
   const pairs: { key: string; value: string; line: number }[] = [];
   const comments: { text: string; line: number }[] = [];
   const lines = text.split('\n');

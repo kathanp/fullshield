@@ -30,7 +30,7 @@ export function generateRuleDocs(rulesDir: string, outDir: string): string[] {
   mkdirSync(outDir, { recursive: true });
   const names = readdirSync(rulesDir).filter((name) => name.endsWith('.md'));
   if (names.length === 0) {
-    throw new Error(`no rule file in ${rulesDir}`);
+    throw new TypeError(`no rule file in ${rulesDir}`);
   }
   const written: string[] = [];
   for (const name of names) {

@@ -10,8 +10,8 @@ const script = join(root, 'scripts', 'phase474-fnmine.mjs');
 
 function run(args: readonly string[], flag: boolean) {
   const env = { ...process.env };
-  if (flag) env.FULLSHIELD_EXPERIMENTAL_FNMINE = '1';
-  else delete env.FULLSHIELD_EXPERIMENTAL_FNMINE;
+  if (flag) {env.FULLSHIELD_EXPERIMENTAL_FNMINE = '1';}
+  else {delete env.FULLSHIELD_EXPERIMENTAL_FNMINE;}
   return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8', env });
 }
 

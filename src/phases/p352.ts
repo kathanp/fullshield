@@ -18,7 +18,7 @@ export class DepFlagsError extends Error {
   }
 }
 
-export const RISK_TOKENS = ['advisory-critical', 'install-script', 'new-direct', 'non-registry-host'] as const;
+const RISK_TOKENS = ['advisory-critical', 'install-script', 'new-direct', 'non-registry-host'] as const;
 export type RiskToken = (typeof RISK_TOKENS)[number];
 
 export interface DepFacts {

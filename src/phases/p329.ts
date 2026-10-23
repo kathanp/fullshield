@@ -5,13 +5,13 @@
  */
 
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_DEBUGROUTE';
-export const RULE = 'CONFIG-DEBUG-ROUTE-001';
+const RULE = 'CONFIG-DEBUG-ROUTE-001';
 
 export function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 
-export const DEBUG_CATALOG = ['/metrics', '/playground', '/graphiql', '/graphql/playground', '/docs', '/swagger', '/debug'] as const;
+const DEBUG_CATALOG = ['/metrics', '/playground', '/graphiql', '/graphql/playground', '/docs', '/swagger', '/debug'] as const;
 
 export interface DebugRoute {
   file: string;
@@ -31,7 +31,7 @@ export interface DebugFinding {
   message: string;
 }
 
-export function catalogMatch(fullPath: string): boolean {
+function catalogMatch(fullPath: string): boolean {
   return DEBUG_CATALOG.some((entry) => fullPath === entry || fullPath.endsWith(entry));
 }
 

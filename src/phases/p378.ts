@@ -18,7 +18,7 @@ export class FsError extends Error {
   }
 }
 
-export const POLICY_KEYS = [
+const POLICY_KEYS = [
   'allowedRegistries',
   'allowedScriptCapabilities',
   'pinMode',

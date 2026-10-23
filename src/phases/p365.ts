@@ -10,7 +10,7 @@ export function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 
-export function phase120Enabled(): boolean {
+function phase120Enabled(): boolean {
   return process.env[PHASE_120_FLAG] === '1';
 }
 
@@ -21,11 +21,11 @@ export interface GitPinFinding {
   message: string;
 }
 
-export function isGitSpecifier(specifier: string): boolean {
+function isGitSpecifier(specifier: string): boolean {
   return /^(git\+|git:|github:|gitlab:|bitbucket:)/.test(specifier) || /^[^:\s]+\/[^:\s]+#.+/.test(specifier);
 }
 
-export function gitRef(specifier: string): string | null {
+function gitRef(specifier: string): string | null {
   const hash = specifier.lastIndexOf('#');
   if (hash === -1) {
     return null;
@@ -33,7 +33,7 @@ export function gitRef(specifier: string): string | null {
   return specifier.slice(hash + 1);
 }
 
-export function isFullCommit(ref: string): boolean {
+function isFullCommit(ref: string): boolean {
   return /^[0-9a-f]{40}$/i.test(ref);
 }
 

@@ -69,7 +69,7 @@ export function assertHooksMatchCatalog(hookIds: readonly string[], rows: readon
   const ids = new Set(rows.map((row) => `${row.package}.${row.member}`));
   for (const hookId of hookIds) {
     if (!ids.has(hookId)) {
-      throw new Error(`hook ${hookId} is not a catalog row`);
+      throw new TypeError(`hook ${hookId} is not a catalog row`);
     }
   }
 }

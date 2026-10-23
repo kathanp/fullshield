@@ -11,7 +11,7 @@ export const TF_USERDATA = 'CONFIG-TF-USERDATA-001';
 
 const SECRET = /\bAKIA[0-9A-Z]{16}\b/;
 
-export function enabled(): boolean {
+function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 

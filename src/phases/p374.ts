@@ -79,7 +79,7 @@ export function sriFromFile(attribute: string, filePath: string): SriCheckFindin
     return [];
   }
   if (filePath.includes('://')) {
-    throw new Error('--sri-from does not take a URL');
+    throw new TypeError('--sri-from does not take a URL');
   }
   const tokens = parseIntegrity(attribute);
   const token = tokens[0];

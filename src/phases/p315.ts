@@ -7,7 +7,7 @@
 import type { OwnerCell } from './p314.js';
 
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_IDOR2';
-export const RULE = 'SAST-IDOR-002';
+const RULE = 'SAST-IDOR-002';
 
 export function enabled(): boolean {
   return process.env[FLAG] === '1';

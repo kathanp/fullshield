@@ -156,7 +156,7 @@ function combine(paths: readonly PathClass[]): AuthPredicate {
   };
 }
 
-export function predicateFor(route: RouteDraft, config: AuthConfig = {}): AuthPredicate {
+function predicateFor(route: RouteDraft, config: AuthConfig = {}): AuthPredicate {
   return combine(route.reaches.map((path) => classifyPath(path, route.routeOrder, config)));
 }
 

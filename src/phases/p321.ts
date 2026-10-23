@@ -5,7 +5,7 @@
  */
 
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_BRUTE';
-export const RULE = 'CONFIG-BRUTE-001';
+const RULE = 'CONFIG-BRUTE-001';
 
 export function enabled(): boolean {
   return process.env[FLAG] === '1';

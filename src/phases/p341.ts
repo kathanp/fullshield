@@ -13,7 +13,7 @@ export function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 
-export class AllowlistError extends Error {
+class AllowlistError extends Error {
   readonly code = 'FS-E341';
   constructor(message: string) {
     super(message);
@@ -53,7 +53,7 @@ function collectStrings(value: unknown, into: string[]): void {
   }
 }
 
-export function loadAllowlist(text: string, formats: readonly SecretFormat[], knownRules: readonly string[]): AllowEntry[] {
+function loadAllowlist(text: string, formats: readonly SecretFormat[], knownRules: readonly string[]): AllowEntry[] {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text) as unknown;

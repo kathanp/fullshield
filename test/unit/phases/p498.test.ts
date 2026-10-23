@@ -12,8 +12,8 @@ const workflows = join(root, '.github', 'workflows');
 
 function run(args: readonly string[], flag: boolean) {
   const env = { ...process.env };
-  if (flag) env.FULLSHIELD_EXPERIMENTAL_BUILDPIN = '1';
-  else delete env.FULLSHIELD_EXPERIMENTAL_BUILDPIN;
+  if (flag) {env.FULLSHIELD_EXPERIMENTAL_BUILDPIN = '1';}
+  else {delete env.FULLSHIELD_EXPERIMENTAL_BUILDPIN;}
   return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8', env });
 }
 

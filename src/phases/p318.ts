@@ -5,7 +5,7 @@
  */
 
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_OAUTH';
-export const RULE = 'SAST-OAUTH-001';
+const RULE = 'SAST-OAUTH-001';
 
 export function enabled(): boolean {
   return process.env[FLAG] === '1';

@@ -70,7 +70,7 @@ function checkKind(check: AuthzCheck, config: AuthzConfig): AuthzKind | undefine
   return catalogKind(check.name);
 }
 
-export function predicateForSink(sink: SinkCheck, config: AuthzConfig = {}): AuthzPredicate {
+function predicateForSink(sink: SinkCheck, config: AuthzConfig = {}): AuthzPredicate {
   let found: AuthzPredicate = { kind: 'none' };
   for (const check of sink.checks) {
     if (check.order >= sink.sinkOrder || check.shape !== 'return-or-throw') {

@@ -11,8 +11,8 @@ const holdouts = join(root, 'bench', 'holdouts.json');
 
 function run(args: readonly string[], flag: boolean) {
   const env = { ...process.env };
-  if (flag) env.FULLSHIELD_EXPERIMENTAL_HOLDOUTS = '1';
-  else delete env.FULLSHIELD_EXPERIMENTAL_HOLDOUTS;
+  if (flag) {env.FULLSHIELD_EXPERIMENTAL_HOLDOUTS = '1';}
+  else {delete env.FULLSHIELD_EXPERIMENTAL_HOLDOUTS;}
   return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8', env });
 }
 

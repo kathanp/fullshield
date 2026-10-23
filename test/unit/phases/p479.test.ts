@@ -10,8 +10,8 @@ const script = join(root, 'scripts', 'phase479-nodediff.mjs');
 
 function run(args: readonly string[], flag: boolean) {
   const env = { ...process.env };
-  if (flag) env.FULLSHIELD_EXPERIMENTAL_NODEDIFF = '1';
-  else delete env.FULLSHIELD_EXPERIMENTAL_NODEDIFF;
+  if (flag) {env.FULLSHIELD_EXPERIMENTAL_NODEDIFF = '1';}
+  else {delete env.FULLSHIELD_EXPERIMENTAL_NODEDIFF;}
   return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8', env });
 }
 

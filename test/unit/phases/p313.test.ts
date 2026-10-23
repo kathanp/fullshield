@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { enabled, FLAG, OWNER_FLAG, withMatrix, type MatrixRoute } from '../../../src/phases/p313.js';
+import { enabled, explainMatrix, FLAG, OWNER_FLAG, withMatrix, type MatrixRoute } from '../../../src/phases/p313.js';
 
 const routes: MatrixRoute[] = [
   { method: 'GET', path: '/public', file: 'a.js', auth: 'none', authz: 'none', sinks: ['http'], message: 'SAST-IDOR-002 object' },
@@ -30,5 +30,7 @@ describe('phase 313 access matrix', () => {
     expect(next.matrix?.map((row) => row.auth)).toContain('unknown');
     expect(next.matrix?.every((row) => row.ownerScope === 'not-computed')).toBe(true);
     expect(JSON.stringify(next.matrix)).not.toContain('SAST-IDOR-002');
+    expect(explainMatrix(routes)).toContain('method path auth authz owner-scope sinks');
+    expect(explainMatrix(routes).split('\n')).toHaveLength(4);
   });
 });

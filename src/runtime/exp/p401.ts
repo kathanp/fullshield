@@ -4,7 +4,7 @@
  * Default is report-only. Strip runs only when config says so. The value is not logged.
  */
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_RESPMASK';
-export const DEFAULT_MASK_FIELDS = ['password', 'resetToken', 'secret'] as const;
+const DEFAULT_MASK_FIELDS = ['password', 'resetToken', 'secret'] as const;
 
 export function enabled(): boolean {
   return process.env[FLAG] === '1';

@@ -2,13 +2,13 @@ import { scan } from '../core/engine.js';
 
 function arg(argv: readonly string[], name: string): string | undefined {
   const index = argv.indexOf(name);
-  if (index === -1) return undefined;
+  if (index === -1) {return undefined;}
   return argv[index + 1];
 }
 
 export function byteMatch(runs: readonly string[]): boolean {
   const first = runs[0];
-  if (first === undefined) return false;
+  if (first === undefined) {return false;}
   return runs.every((run) => run === first);
 }
 
@@ -36,7 +36,7 @@ async function once(dir: string, pool: string): Promise<string> {
 export async function threeRuns(dir: string): Promise<readonly string[]> {
   const pools = ['1', '4', '8'];
   const runs: string[] = [];
-  for (const pool of pools) runs.push(await once(dir, pool));
+  for (const pool of pools) {runs.push(await once(dir, pool));}
   return runs;
 }
 

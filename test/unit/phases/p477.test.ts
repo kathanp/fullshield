@@ -9,8 +9,8 @@ const script = join(root, 'scripts', 'phase477-fuzzparse.mjs');
 
 function run(args: readonly string[], flag: boolean) {
   const env = { ...process.env };
-  if (flag) env.FULLSHIELD_EXPERIMENTAL_FUZZPARSE = '1';
-  else delete env.FULLSHIELD_EXPERIMENTAL_FUZZPARSE;
+  if (flag) {env.FULLSHIELD_EXPERIMENTAL_FUZZPARSE = '1';}
+  else {delete env.FULLSHIELD_EXPERIMENTAL_FUZZPARSE;}
   return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8', env });
 }
 

@@ -57,7 +57,7 @@ export function validateSymbolRow(row: SymbolRow): string[] {
 
 export function reviewAuthorGuard(commit: { author: string; automation: boolean; from: ReviewState; to: ReviewState }): void {
   if (commit.automation && commit.to !== commit.from && (commit.to === 'reviewed' || commit.to === 'rejected')) {
-    throw new Error('only a human commit may set reviewed or rejected');
+    throw new TypeError('only a human commit may set reviewed or rejected');
   }
 }
 

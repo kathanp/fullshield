@@ -1,7 +1,7 @@
 /** Phase 268. Observation can upgrade a finding. Absence never downgrades it. */
 export const RUNTIMEREACH_FLAG = 'FULLSHIELD_EXPERIMENTAL_RUNTIMEREACH';
 
-export function runtimeReachEnabled(): boolean {
+function runtimeReachEnabled(): boolean {
   return process.env[RUNTIMEREACH_FLAG] === '1';
 }
 

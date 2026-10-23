@@ -11,8 +11,8 @@ const script = join(root, 'scripts', 'phase489-holdoutrot.mjs');
 
 function run(args: readonly string[], flag: boolean) {
   const env = { ...process.env };
-  if (flag) env.FULLSHIELD_EXPERIMENTAL_HOLDOUTROT = '1';
-  else delete env.FULLSHIELD_EXPERIMENTAL_HOLDOUTROT;
+  if (flag) {env.FULLSHIELD_EXPERIMENTAL_HOLDOUTROT = '1';}
+  else {delete env.FULLSHIELD_EXPERIMENTAL_HOLDOUTROT;}
   return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8', env });
 }
 

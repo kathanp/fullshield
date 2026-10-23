@@ -1,7 +1,7 @@
 /** Phase 262. A finding can carry a replayable proof. The verifier does not import this file. */
 export const PROOF_FLAG = 'FULLSHIELD_EXPERIMENTAL_PROOF';
 
-export function proofEnabled(): boolean {
+function proofEnabled(): boolean {
   return process.env[PROOF_FLAG] === '1';
 }
 

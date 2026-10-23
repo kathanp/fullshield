@@ -121,6 +121,6 @@ export function thresholdOwnership(commit: { author: string; files: readonly str
   const automation = author.includes('cursor') || author.includes('automation');
   const touched = commit.files.some((file) => file.replaceAll('\\', '/').endsWith('quality/entropy-thresholds.json'));
   if (automation && touched) {
-    throw new Error('threshold file is human-owned');
+    throw new TypeError('threshold file is human-owned');
   }
 }

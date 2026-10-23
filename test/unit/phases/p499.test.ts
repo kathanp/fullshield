@@ -10,8 +10,8 @@ const script = join(root, 'scripts', 'phase499-backport.mjs');
 
 function run(args: readonly string[], flag: boolean) {
   const env = { ...process.env };
-  if (flag) env.FULLSHIELD_EXPERIMENTAL_BACKPORT = '1';
-  else delete env.FULLSHIELD_EXPERIMENTAL_BACKPORT;
+  if (flag) {env.FULLSHIELD_EXPERIMENTAL_BACKPORT = '1';}
+  else {delete env.FULLSHIELD_EXPERIMENTAL_BACKPORT;}
   return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8', env });
 }
 

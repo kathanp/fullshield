@@ -18,7 +18,7 @@ export interface WinPathFinding {
   message: string;
 }
 
-export function classifyWindowsPath(segment: string): WinForm | null {
+function classifyWindowsPath(segment: string): WinForm | null {
   if (segment.startsWith('\\\\?\\') || segment.startsWith('\\\\.\\')) {
     return 'device';
   }

@@ -9,7 +9,7 @@ export const FLAG = 'FULLSHIELD_EXPERIMENTAL_STREAMAPI';
 export const ITERATOR_DOC =
   'scanFindingsIterator yields findings as they finish. Order is not the scan --json order.';
 
-export function enabled(): boolean {
+function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 

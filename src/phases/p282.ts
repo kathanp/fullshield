@@ -4,7 +4,7 @@ import { isRequestSource, lineOf, parseProgram, propName, stripNode, walkAst } f
 
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_HTMLCTX';
 
-export const HTML_CONTEXTS = [
+const HTML_CONTEXTS = [
   'text',
   'quoted-attr',
   'unquoted-attr',
@@ -15,7 +15,7 @@ export const HTML_CONTEXTS = [
   'comment',
 ] as const;
 
-export const HTML_SANITIZERS = [
+const HTML_SANITIZERS = [
   'none',
   'escapeHtml',
   'encodeURIComponent',

@@ -10,8 +10,8 @@ const script = join(root, 'scripts', 'phase469-cweindex.mjs');
 
 function run(args: readonly string[], flag: boolean) {
   const env = { ...process.env };
-  if (flag) env.FULLSHIELD_EXPERIMENTAL_CWEINDEX = '1';
-  else delete env.FULLSHIELD_EXPERIMENTAL_CWEINDEX;
+  if (flag) {env.FULLSHIELD_EXPERIMENTAL_CWEINDEX = '1';}
+  else {delete env.FULLSHIELD_EXPERIMENTAL_CWEINDEX;}
   return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8', env });
 }
 
@@ -20,7 +20,7 @@ function layout(dir: string, rule: string, withNegative: boolean) {
   mkdirSync(join(dir, 'fixtures', 'R1'), { recursive: true });
   writeFileSync(join(dir, 'rules', 'R1.md'), `---\nid: R1\ncwe: CWE-89\n---\n${rule}\n`);
   writeFileSync(join(dir, 'fixtures', 'R1', 'positive.js'), 'positive\n');
-  if (withNegative) writeFileSync(join(dir, 'fixtures', 'R1', 'negative.js'), 'negative\n');
+  if (withNegative) {writeFileSync(join(dir, 'fixtures', 'R1', 'negative.js'), 'negative\n');}
 }
 
 describe('phase 469 CWE fixture index', () => {

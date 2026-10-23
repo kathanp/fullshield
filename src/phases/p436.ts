@@ -45,7 +45,7 @@ export function lspBinding(): { port: null; tcp: false } {
   return { port: null, tcp: false };
 }
 
-export function scanJson(file: string, text: string): ScanKey[] {
+function scanJson(file: string, text: string): ScanKey[] {
   const keys: ScanKey[] = [];
   const lines = text.split(/\r?\n/);
   lines.forEach((line, index) => {

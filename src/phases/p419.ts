@@ -19,7 +19,7 @@ export function protoKey(input: ProtoInput): { edit: string | null; disposition:
   const disposition = input.freeFormMap ? 'review' : 'safe';
   if (input.callsMethod) {
     return {
-      edit: "if (k === '__proto__' || k === 'constructor' || k === 'prototype') { throw new Error('prototype key'); }",
+      edit: "if (k === '__proto__' || k === 'constructor' || k === 'prototype') { throw new TypeError('prototype key'); }",
       disposition,
     };
   }

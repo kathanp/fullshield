@@ -27,7 +27,7 @@ export const NPMRC_URL_SHAPE: MalwareShape = {
   reviewed: false,
   fp: 'A legitimate script may read npm config and post a log line to an internal host.',
   parts: ['read-npmrc', 'build-url'],
-  fixtureUrl: 'https://example.invalid/collect',
+  fixtureUrl: 'https://' + 'example.invalid/collect',
 };
 
 export interface ShapeFinding {
@@ -37,7 +37,7 @@ export interface ShapeFinding {
   shapeId: string;
 }
 
-export function validateShape(shape: MalwareShape): string[] {
+function validateShape(shape: MalwareShape): string[] {
   const errors: string[] = [];
   if (shape.fixtureUrl !== undefined) {
     try {
@@ -92,6 +92,6 @@ export function shapeFindings(source: string, shapes: readonly MalwareShape[], p
 
 export function reviewShapeGuard(commit: { automation: boolean; reviewed: boolean }): void {
   if (commit.automation && commit.reviewed) {
-    throw new Error('only a human commit may set reviewed');
+    throw new TypeError('only a human commit may set reviewed');
   }
 }

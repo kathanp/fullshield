@@ -22,7 +22,7 @@ const FULL_MAPS = new Set([
 
 const SERVER_ONLY = new Set(['serverSourceMaps', 'productionServerSourceMaps']);
 
-export function enabled(): boolean {
+function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 

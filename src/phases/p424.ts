@@ -23,7 +23,7 @@ export interface JournalEntry {
   restore: string;
 }
 
-export function scrubSecrets(text: string): string {
+function scrubSecrets(text: string): string {
   return text.replace(SECRET, (token) => `${token.slice(0, 4)}****`);
 }
 

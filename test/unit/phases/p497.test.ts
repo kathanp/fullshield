@@ -14,8 +14,8 @@ const PKG = 'p497drillpkg';
 
 function runScript(args: readonly string[], flag: boolean) {
   const env = { ...process.env };
-  if (flag) env.FULLSHIELD_EXPERIMENTAL_DRILL = '1';
-  else delete env.FULLSHIELD_EXPERIMENTAL_DRILL;
+  if (flag) {env.FULLSHIELD_EXPERIMENTAL_DRILL = '1';}
+  else {delete env.FULLSHIELD_EXPERIMENTAL_DRILL;}
   return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8', env });
 }
 

@@ -47,7 +47,7 @@ export function uploadStatic(source: string): UploadFinding[] {
   return findings;
 }
 
-export function assertUploadAllow(types: readonly string[]): void {
+function assertUploadAllow(types: readonly string[]): void {
   if (types.includes('text/html')) {
     throw new FsError('text/html cannot be allowlisted');
   }

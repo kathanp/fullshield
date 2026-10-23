@@ -30,7 +30,7 @@ export async function openCounter(
       imported: false,
       set(source: string, count: number): Promise<void> {
         if (!Number.isInteger(count)) {
-          throw new Error('counter value must be an integer');
+          throw new TypeError('counter value must be an integer');
         }
         memory.set(`${KEY_PREFIX}${source}`, count);
         return Promise.resolve();
@@ -38,17 +38,17 @@ export async function openCounter(
     };
   }
   if (config.url === undefined || config.url === '') {
-    throw new Error('Redis is selected and no URL was configured');
+    throw new TypeError('Redis is selected and no URL was configured');
   }
   const client = (await load('redis')) ?? (await load('ioredis'));
   if (client === null) {
-    throw new Error('install redis or ioredis to use this feature');
+    throw new TypeError('install redis or ioredis to use this feature');
   }
   return {
     imported: true,
     async set(source: string, count: number): Promise<void> {
       if (!Number.isInteger(count)) {
-        throw new Error('counter value must be an integer');
+        throw new TypeError('counter value must be an integer');
       }
       await client.set(`${KEY_PREFIX}${source}`, count);
     },

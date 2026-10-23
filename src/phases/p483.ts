@@ -8,7 +8,7 @@ interface HoldoutFile {
 
 function arg(argv: readonly string[], name: string): string | undefined {
   const index = argv.indexOf(name);
-  if (index === -1) return undefined;
+  if (index === -1) {return undefined;}
   return argv[index + 1];
 }
 
@@ -17,7 +17,7 @@ function flagsOf(argv: readonly string[]): string[] {
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === '--flag') {
       const name = argv[i + 1];
-      if (name !== undefined) flags.push(name);
+      if (name !== undefined) {flags.push(name);}
     }
   }
   return flags;
@@ -30,7 +30,7 @@ export function pathHasHoldout(repo: string, names: readonly string[]): string |
 
 export async function ablate(repo: string, flags: readonly string[], names: readonly string[]): Promise<string> {
   const blocked = pathHasHoldout(repo, names);
-  if (blocked !== undefined) throw new Error(`holdout path refused: ${blocked}`);
+  if (blocked !== undefined) {throw new TypeError(`holdout path refused: ${blocked}`);}
   const rows: Array<{ flag: string; count: number }> = [];
   for (const flag of flags) {
     const previous = process.env[flag];
@@ -39,8 +39,8 @@ export async function ablate(repo: string, flags: readonly string[], names: read
       const result = await scan({ cwd: repo, modules: ['sast'], offline: true });
       rows.push({ flag, count: result.findings.length });
     } finally {
-      if (previous === undefined) delete process.env[flag];
-      else process.env[flag] = previous;
+      if (previous === undefined) {delete process.env[flag];}
+      else {process.env[flag] = previous;}
     }
   }
   return JSON.stringify({ unreviewed: true, rows });

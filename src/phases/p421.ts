@@ -46,14 +46,14 @@ function isQueryCall(line: string): boolean {
 }
 
 /** True while a SQL call still concatenates or interpolates a value. */
-export function sqlSinkOpen(line: string): boolean {
+function sqlSinkOpen(line: string): boolean {
   if (!isQueryCall(line)) {
     return false;
   }
   return /\+\s*[A-Za-z_$]/.test(line) || /\$\{/.test(line);
 }
 
-export function witnessHolds(source: string, witness: WitnessRef): boolean {
+function witnessHolds(source: string, witness: WitnessRef): boolean {
   if (witness.ruleId !== 'SAST-SQLI-001') {
     return false;
   }

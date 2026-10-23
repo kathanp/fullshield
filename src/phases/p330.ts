@@ -13,7 +13,7 @@ export function enabled(): boolean {
   return process.env[FLAG] === '1';
 }
 
-export class AccessReportError extends Error {
+class AccessReportError extends Error {
   readonly code = 'FS-E330';
   constructor(message: string) {
     super(`FS-E330 ${message}`);

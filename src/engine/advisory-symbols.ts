@@ -1,7 +1,7 @@
 /** Phase 260. Unreviewed rows are used only under the flag and stay labeled unreviewed. */
 export const ADVSYMBOLS_FLAG = 'FULLSHIELD_EXPERIMENTAL_ADVSYMBOLS';
 
-export function advisorySymbolsEnabled(): boolean {
+function advisorySymbolsEnabled(): boolean {
   return process.env[ADVSYMBOLS_FLAG] === '1';
 }
 
@@ -21,14 +21,14 @@ export interface SymbolReach {
 
 export function loadAdvisorySymbols(raw: unknown): AdvisorySymbolRow[] {
   if (typeof raw !== 'object' || raw === null || !('rows' in raw) || !Array.isArray(raw.rows)) {
-    throw new Error('symbols must be an object with rows');
+    throw new TypeError('symbols must be an object with rows');
   }
   return raw.rows.map((row) => {
-    if (typeof row !== 'object' || row === null) {throw new Error('missing source');}
+    if (typeof row !== 'object' || row === null) {throw new TypeError('missing source');}
     const record = row as Record<string, unknown>;
-    if (typeof record.source !== 'string' || record.source.length === 0) {throw new Error('missing source');}
+    if (typeof record.source !== 'string' || record.source.length === 0) {throw new TypeError('missing source');}
     if (typeof record.osvId !== 'string' || typeof record.package !== 'string' || !Array.isArray(record.affectedExports)) {
-      throw new Error('missing source');
+      throw new TypeError('missing source');
     }
     const exports = record.affectedExports.filter((name): name is string => typeof name === 'string');
     return {

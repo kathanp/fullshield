@@ -1,7 +1,7 @@
 /** Phase 267. Static rules and RASP hooks share one catalog. */
 export const SINKCATALOG_FLAG = 'FULLSHIELD_EXPERIMENTAL_SINKCATALOG';
 
-export function sinkCatalogEnabled(): boolean {
+function sinkCatalogEnabled(): boolean {
   return process.env[SINKCATALOG_FLAG] === '1';
 }
 
