@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 /** Phase 499. Diff stable finding keys against a second checkout. Does not publish or push. */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const FLAG = 'FULLSHIELD_EXPERIMENTAL_BACKPORT';
@@ -23,12 +22,13 @@ function loadFindings(path, root) {
   const doc = JSON.parse(readFileSync(path, 'utf8'));
   const rows = Array.isArray(doc) ? doc : doc.findings;
   return (rows ?? []).map((row) => {
-    const file = String(row.file ?? '');
-    const rootPrefix = root.length === 0 ? '' : root.endsWith('/') || root.endsWith('\\') ? root : `${root}/`;
-    const rel = rootPrefix.length > 0 && file.startsWith(rootPrefix) ? relative(root, file) : file;
+    const file = String(row.file ?? '').replaceAll('\\', '/');
+    const base = root.replaceAll('\\', '/').replace(/\/$/, '');
+    const under = base.length > 0 && (file === base || file.startsWith(`${base}/`));
+    const rel = under ? file.slice(base.length + 1) : file;
     return JSON.stringify({
       ruleId: row.ruleId,
-      file: rel.replaceAll('\\', '/'),
+      file: rel,
       severity: row.severity,
     });
   });

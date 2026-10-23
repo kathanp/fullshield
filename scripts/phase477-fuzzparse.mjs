@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const FLAG = 'FULLSHIELD_EXPERIMENTAL_FUZZPARSE';
 const entry = process.argv[1];
@@ -17,7 +17,7 @@ if (direct) {
     const reg = join(dir, 'register.mjs');
     writeFileSync(loader, "export async function resolve(specifier, context, nextResolve) {\n  if ((specifier.startsWith('./') || specifier.startsWith('../')) && specifier.endsWith('.js')) {\n    try { return await nextResolve(specifier.slice(0, -3) + '.ts', context); }\n    catch { return nextResolve(specifier, context); }\n  }\n  return nextResolve(specifier, context);\n}\n");
     writeFileSync(reg, "import { register } from 'node:module';\nimport { pathToFileURL } from 'node:url';\nregister(pathToFileURL(" + JSON.stringify(loader) + ").href, { parentURL: import.meta.url });\n");
-    const result = spawnSync(process.execPath, ['--experimental-transform-types', '--disable-warning=ExperimentalWarning', '--import', reg, fileURLToPath(import.meta.url), ...process.argv.slice(2)], {
+    const result = spawnSync(process.execPath, ['--experimental-transform-types', '--disable-warning=ExperimentalWarning', '--import', pathToFileURL(reg).href, fileURLToPath(import.meta.url), ...process.argv.slice(2)], {
       stdio: 'inherit',
       env: { ...process.env, FULLSHIELD_PHASE_INNER: '1' },
     });
