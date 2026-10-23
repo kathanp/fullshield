@@ -37,6 +37,8 @@ describe('phase 397 CSP suggestion', () => {
       const none = cspSuggestion([{ name: 'c.html', text: '<p>hello</p>' }]);
       expect(none?.section).toContain("'none'");
       expect(none?.section).toContain("does not include 'unsafe-inline'");
+      const open = cspSuggestion([{ name: 'd.html', text: '<!-- <script src="https://open.example/a.js"></script>' }]);
+      expect(open?.section ?? '').not.toContain('open.example');
     } finally {
       delete process.env[FLAG];
     }

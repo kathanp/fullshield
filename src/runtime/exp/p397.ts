@@ -16,9 +16,27 @@ export interface CspSuggestion {
   headerWritten: false;
 }
 
+function withoutComments(text: string): string {
+  const parts: string[] = [];
+  let index = 0;
+  while (index < text.length) {
+    if (text.startsWith('<!--', index)) {
+      const end = text.indexOf('-->', index + 4);
+      if (end === -1) {
+        break;
+      }
+      index = end + 3;
+      continue;
+    }
+    parts.push(text[index] ?? '');
+    index += 1;
+  }
+  return parts.join('');
+}
+
 function hostsFrom(text: string): { hosts: string[]; inline: boolean; dynamic: boolean } {
   const hosts: string[] = [];
-  const stripped = text.replace(/<!--[\s\S]*?-->/g, '');
+  const stripped = withoutComments(text);
   const inline = /\son[a-z]+\s*=/i.test(stripped) || /<script(?![^>]*\bsrc=)[^>]*>/i.test(stripped);
   const dynamic = /src=\{/.test(text) || /href=\{/.test(text);
   for (const match of stripped.matchAll(/\b(?:src|href)\s*=\s*['"](https:\/\/[^'"]+)['"]/gi)) {

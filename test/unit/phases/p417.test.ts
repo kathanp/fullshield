@@ -20,7 +20,7 @@ describe('phase 417', () => {
     expect(dry.insertedOriginTrue).toBe(false);
     const reflect = helmetFix({ express: true, helmet: true, reflect: true, foreignScript: false, apply: true });
     expect(reflect.applied).toBe(false);
-    expect(reflect.dryRun.includes('example.com')).toBe(false);
+    expect(reflect.dryRun).toBe('origin reflect refused');
     const foreign = helmetFix({ express: true, helmet: true, reflect: false, foreignScript: true, apply: true });
     expect(foreign.dryRun.includes('origin: false')).toBe(false);
   });

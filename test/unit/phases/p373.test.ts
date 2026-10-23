@@ -50,6 +50,7 @@ describe('phase 373 SRI tags', () => {
       'https://cdn.example.invalid/a.css',
       'http://cdn.example.invalid/b.js',
     ]);
+    expect(sriTags('a.html', '<!-- <script src="https://cdn.example.invalid/open.js"></script>', 'html')).toEqual([]);
     expect(sriTags('a.html', '<script src="https://cdn.example.invalid/a.js"></script>', 'html', ['cdn.example.invalid'])).toEqual([]);
     delete process.env[FLAG];
   });

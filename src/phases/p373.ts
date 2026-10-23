@@ -20,8 +20,26 @@ export interface SriTagFinding {
   message: string;
 }
 
+function withoutComments(html: string): string {
+  const parts: string[] = [];
+  let index = 0;
+  while (index < html.length) {
+    if (html.startsWith('<!--', index)) {
+      const end = html.indexOf('-->', index + 4);
+      if (end === -1) {
+        break;
+      }
+      index = end + 3;
+      continue;
+    }
+    parts.push(html[index] ?? '');
+    index += 1;
+  }
+  return parts.join('');
+}
+
 function htmlTags(html: string): SriTagFinding[] {
-  const stripped = html.replace(/<!--[\s\S]*?-->/g, '');
+  const stripped = withoutComments(html);
   const findings: Array<{ url: string }> = [];
   const tags = stripped.matchAll(/<(script|link)\b[^>]*>/gi);
   for (const tag of tags) {
