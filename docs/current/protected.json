@@ -1,5 +1,6 @@
 {
   "base": "next",
+  "features": "docs/FEATURES.md",
   "spec": "SECURITY_SCANNER_SPEC.md",
   "decisions": "docs/DECISIONS.md",
   "amendmentMarker": "R26. AUTOPILOT runs",
@@ -33,6 +34,7 @@
     ".github/workflows/*.yml"
   ],
   "masterOnly": [
+    "docs/FEATURES.md",
     "SECURITY_SCANNER_SPEC.md",
     "docs/DECISIONS.md",
     "docs/stability.md",

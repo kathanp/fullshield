@@ -6,9 +6,10 @@
 //   --init --run <name> --version <x.y.z>   SPEC has the R26 amendment, .gitignore entries, clean tree,
 //                                           install hook, snapshot protected files, create run/<name>
 //                                           from the base branch (next), write RUN_STATE skeleton
-// Phase 1 (spec)
-//   --approve-spec --run <name>             PERSON ONLY, in a terminal: freeze the SPEC for this run
-//   --verify-spec [--card <id>]             approval present and SPEC unchanged; no [PROPOSED] marks;
+// Phase 1 (features, then spec)
+//   --approve-features --run <name>         PERSON ONLY, in a terminal: freeze docs/FEATURES.md first
+//   --approve-spec --run <name>             PERSON ONLY, in a terminal: freeze the SPEC after features
+//   --verify-spec [--card <id>]             both approvals present and unchanged; no [PROPOSED] marks;
 //                                           card shape, flag, numbers all in that card's SPEC rows
 // Phases 3-5 (tests, code, review)
 //   --card <id> --role test|code [--base <ref>]   ownership, R3 (no edits to existing tests), banned
@@ -25,13 +26,14 @@
 //   --squash --run <name> --version <v>     release/<v> = base + exactly one commit, same tree as run/<name>
 //   --verify-release --version <v>          that one commit, package version, lockfile, changelog, tag
 // Phase 10 (release, read-only)
-//   --release-check --version <v>           list blockers and the person's push/PR/tag/approve order
+//   --release-check --version <v>           list blockers and the master's push/PR/merge/tag order
 // Phase 11
 //   --cleanup --run <name> --version <v>    after release/<v> is in origin/main: erase the run
 // Hook
-//   --install-hooks | --commit-msg <file>
+//   --install-hooks | --commit-msg <file> | --pre-push
 //
 // This script never pushes, publishes, tags, logs in, or calls the network.
+// The pre-push hook refuses every push except the one step-10 content push and the one tag push.
 
 import { execFileSync, execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -75,14 +77,18 @@ const STATE = '.autopilot/';
 const STATE_DIR = join(MAIN_ROOT, STATE);
 const PROTECTED = join(STATE_DIR, 'protected.json');
 const HASHES = join(STATE_DIR, 'protected.sha256');
+const FEATURES_APPROVAL = join(STATE_DIR, 'features-approved.json');
 const APPROVAL = join(STATE_DIR, 'spec-approved.json');
 const RUN_STATE = join(STATE_DIR, 'RUN_STATE.md');
+const GATE_PASS = join(STATE_DIR, 'gate-pass');
 const CARDS = join(STATE_DIR, 'cards');
 const PKG = 'package.json';
 const CHANGELOG = 'CHANGELOG.md';
 const REQUIRED_IGNORES = ['.autopilot/', 'AUTOPILOT.md'];
 // The only things .autopilot/ may hold (AUTOPILOT.md 1a).
-const STATE_ALLOWED = new Set(['protected.json', 'protected.sha256', 'spec-approved.json', 'RUN_STATE.md', 'cards']);
+const STATE_ALLOWED = new Set(['protected.json', 'protected.sha256', 'features-approved.json', 'spec-approved.json', 'RUN_STATE.md', 'cards', 'gate-pass']);
+const STEP10_MARKER = 'The master never runs `npm publish` or `npm login`';
+const ZERO_SHA = '0000000000000000000000000000000000000000';
 const FLAG_RE = /FULLSHIELD_EXPERIMENTAL_[A-Z0-9_]+/g;
 const RULE_ID_RE = /\bid:\s*['"]([A-Z]+(?:-[A-Z0-9]+)*-\d{3})['"]/g;
 const ERR_CODE_RE = /\bFS-E\d{3}\b/g;
@@ -156,6 +162,7 @@ const isFixture = (f) => /^test\/fixtures\//.test(f);
 
 const DEFAULT_CONFIG = {
   base: 'next',
+  features: 'docs/FEATURES.md',
   spec: 'SECURITY_SCANNER_SPEC.md',
   decisions: 'docs/DECISIONS.md',
   amendmentMarker: 'R26. AUTOPILOT runs',
@@ -171,6 +178,7 @@ const config = () => {
   return { ...DEFAULT_CONFIG, ...raw, docs: { ...DEFAULT_CONFIG.docs, ...(raw.docs ?? {}) } };
 };
 const CFG = config();
+const FEATURES = CFG.features;
 const SPEC = CFG.spec;
 const BASE = opt('--base', CFG.base);
 
@@ -206,15 +214,31 @@ const stripTrailers = (msg) => msg.replace(/^Co-authored-by:.*\b(cursor|agent|bo
 function installHooks() {
   const dir = git('rev-parse', '--git-path', 'hooks');
   mkdirSync(dir, { recursive: true });
-  const hook = join(dir, 'commit-msg');
-  if (existsSync(hook) && !readFileSync(hook, 'utf8').includes('scripts/autopilot/guard.mjs'))
-    die(`${hook} already exists and is not the guard's hook; merge them by hand`);
-  writeFileSync(
-    hook,
-    `#!/bin/sh\nexec node "$(git rev-parse --show-toplevel)/scripts/autopilot/guard.mjs" --commit-msg "$1"\n`,
-  );
-  chmodSync(hook, 0o755);
-  console.log(`guard: installed ${hook}`);
+  const hookBody = (args) =>
+    `#!/bin/sh\nexec node "$(git rev-parse --show-toplevel)/scripts/autopilot/guard.mjs" ${args}\n`;
+  const writeHook = (name, args) => {
+    const hook = join(dir, name);
+    if (existsSync(hook) && !readFileSync(hook, 'utf8').includes('scripts/autopilot/guard.mjs'))
+      die(`${hook} already exists and is not the guard's hook; merge them by hand`);
+    writeFileSync(hook, hookBody(args));
+    chmodSync(hook, 0o755);
+    console.log(`guard: installed ${hook}`);
+  };
+  writeHook('commit-msg', '--commit-msg "$1"');
+  writeHook('pre-push', '--pre-push');
+}
+
+function runField(name) {
+  if (!existsSync(RUN_STATE)) return '';
+  const line = readFileSync(RUN_STATE, 'utf8')
+    .split('\n')
+    .find((l) => l.startsWith(`${name} `));
+  return line ? line.slice(name.length + 1).trim() : '';
+}
+
+function refusePush(msg) {
+  console.error(`guard: ${msg}`);
+  process.exit(1);
 }
 
 function snapshot() {
@@ -266,7 +290,20 @@ const proposedLines = (text) =>
     .map((l, i) => [i + 1, l])
     .filter(([, l]) => /\[PROPOSED\b/.test(l));
 
+function featuresProblem() {
+  const path = fromRoot(FEATURES);
+  if (!existsSync(FEATURES_APPROVAL))
+    return `features file is not approved (a person runs --approve-features). The SPEC is not written first`;
+  if (!existsSync(path)) return `features file missing: ${FEATURES}`;
+  const a = loadJson(FEATURES_APPROVAL);
+  if (a.sha !== sha(path))
+    return `${FEATURES} changed since approval at ${a.approvedAt}; re-approve the features file before the SPEC`;
+  return null;
+}
+
 function verifyApproval() {
+  const fp = featuresProblem();
+  if (fp) errors.push(fp);
   if (!existsSync(APPROVAL)) {
     errors.push('SPEC is not approved for this run (a person runs --approve-spec)');
     return;
@@ -274,6 +311,25 @@ function verifyApproval() {
   const a = loadJson(APPROVAL);
   if (a.sha !== sha(join(MAIN_ROOT, SPEC)))
     errors.push(`${SPEC} changed since approval at ${a.approvedAt}; build stops until a person re-approves`);
+}
+
+function personApproves(what) {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) die(`${what} must be run by a person in a terminal, not by an agent`);
+  process.stdout.write(`${what} Type APPROVE: `);
+  const buf = Buffer.alloc(1);
+  let answer = '';
+  for (;;) {
+    let n = 0;
+    try {
+      n = readSync(0, buf, 0, 1, null);
+    } catch (e) {
+      if (e.code === 'EAGAIN') continue;
+      throw e;
+    }
+    if (!n || buf[0] === 10) break;
+    answer += buf.toString();
+  }
+  if (answer.trim() !== 'APPROVE') die('not approved');
 }
 
 // Card anchors: "### Heading" selects that section; any other string selects every SPEC line containing it.
@@ -401,6 +457,8 @@ function verifyDocs() {
 function verifyNoLogs() {
   for (const f of existsSync(STATE_DIR) ? readdirSync(STATE_DIR) : [])
     if (!STATE_ALLOWED.has(f)) errors.push(`${STATE}${f} is not guard state; run notes stay in memory (AUTOPILOT.md 1a)`);
+  if (existsSync(GATE_PASS) && !/^[0-9a-f]{40}\n?$/.test(readFileSync(GATE_PASS, 'utf8')))
+    errors.push(`${STATE}gate-pass must be one commit sha and nothing else`);
   const cards = join(STATE_DIR, 'cards');
   for (const f of existsSync(cards) ? readdirSync(cards) : [])
     if (!f.endsWith('.json')) errors.push(`${STATE}cards/${f} is not a card`);
@@ -516,17 +574,73 @@ if (flag('--commit-msg')) {
   process.exit(0);
 }
 
+if (flag('--pre-push')) {
+  const phase = runField('PHASE');
+  if (!existsSync(RUN_STATE) || phase === 'done') process.exit(0);
+  if (phase === 'hard-stop') refusePush('run is in hard-stop; no push');
+  const refs = lines(readFileSync(0, 'utf8'));
+  if (!refs.length) process.exit(0);
+  if (phase !== 'release') refusePush(`PHASE is ${phase || 'missing'}; pushes wait until PHASE release`);
+  if (refs.length !== 1) refusePush('one ref per push');
+  const [localRef, localSha, remoteRef, remoteSha] = refs[0].split(' ');
+  if (localSha === ZERO_SHA) refusePush('deleting a remote ref is refused');
+  const version = runField('VERSION');
+  const pushes = runField('PUSHES');
+  const tag = runField('TAG');
+  const gate = existsSync(GATE_PASS) ? readFileSync(GATE_PASS, 'utf8').trim() : '';
+  if (!version) refusePush('RUN_STATE has no VERSION line');
+  if (!/^[0-9a-f]{40}$/.test(gate)) refusePush('gate-pass must hold the release commit sha from a green phase 7 gate');
+  if (remoteRef === `refs/heads/${BASE}` && localRef === `refs/heads/release/${version}`) {
+    if (pushes !== '0') refusePush('content push already used (PUSHES is not 0)');
+    if (localSha !== gate) refusePush('pushed sha is not the sha in gate-pass');
+    if (remoteSha === ZERO_SHA) refusePush(`${BASE} does not exist on the remote`);
+    if (!gitOk('merge-base', '--is-ancestor', remoteSha, localSha)) refusePush(`push to ${BASE} is not a fast-forward`);
+    const ahead = lines(git('rev-list', `${remoteSha}..${localSha}`));
+    if (ahead.length !== 1 || ahead[0] !== localSha) refusePush(`${BASE} must move by exactly the one release commit`);
+    if (git('log', '-1', '--format=%s', localSha) !== `release: ${version}`)
+      refusePush(`subject must be "release: ${version}"`);
+    const pv = readJsonAt(localSha, PKG).version;
+    if (pv !== version) refusePush(`package.json version is ${pv}; want ${version}`);
+    process.exit(0);
+  }
+  if (remoteRef === `refs/tags/v${version}`) {
+    if (pushes !== '1' || tag !== 'no') refusePush('tag push is allowed once, after the content push, while TAG is no');
+    if (remoteSha !== ZERO_SHA) refusePush(`tag v${version} already exists on the remote (R17)`);
+    let commit = '';
+    try {
+      commit = git('rev-parse', `${localSha}^{commit}`);
+    } catch {
+      refusePush('tag does not point at a commit');
+    }
+    if (!gitOk('rev-parse', '--verify', '--quiet', 'origin/main')) refusePush('no origin/main; fetch before tagging');
+    if (commit !== git('rev-parse', 'origin/main')) refusePush('tag must point at origin/main');
+    const rel = `release/${version}`;
+    if (!branchExists(rel) || git('rev-parse', rel) !== gate) refusePush(`gate-pass must be the tip of ${rel}`);
+    if (!gitOk('merge-base', '--is-ancestor', rel, 'origin/main')) refusePush(`${rel} is not in origin/main`);
+    if (git('rev-parse', `${rel}^{tree}`) !== git('rev-parse', 'origin/main^{tree}'))
+      refusePush('origin/main tree differs from the release commit');
+    process.exit(0);
+  }
+  refusePush(
+    `refused ${localRef} -> ${remoteRef}. Step 10 may push release/${version} to ${BASE}, then tag v${version} on origin/main`,
+  );
+}
+
 // ---------------------------------------------------------------- init
 if (flag('--init')) {
   const run = need('--run');
   const v = needVersion();
   if (!/^[\w.-]+$/.test(run)) die(`bad run name "${run}"`);
+  const phaseNow = runField('PHASE');
+  if (existsSync(RUN_STATE) && phaseNow && phaseNow !== 'done')
+    die(`RUN_STATE is in PHASE ${phaseNow}; resume that run or finish it before --init`);
   if (!existsSync(PROTECTED)) die(`missing ${PROTECTED}. Copy the one from AUTOPILOT.md section 2 first`);
   const ignored = existsSync(fromRoot('.gitignore')) ? readFileSync(fromRoot('.gitignore'), 'utf8').split('\n').map((s) => s.trim()) : [];
   const missing = REQUIRED_IGNORES.filter((l) => !ignored.includes(l));
   if (missing.length) die(`.gitignore lacks ${missing.join(', ')}. A person adds and commits them on ${BASE} first`);
-  if (!existsSync(fromRoot(SPEC)) || !readFileSync(fromRoot(SPEC), 'utf8').includes(CFG.amendmentMarker))
-    die(`${SPEC} has no "${CFG.amendmentMarker}" amendment. A person adds AUTOPILOT.md Appendix A to the SPEC first (R1)`);
+  const specText = existsSync(fromRoot(SPEC)) ? readFileSync(fromRoot(SPEC), 'utf8') : '';
+  if (!specText.includes(CFG.amendmentMarker) || !specText.includes(STEP10_MARKER))
+    die(`${SPEC} is missing the R26 step-10 amendment. Section 45 must match AUTOPILOT.md Appendix A`);
   if (!cleanTree()) die(`uncommitted changes; start from a clean ${BASE}`);
   if (!branchExists(BASE)) die(`no local ${BASE} branch`);
   if (gitOk('rev-parse', '--verify', '--quiet', `origin/${BASE}`) && git('rev-parse', BASE) !== git('rev-parse', `origin/${BASE}`))
@@ -539,29 +653,52 @@ if (flag('--init')) {
   mkdirSync(CARDS, { recursive: true });
   snapshot();
   if (!branchExists(`run/${run}`)) git('branch', `run/${run}`, BASE);
+  rmSync(FEATURES_APPROVAL, { force: true });
   rmSync(APPROVAL, { force: true });
-  if (!existsSync(RUN_STATE))
-    writeFileSync(
-      RUN_STATE,
-      [
-        `RUN ${run}   VERSION ${v}   BASE ${BASE} ${git('rev-parse', '--short', BASE)}   MODE <A|B>`,
-        'PHASE spec',
-        'SPEC APPROVED no',
-        'TASKS',
-        'OPEN QUESTIONS',
-        'DECISIONS',
-        `NEXT ACTION write the version ${v} scope into ${SPEC}`,
-        '',
-      ].join('\n'),
-    );
+  rmSync(GATE_PASS, { force: true });
+  writeFileSync(
+    RUN_STATE,
+    [
+      `RUN ${run}`,
+      `VERSION ${v}`,
+      `BASE ${BASE} ${git('rev-parse', '--short', BASE)}`,
+      'MODE <A|B>',
+      'PHASE features',
+      'PUSHES 0',
+      'TAG no',
+      'FEATURES APPROVED no',
+      'SPEC APPROVED no',
+      'TASKS',
+      'OPEN QUESTIONS',
+      'DECISIONS',
+      'NEEDS HUMAN',
+      `NEXT ACTION write the version ${v} scope into ${FEATURES}. Do not edit ${SPEC} yet`,
+      '',
+    ].join('\n'),
+  );
   console.log(`guard: run ${run} for ${v} initialised on run/${run} (from ${BASE})`);
   process.exit(0);
 }
 
-// ---------------------------------------------------------------- spec approval (person only)
+// ---------------------------------------------------------------- features approval, then spec approval (person only)
+if (flag('--approve-features')) {
+  const run = need('--run');
+  const path = fromRoot(FEATURES);
+  if (!existsSync(path)) die(`missing ${FEATURES}; write the features file before the SPEC`);
+  const h = sha(path);
+  personApproves(`Approve ${FEATURES} (sha ${h.slice(0, 12)}) for run ${run}?`);
+  writeFileSync(
+    FEATURES_APPROVAL,
+    JSON.stringify({ run, file: FEATURES, sha: h, approvedAt: new Date().toISOString(), by: process.env.USER ?? null }, null, 2) + '\n',
+  );
+  console.log(`guard: features file approved for run ${run}`);
+  process.exit(0);
+}
+
 if (flag('--approve-spec')) {
   const run = need('--run');
-  if (!process.stdin.isTTY || !process.stdout.isTTY) die('--approve-spec must be run by a person in a terminal, not by an agent');
+  const fp = featuresProblem();
+  if (fp) die(fp);
   const open = proposedLines(readFileSync(fromRoot(SPEC), 'utf8'));
   if (open.length)
     die(
@@ -569,21 +706,7 @@ if (flag('--approve-spec')) {
         open.map(([n, l]) => `${SPEC}:${n} ${l.trim().slice(0, 100)}`).join('\n  '),
     );
   const h = sha(fromRoot(SPEC));
-  process.stdout.write(`Approve ${SPEC} (sha ${h.slice(0, 12)}) for run ${run}? Type APPROVE: `);
-  const buf = Buffer.alloc(1);
-  let answer = '';
-  for (;;) {
-    let n = 0;
-    try {
-      n = readSync(0, buf, 0, 1, null);
-    } catch (e) {
-      if (e.code === 'EAGAIN') continue;
-      throw e;
-    }
-    if (!n || buf[0] === 10) break;
-    answer += buf.toString();
-  }
-  if (answer.trim() !== 'APPROVE') die('not approved');
+  personApproves(`Approve ${SPEC} (sha ${h.slice(0, 12)}) for run ${run}?`);
   writeFileSync(
     APPROVAL,
     JSON.stringify({ run, sha: h, approvedAt: new Date().toISOString(), by: process.env.USER ?? null }, null, 2) + '\n',
@@ -772,14 +895,14 @@ if (flag('--release-check')) {
   console.log('MANUAL (cannot be checked here)\n  - ' + CFG.releaseManual.join('\n  - '));
   console.log(
     [
-      'ORDER (a person runs every step; this script runs none)',
-      `  1. git fetch origin && git push origin release/${v}:${BASE}      (fast-forward only; if refused, rebase the run and re-squash)`,
-      `  2. wait for CI on ${BASE} (verify, ubuntu, node 24) to go green`,
-      `  3. open a PR ${BASE} -> main; the 6 matrix jobs go green; merge with "Create a merge commit" (R18)`,
-      `  4. git fetch origin && git tag v${v} origin/main && git push origin v${v}      (R1, R17)`,
-      '  5. on npmjs.com approve the staged publish with 2FA within 10 minutes; the Provenance gate job must go green (S6)',
-      `  6. stranger check (SPEC Section 2 step 10) with npx fullshield@${v}`,
-      `  7. node scripts/autopilot/guard.mjs --cleanup --run <name> --version ${v}`,
+      'ORDER (the master runs 1-4 and 6-7; this script runs none. The human does step 5 only)',
+      `  1. PHASE release, PUSHES 0, TAG no, gate-pass is release/${v}. git fetch origin && git push origin release/${v}:${BASE}`,
+      `  2. set PUSHES 1. Wait until the CI workflow on ${BASE} is green. Open the PR ${BASE} -> main. Wait until the 6 matrix jobs are green. gh pr merge --merge`,
+      `  3. git fetch origin && git tag v${v} origin/main && git push origin v${v}`,
+      '  4. set TAG yes. Wait for the Publish workflow. It stages with provenance and then polls attestations',
+      '  5. HUMAN: approve the staged publish on npmjs.com with 2FA within 10 minutes. The master never runs npm publish or npm login',
+      '  6. Provenance gate green, then the stranger check (SPEC Section 2 step 10)',
+      `  7. fast-forward local ${BASE} and main, then --cleanup`,
     ].join('\n'),
   );
   process.exit(blockers.length ? 1 : 0);
