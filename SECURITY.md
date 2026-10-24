@@ -18,7 +18,8 @@ Out of scope: findings in `test/fixtures/**` (intentionally vulnerable), third-p
 
 | Version | Status |
 |---|---|
-| 1.3.0 | This tree. |
+| 1.3.1 | This tree. |
+| 1.3.0 | Tagged `v1.3.0`. |
 | 1.2.0 | Tagged `v1.2.0`. |
 | 1.0.x | Supported. 1.0.1 was published 2026-10-21, with provenance. |
 | < 1.0.0 | Not the current release. Use 1.0.1. |
