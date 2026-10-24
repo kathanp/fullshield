@@ -2,6 +2,12 @@
 
 All notable changes to FullShield are documented here.
 
+## 1.3.1 — 2026-10-24
+
+### Dev
+
+- Autopilot writes `docs/FEATURES.md` and requires approval of that file before any spec edit. Default scan output is unchanged.
+
 ## 1.3.0
 
 ### Experimental

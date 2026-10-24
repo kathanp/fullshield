@@ -1,4 +1,4 @@
-# FullShield features (1.3.0)
+# FullShield features (1.3.1)
 
 Inventory of what this tree ships. Default use is a Node.js/TypeScript scan that detects, classifies, reports, notifies, suggests fixes, and can gate CI. Experimental features stay off unless their flag is set to `1`.
 
