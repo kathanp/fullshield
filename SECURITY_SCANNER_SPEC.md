@@ -15,7 +15,7 @@
 Breaking any rule below = stop work and report to the human. Do not "fix forward" around a rule.
 
 ### 0.1 Authority
-- [ X ] **R1.** The human approves: tags, publishes, merges to `main`, ground-truth reviews, test edits, threshold changes, and moving any feature from experimental to stable. Cursor never does these without an explicit "go" in the current message.
+- [ X ] **R1.** The human approves: tags, publishes, merges to `main`, ground-truth reviews, test edits, threshold changes, and moving any feature from experimental to stable. Cursor never does these without an explicit "go" in the current message. During an autopilot run (Section 45, R26), the human's continuation after `docs/FEATURES.md` (the word `next`, or any later message in that chat) is the go for the rest of that run: commit, push `next`, open the PR, merge to `main`, and tag. It is not a go for `npm publish` or `npm login`. Those commands stay forbidden. The human's other act in that run is approving the staged version on npmjs.com.
 - [ X ] **R2.** If a human instruction conflicts with this spec, ask before acting. If this spec conflicts with code comments or other docs, this spec wins.
 
 ### 0.2 Tests and evidence
@@ -58,7 +58,7 @@ The **session** stops only for:
 - the `next` baseline itself is red (S4 on `next`, not on a phase branch),
 - S6 (a publish would lack provenance, or the pack budget is exceeded on `next`),
 - S7 (an instruction would require breaking R1–R22),
-- any R1 action (tag, publish, merge to `main`, ground-truth review, test edit, threshold change, promotion). These are never done. They are listed under "Needs human decision" and the work continues.
+- any R1 action that R26 does not hand to the agent. Outside an autopilot run, tag, publish, and merge to `main` are never done. Inside an autopilot run, after the features-file continuation, the agent commits, pushes, merges, and tags. The agent never runs `npm publish` or `npm login`. The npmjs.com click stays under "Needs human decision". Ground-truth edits, test edits, threshold changes, and promotions that the approved features file does not name are still never done.
 
 Even when the session stops, Cursor writes the report file first.
 
@@ -140,6 +140,8 @@ Needs human decision: <list or "none">
 ---
 
 ## 2. Release Protocol (human-gated)
+
+An autopilot run follows Section 45 instead of steps 7–9 below. After the features-file continuation the agent opens the PR, merges, and tags. Step 9 stays the human's click on npmjs.com. The agent never runs `npm publish` or `npm login`.
 
 1. Target phases merged into `next`; `next` CI green.
 2. `node scripts/default-scan-diff.mjs --against <last published version>` → attach output.
@@ -1876,14 +1878,35 @@ scripts/autopilot/guard.mjs. For such a run only:
    wk/test/phase-N and wk/code/phase-N in ../fullshield-wt/ (amends R18 and R21 for
    location only; integration is still one phase at a time, in table order, verify and
    default-scan-diff after each).
-3. Commits. run/<name> keeps one `phase-N: <summary>` commit per phase (R19). The finished
-   run is squashed into one commit `release: <x.y.z>` on release/<x.y.z>, which the human
-   fast-forwards onto `next`; `main` still moves only by PR from `next` (R18). R19's
-   "never mix phases in one commit" does not apply to that release commit.
-4. Records. No report file, run log, or PROGRESS.md entry is written (replaces Section
+3. Two human stops. The agent writes `docs/FEATURES.md` and stops. The human reads it and
+   may edit it. The next message in that chat (the word `next`, or any other continuation)
+   approves the file on disk. The agent then runs `--approve-features --from-chat` and
+   does not stop again for content approval. The second human act is the npmjs.com
+   staged-version click. `[PROPOSED D-n]` marks are decided by the agent and must not be
+   left open. The agent writes `R10 approved` only when the approved features file says
+   default scan output changes. A default-scan-diff the features file did not name still
+   parks (S1).
+4. Commits and step 10. run/<name> keeps one `phase-N: <summary>` commit per phase (R19).
+   The finished run is squashed into one commit `release: <x.y.z>` on release/<x.y.z>.
+   At step 10 the agent fast-forwards that commit onto `next`, opens the PR to `main`,
+   merges with a merge commit after the matrix is green, and pushes tag `v<x.y.z>` on
+   `origin/main`. That sequence amends R1 and R18, and it amends the R1 session-stop in
+   Section 0.7, for those GitHub actions only. `main` still moves only by a PR from
+   `next`. R19's "never mix phases in one commit" does not apply to that release commit.
+5. Records. No report file, run log, or PROGRESS.md entry is written (replaces Section
    40.5 for the run). R8 still applies: real output is pasted in the chat summary.
-5. Everything else in Section 0 applies unchanged, including R1, R3, R3a, R10, R11, R13,
-   R15, R16a, R17, R22, R23, R24 and S1-S7.
+6. Publish. The master never runs `npm publish` or `npm login`. The tag push starts
+   `.github/workflows/publish.yml`. The human approves the staged publish on npmjs.com
+   with 2FA. No provenance means the version stops (S6).
+7. One content push. A second push of code is refused. A red GitHub check is not fixed
+   by pushing again. If branch protection refuses the merge, the run stops and tells the
+   human. The agent does not bypass protection.
+8. Still a stop after the features continuation: R3 test edits, R3a, a threshold change,
+   a ground-truth edit, or a promotion to stable that the approved features file does not
+   name. The agent does not weaken a test to finish the run.
+9. Everything else in Section 0 applies unchanged, including R3, R3a, R10, R11, R13,
+   R15, R16a, R17, R22, R23, R24 and S1–S7, except the commit, push, merge, and tag that
+   item 4 hands to the agent.
 
 ### Version scope 1.2.0
 
