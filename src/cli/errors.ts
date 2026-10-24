@@ -30,6 +30,11 @@ const KNOWN: Array<{ test: RegExp; code: string; hint: string }> = [
     hint: 'Set FULLSHIELD_EXPERIMENTAL_CI_REPORTS=1 or pass --experimental-ci-reports.',
   },
   {
+    test: /FULLSHIELD_EXPERIMENTAL_DIFFSCAN/,
+    code: 'FS-E018',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_DIFFSCAN=1 or pass --experimental-diffscan. scan --diff does not scan the whole tree when git fails.',
+  },
+  {
     test: /FULLSHIELD_EXPERIMENTAL_DIFF|scan JSON|cannot read diff/,
     code: 'FS-E006',
     hint: 'Set FULLSHIELD_EXPERIMENTAL_DIFF=1 or pass --experimental-diff. Both inputs must be scan --json files.',

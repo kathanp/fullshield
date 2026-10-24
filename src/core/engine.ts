@@ -16,6 +16,7 @@ import { createAiClient, isInternalAi, isLiveAi } from '../ai/provider.js';
 import { applyBaseline, applySuppressions, readBaseline, writeBaseline } from './baseline.js';
 import { loadConfig, type ResolvedConfig } from './config.js';
 import { walkFiles } from './fileWalker.js';
+import { raise } from './raise.js';
 import { partitionPerf2, perf2Enabled } from './perf2.js';
 import { beginSharedAst, endSharedAst, preparseProject } from './shared-ast.js';
 import { listStagedFiles } from './git.js';
@@ -72,6 +73,8 @@ export interface ScanOptions {
   ai?: boolean | 'triage' | 'explain' | 'logic';
   /** Phase 22 incremental (requires experimentalIncremental or FULLSHIELD_EXPERIMENTAL_PLATFORM=1). */
   changed?: boolean;
+  /** Phase 501. Requires FULLSHIELD_EXPERIMENTAL_DIFFSCAN=1. */
+  diff?: boolean;
   since?: string;
   experimentalIncremental?: boolean;
   changedFiles?: string[];
@@ -220,16 +223,7 @@ async function collectModuleFindings(
  * then dedupe, sort, and summarize findings. `modules` is injectable so the
  * engine's orchestration is testable independently of built-in modules.
  */
-export async function runScan(
-  options: ScanOptions = {},
-  modules: readonly ScanModule[] = builtinModules,
-): Promise<ScanResult> {
-  const startedAt = new Date().toISOString();
-  const t0 = performance.now();
-  depsModule.unusedDirect = undefined;
-  depsModule.upgradePlan = undefined;
-
-  try {
+function armScanBudget(options: ScanOptions): void {
   if (
     budgetEnabled() &&
     options.maxTimeSeconds !== undefined &&
@@ -238,13 +232,24 @@ export async function runScan(
   ) {
     armBudget(options.maxTimeSeconds);
   }
+}
 
-  const cwd = resolve(options.cwd ?? process.cwd());
+async function requireScanDirectory(cwdOption: string | undefined): Promise<string> {
+  const cwd = resolve(cwdOption ?? process.cwd());
   const stats = await stat(cwd).catch(() => null);
   if (stats === null || !stats.isDirectory()) {
     throw new Error(`scan path is not a directory: ${cwd}`);
   }
+  return cwd;
+}
 
+interface LoadedScan {
+  config: ResolvedConfig;
+  loadedPolicy: FullShieldPolicy | undefined;
+  modulesRequested: ModuleName[];
+}
+
+async function loadScanConfig(cwd: string, options: ScanOptions): Promise<LoadedScan> {
   let config = await loadConfig(cwd, options.configPath);
   if (options.semgrepRules !== undefined && options.semgrepRules.length > 0) {
     config = { ...config, semgrepRules: options.semgrepRules };
@@ -264,6 +269,34 @@ export async function runScan(
     options.modules ?? config.modules,
     loadedPolicy?.requiredModules,
   );
+  return { config, loadedPolicy, modulesRequested };
+}
+
+async function applyChangedFiles(cwd: string, options: ScanOptions, files: string[]): Promise<string[]> {
+  const incrementalOn =
+    options.experimentalIncremental === true || process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM === '1';
+  if (!incrementalOn || (options.changed !== true && options.since === undefined && !options.changedFiles)) {
+    return files;
+  }
+  const { resolveChangedFiles } = await import('../incremental/index.js');
+  const listed =
+    options.changedFiles ??
+    resolveChangedFiles(cwd, {
+      changed: options.changed,
+      since: options.since,
+      experimental: true,
+    });
+  if (listed.length === 0) {return files;}
+  const allow = new Set(listed);
+  return files.filter((file) => allow.has(file));
+}
+
+interface SelectedFiles {
+  files: string[];
+  skipped: ScanMetadata['skipped'];
+}
+
+async function selectScanFiles(cwd: string, options: ScanOptions, config: ResolvedConfig): Promise<SelectedFiles> {
   let files = await walkFiles({
     cwd,
     ignore: config.ignore,
@@ -274,69 +307,99 @@ export async function runScan(
     const staged = new Set(await listStagedFiles(cwd));
     files = files.filter((file) => staged.has(file));
   }
-  const incrementalOn =
-    options.experimentalIncremental === true || process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM === '1';
-  if (incrementalOn && (options.changed === true || options.since !== undefined || options.changedFiles)) {
-    const { resolveChangedFiles } = await import('../incremental/index.js');
-    const listed =
-      options.changedFiles ??
-      resolveChangedFiles(cwd, {
-        changed: options.changed,
-        since: options.since,
-        experimental: true,
-      });
-    if (listed.length > 0) {
-      const allow = new Set(listed);
-      files = files.filter((file) => allow.has(file));
+  if (options.diff === true) {
+    if (process.env.FULLSHIELD_EXPERIMENTAL_DIFFSCAN !== '1') {
+      raise('scan --diff requires FULLSHIELD_EXPERIMENTAL_DIFFSCAN=1');
     }
+    const { limitToFrontier } = await import('../diffscan/frontier.js');
+    files = await limitToFrontier(cwd, files);
   }
-
+  files = await applyChangedFiles(cwd, options, files);
   let skipped: ScanMetadata['skipped'];
   if (perf2Enabled()) {
     const part = await partitionPerf2(cwd, files, config.sast.maxFileBytes);
     files = part.kept;
     skipped = part.skipped;
   }
+  return { files, skipped };
+}
 
-  const available = new Map(modules.map((m) => [m.name, m]));
-  const modulesRun = modulesRequested.filter((name) => available.has(name));
+interface Gathered {
+  findings: Finding[];
+  extraHits: SecretHit[];
+  historyNotice: string | undefined;
+  modulesRun: ModuleName[];
+}
 
-  const ctx: ModuleContext = { cwd, files, config };
+async function readModuleFindings(
+  cwd: string,
+  files: string[],
+  loaded: LoadedScan,
+  modules: readonly ScanModule[],
+): Promise<{ findings: Finding[]; modulesRun: ModuleName[] }> {
+  const available = new Map(modules.map((mod) => [mod.name, mod]));
+  const modulesRun = loaded.modulesRequested.filter((name) => available.has(name));
+  const ctx: ModuleContext = { cwd, files, config: loaded.config };
   if (perf2Enabled()) {
     beginSharedAst();
-    await preparseProject(cwd, files, config.sast.maxFileBytes);
+    await preparseProject(cwd, files, loaded.config.sast.maxFileBytes);
   }
-  let collected: Finding[];
   try {
-    collected = await collectModuleFindings(available, modulesRun, ctx);
+    const findings = await collectModuleFindings(available, modulesRun, ctx);
+    return { findings, modulesRun };
   } finally {
     if (perf2Enabled()) {endSharedAst();}
+  }
+}
+
+async function addHistoryAndBundle(
+  cwd: string,
+  options: ScanOptions,
+  secretsWanted: boolean,
+  collected: Finding[],
+): Promise<{ extraHits: SecretHit[]; historyNotice: string | undefined }> {
+  const extraHits: SecretHit[] = [];
+  let historyNotice: string | undefined;
+  if (!secretsAdvEnabled() || !secretsWanted) {return { extraHits, historyNotice };}
+  if (options.history === true) {
+    const { scanGitHistory } = await import('../modules/secrets/history.js');
+    const hist = await scanGitHistory(cwd);
+    extraHits.push(...hist.hits);
+    collected.push(...hist.findings);
+    historyNotice = hist.history;
+  }
+  if (options.bundle !== undefined && options.bundle.length > 0) {
+    const { scanBundle } = await import('../modules/secrets/bundle.js');
+    const bun = await scanBundle(options.bundle);
+    extraHits.push(...bun.hits);
+    collected.push(...bun.findings);
+  }
+  return { extraHits, historyNotice };
+}
+
+async function gatherFindings(
+  cwd: string,
+  options: ScanOptions,
+  loaded: LoadedScan,
+  files: string[],
+  modules: readonly ScanModule[],
+): Promise<Gathered> {
+  const read = await readModuleFindings(cwd, files, loaded, modules);
+  const collected = read.findings;
+  if (options.diff === true && process.env.FULLSHIELD_EXPERIMENTAL_DIFFSCAN === '1') {
+    const { carrierFindings } = await import('../diffscan/carrier.js');
+    collected.push(...(await carrierFindings(cwd, files)));
   }
   if (process.env.FULLSHIELD_EXPERIMENTAL_MCPCFG === '1') {
     collected.push(
       ...scanMcpConfig(cwd, { experimental: true, includeHome: options.includeHome === true }),
     );
   }
+  const extra = await addHistoryAndBundle(cwd, options, loaded.modulesRequested.includes('secrets'), collected);
+  return { findings: collected, extraHits: extra.extraHits, historyNotice: extra.historyNotice, modulesRun: read.modulesRun };
+}
 
-  const extraHits: SecretHit[] = [];
-  let historyNotice: string | undefined;
-  const secretsWanted = modulesRequested.includes('secrets');
-  if (secretsAdvEnabled() && secretsWanted) {
-    if (options.history === true) {
-      const { scanGitHistory } = await import('../modules/secrets/history.js');
-      const hist = await scanGitHistory(cwd);
-      extraHits.push(...hist.hits);
-      collected.push(...hist.findings);
-      historyNotice = hist.history;
-    }
-    if (options.bundle !== undefined && options.bundle.length > 0) {
-      const { scanBundle } = await import('../modules/secrets/bundle.js');
-      const bun = await scanBundle(options.bundle);
-      extraHits.push(...bun.hits);
-      collected.push(...bun.findings);
-    }
-  }
-
+async function sourceTexts(cwd: string, collected: readonly Finding[]): Promise<Record<string, string>> {
   const sources: Record<string, string> = {};
   for (const file of new Set(collected.map((f) => f.file).filter((f): f is string => f !== undefined))) {
     try {
@@ -345,116 +408,176 @@ export async function runScan(
       // Finding file disappeared between walk and filter; keep the finding.
     }
   }
+  return sources;
+}
+
+interface Baselined {
+  findings: Finding[];
+  suppressionErrors: string[];
+  sources: Record<string, string>;
+}
+
+async function baselineFindings(
+  cwd: string,
+  config: ResolvedConfig,
+  options: ScanOptions,
+  collected: Finding[],
+): Promise<Baselined> {
+  const sources = await sourceTexts(cwd, collected);
   const unsuppressed = applyInlineSuppressions(dedupe(collected), sources);
   const baselinePath = resolve(cwd, config.baseline);
   if (options.updateBaseline === true) {
     await writeBaseline(baselinePath, unsuppressed);
   }
   const baselineDoc = await readBaseline(baselinePath);
-  let findings = sortFindings(applyBaseline(unsuppressed, baselineDoc));
-  const suppressed = applySuppressions(findings, baselineDoc?.suppressions);
-  findings = sortFindings(suppressed.findings);
-  const suppressionErrors = suppressed.errors;
+  const suppressed = applySuppressions(sortFindings(applyBaseline(unsuppressed, baselineDoc)), baselineDoc?.suppressions);
+  return { findings: sortFindings(suppressed.findings), suppressionErrors: suppressed.errors, sources };
+}
 
-  if (
-    secretsAdvEnabled() &&
-    secretsWanted &&
-    options.verifySecrets === true &&
-    options.iOwnTheseCredentials === true
-  ) {
-    const { applyVerification } = await import('../modules/secrets/verify.js');
-    const { scanTextForSecretHits } = await import('../modules/secrets/index.js');
-    const secretById = new Map<string, string>();
-    for (const hit of extraHits) {
+async function cachedSource(
+  cwd: string,
+  file: string,
+  sources: Record<string, string>,
+): Promise<string | undefined> {
+  const cached = sources[file];
+  if (cached !== undefined) {return cached;}
+  try {
+    return await readFile(join(cwd, file), 'utf8');
+  } catch {
+    return undefined;
+  }
+}
+
+async function verifyOwnedSecrets(
+  findings: Finding[],
+  extraHits: readonly SecretHit[],
+  sources: Record<string, string>,
+  cwd: string,
+  options: ScanOptions,
+): Promise<Finding[]> {
+  const { applyVerification } = await import('../modules/secrets/verify.js');
+  const { scanTextForSecretHits } = await import('../modules/secrets/index.js');
+  const secretById = new Map<string, string>();
+  for (const hit of extraHits) {
+    if (hit.secret !== undefined) {secretById.set(hit.finding.id, hit.secret);}
+  }
+  for (const finding of findings) {
+    if (finding.module !== 'secrets' || finding.file === undefined || secretById.has(finding.id)) {continue;}
+    const text = await cachedSource(cwd, finding.file, sources);
+    if (text === undefined) {continue;}
+    for (const hit of scanTextForSecretHits(finding.file, text)) {
       if (hit.secret !== undefined) {secretById.set(hit.finding.id, hit.secret);}
     }
-    for (const finding of findings) {
-      if (finding.module !== 'secrets' || finding.file === undefined || secretById.has(finding.id)) {
-        continue;
-      }
-      let text = sources[finding.file];
-      if (text === undefined) {
-        try {
-          text = await readFile(join(cwd, finding.file), 'utf8');
-        } catch {
-          continue;
-        }
-      }
-      for (const hit of scanTextForSecretHits(finding.file, text)) {
-        if (hit.secret !== undefined) {secretById.set(hit.finding.id, hit.secret);}
-      }
-    }
-    findings = sortFindings(
-      await applyVerification(findings, secretById, {
-        fetchImpl: options.verifyFetch,
-      }),
-    );
   }
+  return sortFindings(await applyVerification(findings, secretById, { fetchImpl: options.verifyFetch }));
+}
 
+function secretsNeedVerify(options: ScanOptions, modulesRequested: readonly string[]): boolean {
+  return (
+    secretsAdvEnabled() &&
+    modulesRequested.includes('secrets') &&
+    options.verifySecrets === true &&
+    options.iOwnTheseCredentials === true
+  );
+}
+
+interface DecorateInput {
+  cwd: string;
+  files: readonly string[];
+  loaded: LoadedScan;
+  options: ScanOptions;
+  sources: Record<string, string>;
+  modulesRun: ModuleName[];
+}
+
+interface ScanTail {
+  findings: Finding[];
+  policyResult: PolicyScanResult | undefined;
+  modelSuppressed: Finding[] | undefined;
+  modelInfo: string[] | undefined;
+  typeSuppressed: Finding[] | undefined;
+  typesNotice: string | undefined;
+  attackPaths: AttackPath[] | undefined;
+}
+
+function aiRequested(aiMode: ScanOptions['ai'], config: ResolvedConfig): boolean {
+  return aiMode === true || aiMode === 'triage' || aiMode === 'explain' || aiMode === 'logic' || config.ai.enabled;
+}
+
+async function applyAiMode(findings: Finding[], input: DecorateInput): Promise<Finding[]> {
+  const { options, loaded, sources, cwd, files } = input;
+  if (!aiRequested(options.ai, loaded.config)) {return findings;}
+  const client = createAiClient({
+    enabled: true,
+    config: { ...loaded.config.ai, enabled: true },
+    useFixtures: !isLiveAi(),
+  });
+  const mode = typeof options.ai === 'string' ? options.ai : options.ai === true ? 'explain' : undefined;
+  if (mode === 'explain') {return applyExplain(findings, client, loaded.config.ai, sources);}
+  if (isInternalAi() && mode === 'triage') {return applyTriage(findings, client, loaded.config.ai, sources);}
+  if (isInternalAi() && mode === 'logic') {
+    return sortFindings([...findings, ...(await runLogicHunt(cwd, files, client))]);
+  }
+  return findings;
+}
+
+async function decorateFindings(findingsIn: Finding[], input: DecorateInput): Promise<ScanTail> {
+  let findings = findingsIn;
   let policyResult: PolicyScanResult | undefined;
-  if (loadedPolicy !== undefined) {
-    const applied = applyPolicy(findings, loadedPolicy, {
-      branch: options.policyBranch ?? resolvePolicyBranch(cwd),
-      modulesRun,
+  if (input.loaded.loadedPolicy !== undefined) {
+    const applied = applyPolicy(findings, input.loaded.loadedPolicy, {
+      branch: input.options.policyBranch ?? resolvePolicyBranch(input.cwd),
+      modulesRun: input.modulesRun,
     });
     findings = applied.findings;
     policyResult = {
       enabled: true,
-      file: join(cwd, POLICY_FILE_NAME),
+      file: join(input.cwd, POLICY_FILE_NAME),
       failOn: applied.failOn,
       errors: applied.errors,
-      policy: loadedPolicy,
+      policy: input.loaded.loadedPolicy,
     };
   }
-
-  const aiMode = options.ai;
-  const aiEnabled =
-    aiMode === true ||
-    aiMode === 'triage' ||
-    aiMode === 'explain' ||
-    aiMode === 'logic' ||
-    config.ai.enabled;
   let modelSuppressed: Finding[] | undefined;
   let modelInfo: string[] | undefined;
   if (modelsEnabled()) {
-    const applied = await applyModelSuppressions(cwd, findings);
+    const applied = await applyModelSuppressions(input.cwd, findings);
     findings = sortFindings(applied.findings);
     if (applied.suppressed.length > 0) {modelSuppressed = applied.suppressed;}
     if (applied.info.length > 0) {modelInfo = applied.info;}
   }
-
-  if (aiEnabled) {
-    const client = createAiClient({
-      enabled: true,
-      config: { ...config.ai, enabled: true },
-      useFixtures: !isLiveAi(),
-    });
-    const mode = typeof aiMode === 'string' ? aiMode : aiMode === true ? 'explain' : undefined;
-    if (mode === 'explain') {
-      findings = await applyExplain(findings, client, config.ai, sources);
-    } else if (isInternalAi() && mode === 'triage') {
-      findings = await applyTriage(findings, client, config.ai, sources);
-    } else if (isInternalAi() && mode === 'logic') {
-      findings = sortFindings([...findings, ...(await runLogicHunt(cwd, files, client))]);
-    }
-  }
-  findings = applyPriority(findings);
-
+  findings = applyPriority(await applyAiMode(findings, input));
   let typeSuppressed: Finding[] | undefined;
   let typesNotice: string | undefined;
   if (typesEnabled()) {
     const { applyTypeSuppression } = await import('../modules/sast/type-receivers.js');
-    const applied = await applyTypeSuppression(findings, cwd, config.types);
+    const applied = await applyTypeSuppression(findings, input.cwd, input.loaded.config.types);
     findings = applied.findings;
     typeSuppressed = applied.suppressed;
     typesNotice = applied.notice;
   }
-
   let attackPaths: AttackPath[] | undefined;
-  if (options.paths === true && process.env.FULLSHIELD_EXPERIMENTAL_PATHS === '1') {
+  if (input.options.paths === true && process.env.FULLSHIELD_EXPERIMENTAL_PATHS === '1') {
     const { buildAttackPathsFromFiles } = await import('../paths/index.js');
-    attackPaths = await buildAttackPathsFromFiles(findings, cwd, files);
+    attackPaths = await buildAttackPathsFromFiles(findings, input.cwd, input.files);
   }
+  return { findings, policyResult, modelSuppressed, modelInfo, typeSuppressed, typesNotice, attackPaths };
+}
+
+function buildScanResult(input: {
+  findings: Finding[];
+  startedAt: string;
+  t0: number;
+  cwd: string;
+  files: readonly string[];
+  loaded: LoadedScan;
+  selected: SelectedFiles;
+  gathered: Gathered;
+  baselined: Baselined;
+  tail: ScanTail;
+  modulesRun: ModuleName[];
+}): ScanResult {
+  const { findings, startedAt, t0, cwd, files, loaded, selected, gathered, baselined, tail, modulesRun } = input;
   return {
     findings,
     summary: summarize(findings),
@@ -464,24 +587,66 @@ export async function runScan(
       durationMs: Math.round((performance.now() - t0) * 100) / 100,
       cwd,
       filesScanned: files.length,
-      modulesRequested: [...modulesRequested],
+      modulesRequested: [...loaded.modulesRequested],
       modulesRun,
-      ...(historyNotice !== undefined ? { history: historyNotice } : {}),
-      ...(skipped !== undefined ? { skipped } : {}),
+      ...(gathered.historyNotice !== undefined ? { history: gathered.historyNotice } : {}),
+      ...(selected.skipped !== undefined ? { skipped: selected.skipped } : {}),
       ...(depsModule.unusedDirect !== undefined ? { unusedDirect: depsModule.unusedDirect } : {}),
       ...(depsModule.upgradePlan !== undefined ? { upgradePlan: depsModule.upgradePlan } : {}),
       ...(budgetSnapshot() ?? {}),
-      ...(modelInfo !== undefined ? { info: modelInfo } : {}),
+      ...(tail.modelInfo !== undefined ? { info: tail.modelInfo } : {}),
     },
-    config,
-    policy: policyResult,
-    ...(suppressionErrors.length > 0 ? { suppressionErrors } : {}),
-    ...(typeSuppressed !== undefined || modelSuppressed !== undefined
-      ? { suppressed: [...(modelSuppressed ?? []), ...(typeSuppressed ?? [])] }
+    config: loaded.config,
+    policy: tail.policyResult,
+    ...(baselined.suppressionErrors.length > 0 ? { suppressionErrors: baselined.suppressionErrors } : {}),
+    ...(tail.typeSuppressed !== undefined || tail.modelSuppressed !== undefined
+      ? { suppressed: [...(tail.modelSuppressed ?? []), ...(tail.typeSuppressed ?? [])] }
       : {}),
-    ...(typesNotice !== undefined ? { typesNotice } : {}),
-    ...(attackPaths !== undefined ? { paths: attackPaths } : {}),
+    ...(tail.typesNotice !== undefined ? { typesNotice: tail.typesNotice } : {}),
+    ...(tail.attackPaths !== undefined ? { paths: tail.attackPaths } : {}),
   };
+}
+
+export async function runScan(
+  options: ScanOptions = {},
+  modules: readonly ScanModule[] = builtinModules,
+): Promise<ScanResult> {
+  const startedAt = new Date().toISOString();
+  const t0 = performance.now();
+  depsModule.unusedDirect = undefined;
+  depsModule.upgradePlan = undefined;
+  try {
+    armScanBudget(options);
+    const cwd = await requireScanDirectory(options.cwd);
+    const loaded = await loadScanConfig(cwd, options);
+    const selected = await selectScanFiles(cwd, options, loaded.config);
+    const gathered = await gatherFindings(cwd, options, loaded, selected.files, modules);
+    const baselined = await baselineFindings(cwd, loaded.config, options, gathered.findings);
+    let findings = baselined.findings;
+    if (secretsNeedVerify(options, loaded.modulesRequested)) {
+      findings = await verifyOwnedSecrets(findings, gathered.extraHits, baselined.sources, cwd, options);
+    }
+    const tail = await decorateFindings(findings, {
+      cwd,
+      files: selected.files,
+      loaded,
+      options,
+      sources: baselined.sources,
+      modulesRun: gathered.modulesRun,
+    });
+    return buildScanResult({
+      findings: tail.findings,
+      startedAt,
+      t0,
+      cwd,
+      files: selected.files,
+      loaded,
+      selected,
+      gathered,
+      baselined,
+      tail,
+      modulesRun: gathered.modulesRun,
+    });
   } finally {
     clearBudget();
   }

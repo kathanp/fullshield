@@ -1882,7 +1882,7 @@ scripts/autopilot/guard.mjs. For such a run only:
    may edit it. The next message in that chat (the word `next`, or any other continuation)
    approves the file on disk. The agent then runs `--approve-features --from-chat` and
    does not stop again for content approval. The second human act is the npmjs.com
-   staged-version click. `[PROPOSED D-n]` marks are decided by the agent and must not be
+   staged-version click. Open D-n marks are decided by the agent and must not be
    left open. The agent writes `R10 approved` only when the approved features file says
    default scan output changes. A default-scan-diff the features file did not name still
    parks (S1).
@@ -6413,3 +6413,46 @@ Build:
 Acceptance: a scratch schema that drops a stable field fails the checker. A deprecation removed one minor later fails. A removal two minors later passes the checker and is not performed on this repo. The fixture `scan --json` matches the pre-phase snapshot. A rule without `stability: stable` is absent from the list.
 
 FP risk: listing an experimental field as stable. The front-matter bit is the gate. The planted rule without the bit is the test.
+
+---
+
+## 50. Version 1.4.0
+
+Target `1.4.0`, a minor (R16a): two new flags and one new error code. No new rule id. Default `scan --json` does not change. No R10. Nothing is promoted. `--repo` runs use local fixtures and do not park.
+
+Order: 501, then 502. 502 does not import 501.
+
+### Phase 501 — Diff scan frontier [`FULLSHIELD_EXPERIMENTAL_DIFFSCAN`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_DIFFSCAN`. CLI: `--experimental-diffscan` sets the flag. `scan --diff` requires it.
+
+`scan --diff` without the flag throws an error whose message contains `FULLSHIELD_EXPERIMENTAL_DIFFSCAN`. That error is `FS-E018`. `FS-E018` is matched before `FS-E006`, because the flag name contains the prefix `FULLSHIELD_EXPERIMENTAL_DIFF`.
+
+With the flag and `--diff`:
+
+1. The changed set is `git diff --name-only HEAD` (staged and unstaged tracked paths) plus `git ls-files --others --exclude-standard`. A git status other than 0 throws an error whose message contains `FULLSHIELD_EXPERIMENTAL_DIFFSCAN` and `git failed`. That is also `FS-E018`. The scan does not fall open onto the full tree.
+2. A changed path is source when its extension is `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, `.tsx`, `.mts`, or `.cts`. `.d.ts` is dropped. A changed non-source file adds no frontier file.
+3. Hop cap is 1. The frontier is the changed source files, the walked source files that contain a relative string-literal import or `require` of a changed source file, and the walked source files that a changed source file imports or requires by a relative string literal. A file reached only on hop 2 is excluded.
+4. A non-literal import is not an edge. Comment text is not an edge. A specifier that does not start with `.` is not an edge.
+5. Resolution tries the literal, then the extensions in item 2, then `index` plus those extensions. The result must already be in the walked set. Symlinks are not followed.
+6. SAST, secrets, config, and deps see only the frontier. Other files may be read as text to find relative import literals. They are not parsed with the TypeScript parser.
+7. An empty changed set scans no source files. Exit is 0.
+8. Carrier findings run only in this mode. A function in a changed file whose returned expression is request-tainted (`req.query`, `req.body`, `req.params`, `req.headers`, `req.files`, or a binding of those) is a carrier. An importer on the frontier that calls that function inside a sink argument reports the existing rule id. Sinks: `query` and `execute` are `SAST-SQLI-001`; `exec` and `execSync` are `SAST-CMDI-001`; `redirect` on `res` is `SAST-REDIRECT-001`; `eval` and `Function` are `SAST-EVAL-001`; `fetch` is `SAST-SSRF-001`; `readFile` and `readFileSync` are `SAST-PATH-001`; `find` and `findOne` are `SAST-NOSQLI-001`; `send` on `res` is `SAST-XSS-001` only when the argument text contains `<`. A function that returns a string literal is not a carrier.
+9. Flag off, or `scan` without `--diff`: this module is not loaded. Default `scan --json` is unchanged. `clean-app` stays at 0 findings. No network. Scanned code is not executed. Two runs sort to the same `(ruleId, file, line, severity)` bytes.
+
+Hop boundary: a sink in the direct importer fires. A sink that exists only in a file that imports that importer, and does not itself import the changed file, does not fire.
+
+### Phase 502 — Field and closure taint [`FULLSHIELD_EXPERIMENTAL_FLOW2`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_FLOW2`. CLI: `--experimental-flow2` sets the flag.
+
+With the flag on, the existing injection rules also fire for two shapes the default taint pass drops. The module that implements the shapes loads only when the flag is `1`. Flag off, that module is not loaded and findings match the flag-off engine.
+
+1. Field cap is 1. An assignment `obj.a = <tainted>` where `obj` and `a` are identifiers and the property is not computed stores the key `obj.a`. A later read of `obj.a` is tainted. A read of `obj.b` is not. A chain `obj.a.b` is not stored. A computed property `obj[key]` is not stored.
+2. Closure cap is 1 function boundary. A name tainted inside a function is visible to a function nested directly inside it, unless the inner function declares that name or the object name of a field key. A sink two functions further in does not see the name.
+3. `JSON.parse` and a bare `parse` do not clear the taint. A field stored from `JSON.parse(req.body.id)` still fires.
+4. This phase does not flag Handlebars `{{ }}`, does not flag `res.json` of a tainted value as `SAST-XSS-001`, and does not flag a `url.includes` allowlist helper as `SAST-REDIRECT-001`.
+5. Dynamic dispatch stays unreported. No new rule id. Severity and CWE stay the existing rule's values. The rules are `SAST-SQLI-001`, `SAST-NOSQLI-001`, `SAST-CMDI-001`, `SAST-PATH-001`, `SAST-SSRF-001`, `SAST-REDIRECT-001`, `SAST-XSS-001`, and `SAST-EVAL-001`.
+6. No network. Scanned code is not executed. `clean-app` stays at 0 findings with the flag on. Default `scan --json` with the flag unset is unchanged on `vulnerable-app` and on the phase fixture. Two runs sort to the same bytes.
+
+Field boundary: path length 1 fires. Path length 2 is silent. Closure boundary: depth 1 fires. Depth 2 is silent.

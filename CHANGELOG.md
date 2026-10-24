@@ -2,6 +2,13 @@
 
 All notable changes to FullShield are documented here.
 
+## 1.4.0 — 2026-10-24
+
+### Experimental
+
+- Phase 501: `scan --diff` behind `FULLSHIELD_EXPERIMENTAL_DIFFSCAN`. The scan reads the changed file, one relative-literal import, and the files that import the changed file. A request value returned from the changed file still reaches a sink in the importer. A git failure is `FS-E018` and does not scan the rest of the tree. Default scan output is unchanged.
+- Phase 502: one object field and one nested function behind `FULLSHIELD_EXPERIMENTAL_FLOW2`. Existing injection rules use that path. `JSON.parse` does not clear the value. Default scan output is unchanged.
+
 ## 1.3.1 — 2026-10-24
 
 ### Dev
