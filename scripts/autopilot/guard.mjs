@@ -900,7 +900,7 @@ if (flag('--release-check')) {
       `  2. set PUSHES 1. Wait until the CI workflow on ${BASE} is green. Open the PR ${BASE} -> main. Wait until the 6 matrix jobs are green. gh pr merge --merge`,
       `  3. git fetch origin && git tag v${v} origin/main && git push origin v${v}`,
       '  4. set TAG yes. Wait for the Publish workflow. It stages with provenance and then polls attestations',
-      '  5. HUMAN: approve the staged publish on npmjs.com with 2FA within 10 minutes. The master never runs npm publish or npm login',
+      '  5. HUMAN: approve the staged publish on npmjs.com with 2FA within 3 hours. The master never runs npm publish or npm login',
       '  6. Provenance gate green, then the stranger check (SPEC Section 2 step 10)',
       `  7. fast-forward local ${BASE} and main, then --cleanup`,
     ].join('\n'),

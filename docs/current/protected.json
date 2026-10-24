@@ -74,7 +74,7 @@
     "Branch protection on main requires the 6 matrix checks by exact name (SPEC 1.3)",
     "2FA on the npm account; staged-publish approval stays ON",
     "Trusted Publisher on npmjs.com still points at kathanp/fullshield, workflow publish.yml",
-    "Approve the staged version within the 10-minute provenance-gate window",
+    "Approve the staged version within the 3-hour provenance-gate window",
     "After publish: regenerate bench/snapshots/HEAD.json for the new version (SPEC 40.1 0a, needs your approval line)"
   ]
 }
