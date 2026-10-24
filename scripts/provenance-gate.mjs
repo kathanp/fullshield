@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
  * Phase 36. After a publish (including a staged one that just became public),
- * poll `npm view fullshield@<version> dist.attestations` for up to 10 minutes.
+ * poll `npm view fullshield@<version> dist.attestations` for up to 3 hours.
  * Exit 1 if the field stays empty. 0.1.3 shipped this way and must not repeat.
+ * The field stays empty until a person approves the staged publish on npmjs.com.
  */
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -13,8 +14,13 @@ import { attestationsPresent } from './release-checks.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const isWindows = process.platform === 'win32';
-const WAIT_MS = 10 * 60 * 1000;
+const WAIT_MS = 3 * 60 * 60 * 1000;
 const INTERVAL_MS = 30 * 1000;
+
+function waitLabel(ms) {
+  const hours = ms / (60 * 60 * 1000);
+  return Number.isInteger(hours) ? `${hours} hours` : `${Math.round(ms / 60000)} minutes`;
+}
 
 function versionFromArg() {
   const idx = process.argv.indexOf('--version');
@@ -47,6 +53,10 @@ function sleep(ms) {
 function main() {
   const version = versionFromArg();
   const deadline = Date.now() + WAIT_MS;
+  const label = waitLabel(WAIT_MS);
+  console.log(
+    `provenance-gate waiting up to ${label} for fullshield@${version} dist.attestations. Approve the staged version on npmjs.com with 2FA.`,
+  );
   let last = null;
   do {
     last = view(version);
@@ -59,7 +69,7 @@ function main() {
     sleep(INTERVAL_MS);
   } while (Date.now() < deadline);
   console.error(
-    `provenance-gate FAILED: fullshield@${version} has no dist.attestations after 10 minutes. Do not treat this publish as done. 0.1.3 was published without provenance because the stage retried after a sigstore 409.`,
+    `provenance-gate FAILED: fullshield@${version} has no dist.attestations after ${label}. Do not treat this publish as done. 0.1.3 was published without provenance because the stage retried after a sigstore 409.`,
   );
   process.exit(1);
 }

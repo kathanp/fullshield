@@ -815,7 +815,7 @@ if (flag('--release-check')) {
       `  2. wait for CI on ${BASE} (verify, ubuntu, node 24) to go green`,
       `  3. open a PR ${BASE} -> main; the 6 matrix jobs go green; merge with "Create a merge commit" (R18)`,
       `  4. git fetch origin && git tag v${v} origin/main && git push origin v${v}      (R1, R17)`,
-      '  5. on npmjs.com approve the staged publish with 2FA within 10 minutes; the Provenance gate job must go green (S6)',
+      '  5. on npmjs.com approve the staged publish with 2FA within 3 hours; the Provenance gate job must go green (S6)',
       `  6. stranger check (SPEC Section 2 step 10) with npx fullshield@${v}`,
       `  7. node scripts/autopilot/guard.mjs --cleanup --run <name> --version ${v}`,
     ].join('\n'),
