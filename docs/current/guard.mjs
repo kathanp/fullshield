@@ -6,9 +6,10 @@
 //   --init --run <name> --version <x.y.z>   SPEC has the R26 amendment, .gitignore entries, clean tree,
 //                                           install hook, snapshot protected files, create run/<name>
 //                                           from the base branch (next), write RUN_STATE skeleton
-// Phase 1 (spec)
-//   --approve-spec --run <name>             PERSON ONLY, in a terminal: freeze the SPEC for this run
-//   --verify-spec [--card <id>]             approval present and SPEC unchanged; no [PROPOSED] marks;
+// Phase 1 (features, then spec)
+//   --approve-features --run <name>         PERSON ONLY, in a terminal: freeze docs/FEATURES.md first
+//   --approve-spec --run <name>             PERSON ONLY, in a terminal: freeze the SPEC after features
+//   --verify-spec [--card <id>]             both approvals present and unchanged; no [PROPOSED] marks;
 //                                           card shape, flag, numbers all in that card's SPEC rows
 // Phases 3-5 (tests, code, review)
 //   --card <id> --role test|code [--base <ref>]   ownership, R3 (no edits to existing tests), banned
@@ -74,6 +75,7 @@ const STATE = '.autopilot/';
 const STATE_DIR = join(MAIN_ROOT, STATE);
 const PROTECTED = join(STATE_DIR, 'protected.json');
 const HASHES = join(STATE_DIR, 'protected.sha256');
+const FEATURES_APPROVAL = join(STATE_DIR, 'features-approved.json');
 const APPROVAL = join(STATE_DIR, 'spec-approved.json');
 const RUN_STATE = join(STATE_DIR, 'RUN_STATE.md');
 const CARDS = join(STATE_DIR, 'cards');
@@ -81,7 +83,7 @@ const PKG = 'package.json';
 const CHANGELOG = 'CHANGELOG.md';
 const REQUIRED_IGNORES = ['.autopilot/', 'AUTOPILOT.md'];
 // The only things .autopilot/ may hold (AUTOPILOT.md 1a).
-const STATE_ALLOWED = new Set(['protected.json', 'protected.sha256', 'spec-approved.json', 'RUN_STATE.md', 'cards']);
+const STATE_ALLOWED = new Set(['protected.json', 'protected.sha256', 'features-approved.json', 'spec-approved.json', 'RUN_STATE.md', 'cards']);
 const FLAG_RE = /FULLSHIELD_EXPERIMENTAL_[A-Z0-9_]+/g;
 const RULE_ID_RE = /\bid:\s*['"]([A-Z]+(?:-[A-Z0-9]+)*-\d{3})['"]/g;
 const ERR_CODE_RE = /\bFS-E\d{3}\b/g;
@@ -155,6 +157,7 @@ const isFixture = (f) => /^test\/fixtures\//.test(f);
 
 const DEFAULT_CONFIG = {
   base: 'next',
+  features: 'docs/FEATURES.md',
   spec: 'SECURITY_SCANNER_SPEC.md',
   decisions: 'docs/DECISIONS.md',
   amendmentMarker: 'R26. AUTOPILOT runs',
@@ -170,6 +173,7 @@ const config = () => {
   return { ...DEFAULT_CONFIG, ...raw, docs: { ...DEFAULT_CONFIG.docs, ...(raw.docs ?? {}) } };
 };
 const CFG = config();
+const FEATURES = CFG.features;
 const SPEC = CFG.spec;
 const BASE = opt('--base', CFG.base);
 
@@ -265,7 +269,20 @@ const proposedLines = (text) =>
     .map((l, i) => [i + 1, l])
     .filter(([, l]) => /\[PROPOSED\b/.test(l));
 
+function featuresProblem() {
+  const path = join(MAIN_ROOT, FEATURES);
+  if (!existsSync(FEATURES_APPROVAL))
+    return `features file is not approved (a person runs --approve-features). The SPEC is not written first`;
+  if (!existsSync(path)) return `features file missing: ${FEATURES}`;
+  const a = loadJson(FEATURES_APPROVAL);
+  if (a.sha !== sha(path))
+    return `${FEATURES} changed since approval at ${a.approvedAt}; re-approve the features file before the SPEC`;
+  return null;
+}
+
 function verifyApproval() {
+  const fp = featuresProblem();
+  if (fp) errors.push(fp);
   if (!existsSync(APPROVAL)) {
     errors.push('SPEC is not approved for this run (a person runs --approve-spec)');
     return;
@@ -273,6 +290,25 @@ function verifyApproval() {
   const a = loadJson(APPROVAL);
   if (a.sha !== sha(join(MAIN_ROOT, SPEC)))
     errors.push(`${SPEC} changed since approval at ${a.approvedAt}; build stops until a person re-approves`);
+}
+
+function personApproves(what) {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) die(`${what} must be run by a person in a terminal, not by an agent`);
+  process.stdout.write(`${what} Type APPROVE: `);
+  const buf = Buffer.alloc(1);
+  let answer = '';
+  for (;;) {
+    let n = 0;
+    try {
+      n = readSync(0, buf, 0, 1, null);
+    } catch (e) {
+      if (e.code === 'EAGAIN') continue;
+      throw e;
+    }
+    if (!n || buf[0] === 10) break;
+    answer += buf.toString();
+  }
+  if (answer.trim() !== 'APPROVE') die('not approved');
 }
 
 // Card anchors: "### Heading" selects that section; any other string selects every SPEC line containing it.
@@ -538,18 +574,20 @@ if (flag('--init')) {
   mkdirSync(CARDS, { recursive: true });
   snapshot();
   if (!branchExists(`run/${run}`)) git('branch', `run/${run}`, BASE);
+  rmSync(FEATURES_APPROVAL, { force: true });
   rmSync(APPROVAL, { force: true });
   if (!existsSync(RUN_STATE))
     writeFileSync(
       RUN_STATE,
       [
         `RUN ${run}   VERSION ${v}   BASE ${BASE} ${git('rev-parse', '--short', BASE)}   MODE <A|B>`,
-        'PHASE spec',
+        'PHASE features',
+        'FEATURES APPROVED no',
         'SPEC APPROVED no',
         'TASKS',
         'OPEN QUESTIONS',
         'DECISIONS',
-        `NEXT ACTION write the version ${v} scope into ${SPEC}`,
+        `NEXT ACTION write the version ${v} scope into ${FEATURES}. Do not edit ${SPEC} yet`,
         '',
       ].join('\n'),
     );
@@ -557,10 +595,25 @@ if (flag('--init')) {
   process.exit(0);
 }
 
-// ---------------------------------------------------------------- spec approval (person only)
+// ---------------------------------------------------------------- features approval, then spec approval (person only)
+if (flag('--approve-features')) {
+  const run = need('--run');
+  const path = join(MAIN_ROOT, FEATURES);
+  if (!existsSync(path)) die(`missing ${FEATURES}; write the features file before the SPEC`);
+  const h = sha(path);
+  personApproves(`Approve ${FEATURES} (sha ${h.slice(0, 12)}) for run ${run}?`);
+  writeFileSync(
+    FEATURES_APPROVAL,
+    JSON.stringify({ run, file: FEATURES, sha: h, approvedAt: new Date().toISOString(), by: process.env.USER ?? null }, null, 2) + '\n',
+  );
+  console.log(`guard: features file approved for run ${run}`);
+  process.exit(0);
+}
+
 if (flag('--approve-spec')) {
   const run = need('--run');
-  if (!process.stdin.isTTY || !process.stdout.isTTY) die('--approve-spec must be run by a person in a terminal, not by an agent');
+  const fp = featuresProblem();
+  if (fp) die(fp);
   const open = proposedLines(readFileSync(SPEC, 'utf8'));
   if (open.length)
     die(
@@ -568,21 +621,7 @@ if (flag('--approve-spec')) {
         open.map(([n, l]) => `${SPEC}:${n} ${l.trim().slice(0, 100)}`).join('\n  '),
     );
   const h = sha(SPEC);
-  process.stdout.write(`Approve ${SPEC} (sha ${h.slice(0, 12)}) for run ${run}? Type APPROVE: `);
-  const buf = Buffer.alloc(1);
-  let answer = '';
-  for (;;) {
-    let n = 0;
-    try {
-      n = readSync(0, buf, 0, 1, null);
-    } catch (e) {
-      if (e.code === 'EAGAIN') continue;
-      throw e;
-    }
-    if (!n || buf[0] === 10) break;
-    answer += buf.toString();
-  }
-  if (answer.trim() !== 'APPROVE') die('not approved');
+  personApproves(`Approve ${SPEC} (sha ${h.slice(0, 12)}) for run ${run}?`);
   writeFileSync(
     APPROVAL,
     JSON.stringify({ run, sha: h, approvedAt: new Date().toISOString(), by: process.env.USER ?? null }, null, 2) + '\n',
