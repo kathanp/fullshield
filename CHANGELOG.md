@@ -6,7 +6,7 @@ All notable changes to FullShield are documented here.
 
 ### New/changed stable findings — may change CI results; use --update-baseline
 
-- Phase 503: one object field and one nested function are part of the default scan. `FULLSHIELD_EXPERIMENTAL_FLOW2` and `scan --experimental-flow2` stay accepted and do not turn this off. Against 1.4.0, NodeGoat gains `SAST-XSS-001` at `app/views/allocations.html:15` and `app/views/login.html:110`. vulnerable-app stays 38, clean-app stays 0, and juice-shop, dvna, goof, and vulnerable-node stay the same.
+- Phase 503: one object field and one nested function are part of the default scan. The nested function carries request data, not `process.argv`. A field counts on a read after the assignment. `FULLSHIELD_EXPERIMENTAL_FLOW2` and `scan --experimental-flow2` stay accepted and do not turn this off. Against 1.4.0, NodeGoat gains `SAST-XSS-001` at `app/views/allocations.html:15` and `app/views/login.html:110`. vulnerable-app stays 38, clean-app stays 0, and juice-shop, dvna, goof, and vulnerable-node stay the same.
 - Phase 504: ORM raw queries, `` exec(`…${x}`) ``, `spawn` of `sh -c`, execa `shell: true`, and zx `$.raw` are part of the default scan. `FULLSHIELD_EXPERIMENTAL_SAST_GAPS` and `scan --experimental-sast-gaps` stay accepted and do not turn this off. No new rule id.
 
 ### Experimental
