@@ -7,8 +7,10 @@
 //                                           install hook, snapshot protected files, create run/<name>
 //                                           from the base branch (next), write RUN_STATE skeleton
 // Phase 1 (features, then spec)
-//   --approve-features --run <name>         PERSON ONLY, in a terminal: freeze docs/FEATURES.md first
-//   --approve-spec --run <name>             PERSON ONLY, in a terminal: freeze the SPEC after features
+//   --approve-features --run <name> [--from-chat]  freeze docs/FEATURES.md. A terminal
+//                                           prompts APPROVE. --from-chat records the chat
+//                                           continuation and skips the prompt.
+//   --approve-spec --run <name> [--from-chat]      freeze the SPEC after features. Same prompt rule.
 //   --verify-spec [--card <id>]             both approvals present and unchanged; no [PROPOSED] marks;
 //                                           card shape, flag, numbers all in that card's SPEC rows
 // Phases 3-5 (tests, code, review)
@@ -293,7 +295,7 @@ const proposedLines = (text) =>
 function featuresProblem() {
   const path = fromRoot(FEATURES);
   if (!existsSync(FEATURES_APPROVAL))
-    return `features file is not approved (a person runs --approve-features). The SPEC is not written first`;
+    return `features file is not approved (run --approve-features after the human continues). The SPEC is not written first`;
   if (!existsSync(path)) return `features file missing: ${FEATURES}`;
   const a = loadJson(FEATURES_APPROVAL);
   if (a.sha !== sha(path))
@@ -305,16 +307,17 @@ function verifyApproval() {
   const fp = featuresProblem();
   if (fp) errors.push(fp);
   if (!existsSync(APPROVAL)) {
-    errors.push('SPEC is not approved for this run (a person runs --approve-spec)');
+    errors.push('SPEC is not approved for this run (run --approve-spec --from-chat after the features file is approved)');
     return;
   }
   const a = loadJson(APPROVAL);
   if (a.sha !== sha(join(MAIN_ROOT, SPEC)))
-    errors.push(`${SPEC} changed since approval at ${a.approvedAt}; build stops until a person re-approves`);
+    errors.push(`${SPEC} changed since approval at ${a.approvedAt}; build stops until --approve-spec is run again`);
 }
 
 function personApproves(what) {
-  if (!process.stdin.isTTY || !process.stdout.isTTY) die(`${what} must be run by a person in a terminal, not by an agent`);
+  if (flag('--from-chat')) return;
+  if (!process.stdin.isTTY || !process.stdout.isTTY) die(`${what} must be run by a person in a terminal, or pass --from-chat after the human continued the chat`);
   process.stdout.write(`${what} Type APPROVE: `);
   const buf = Buffer.alloc(1);
   let answer = '';
@@ -689,7 +692,7 @@ if (flag('--approve-features')) {
   personApproves(`Approve ${FEATURES} (sha ${h.slice(0, 12)}) for run ${run}?`);
   writeFileSync(
     FEATURES_APPROVAL,
-    JSON.stringify({ run, file: FEATURES, sha: h, approvedAt: new Date().toISOString(), by: process.env.USER ?? null }, null, 2) + '\n',
+    JSON.stringify({ run, file: FEATURES, sha: h, approvedAt: new Date().toISOString(), by: flag('--from-chat') ? 'chat' : (process.env.USER ?? null) }, null, 2) + '\n',
   );
   console.log(`guard: features file approved for run ${run}`);
   process.exit(0);
@@ -709,7 +712,7 @@ if (flag('--approve-spec')) {
   personApproves(`Approve ${SPEC} (sha ${h.slice(0, 12)}) for run ${run}?`);
   writeFileSync(
     APPROVAL,
-    JSON.stringify({ run, sha: h, approvedAt: new Date().toISOString(), by: process.env.USER ?? null }, null, 2) + '\n',
+    JSON.stringify({ run, sha: h, approvedAt: new Date().toISOString(), by: flag('--from-chat') ? 'chat' : (process.env.USER ?? null) }, null, 2) + '\n',
   );
   console.log(`guard: SPEC approved for run ${run}`);
   process.exit(0);

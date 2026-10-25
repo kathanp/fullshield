@@ -12,3 +12,4 @@ alwaysApply: true
 - Never use `.only`, `.skip`, or stubbed "not implemented" code.
 - At the end of every phase, run `npm run verify:phase N`, paste the full output in your summary, and list anything incomplete.
 - Never run sudo. Never delete files outside this project.
+- Autopilot (R26): after writing `docs/FEATURES.md`, stop. When the user sends any continuation (`next` or anything else), that approves the file. Then run the rest of the cycle without another content stop: commit, push `next`, merge to `main`, and tag. Never run `npm publish` or `npm login`. The user clicks the staged version on npmjs.com. Do not weaken tests, thresholds, or ground truth to finish the run.

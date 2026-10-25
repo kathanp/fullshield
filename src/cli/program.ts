@@ -5,6 +5,7 @@ import { Command } from 'commander';
 
 import { budgetEnabled } from '../core/budget.js';
 import { scan } from '../core/engine.js';
+import { raise } from '../core/raise.js';
 import { readLastScanIds, writeLastScan } from '../core/lastScan.js';
 import { diffNewFindings } from '../core/watch.js';
 import { runFix } from '../fixer/index.js';
@@ -93,6 +94,9 @@ interface ScanCliOptions {
   emitVirtualPatches?: boolean | string;
   changed?: boolean;
   since?: string;
+  experimentalDiffscan?: boolean;
+  diff?: boolean;
+  experimentalFlow2?: boolean;
   experimentalSastGaps?: boolean;
   experimentalFrameworks?: boolean;
   experimentalClasses?: boolean;
@@ -175,18 +179,165 @@ function parseMaxTime(value: string): number {
   return seconds;
 }
 
-export function createProgram(io: ProgramIO = defaultIO): Command {
-  const program = new Command();
-  program
-    .name('fullshield')
-    .description('Full-cycle security scanner for Node.js/TypeScript backends')
-    .version(packageVersion())
-    .option('--debug', 'print stack traces on CLI errors');
 
-  program
-    .command('scan')
-    .description('Scan a project directory for security findings')
-    .argument('[path]', 'directory to scan', '.')
+const SCAN_ENV: ReadonlyArray<readonly [keyof ScanCliOptions, string]> = [
+  ['experimentalDiffscan', 'FULLSHIELD_EXPERIMENTAL_DIFFSCAN'],
+  ['experimentalFlow2', 'FULLSHIELD_EXPERIMENTAL_FLOW2'],
+  ['experimentalSastGaps', 'FULLSHIELD_EXPERIMENTAL_SAST_GAPS'],
+  ['experimentalFrameworks', 'FULLSHIELD_EXPERIMENTAL_FRAMEWORKS'],
+  ['experimentalClasses', 'FULLSHIELD_EXPERIMENTAL_CLASSES'],
+  ['experimentalSecretsAdv', 'FULLSHIELD_EXPERIMENTAL_SECRETS_ADV'],
+  ['experimentalVex', 'FULLSHIELD_EXPERIMENTAL_VEX'],
+  ['experimentalReachEvidence', 'FULLSHIELD_EXPERIMENTAL_REACH_EVIDENCE'],
+  ['experimentalLockfiles', 'FULLSHIELD_EXPERIMENTAL_LOCKFILES'],
+  ['experimentalSupply', 'FULLSHIELD_EXPERIMENTAL_SUPPLY'],
+  ['experimentalCapabilities', 'FULLSHIELD_EXPERIMENTAL_CAPABILITIES'],
+  ['experimentalWorkspaces', 'FULLSHIELD_EXPERIMENTAL_WORKSPACES'],
+  ['experimentalSarifV2', 'FULLSHIELD_EXPERIMENTAL_SARIF_V2'],
+  ['experimentalCustomSanitizers', 'FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS'],
+  ['experimentalValidation', 'FULLSHIELD_EXPERIMENTAL_VALIDATION'],
+  ['experimentalTypes', TYPES_FLAG],
+  ['experimentalModels', 'FULLSHIELD_EXPERIMENTAL_MODELS'],
+  ['taintSummaries', 'FULLSHIELD_TAINT_SUMMARIES'],
+  ['experimentalPaths', 'FULLSHIELD_EXPERIMENTAL_PATHS'],
+  ['experimentalMcpcfg', 'FULLSHIELD_EXPERIMENTAL_MCPCFG'],
+  ['experimentalPriority', PRIORITY_FLAG],
+  ['experimentalBudget', 'FULLSHIELD_EXPERIMENTAL_BUDGET'],
+  ['experimentalSemgrepRules', SEMGREP_RULES_FLAG],
+  ['experimentalCiReports', CI_REPORTS_FLAG],
+];
+
+function applyScanFlags(opts: ScanCliOptions): void {
+  for (const [key, flag] of SCAN_ENV) {
+    if (opts[key] === true) {process.env[flag] = '1';}
+  }
+  if (opts.diff === true && process.env.FULLSHIELD_EXPERIMENTAL_DIFFSCAN !== '1') {
+    raise('scan --diff requires FULLSHIELD_EXPERIMENTAL_DIFFSCAN=1');
+  }
+  if (opts.paths === true && process.env.FULLSHIELD_EXPERIMENTAL_PATHS !== '1') {
+    throw new Error('--paths requires FULLSHIELD_EXPERIMENTAL_PATHS=1');
+  }
+  guardSemgrepCli(opts.semgrepRules, process.env[SEMGREP_RULES_FLAG] === '1');
+  if (opts.prSummary === true && process.env[POLICY_FLAG] !== '1') {
+    throw new Error(`--pr-summary requires ${POLICY_FLAG}=1`);
+  }
+  const wantsCiReport =
+    opts.githubAnnotations !== undefined || opts.junit !== undefined || opts.gitlab !== undefined;
+  if (wantsCiReport && process.env[CI_REPORTS_FLAG] !== '1') {
+    throw new Error(
+      `--github-annotations, --junit, and --gitlab require ${CI_REPORTS_FLAG}=1`,
+    );
+  }
+}
+
+async function writeNamedReport(file: string | undefined, body: string): Promise<void> {
+  if (file === undefined) {return;}
+  await writeFile(resolve(file), body, 'utf8');
+}
+
+async function writeScanReports(result: Awaited<ReturnType<typeof scan>>, opts: ScanCliOptions): Promise<void> {
+  await writeNamedReport(opts.sarif, renderSarifReport(result));
+  await writeNamedReport(opts.markdown, renderMarkdownReport(result));
+  await writeNamedReport(opts.html, renderHtmlReport(result));
+  await writeNamedReport(opts.githubAnnotations, renderGithubAnnotations(result));
+  await writeNamedReport(opts.junit, renderJunitReport(result));
+  await writeNamedReport(opts.gitlab, renderGitlabCodeQuality(result));
+}
+
+async function emitScanPatches(
+  io: ProgramIO,
+  path: string,
+  opts: ScanCliOptions,
+  result: Awaited<ReturnType<typeof scan>>,
+): Promise<void> {
+  if (opts.emitVirtualPatches === undefined) {return;}
+  if (process.env.FULLSHIELD_EXPERIMENTAL_VPATCH !== '1') {
+    throw new Error('--emit-virtual-patches requires FULLSHIELD_EXPERIMENTAL_VPATCH=1');
+  }
+  const { emitVirtualPatches } = await import('../runtime/rasp/vpatchIo.js');
+  const out = typeof opts.emitVirtualPatches === 'string'
+    ? resolve(opts.emitVirtualPatches)
+    : resolve(path, '.fullshield', 'vpatches.json');
+  emitVirtualPatches(result.findings, out);
+  io.err(`wrote virtual patches ${out}`);
+}
+
+function writeScanBody(io: ProgramIO, opts: ScanCliOptions, result: Awaited<ReturnType<typeof scan>>): void {
+  if (opts.prSummary === true) {
+    io.out(renderPrSummary(result.findings));
+    return;
+  }
+  if (opts.json === true) {
+    io.out(renderJsonReport(result));
+    return;
+  }
+  io.out(renderConsoleReport(result, { all: opts.all === true }));
+}
+
+function noteScanProblems(io: ProgramIO, result: Awaited<ReturnType<typeof scan>>): void {
+  for (const message of result.policy?.errors ?? []) {io.err(`fullshield: ${message}`);}
+  if (result.typesNotice !== undefined) {io.err(result.typesNotice);}
+  for (const message of result.suppressionErrors ?? []) {io.err(`fullshield: ${message}`);}
+}
+
+function setScanExit(result: Awaited<ReturnType<typeof scan>>, failOnOverride: Severity | undefined): void {
+  if ((result.policy?.errors.length ?? 0) > 0) {process.exitCode = 1;}
+  if ((result.suppressionErrors?.length ?? 0) > 0) {process.exitCode = 1;}
+  const failOn = failOnOverride ?? result.policy?.failOn ?? result.config.failOn;
+  if (result.findings.some((finding) => failsCi(finding, failOn))) {
+    process.exitCode = 1;
+    return;
+  }
+  if (process.exitCode !== 1 && result.metadata.incomplete === true) {process.exitCode = 3;}
+}
+
+function reportScan(io: ProgramIO, opts: ScanCliOptions, result: Awaited<ReturnType<typeof scan>>, failOnOverride: Severity | undefined): void {
+  for (const line of result.metadata.info ?? []) {io.err(line);}
+  writeScanBody(io, opts, result);
+  noteScanProblems(io, result);
+  setScanExit(result, failOnOverride);
+}
+
+async function runScanAction(io: ProgramIO, path: string, opts: ScanCliOptions): Promise<void> {
+  try {
+    const failOnOverride = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;
+    const modules = opts.modules !== undefined ? parseModules(opts.modules) : undefined;
+    applyScanFlags(opts);
+    const maxTimeSeconds = budgetEnabled() && opts.maxTime !== undefined ? parseMaxTime(opts.maxTime) : undefined;
+    const result = await (io.scan ?? scan)({
+      cwd: resolve(path),
+      modules,
+      includeHome: opts.includeHome === true,
+      configPath: opts.config,
+      staged: opts.staged === true,
+      offline: opts.offline === true || opts.offlineSafe === true,
+      updateBaseline: opts.updateBaseline === true,
+      ai: parseAiMode(opts.ai),
+      changed: opts.changed === true,
+      diff: opts.diff === true,
+      since: opts.since,
+      experimentalIncremental: process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM === '1',
+      history: opts.history === true,
+      bundle: opts.bundle !== undefined ? resolve(path, opts.bundle) : undefined,
+      verifySecrets: opts.verifySecrets === true,
+      iOwnTheseCredentials: opts.iOwnTheseCredentials === true,
+      experimentalPolicy: process.env[POLICY_FLAG] === '1',
+      paths: opts.paths === true,
+      ...(maxTimeSeconds !== undefined ? { maxTimeSeconds } : {}),
+      semgrepRules: opts.semgrepRules,
+    });
+    await writeScanReports(result, opts);
+    await writeLastScan(resolve(path), result);
+    await emitScanPatches(io, path, opts, result);
+    reportScan(io, opts, result, failOnOverride);
+  } catch (error) {
+    io.err(formatCliError(error));
+    process.exitCode = 2;
+  }
+}
+
+function addEarlyScanOptions(scan: Command): Command {
+  return scan
     .option('--json', 'machine-readable JSON output')
     .option('--all', 'print every finding in the console, with no 20-row cap')
     .option('--fail-on <severity>', 'exit 1 if any finding is at or above this severity')
@@ -223,6 +374,15 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option('--ai [mode]', 'experimental: explain findings (off = zero AI network calls)')
     .option('--emit-virtual-patches [file]', 'experimental: write .fullshield/vpatches.json')
     .option('--changed', 'experimental: scan git staged/changed files only')
+    .option(
+      '--experimental-diffscan',
+      'experimental: git diff frontier (FULLSHIELD_EXPERIMENTAL_DIFFSCAN=1)',
+    )
+    .option('--diff', 'experimental: scan the git-changed import frontier (requires FULLSHIELD_EXPERIMENTAL_DIFFSCAN=1)')
+    .option(
+      '--experimental-flow2',
+      'experimental: one-field and one-closure taint (FULLSHIELD_EXPERIMENTAL_FLOW2=1)',
+    )
     .option('--since <ref>', 'experimental: scan files changed since a git ref')
     .option(
       '--experimental-sast-gaps',
@@ -252,7 +412,11 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option(
       '--i-own-these-credentials',
       'required with --verify-secrets: you own these credentials; read-only identity checks only',
-    )
+    );
+}
+
+function addLateScanOptions(scan: Command): Command {
+  return scan
     .option(
       '--experimental-vex',
       'experimental: worm/workflow indicators, overrides, provenance, VEX (FULLSHIELD_EXPERIMENTAL_VEX=1)',
@@ -326,189 +490,51 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
     .option(
       '--experimental-capabilities',
       'experimental: dependency capability profile (FULLSHIELD_EXPERIMENTAL_CAPABILITIES=1)',
-    )
-    .action(async (path: string, opts: ScanCliOptions) => {
-      try {
-        const failOnOverride = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;
-        const modules = opts.modules !== undefined ? parseModules(opts.modules) : undefined;
-        const ai = parseAiMode(opts.ai);
-        if (opts.experimentalSastGaps === true) {
-          process.env.FULLSHIELD_EXPERIMENTAL_SAST_GAPS = '1';
-        }
-        if (opts.experimentalFrameworks === true) {
-          process.env.FULLSHIELD_EXPERIMENTAL_FRAMEWORKS = '1';
-        }
-        if (opts.experimentalClasses === true) {
-          process.env.FULLSHIELD_EXPERIMENTAL_CLASSES = '1';
-        }
-        if (opts.experimentalSecretsAdv === true) {
-          process.env.FULLSHIELD_EXPERIMENTAL_SECRETS_ADV = '1';
-        }
-        if (opts.experimentalVex === true) {
-          process.env.FULLSHIELD_EXPERIMENTAL_VEX = '1';
-        }
-        if (opts.experimentalReachEvidence === true) {
-          process.env.FULLSHIELD_EXPERIMENTAL_REACH_EVIDENCE = '1';
-        }
-        if (opts.experimentalLockfiles === true) {
-          process.env.FULLSHIELD_EXPERIMENTAL_LOCKFILES = '1';
-        }
-        if (opts.experimentalSupply === true) {
-          process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY = '1';
-        }
-        if (opts.experimentalCapabilities === true) {
-          process.env.FULLSHIELD_EXPERIMENTAL_CAPABILITIES = '1';
-        }
-        if (opts.experimentalWorkspaces === true) {
-          process.env.FULLSHIELD_EXPERIMENTAL_WORKSPACES = '1';
-        }
-        if (opts.experimentalSarifV2 === true) {
-          process.env.FULLSHIELD_EXPERIMENTAL_SARIF_V2 = '1';
-        }
-        if (opts.experimentalCustomSanitizers === true) {
-          process.env.FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS = '1';
-        }
-        if (opts.experimentalValidation === true) {
-          process.env.FULLSHIELD_EXPERIMENTAL_VALIDATION = '1';
-        }
-        if (opts.experimentalTypes === true) {
-          process.env[TYPES_FLAG] = '1';
-        }
-        if (opts.experimentalModels === true) {
-          process.env.FULLSHIELD_EXPERIMENTAL_MODELS = '1';
-        }
-        if (opts.taintSummaries === true) {
-          process.env.FULLSHIELD_TAINT_SUMMARIES = '1';
-        }
-        if (opts.experimentalPaths === true) {
-          process.env.FULLSHIELD_EXPERIMENTAL_PATHS = '1';
-        }
-        if (opts.paths === true && process.env.FULLSHIELD_EXPERIMENTAL_PATHS !== '1') {
-          throw new Error('--paths requires FULLSHIELD_EXPERIMENTAL_PATHS=1');
-        }
-        if (opts.experimentalMcpcfg === true) {
-          process.env.FULLSHIELD_EXPERIMENTAL_MCPCFG = '1';
-        }
-        if (opts.experimentalPriority === true) {
-          process.env[PRIORITY_FLAG] = '1';
-        }
-        if (opts.experimentalBudget === true) {
-          process.env.FULLSHIELD_EXPERIMENTAL_BUDGET = '1';
-        }
-        const maxTimeSeconds =
-          budgetEnabled() && opts.maxTime !== undefined ? parseMaxTime(opts.maxTime) : undefined;
-        if (opts.experimentalSemgrepRules === true) {
-          process.env[SEMGREP_RULES_FLAG] = '1';
-        }
-        guardSemgrepCli(opts.semgrepRules, process.env[SEMGREP_RULES_FLAG] === '1');
-        if (opts.prSummary === true && process.env[POLICY_FLAG] !== '1') {
-          throw new Error(`--pr-summary requires ${POLICY_FLAG}=1`);
-        }
-        if (opts.experimentalCiReports === true) {
-          process.env[CI_REPORTS_FLAG] = '1';
-        }
-        const wantsCiReport =
-          opts.githubAnnotations !== undefined || opts.junit !== undefined || opts.gitlab !== undefined;
-        if (wantsCiReport && process.env[CI_REPORTS_FLAG] !== '1') {
-          throw new Error(
-            `--github-annotations, --junit, and --gitlab require ${CI_REPORTS_FLAG}=1`,
-          );
-        }
+    );
+}
 
-        const result = await (io.scan ?? scan)({
-          cwd: resolve(path),
-          modules,
-          includeHome: opts.includeHome === true,
-          configPath: opts.config,
-          staged: opts.staged === true,
-          offline: opts.offline === true || opts.offlineSafe === true,
-          updateBaseline: opts.updateBaseline === true,
-          ai,
-          changed: opts.changed === true,
-          since: opts.since,
-          experimentalIncremental: process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM === '1',
-          history: opts.history === true,
-          bundle: opts.bundle !== undefined ? resolve(path, opts.bundle) : undefined,
-          verifySecrets: opts.verifySecrets === true,
-          iOwnTheseCredentials: opts.iOwnTheseCredentials === true,
-          experimentalPolicy: process.env[POLICY_FLAG] === '1',
-          paths: opts.paths === true,
-          ...(maxTimeSeconds !== undefined ? { maxTimeSeconds } : {}),
-          semgrepRules: opts.semgrepRules,
-        });
+function registerScan(program: Command, io: ProgramIO): void {
+  const scan = program
+    .command('scan')
+    .description('Scan a project directory for security findings')
+    .argument('[path]', 'directory to scan', '.');
+  addEarlyScanOptions(scan);
+  addLateScanOptions(scan);
+  scan.action((path: string, opts: ScanCliOptions) => runScanAction(io, path, opts));
+}
 
-        if (opts.sarif !== undefined) {
-          await writeFile(resolve(opts.sarif), renderSarifReport(result), 'utf8');
-        }
-        if (opts.markdown !== undefined) {
-          await writeFile(resolve(opts.markdown), renderMarkdownReport(result), 'utf8');
-        }
-        if (opts.html !== undefined) {
-          await writeFile(resolve(opts.html), renderHtmlReport(result), 'utf8');
-        }
-        if (opts.githubAnnotations !== undefined) {
-          await writeFile(resolve(opts.githubAnnotations), renderGithubAnnotations(result), 'utf8');
-        }
-        if (opts.junit !== undefined) {
-          await writeFile(resolve(opts.junit), renderJunitReport(result), 'utf8');
-        }
-        if (opts.gitlab !== undefined) {
-          await writeFile(resolve(opts.gitlab), renderGitlabCodeQuality(result), 'utf8');
-        }
+function reportFixResult(
+  io: ProgramIO,
+  opts: { apply?: boolean },
+  result: Awaited<ReturnType<typeof runFix>>,
+): void {
+  if (result.patches.length === 0) {
+    io.out('No safe fixes available.');
+  } else {
+    for (const patch of result.patches) {
+      const verified = patch.verified !== undefined ? ` verified: ${patch.verified}` : '';
+      const unsafe = patch.safe ? '' : ' (unsafe)';
+      io.out(`# ${patch.ruleId} ${patch.file}${unsafe}${verified}`);
+      io.out(patch.diff);
+      io.out('');
+    }
+  }
+  for (const warning of result.warnings ?? []) {io.err(warning);}
+  if (result.reverted) {
+    io.err('fullshield: project tests failed; fixes were reverted');
+    process.exitCode = 1;
+    return;
+  }
+  if (opts.apply === true && result.applied) {
+    const branch = result.branch !== undefined ? ` on ${result.branch}` : '';
+    io.out(`Applied ${result.patches.length} fix(es)${branch}.`);
+    if (result.notice !== undefined) {io.out(result.notice);}
+    return;
+  }
+  if (opts.apply !== true) {io.out('Dry run. Re-run with --apply to write safe fixes.');}
+}
 
-        await writeLastScan(resolve(path), result);
-
-        if (opts.emitVirtualPatches !== undefined) {
-          if (process.env.FULLSHIELD_EXPERIMENTAL_VPATCH !== '1') {
-            throw new Error('--emit-virtual-patches requires FULLSHIELD_EXPERIMENTAL_VPATCH=1');
-          }
-          const { emitVirtualPatches } = await import('../runtime/rasp/vpatchIo.js');
-          const out =
-            typeof opts.emitVirtualPatches === 'string'
-              ? resolve(opts.emitVirtualPatches)
-              : resolve(path, '.fullshield', 'vpatches.json');
-          emitVirtualPatches(result.findings, out);
-          io.err(`wrote virtual patches ${out}`);
-        }
-
-        for (const line of result.metadata.info ?? []) {io.err(line);}
-        if (opts.prSummary === true) {
-          io.out(renderPrSummary(result.findings));
-        } else {
-          io.out(
-            opts.json === true
-              ? renderJsonReport(result)
-              : renderConsoleReport(result, { all: opts.all === true }),
-          );
-        }
-
-        if (result.policy !== undefined && result.policy.errors.length > 0) {
-          for (const message of result.policy.errors) {
-            io.err(`fullshield: ${message}`);
-          }
-          process.exitCode = 1;
-        }
-        if (result.typesNotice !== undefined) {
-          io.err(result.typesNotice);
-        }
-        if (result.suppressionErrors !== undefined && result.suppressionErrors.length > 0) {
-          for (const message of result.suppressionErrors) {
-            io.err(`fullshield: ${message}`);
-          }
-          process.exitCode = 1;
-        }
-        const failOn = failOnOverride ?? result.policy?.failOn ?? result.config.failOn;
-        if (result.findings.some((f) => failsCi(f, failOn))) {
-          process.exitCode = 1;
-        } else if (process.exitCode !== 1 && result.metadata.incomplete === true) {
-          process.exitCode = 3;
-        }
-      } catch (error) {
-        io.err(formatCliError(error));
-        process.exitCode = 2;
-      }
-    });
-
+function registerFix(program: Command, io: ProgramIO): void {
   program
     .command('fix')
     .description('Propose or apply safe auto-fixes (dry-run by default)')
@@ -557,32 +583,15 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           forceUnverified: opts.forceUnverified === true,
           yes: opts.yes === true,
         });
-        if (result.patches.length === 0) {
-          io.out('No safe fixes available.');
-        } else {
-          for (const patch of result.patches) {
-            const verified = patch.verified !== undefined ? ` verified: ${patch.verified}` : '';
-            io.out(`# ${patch.ruleId} ${patch.file}${patch.safe ? '' : ' (unsafe)'}${verified}`);
-            io.out(patch.diff);
-            io.out('');
-          }
-        }
-        for (const warning of result.warnings ?? []) {io.err(warning);}
-        if (result.reverted) {
-          io.err('fullshield: project tests failed; fixes were reverted');
-          process.exitCode = 1;
-        } else if (opts.apply === true && result.applied) {
-          io.out(`Applied ${result.patches.length} fix(es)${result.branch !== undefined ? ` on ${result.branch}` : ''}.`);
-          if (result.notice !== undefined) {io.out(result.notice);}
-        } else if (opts.apply !== true) {
-          io.out('Dry run. Re-run with --apply to write safe fixes.');
-        }
+        reportFixResult(io, opts, result);
       } catch (error) {
         io.err(formatCliError(error));
         process.exitCode = 2;
       }
     });
+}
 
+function registerInit(program: Command, io: ProgramIO): void {
   program
     .command('init')
     .description('Write fullshield.config.json, CI workflows, and a pre-commit hook')
@@ -601,7 +610,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+function registerNotify(program: Command, io: ProgramIO): void {
   program
     .command('notify')
     .description('Send a summary of the last scan (Slack, webhook, or SMTP)')
@@ -638,7 +649,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+function registerSbom(program: Command, io: ProgramIO): void {
   program
     .command('sbom')
     .description('Write a CycloneDX 1.5 SBOM, or experimental SPDX 2.3 when enabled')
@@ -675,7 +688,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+function registerEdge(program: Command, io: ProgramIO): void {
   program
     .command('edge')
     .description('Check CDN/WAF, TLS, headers, and common exposure paths on a URL you own')
@@ -700,7 +715,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+function registerWatch(program: Command, io: ProgramIO): void {
   program
     .command('watch')
     .description('Rescan dependencies and alert only on NEW vulnerabilities')
@@ -743,7 +760,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+function registerThreatModel(program: Command, io: ProgramIO): void {
   program
     .command('threat-model')
     .description('Experimental STRIDE + Mermaid threat model (FULLSHIELD_EXPERIMENTAL_PLATFORM=1)')
@@ -761,7 +780,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+function registerReport(program: Command, io: ProgramIO): void {
   program
     .command('report')
     .description('Reports (experimental --serve dashboard; --compliance mapping)')
@@ -798,7 +819,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+function registerIac(program: Command, io: ProgramIO): void {
   program
     .command('iac')
     .description('Experimental IaC scan (FULLSHIELD_EXPERIMENTAL_IAC=1)')
@@ -816,7 +839,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+function registerMcp(program: Command, io: ProgramIO): void {
   program
     .command('mcp')
     .description('Experimental MCP server (read-only; requires FULLSHIELD_EXPERIMENTAL_MCP=1)')
@@ -851,7 +876,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+function registerExplain(program: Command, io: ProgramIO): void {
   program
     .command('explain')
     .description('Print one finding from a scan JSON file (requires FULLSHIELD_EXPERIMENTAL_EXPLAIN=1)')
@@ -878,7 +905,36 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+async function lockReleaseAges(
+  cwd: string,
+  added: ReadonlyArray<{ name: string; newVersion?: string }>,
+): Promise<Array<{ name: string; version: string | undefined; age: ReturnType<typeof releaseAgeLabel>; installScripts: 'yes' | 'no' | 'unknown' }>> {
+  const ages = [];
+  for (const change of added) {
+    let published: string | undefined;
+    let installScripts: 'yes' | 'no' | 'unknown' = 'unknown';
+    try {
+      const raw: unknown = JSON.parse(await readFile(registryCachePath(join(cwd, 'osv-cache'), change.name), 'utf8'));
+      const facts = releaseFactsFromCache(raw, change.newVersion);
+      published = facts.publishedAt;
+      if (facts.hasInstallScript === true) {installScripts = 'yes';}
+      if (facts.hasInstallScript === false) {installScripts = 'no';}
+    } catch {
+      published = undefined;
+    }
+    ages.push({
+      name: change.name,
+      version: change.newVersion,
+      age: releaseAgeLabel(published, Date.now()),
+      installScripts,
+    });
+  }
+  return ages;
+}
+
+function registerDepsDiff(program: Command, io: ProgramIO): void {
   program
     .command('deps-diff')
     .description('Compare a lockfile at a git ref with the working tree (requires FULLSHIELD_EXPERIMENTAL_DEPS_DIFF=1)')
@@ -919,26 +975,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
           })),
         );
         const added = changes.filter((change) => change.change === 'added');
-        const ages = [];
-        for (const change of added) {
-          let published: string | undefined;
-          let installScripts: 'yes' | 'no' | 'unknown' = 'unknown';
-          try {
-            const raw: unknown = JSON.parse(await readFile(registryCachePath(join(cwd, 'osv-cache'), change.name), 'utf8'));
-            const facts = releaseFactsFromCache(raw, change.newVersion);
-            published = facts.publishedAt;
-            if (facts.hasInstallScript === true) {installScripts = 'yes';}
-            if (facts.hasInstallScript === false) {installScripts = 'no';}
-          } catch {
-            published = undefined;
-          }
-          ages.push({
-            name: change.name,
-            version: change.newVersion,
-            age: releaseAgeLabel(published, Date.now()),
-            installScripts,
-          });
-        }
+        const ages = await lockReleaseAges(cwd, added);
         const report: {
           changes: typeof changes;
           introduced: typeof introduced;
@@ -963,7 +1000,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+function registerDeps(program: Command, io: ProgramIO): void {
   program
     .command('deps')
     .description('Dependency capability profile (requires FULLSHIELD_EXPERIMENTAL_CAPABILITIES=1)')
@@ -988,7 +1027,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+function registerConfirm(program: Command, io: ProgramIO): void {
   program
     .command('confirm')
     .description('Experimental exploit confirm (localhost/127.0.0.1/FullShield container only)')
@@ -1007,7 +1048,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+function registerInstall(program: Command, io: ProgramIO): void {
   program
     .command('install')
     .description('Experimental install-guard (requires FULLSHIELD_EXPERIMENTAL_SUPPLY=1)')
@@ -1036,7 +1079,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+function registerAgent(program: Command, io: ProgramIO): void {
   program
     .command('agent')
     .description('Experimental remediation agent (FULLSHIELD_EXPERIMENTAL_AGENT=1). Mock/localhost API + local git only.')
@@ -1062,7 +1107,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+function registerHost(program: Command, io: ProgramIO): void {
   program
     .command('host')
     .description('Experimental host SSH exposure check (Linux only; FULLSHIELD_EXPERIMENTAL_HOST=1)')
@@ -1126,7 +1173,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+function registerHoney(program: Command, io: ProgramIO): void {
   program
     .command('honey')
     .description('Experimental honeytokens (requires FULLSHIELD_EXPERIMENTAL_HONEY=1)')
@@ -1146,7 +1195,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+function registerVex(program: Command, io: ProgramIO): void {
   program
     .command('vex')
     .description('Experimental VEX from reachability (FULLSHIELD_EXPERIMENTAL_VEX=1)')
@@ -1193,7 +1244,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+function registerDiff(program: Command, io: ProgramIO): void {
   program
     .command('diff')
     .description('Experimental comparison of two scan --json files (FULLSHIELD_EXPERIMENTAL_DIFF=1)')
@@ -1232,7 +1285,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         }
       },
     );
+}
 
+function registerIngest(program: Command, io: ProgramIO): void {
   program
     .command('ingest')
     .description('Ingest local SARIF, npm audit, OSV-Scanner, and Semgrep JSON (FULLSHIELD_EXPERIMENTAL_INGEST=1)')
@@ -1248,7 +1303,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+function registerDev(program: Command, io: ProgramIO): void {
   program
     .command('dev')
     .description('Watch the project and print new or resolved findings (FULLSHIELD_EXPERIMENTAL_DEV=1)')
@@ -1270,7 +1327,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+function registerNpmAuditDiff(program: Command, io: ProgramIO): void {
   program
     .command('npm-audit-diff')
     .description('Compare a local npm audit JSON file with scan findings (requires FULLSHIELD_EXPERIMENTAL_NPM_AUDIT_DIFF=1)')
@@ -1311,7 +1370,9 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+function registerDoctor(program: Command, io: ProgramIO): void {
   program
     .command('doctor')
     .description('Report Node, lockfile, cache, flags, config, and whether OSV is offline')
@@ -1326,6 +1387,40 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
         process.exitCode = 2;
       }
     });
+}
 
+export function createProgram(io: ProgramIO = defaultIO): Command {
+  const program = new Command();
+  program
+    .name('fullshield')
+    .description('Full-cycle security scanner for Node.js/TypeScript backends')
+    .version(packageVersion())
+    .option('--debug', 'print stack traces on CLI errors');
+
+  registerScan(program, io);
+  registerFix(program, io);
+  registerInit(program, io);
+  registerNotify(program, io);
+  registerSbom(program, io);
+  registerEdge(program, io);
+  registerWatch(program, io);
+  registerThreatModel(program, io);
+  registerReport(program, io);
+  registerIac(program, io);
+  registerMcp(program, io);
+  registerExplain(program, io);
+  registerDepsDiff(program, io);
+  registerDeps(program, io);
+  registerConfirm(program, io);
+  registerInstall(program, io);
+  registerAgent(program, io);
+  registerHost(program, io);
+  registerHoney(program, io);
+  registerVex(program, io);
+  registerDiff(program, io);
+  registerIngest(program, io);
+  registerDev(program, io);
+  registerNpmAuditDiff(program, io);
+  registerDoctor(program, io);
   return program;
 }

@@ -127,6 +127,24 @@ const CALLBACK_METHODS = new Set([
   'reduce',
 ]);
 const taintedThisFields = new WeakMap<AstNode, Set<string>>();
+const flow2LocalTaint = new WeakMap<AstNode, ReadonlySet<string>>();
+let flow2Active = false;
+
+type Flow2Seed = (functions: readonly AstNode[], seeds: Map<AstNode, Set<string>>) => boolean;
+let flow2Seed: Flow2Seed | undefined;
+
+/** Phase 502. The flow2 module calls these. Flag off leaves them unset, so that module is not loaded. */
+export function setFlow2Active(on: boolean): void {
+  flow2Active = on;
+}
+
+export function setFlow2Seed(fn: Flow2Seed | undefined): void {
+  flow2Seed = fn;
+}
+
+export function flow2LocalTaintOf(fn: AstNode): ReadonlySet<string> {
+  return flow2LocalTaint.get(fn) ?? NO_RETURNERS;
+}
 
 function enclosingClass(node: AstNode): AstNode | undefined {
   let current: AstNode | undefined = (node as { parent?: AstNode }).parent;
@@ -135,6 +153,106 @@ function enclosingClass(node: AstNode): AstNode | undefined {
     current = (current as { parent?: AstNode }).parent;
   }
   return undefined;
+}
+
+function memberIsTainted(node: AstNode, tainted: Set<string>, returners: ReadonlySet<string>): boolean {
+  if (node.type !== 'MemberExpression') {return false;}
+  if (flow2Active && node.object.type === 'Identifier' && node.computed !== true) {
+    const field = propName(node);
+    if (field !== undefined && tainted.has(`${node.object.name}.${field}`)) {return true;}
+  }
+  if (taintV2Enabled() && node.object.type === 'ThisExpression') {
+    const cls = enclosingClass(node);
+    const name = propName(node);
+    if (cls !== undefined && name !== undefined && taintedThisFields.get(cls)?.has(name) === true) {return true;}
+  }
+  return exprIsTainted(node.object, tainted, returners);
+}
+
+function objectAssignTainted(node: AstNode, tainted: Set<string>, returners: ReadonlySet<string>): boolean {
+  return (
+    taintV2Enabled() &&
+    node.type === 'CallExpression' &&
+    node.callee.type === 'MemberExpression' &&
+    node.callee.object.type === 'Identifier' &&
+    node.callee.object.name === 'Object' &&
+    propName(node.callee) === 'assign' &&
+    node.arguments.some((arg) => arg.type !== 'SpreadElement' && exprIsTainted(arg, tainted, returners))
+  );
+}
+
+function callIsTainted(node: AstNode, tainted: Set<string>, returners: ReadonlySet<string>): boolean {
+  if (node.type === 'NewExpression') {
+    if (exprIsTainted(node.callee, tainted, returners)) {return true;}
+    return node.arguments.some((arg) => arg.type !== 'SpreadElement' && exprIsTainted(arg, tainted, returners));
+  }
+  if (node.type !== 'CallExpression') {return false;}
+  if (objectAssignTainted(node, tainted, returners)) {return true;}
+  if (isSchemaValidatorCall(node)) {return false;}
+  if (node.callee.type === 'Identifier' && returners.has(node.callee.name)) {return true;}
+  if (node.callee.type === 'MemberExpression' && exprIsTainted(node.callee.object, tainted, returners)) {return true;}
+  return node.arguments.some((arg) => arg.type !== 'SpreadElement' && exprIsTainted(arg, tainted, returners));
+}
+
+function elementIsTainted(el: AstNode | null, tainted: Set<string>, returners: ReadonlySet<string>): boolean {
+  if (el === null) {return false;}
+  if (el.type === 'SpreadElement') {return exprIsTainted(el.argument, tainted, returners);}
+  return exprIsTainted(el, tainted, returners);
+}
+
+function propertyIsTainted(prop: AstNode, tainted: Set<string>, returners: ReadonlySet<string>): boolean {
+  if (prop.type === 'SpreadElement') {return exprIsTainted(prop.argument, tainted, returners);}
+  if (prop.type !== 'Property') {return false;}
+  return exprIsTainted(prop.value, tainted, returners);
+}
+
+function collectionIsTainted(node: AstNode, tainted: Set<string>, returners: ReadonlySet<string>): boolean {
+  if (!taintV2Enabled()) {return false;}
+  if (node.type === 'ArrayExpression') {return node.elements.some((el) => elementIsTainted(el, tainted, returners));}
+  if (node.type !== 'ObjectExpression') {return false;}
+  return node.properties.some((prop) => propertyIsTainted(prop, tainted, returners));
+}
+
+function binaryIsTainted(node: AstNode, tainted: Set<string>, returners: ReadonlySet<string>): boolean {
+  if (node.type === 'BinaryExpression') {
+    return node.operator === '+' && (exprIsTainted(node.left, tainted, returners) || exprIsTainted(node.right, tainted, returners));
+  }
+  if (node.type === 'LogicalExpression') {
+    return exprIsTainted(node.left, tainted, returners) || exprIsTainted(node.right, tainted, returners);
+  }
+  if (node.type !== 'ConditionalExpression') {return false;}
+  return exprIsTainted(node.consequent, tainted, returners) || exprIsTainted(node.alternate, tainted, returners);
+}
+
+function isBinaryShape(node: AstNode): boolean {
+  return node.type === 'BinaryExpression' || node.type === 'LogicalExpression' || node.type === 'ConditionalExpression';
+}
+
+function assertionExpr(node: AstNode): AstNode | undefined {
+  if (
+    node.type === 'ChainExpression' ||
+    node.type === 'TSAsExpression' ||
+    node.type === 'TSNonNullExpression' ||
+    node.type === 'TSTypeAssertion'
+  ) {
+    return node.expression;
+  }
+  return undefined;
+}
+
+function shapeIsTainted(node: AstNode, tainted: Set<string>, returners: ReadonlySet<string>): boolean {
+  if (node.type === 'AwaitExpression') {return exprIsTainted(node.argument, tainted, returners);}
+  if (node.type === 'Identifier') {return tainted.has(node.name);}
+  if (node.type === 'MemberExpression') {return memberIsTainted(node, tainted, returners);}
+  if (node.type === 'CallExpression' || node.type === 'NewExpression') {return callIsTainted(node, tainted, returners);}
+  if (node.type === 'ArrayExpression' || node.type === 'ObjectExpression') {return collectionIsTainted(node, tainted, returners);}
+  if (node.type === 'TemplateLiteral') {return node.expressions.some((expr) => exprIsTainted(expr, tainted, returners));}
+  if (node.type === 'TaggedTemplateExpression') {return exprIsTainted(node.quasi, tainted, returners);}
+  if (node.type === 'AssignmentExpression') {return exprIsTainted(node.right, tainted, returners);}
+  if (isBinaryShape(node)) {return binaryIsTainted(node, tainted, returners);}
+  const inner = assertionExpr(node);
+  if (inner !== undefined) {return exprIsTainted(inner, tainted, returners);}
+  return false;
 }
 
 function exprIsTainted(
@@ -147,86 +265,56 @@ function exprIsTainted(
   if (isTaintSource(node) || isFrameworkMemberTaint(node) || isFrameworkTaintCall(node) || isMcpArgsTaintSource(node)) {
     return true;
   }
-  switch (node.type) {
-    case 'AwaitExpression':
-      return exprIsTainted(node.argument, tainted, returners);
-    case 'Identifier':
-      return tainted.has(node.name);
-    case 'MemberExpression':
-      if (taintV2Enabled() && node.object.type === 'ThisExpression') {
-        const cls = enclosingClass(node);
-        const name = propName(node);
-        if (cls !== undefined && name !== undefined && taintedThisFields.get(cls)?.has(name) === true) {
-          return true;
-        }
-      }
-      return exprIsTainted(node.object, tainted, returners);
-    case 'ArrayExpression':
-      if (!taintV2Enabled()) {return false;}
-      return node.elements.some((el) => {
-        if (el === null) {return false;}
-        if (el.type === 'SpreadElement') {return exprIsTainted(el.argument, tainted, returners);}
-        return exprIsTainted(el, tainted, returners);
-      });
-    case 'ObjectExpression':
-      if (!taintV2Enabled()) {return false;}
-      return node.properties.some((prop) => {
-        if (prop.type === 'SpreadElement') {return exprIsTainted(prop.argument, tainted, returners);}
-        if (prop.type !== 'Property') {return false;}
-        return exprIsTainted(prop.value, tainted, returners);
-      });
-    case 'CallExpression':
-      if (
-        taintV2Enabled() &&
-        node.callee.type === 'MemberExpression' &&
-        node.callee.object.type === 'Identifier' &&
-        node.callee.object.name === 'Object' &&
-        propName(node.callee) === 'assign'
-      ) {
-        return node.arguments.some(
-          (arg) => arg.type !== 'SpreadElement' && exprIsTainted(arg, tainted, returners),
-        );
-      }
-      if (isSchemaValidatorCall(node)) {return false;}
-      if (node.callee.type === 'Identifier' && returners.has(node.callee.name)) {return true;}
-      if (node.callee.type === 'MemberExpression' && exprIsTainted(node.callee.object, tainted, returners)) {
-        return true;
-      }
-      return node.arguments.some(
-        (arg) => arg.type !== 'SpreadElement' && exprIsTainted(arg, tainted, returners),
-      );
-    case 'NewExpression':
-      if (exprIsTainted(node.callee, tainted, returners)) {return true;}
-      return node.arguments.some(
-        (arg) => arg.type !== 'SpreadElement' && exprIsTainted(arg, tainted, returners),
-      );
-    case 'TemplateLiteral':
-      return node.expressions.some((expr) => exprIsTainted(expr, tainted, returners));
-    case 'TaggedTemplateExpression':
-      return exprIsTainted(node.quasi, tainted, returners);
-    case 'BinaryExpression':
-      return (
-        node.operator === '+' &&
-        (exprIsTainted(node.left, tainted, returners) || exprIsTainted(node.right, tainted, returners))
-      );
-    case 'AssignmentExpression':
-      return exprIsTainted(node.right, tainted, returners);
-    case 'LogicalExpression':
-      return exprIsTainted(node.left, tainted, returners) || exprIsTainted(node.right, tainted, returners);
-    case 'ConditionalExpression':
-      return (
-        exprIsTainted(node.consequent, tainted, returners) ||
-        exprIsTainted(node.alternate, tainted, returners)
-      );
-    case 'ChainExpression':
-      return exprIsTainted(node.expression, tainted, returners);
-    case 'TSAsExpression':
-    case 'TSNonNullExpression':
-    case 'TSTypeAssertion':
-      return exprIsTainted(node.expression, tainted, returners);
-    default:
-      return false;
-  }
+  return shapeIsTainted(node, tainted, returners);
+}
+
+interface Feed {
+  tainted: Set<string>;
+  returners: ReadonlySet<string>;
+  nosqlSanitized: Set<string>;
+  built: Set<string>;
+  filterReturners: ReadonlySet<string>;
+}
+
+function feedElement(el: AstNode | null, feed: Feed): boolean {
+  if (el === null) {return false;}
+  if (el.type === 'SpreadElement') {return valueFeedsFilter(el.argument, feed);}
+  return valueFeedsFilter(el, feed);
+}
+
+function feedProperty(prop: AstNode, feed: Feed): boolean {
+  if (prop.type === 'SpreadElement') {return valueFeedsFilter(prop.argument, feed);}
+  if (prop.type !== 'Property') {return false;}
+  return valueFeedsFilter(prop.value, feed);
+}
+
+function assignFeeds(node: AstNode, feed: Feed): boolean {
+  if (node.type !== 'CallExpression' || node.callee.type !== 'MemberExpression') {return false;}
+  if (node.callee.object.type !== 'Identifier' || node.callee.object.name !== 'Object') {return false;}
+  if (propName(node.callee) !== 'assign') {return false;}
+  return node.arguments.some((arg) => arg.type !== 'SpreadElement' && valueFeedsFilter(arg, feed));
+}
+
+function containerFeeds(node: AstNode, feed: Feed): boolean {
+  if (node.type === 'ObjectExpression') {return node.properties.some((prop) => feedProperty(prop, feed));}
+  if (node.type === 'ArrayExpression') {return node.elements.some((el) => feedElement(el, feed));}
+  return assignFeeds(node, feed);
+}
+
+function namedFeeds(node: AstNode, feed: Feed): boolean | undefined {
+  if (node.type !== 'Identifier') {return undefined;}
+  if (feed.nosqlSanitized.has(node.name)) {return false;}
+  return feed.built.has(node.name) || feed.tainted.has(node.name);
+}
+
+function wrappedFeeds(node: AstNode): boolean {
+  return (
+    node.type === 'ChainExpression' ||
+    node.type === 'TSAsExpression' ||
+    node.type === 'TSNonNullExpression' ||
+    node.type === 'TSTypeAssertion' ||
+    node.type === 'MemberExpression'
+  );
 }
 
 /**
@@ -234,104 +322,30 @@ function exprIsTainted(
  * A bare tainted name is not itself a built filter; an object, array, or
  * Object.assign that contains one is.
  */
-function valueFeedsFilter(
-  node: AstNode | undefined,
-  tainted: Set<string>,
-  returners: ReadonlySet<string>,
-  nosqlSanitized: Set<string>,
-  built: Set<string>,
-  filterReturners: ReadonlySet<string>,
-): boolean {
+function valueFeedsFilter(node: AstNode | undefined, feed: Feed): boolean {
   if (node === undefined) {return false;}
   if (isCoercionCall(node) || isSchemaValidatorCall(node) || isMongoSanitizeCall(node)) {return false;}
-  if (node.type === 'Identifier') {
-    if (nosqlSanitized.has(node.name)) {return false;}
-    return built.has(node.name) || tainted.has(node.name);
-  }
+  const named = namedFeeds(node, feed);
+  if (named !== undefined) {return named;}
   if (isRequestObjectNode(node)) {return true;}
-  if (node.type === 'AwaitExpression') {
-    return valueFeedsFilter(node.argument, tainted, returners, nosqlSanitized, built, filterReturners);
-  }
-  if (
-    node.type === 'CallExpression' &&
-    node.callee.type === 'Identifier' &&
-    filterReturners.has(node.callee.name)
-  ) {
+  if (node.type === 'AwaitExpression') {return valueFeedsFilter(node.argument, feed);}
+  if (node.type === 'CallExpression' && node.callee.type === 'Identifier' && feed.filterReturners.has(node.callee.name)) {
     return true;
   }
-  if (node.type === 'ObjectExpression') {
-    return node.properties.some((prop) => {
-      if (prop.type === 'SpreadElement') {
-        return valueFeedsFilter(prop.argument, tainted, returners, nosqlSanitized, built, filterReturners);
-      }
-      if (prop.type !== 'Property') {return false;}
-      return valueFeedsFilter(prop.value, tainted, returners, nosqlSanitized, built, filterReturners);
-    });
-  }
-  if (node.type === 'ArrayExpression') {
-    return node.elements.some((el) => {
-      if (el === null) {return false;}
-      if (el.type === 'SpreadElement') {
-        return valueFeedsFilter(el.argument, tainted, returners, nosqlSanitized, built, filterReturners);
-      }
-      return valueFeedsFilter(el, tainted, returners, nosqlSanitized, built, filterReturners);
-    });
-  }
-  if (
-    node.type === 'CallExpression' &&
-    node.callee.type === 'MemberExpression' &&
-    node.callee.object.type === 'Identifier' &&
-    node.callee.object.name === 'Object' &&
-    propName(node.callee) === 'assign'
-  ) {
-    return node.arguments.some(
-      (arg) =>
-        arg.type !== 'SpreadElement' &&
-        valueFeedsFilter(arg, tainted, returners, nosqlSanitized, built, filterReturners),
-    );
-  }
-  if (
-    node.type === 'ChainExpression' ||
-    node.type === 'TSAsExpression' ||
-    node.type === 'TSNonNullExpression' ||
-    node.type === 'TSTypeAssertion' ||
-    node.type === 'MemberExpression'
-  ) {
-    return exprIsTainted(node, tainted, returners);
-  }
+  if (node.type === 'ObjectExpression' || node.type === 'ArrayExpression') {return containerFeeds(node, feed);}
+  if (assignFeeds(node, feed)) {return true;}
+  if (wrappedFeeds(node)) {return exprIsTainted(node, feed.tainted, feed.returners);}
   return false;
 }
 
-function initIsBuiltFilter(
-  node: AstNode,
-  tainted: Set<string>,
-  returners: ReadonlySet<string>,
-  nosqlSanitized: Set<string>,
-  built: Set<string>,
-  filterReturners: ReadonlySet<string>,
-): boolean {
-  if (node.type === 'AwaitExpression') {
-    return initIsBuiltFilter(node.argument, tainted, returners, nosqlSanitized, built, filterReturners);
-  }
-  if (node.type === 'Identifier') {return built.has(node.name) && !nosqlSanitized.has(node.name);}
-  if (
-    node.type === 'CallExpression' &&
-    node.callee.type === 'Identifier' &&
-    filterReturners.has(node.callee.name)
-  ) {
+function initIsBuiltFilter(node: AstNode, feed: Feed): boolean {
+  if (node.type === 'AwaitExpression') {return initIsBuiltFilter(node.argument, feed);}
+  if (node.type === 'Identifier') {return feed.built.has(node.name) && !feed.nosqlSanitized.has(node.name);}
+  if (node.type === 'CallExpression' && node.callee.type === 'Identifier' && feed.filterReturners.has(node.callee.name)) {
     return true;
   }
-  if (node.type === 'ObjectExpression' || node.type === 'ArrayExpression') {
-    return valueFeedsFilter(node, tainted, returners, nosqlSanitized, built, filterReturners);
-  }
-  return (
-    node.type === 'CallExpression' &&
-    node.callee.type === 'MemberExpression' &&
-    node.callee.object.type === 'Identifier' &&
-    node.callee.object.name === 'Object' &&
-    propName(node.callee) === 'assign' &&
-    valueFeedsFilter(node, tainted, returners, nosqlSanitized, built, filterReturners)
-  );
+  if (node.type === 'ObjectExpression' || node.type === 'ArrayExpression') {return valueFeedsFilter(node, feed);}
+  return assignFeeds(node, feed);
 }
 
 function exprIsSanitized(
@@ -415,72 +429,71 @@ function seedMcpToolParams(scope: AstNode, tainted: Set<string>): void {
   }
 }
 
-function analyzeScope(
-  scope: AstNode,
-  seed: Iterable<string> = [],
-  returners: ReadonlySet<string> = NO_RETURNERS,
-  filterReturners: ReadonlySet<string> = NO_RETURNERS,
-  initialBuilt: ReadonlySet<string> = NO_RETURNERS,
-): ScopeFacts {
-  const tainted = new Set<string>(seed);
-  seedDestructuredRequestParams(scope, tainted);
-  seedFrameworkParams(scope, tainted);
-  seedMcpToolParams(scope, tainted);
-  const urlSanitized = new Set<string>();
-  const xssSanitized = new Set<string>();
-  const nosqlSanitized = new Set<string>();
-  const sqlCleared = new Set<string>();
-  const customPath = new Set<string>();
-  let changed = true;
-  while (changed) {
-    changed = false;
-    walkScope(scope, (node) => {
-      if (node.type === 'VariableDeclarator') {
-        const init = node.init ?? undefined;
-        if (isSchemaValidatorCall(init) || isCoercionCall(init) || isMongoSanitizeCall(init)) {
-          for (const name of boundNames(node.id)) {nosqlSanitized.add(name);}
-        }
-        if (isSchemaValidatorCall(init)) {return;}
-        applyCustomCall(init, boundNames(node.id), tainted, sqlCleared, customPath);
-        if (isUrlSanitizerCall(init)) {
-          for (const name of boundNames(node.id)) {urlSanitized.add(name);}
-        }
-        if (isXssSanitizerCall(init)) {
-          for (const name of boundNames(node.id)) {xssSanitized.add(name);}
-        }
-        if (exprIsTainted(init, tainted, returners)) {
-          for (const name of boundNames(node.id)) {
-            if (!tainted.has(name)) {
-              tainted.add(name);
-              changed = true;
-            }
-          }
-        }
-      }
-      if (node.type === 'AssignmentExpression') {
-        if (isSchemaValidatorCall(node.right) || isCoercionCall(node.right) || isMongoSanitizeCall(node.right)) {
-          for (const name of boundNames(node.left)) {nosqlSanitized.add(name);}
-        }
-        if (isSchemaValidatorCall(node.right)) {return;}
-        applyCustomCall(node.right, boundNames(node.left), tainted, sqlCleared, customPath);
-        if (isUrlSanitizerCall(node.right)) {
-          for (const name of boundNames(node.left)) {urlSanitized.add(name);}
-        }
-        if (isXssSanitizerCall(node.right)) {
-          for (const name of boundNames(node.left)) {xssSanitized.add(name);}
-        }
-        if (exprIsTainted(node.right, tainted, returners)) {
-          for (const name of boundNames(node.left)) {
-            if (!tainted.has(name)) {
-              tainted.add(name);
-              changed = true;
-            }
-          }
-        }
-      }
-    });
-  }
+interface Absorb {
+  tainted: Set<string>;
+  returners: ReadonlySet<string>;
+  nosqlSanitized: Set<string>;
+  sqlCleared: Set<string>;
+  customPath: Set<string>;
+  urlSanitized: Set<string>;
+  xssSanitized: Set<string>;
+  note: (name: string) => void;
+  changed: boolean;
+}
 
+function markSanitized(names: readonly string[], init: AstNode | undefined, state: Absorb): boolean {
+  if (isSchemaValidatorCall(init) || isCoercionCall(init) || isMongoSanitizeCall(init)) {
+    for (const name of names) {state.nosqlSanitized.add(name);}
+  }
+  return isSchemaValidatorCall(init);
+}
+
+function markTainted(names: readonly string[], init: AstNode | undefined, state: Absorb): void {
+  applyCustomCall(init, names, state.tainted, state.sqlCleared, state.customPath);
+  if (isUrlSanitizerCall(init)) {
+    for (const name of names) {state.urlSanitized.add(name);}
+  }
+  if (isXssSanitizerCall(init)) {
+    for (const name of names) {state.xssSanitized.add(name);}
+  }
+  if (!exprIsTainted(init, state.tainted, state.returners)) {return;}
+  for (const name of names) {
+    if (!state.tainted.has(name)) {
+      state.tainted.add(name);
+      state.note(name);
+      state.changed = true;
+    }
+  }
+}
+
+function markFlow2Field(node: AstNode, state: Absorb): void {
+  if (!flow2Active || node.type !== 'AssignmentExpression' || node.left.type !== 'MemberExpression') {return;}
+  if (node.left.computed === true || node.left.object.type !== 'Identifier') {return;}
+  if (node.left.property.type !== 'Identifier') {return;}
+  if (!exprIsTainted(node.right, state.tainted, state.returners)) {return;}
+  const key = `${node.left.object.name}.${node.left.property.name}`;
+  if (state.tainted.has(key)) {return;}
+  state.tainted.add(key);
+  state.note(key);
+  state.changed = true;
+}
+
+function absorbBindings(node: AstNode, state: Absorb): void {
+  if (node.type === 'VariableDeclarator') {
+    const init = node.init ?? undefined;
+    const names = boundNames(node.id);
+    if (markSanitized(names, init, state)) {return;}
+    markTainted(names, init, state);
+    return;
+  }
+  if (node.type !== 'AssignmentExpression') {return;}
+  const names = boundNames(node.left);
+  if (markSanitized(names, node.right, state)) {return;}
+  markTainted(names, node.right, state);
+  markFlow2Field(node, state);
+}
+
+function resolvedNames(scope: AstNode): Set<string> {
   const resolved = new Set<string>();
   walkScope(scope, (node) => {
     if (node.type === 'VariableDeclarator' && node.init !== null && isPathResolveCall(node.init)) {
@@ -490,7 +503,11 @@ function analyzeScope(
       for (const name of boundNames(node.left)) {resolved.add(name);}
     }
   });
+  return resolved;
+}
 
+function pathSanitizedNames(scope: AstNode, customPath: ReadonlySet<string>): Set<string> {
+  const resolved = resolvedNames(scope);
   const pathSanitized = new Set<string>(customPath);
   walkScope(scope, (node) => {
     if (node.type !== 'CallExpression' || node.callee.type !== 'MemberExpression') {return;}
@@ -499,87 +516,145 @@ function analyzeScope(
       pathSanitized.add(node.callee.object.name);
     }
   });
+  return pathSanitized;
+}
 
-  let hasPasswordName = false;
-  walkScope(scope, (node) => {
-    if (node.type === 'Identifier' && /password|passwd|pwd/i.test(node.name)) {
-      hasPasswordName = true;
-    }
-  });
+function scopeHasPassword(scope: AstNode): boolean {
   if (scope.type === 'FunctionDeclaration' && scope.id !== null && /password|passwd|pwd/i.test(scope.id.name)) {
-    hasPasswordName = true;
+    return true;
   }
+  let has = false;
+  walkScope(scope, (node) => {
+    if (node.type === 'Identifier' && /password|passwd|pwd/i.test(node.name)) {has = true;}
+  });
+  return has;
+}
 
-  const requestObjects = new Set<string>();
+function decoratorNames(param: AstNode): readonly string[] {
+  const nest = nestInputDecorator(param);
+  if (nest !== 'Body' && nest !== 'Query' && nest !== 'Param') {return [];}
+  if (nestDecoratorArgCount(param, nest) !== 0) {return [];}
+  return boundNames(param);
+}
+
+function addRequest(
+  names: Set<string>,
+  target: AstNode,
+  init: AstNode | null | undefined,
+  from: (node: AstNode) => boolean,
+): void {
+  if (init === null || init === undefined || !from(init)) {return;}
+  for (const name of boundNames(target)) {names.add(name);}
+}
+
+function collectRequestObjects(scope: AstNode): Set<string> {
+  const names = new Set<string>();
   if (frameworksEnabled() && isFunctionNode(scope)) {
     for (const param of scope.params) {
-      const nest = nestInputDecorator(param);
-      if (nest === 'Body' || nest === 'Query' || nest === 'Param') {
-        if (nestDecoratorArgCount(param, nest) === 0) {
-          for (const name of boundNames(param)) {requestObjects.add(name);}
-        }
-      }
+      for (const name of decoratorNames(param)) {names.add(name);}
     }
   }
   walkScope(scope, (node) => {
-    if (node.type === 'VariableDeclarator' && node.init !== null && isRequestObjectNode(node.init)) {
-      for (const name of boundNames(node.id)) {requestObjects.add(name);}
+    if (node.type === 'VariableDeclarator') {
+      addRequest(names, node.id, node.init, isRequestObjectNode);
+      addRequest(names, node.id, node.init, isFrameworkRequestObject);
     }
-    if (node.type === 'AssignmentExpression' && isRequestObjectNode(node.right)) {
-      for (const name of boundNames(node.left)) {requestObjects.add(name);}
-    }
-    if (node.type === 'VariableDeclarator' && node.init !== null && isFrameworkRequestObject(node.init)) {
-      for (const name of boundNames(node.id)) {requestObjects.add(name);}
-    }
-    if (node.type === 'AssignmentExpression' && isFrameworkRequestObject(node.right)) {
-      for (const name of boundNames(node.left)) {requestObjects.add(name);}
+    if (node.type === 'AssignmentExpression') {
+      addRequest(names, node.left, node.right, isRequestObjectNode);
+      addRequest(names, node.left, node.right, isFrameworkRequestObject);
     }
   });
+  return names;
+}
 
-  const builtFilters = new Set<string>(initialBuilt);
+function builtNames(node: AstNode, feed: Feed): string[] {
+  if (node.type === 'VariableDeclarator' && node.init !== null && initIsBuiltFilter(node.init, feed)) {
+    return boundNames(node.id);
+  }
+  if (node.type !== 'AssignmentExpression') {return [];}
+  if (node.left.type === 'Identifier' && initIsBuiltFilter(node.right, feed)) {return [node.left.name];}
+  if (
+    node.left.type === 'MemberExpression' &&
+    node.left.object.type === 'Identifier' &&
+    valueFeedsFilter(node.right, feed)
+  ) {
+    return [node.left.object.name];
+  }
+  return [];
+}
+
+function collectBuiltFilters(
+  scope: AstNode,
+  state: Absorb,
+  filterReturners: ReadonlySet<string>,
+  initialBuilt: ReadonlySet<string>,
+): Set<string> {
+  const built = new Set<string>(initialBuilt);
+  const feed: Feed = {
+    tainted: state.tainted,
+    returners: state.returners,
+    nosqlSanitized: state.nosqlSanitized,
+    built,
+    filterReturners,
+  };
   let grew = true;
   while (grew) {
     grew = false;
-    const add = (names: readonly string[]): void => {
-      for (const name of names) {
-        if (nosqlSanitized.has(name) || builtFilters.has(name)) {continue;}
-        builtFilters.add(name);
-        grew = true;
-      }
-    };
     walkScope(scope, (node) => {
-      if (node.type === 'VariableDeclarator' && node.init !== null) {
-        if (initIsBuiltFilter(node.init, tainted, returners, nosqlSanitized, builtFilters, filterReturners)) {
-          add(boundNames(node.id));
-        }
-      }
-      if (node.type !== 'AssignmentExpression') {return;}
-      if (
-        node.left.type === 'Identifier' &&
-        initIsBuiltFilter(node.right, tainted, returners, nosqlSanitized, builtFilters, filterReturners)
-      ) {
-        add([node.left.name]);
-      }
-      if (
-        node.left.type === 'MemberExpression' &&
-        node.left.object.type === 'Identifier' &&
-        valueFeedsFilter(node.right, tainted, returners, nosqlSanitized, builtFilters, filterReturners)
-      ) {
-        add([node.left.object.name]);
+      for (const name of builtNames(node, feed)) {
+        if (state.nosqlSanitized.has(name) || built.has(name)) {continue;}
+        built.add(name);
+        grew = true;
       }
     });
   }
+  return built;
+}
 
+function analyzeScope(
+  scope: AstNode,
+  seed: Iterable<string> = [],
+  returners: ReadonlySet<string> = NO_RETURNERS,
+  filterReturners: ReadonlySet<string> = NO_RETURNERS,
+  initialBuilt: ReadonlySet<string> = NO_RETURNERS,
+): ScopeFacts {
+  const tainted = new Set<string>(seed);
+  const seedNames = new Set<string>(seed);
+  const born = new Set<string>();
+  const note = (name: string): void => {
+    if (!seedNames.has(name)) {born.add(name);}
+  };
+  seedDestructuredRequestParams(scope, tainted);
+  seedFrameworkParams(scope, tainted);
+  seedMcpToolParams(scope, tainted);
+  const state: Absorb = {
+    tainted,
+    returners,
+    nosqlSanitized: new Set<string>(),
+    sqlCleared: new Set<string>(),
+    customPath: new Set<string>(),
+    urlSanitized: new Set<string>(),
+    xssSanitized: new Set<string>(),
+    note,
+    changed: false,
+  };
+  let pending = true;
+  while (pending) {
+    state.changed = false;
+    walkScope(scope, (node) => {absorbBindings(node, state);});
+    pending = state.changed;
+  }
+  flow2LocalTaint.set(scope, born);
   return {
     tainted,
-    pathSanitized,
-    sqlCleared,
-    urlSanitized,
-    xssSanitized,
-    nosqlSanitized,
-    hasPasswordName,
-    requestObjects,
-    builtFilters,
+    pathSanitized: pathSanitizedNames(scope, state.customPath),
+    sqlCleared: state.sqlCleared,
+    urlSanitized: state.urlSanitized,
+    xssSanitized: state.xssSanitized,
+    nosqlSanitized: state.nosqlSanitized,
+    hasPasswordName: scopeHasPassword(scope),
+    requestObjects: collectRequestObjects(scope),
+    builtFilters: collectBuiltFilters(scope, state, filterReturners, initialBuilt),
     filterReturners: new Set(filterReturners),
     returners: new Set(returners),
   };
@@ -621,14 +696,13 @@ function scopeReturnsBuiltFilter(scope: AstNode, facts: ScopeFacts): boolean {
   walkScope(scope, (node) => {
     if (node.type !== 'ReturnStatement' || node.argument === null) {return;}
     if (
-      initIsBuiltFilter(
-        node.argument,
-        facts.tainted,
-        facts.returners,
-        facts.nosqlSanitized,
-        facts.builtFilters,
-        facts.filterReturners,
-      )
+      initIsBuiltFilter(node.argument, {
+        tainted: facts.tainted,
+        returners: facts.returners,
+        nosqlSanitized: facts.nosqlSanitized,
+        built: facts.builtFilters,
+        filterReturners: facts.filterReturners,
+      })
     ) {
       yes = true;
     }
@@ -654,6 +728,65 @@ function scopeReturnsTaint(
     }
   });
   return yes;
+}
+
+function noteThisAssign(node: AstNode, tainted: Set<string>, returners: ReadonlySet<string>): boolean {
+  if (node.type !== 'AssignmentExpression' || node.left.type !== 'MemberExpression') {return false;}
+  if (node.left.object.type !== 'ThisExpression' || !exprIsTainted(node.right, tainted, returners)) {return false;}
+  const cls = enclosingClass(node);
+  const field = propName(node.left);
+  if (cls === undefined || field === undefined) {return false;}
+  const fields = taintedThisFields.get(cls) ?? new Set<string>();
+  if (fields.has(field)) {return false;}
+  fields.add(field);
+  taintedThisFields.set(cls, fields);
+  return true;
+}
+
+function noteCallbackSeed(
+  node: AstNode,
+  mark: (fn: AstNode, name: string | undefined) => void,
+  tainted: Set<string>,
+  returners: ReadonlySet<string>,
+): void {
+  if (node.type !== 'CallExpression' || node.callee.type !== 'MemberExpression') {return;}
+  const method = propName(node.callee);
+  if (method === undefined || !CALLBACK_METHODS.has(method)) {return;}
+  if (!exprIsTainted(node.callee.object, tainted, returners)) {return;}
+  const callback = node.arguments[0];
+  if (callback !== undefined && isFunctionNode(callback)) {
+    mark(callback, boundNames(callback.params[0])[0]);
+  }
+}
+
+function noteApplySeed(
+  node: AstNode,
+  mark: (fn: AstNode, name: string | undefined) => void,
+  tainted: Set<string>,
+  returners: ReadonlySet<string>,
+  nameToFn: Map<string, AstNode>,
+): void {
+  if (node.type !== 'CallExpression' || node.callee.type !== 'MemberExpression') {return;}
+  const method = propName(node.callee);
+  if (method !== 'call' && method !== 'apply') {return;}
+  if (node.callee.object.type !== 'Identifier') {return;}
+  const target = nameToFn.get(node.callee.object.name);
+  if (target === undefined || !isFunctionNode(target)) {return;}
+  const arg = node.arguments[1];
+  if (arg !== undefined && arg.type !== 'SpreadElement' && exprIsTainted(arg, tainted, returners)) {
+    mark(target, boundNames(target.params[0])[0]);
+  }
+}
+
+function noteMethodSeed(
+  node: AstNode,
+  mark: (fn: AstNode, name: string | undefined) => void,
+  tainted: Set<string>,
+  returners: ReadonlySet<string>,
+  nameToFn: Map<string, AstNode>,
+): void {
+  noteCallbackSeed(node, mark, tainted, returners);
+  noteApplySeed(node, mark, tainted, returners, nameToFn);
 }
 
 export const MAX_TAINT_HOPS = 5;
@@ -688,39 +821,91 @@ function seedTaintV2(
       }
     }
     walkScope(fn, (node) => {
-      if (node.type === 'AssignmentExpression' && node.left.type === 'MemberExpression') {
-        if (node.left.object.type === 'ThisExpression' && exprIsTainted(node.right, f.tainted, returners)) {
-          const cls = enclosingClass(node);
-          const field = propName(node.left);
-          if (cls !== undefined && field !== undefined) {
-            const fields = taintedThisFields.get(cls) ?? new Set<string>();
-            if (!fields.has(field)) {
-              fields.add(field);
-              taintedThisFields.set(cls, fields);
-              changed = true;
-            }
-          }
-        }
-      }
-      if (node.type !== 'CallExpression' || node.callee.type !== 'MemberExpression') {return;}
-      const method = propName(node.callee);
-      if (method === undefined) {return;}
-      if (CALLBACK_METHODS.has(method) && exprIsTainted(node.callee.object, f.tainted, returners)) {
-        const callback = node.arguments[0];
-        if (callback !== undefined && isFunctionNode(callback)) {
-          mark(callback, boundNames(callback.params[0])[0]);
-        }
-      }
-      if ((method === 'call' || method === 'apply') && node.callee.object.type === 'Identifier') {
-        const target = nameToFn.get(node.callee.object.name);
-        if (target === undefined || !isFunctionNode(target)) {return;}
-        const arg = node.arguments[1];
-        if (arg !== undefined && arg.type !== 'SpreadElement' && exprIsTainted(arg, f.tainted, returners)) {
-          mark(target, boundNames(target.params[0])[0]);
-        }
-      }
+      if (noteThisAssign(node, f.tainted, returners)) {changed = true;}
+      noteMethodSeed(node, mark, f.tainted, returners, nameToFn);
     });
   }
+  return changed;
+}
+
+function seedFromCall(
+  node: AstNode,
+  tainted: Set<string>,
+  returners: ReadonlySet<string>,
+  nameToFn: Map<string, AstNode>,
+  seeds: Map<AstNode, Set<string>>,
+): boolean {
+  if (node.type !== 'CallExpression' || node.callee.type !== 'Identifier') {return false;}
+  const callee = nameToFn.get(node.callee.name);
+  if (callee === undefined || !isFunctionNode(callee)) {return false;}
+  let changed = false;
+  node.arguments.forEach((arg, i) => {
+    if (arg.type === 'SpreadElement' || !exprIsTainted(arg, tainted, returners)) {return;}
+    const param = callee.params[i];
+    if (param === undefined) {return;}
+    const pname = boundNames(param)[0];
+    if (pname === undefined) {return;}
+    const set = seeds.get(callee) ?? new Set<string>();
+    if (!set.has(pname)) {
+      set.add(pname);
+      seeds.set(callee, set);
+      changed = true;
+    }
+  });
+  return changed;
+}
+
+function noteReturners(
+  functions: AstNode[],
+  facts: WeakMap<AstNode, ScopeFacts>,
+  returners: Set<string>,
+  filterReturners: Set<string>,
+): boolean {
+  let changed = false;
+  for (const fn of functions) {
+    const name = functionName(fn);
+    const f = facts.get(fn);
+    if (name === undefined || f === undefined) {continue;}
+    if (scopeReturnsTaint(fn, f.tainted, returners) && !returners.has(name)) {
+      returners.add(name);
+      changed = true;
+    }
+    if (scopeReturnsBuiltFilter(fn, f) && !filterReturners.has(name)) {
+      filterReturners.add(name);
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+interface HopState {
+  functions: AstNode[];
+  facts: WeakMap<AstNode, ScopeFacts>;
+  seeds: Map<AstNode, Set<string>>;
+  returners: Set<string>;
+  filterReturners: Set<string>;
+  nameToFn: Map<string, AstNode>;
+}
+
+function refreshHop(ast: AstNode, hop: HopState): boolean {
+  let changed = false;
+  hop.facts.set(ast, analyzeScope(ast, [], hop.returners, hop.filterReturners));
+  for (const fn of hop.functions) {
+    hop.facts.set(
+      fn,
+      analyzeScope(fn, hop.seeds.get(fn) ?? [], hop.returners, hop.filterReturners, inheritedBuiltFilters(fn, hop.facts)),
+    );
+  }
+  if (noteReturners(hop.functions, hop.facts, hop.returners, hop.filterReturners)) {changed = true;}
+  for (const fn of hop.functions) {
+    const f = hop.facts.get(fn);
+    if (f === undefined) {continue;}
+    walkScope(fn, (node) => {
+      if (seedFromCall(node, f.tainted, hop.returners, hop.nameToFn, hop.seeds)) {changed = true;}
+    });
+  }
+  if (taintV2Enabled() && seedTaintV2(hop.functions, hop.facts, hop.seeds, hop.returners, hop.nameToFn)) {changed = true;}
+  if (flow2Seed !== undefined && flow2Seed(hop.functions, hop.seeds)) {changed = true;}
   return changed;
 }
 
@@ -745,54 +930,9 @@ export function analyzeFile(
   const filterReturners = new Set<string>();
 
   for (let hop = 0; hop < MAX_TAINT_HOPS; hop += 1) {
-    let changed = false;
-    facts.set(ast, analyzeScope(ast, [], returners, filterReturners));
-    for (const fn of functions) {
-      facts.set(fn, analyzeScope(fn, seeds.get(fn) ?? [], returners, filterReturners, inheritedBuiltFilters(fn, facts)));
-    }
-    for (const fn of functions) {
-      const name = functionName(fn);
-      const f = facts.get(fn);
-      if (name === undefined || f === undefined) {continue;}
-      if (scopeReturnsTaint(fn, f.tainted, returners) && !returners.has(name)) {
-        returners.add(name);
-        changed = true;
-      }
-      if (scopeReturnsBuiltFilter(fn, f) && !filterReturners.has(name)) {
-        filterReturners.add(name);
-        changed = true;
-      }
-    }
-    for (const fn of functions) {
-      const f = facts.get(fn);
-      if (f === undefined) {continue;}
-      walkScope(fn, (node) => {
-        if (node.type !== 'CallExpression') {return;}
-        if (node.callee.type !== 'Identifier') {return;}
-        const callee = nameToFn.get(node.callee.name);
-        if (callee === undefined || !isFunctionNode(callee)) {return;}
-        node.arguments.forEach((arg, i) => {
-          if (arg.type === 'SpreadElement') {return;}
-          if (!exprIsTainted(arg, f.tainted, returners)) {return;}
-          const param = callee.params[i];
-          if (param === undefined) {return;}
-          const pname = boundNames(param)[0];
-          if (pname === undefined) {return;}
-          const set = seeds.get(callee) ?? new Set<string>();
-          if (!set.has(pname)) {
-            set.add(pname);
-            seeds.set(callee, set);
-            changed = true;
-          }
-        });
-      });
-    }
-    if (taintV2Enabled() && seedTaintV2(functions, facts, seeds, returners, nameToFn)) {
-      changed = true;
-    }
-    if (!changed) {break;}
+    if (!refreshHop(ast, { functions, facts, seeds, returners, filterReturners, nameToFn })) {break;}
   }
-  return facts;
+    return facts;
 }
 
 export interface FunctionTaintSummary {
