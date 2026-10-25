@@ -76,6 +76,10 @@ Stable rule ids are the rules whose front matter says `stability: stable`. Exper
 
 1.3.0 adds experimental phases behind their own flags. Stable scan fields in this file are unchanged. Default `scan --json` is unchanged.
 
+## 1.7.0
+
+1.7.0 adds findings to default `scan --json` for a `sql` tagged template on postgres, mysql2, `@databases/pg`, slonik, or drizzle-orm, and for `execFile` / `execFileSync` when the command path is request data. The finding fields in this file are unchanged. `FULLSHIELD_EXPERIMENTAL_DEEP` (`scan --experimental-deep`) adds matches on the existing XSS, SSRF, path, redirect, JWT, and prototype rules and stays off unless that flag is set.
+
 ## 1.6.0
 
 1.6.0 adds findings to default `scan --json` for `node:sqlite` and `bun:sqlite` exec/prepare, `Bun.spawn`, Bun shell templates, `Deno.Command`, and `evaluate` on mathjs, expr-eval, and vm2. The finding fields in this file are unchanged. The eleven checks in the 1.6.0 changelog stay experimental and off unless their flags are set.

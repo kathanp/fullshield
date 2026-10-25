@@ -1,6 +1,6 @@
 # FullShield
 
-**v1.6.0.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
+**v1.7.0.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
 
 **Headline: dependency reachability.** A lockfile CVE is not the same as an unused package. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (lockfile path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), `not-imported` (−2, only when no such path exists), or `reachability-unknown` (severity kept) when the lockfile format has no parsed dependency edges. DevDependency-only vulns are `info` with a `dev-only` note unless production sources import the package. Pair it with `fullshield sbom --format cyclonedx`.
 
@@ -10,7 +10,7 @@ npx fullshield scan --json --fail-on high
 npx fullshield scan --sarif fullshield.sarif
 ```
 
-1.6.0 is the version of this tree. The stable contract is [docs/stability.md](docs/stability.md). The 1.0.1 release moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. Do not treat a scan as a penetration test. Reviewed recall for untouched apps is not published. The stored Next.js cold scan is 71.7 seconds, above the 60-second target.
+1.7.0 is the version of this tree. The stable contract is [docs/stability.md](docs/stability.md). The 1.0.1 release moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. Do not treat a scan as a penetration test. Reviewed recall for untouched apps is not published. The stored Next.js cold scan is 71.7 seconds, above the 60-second target.
 
 **Supported runtime is Node.js >= 22.13.** `package.json` `engines` and `doctor` enforce that floor. `node:sqlite` runs without `--experimental-sqlite` from 22.13.0 (the module is still experimental and is loaded only by history/confirm, not by `--import` register).
 
@@ -242,6 +242,7 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | `scan --experimental-host-poison` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_HOSTPOISON=1`). `SAST-HOST-001`: `Host` or `X-Forwarded-Host` is copied into an absolute URL passed to `redirect`, `location`, `sendMail`, or a `Location` header. A fixed host does not fire. Off by default. |
 | `scan --experimental-markup` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_MARKUP=1`). `SAST-MARKUP-001`: `markdown-it` is constructed with `html: true` and `render` is called with request data, or `marked` / `marked.parse` is called with request data. The file must import that package. Literal markdown does not fire. Off by default. |
 | `scan --experimental-trust-host` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_TRUSTHOST=1`). `SAST-TRUSTHOST-001`: a file that mentions `next-auth`, `@auth/`, or `NextAuth` sets `trustHost: true`. `false` or omitted does not fire. Off by default. |
+| `scan --experimental-deep` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_DEEP=1`). Extra matches on the existing rules: `res.end` when the body contains HTML, `http.request` / `https.request` option objects, `Bun.file` and `fs` `glob` / `opendir`, `location`, `jwt.verify` with an empty or non-literal algorithm list, and `Object.assign` / `assign`. Off by default. Default `scan --json` is unchanged for these. |
 | `scan --experimental-frameworks` | **Experimental** Next.js / NestJS / Hono / Koa taint sources and AUTH (`FULLSHIELD_EXPERIMENTAL_FRAMEWORKS=1`). Default `scan` is unchanged. Runtime adapters: `fullshield/runtime/koa`, `fullshield/runtime/hono` (optional peers). |
 | `scan --experimental-classes` | **Experimental** extra vuln classes: ReDoS, deser, XXE, upload, cookies, CSRF, mass assignment, timing compare, hash cost, GraphQL, trust-proxy (`FULLSHIELD_EXPERIMENTAL_CLASSES=1`). Default `scan` is unchanged. |
 | `scan` crypto v2 | **Experimental** (`FULLSHIELD_EXPERIMENTAL_CRYPTO2=1`). `SAST-CIPHER-001`, `SAST-CIPHER-002`, `SAST-RSA-001`, and `SAST-JWT-002`: ECB and deprecated ciphers, literal IVs, literal symmetric keys, short RSA or secp192 keys, and JWTs with no expiry or a short HMAC secret. Off by default. |

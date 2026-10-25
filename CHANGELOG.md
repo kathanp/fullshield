@@ -2,6 +2,17 @@
 
 All notable changes to FullShield are documented here.
 
+## 1.7.0 — 2026-10-25
+
+### New/changed stable findings — may change CI results; use --update-baseline
+
+- Phase 521: `SAST-SQLI-001` also fires for a tagged template whose tag is `sql`, or a member named `sql`, when the file imports `postgres`, `mysql2`, `@databases/pg`, `slonik`, or `drizzle-orm` and an interpolation is request data. A template with no interpolation does not fire. A tag that is not `sql` does not fire. A query that uses placeholders and a separate bound argument stays silent.
+- Phase 522: `SAST-CMDI-001` also fires for `execFile` and `execFileSync` when the command path is request data. A string-literal command path does not fire, even when a later argument is request data. `shell: true` is not required for that path. Existing `exec`, `spawn`, Bun, and Deno matches stay as they are.
+
+### Experimental
+
+- Phase 523: `FULLSHIELD_EXPERIMENTAL_DEEP` (`scan --experimental-deep`). Extra matches on existing rule ids, loaded only when the flag is `1`. `SAST-XSS-001` for `end` when the body contains an HTML tag. `SAST-SSRF-001` for `hostname`, `host`, `href`, or `path` on an `http.request` or `https.request` options object. `SAST-PATH-001` for `Bun.file`, and for `glob` or `opendir` when the file uses `fs`. `SAST-REDIRECT-001` for `location`. `SAST-JWT-001` for an empty algorithm list or a non-literal list. `SAST-PROTO-001` for `Object.assign` and `assign`. A call the existing rule already reports is not reported again. Off by default.
+
 ## 1.6.0 — 2026-10-25
 
 ### New/changed stable findings — may change CI results; use --update-baseline

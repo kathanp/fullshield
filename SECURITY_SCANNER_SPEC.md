@@ -6615,3 +6615,67 @@ Flag: `FULLSHIELD_EXPERIMENTAL_TRUSTHOST`. CLI: `scan --experimental-trust-host`
 With the flag on, `SAST-TRUSTHOST-001` fires when a file that mentions `next-auth`, `@auth/`, or `NextAuth` sets `trustHost` to `true`. `trustHost: false`, or a config that omits `trustHost`, does not fire. Severity is medium. CWE is CWE-346 (`https://cwe.mitre.org/data/definitions/346.html`). Confidence is medium. Module is `sast`. The scanner does not perform a login.
 
 Flag off: this check is not loaded and default `scan --json` does not include `SAST-TRUSTHOST-001`.
+
+## 52. Version 1.7.0
+
+These phases are the approved `docs/FEATURES.md` for 1.7.0. A behavior that is not in that file is not in this section. No phase contacts a registry, opens a network connection, executes scanned code, or spawns a process. The matchers that shipped through 1.6.0 stay. `clean-app` stays at 0 findings with `FULLSHIELD_EXPERIMENTAL_DEEP` off and on. Two runs sort to the same bytes. A `--repo` run does not park.
+
+### Phase 521 — Tagged-template SQL
+
+Flag: none. `stableChange: true`. R10 approved. No new rule id.
+
+`SAST-SQLI-001` also fires for a tagged template whose tag is the identifier `sql`, or a member named `sql`, when the file imports `postgres`, `mysql2`, `@databases/pg`, `slonik`, or `drizzle-orm`, and an interpolation is request data. A template with no interpolation does not fire. A tag that is not `sql` does not fire. A `query` or `execute` call that passes the request value as a separate bound argument stays silent, including `clean-app`. The scanner does not open a database. Severity, CWE, and confidence stay `SAST-SQLI-001`.
+
+### Phase 522 — execFile command path
+
+Flag: none. `stableChange: true`. R10 approved. No new rule id.
+
+`SAST-CMDI-001` also fires for `execFile` and `execFileSync` when the first argument, the command path, is request data. `shell: true` is not required. A string-literal command path does not fire, even when a later argument is request data. `execFile('ping', ['-c', '1', host])` in `clean-app` stays silent. Existing `exec`, `spawn`, Bun, and Deno matches stay as they are. The scanner does not spawn a process. Severity, CWE, and confidence stay `SAST-CMDI-001`.
+
+### Phase 523 — `end` XSS [`FULLSHIELD_EXPERIMENTAL_DEEP`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_DEEP`. CLI: `scan --experimental-deep` sets the flag. Default is off. `stableChange: false`. No new rule id.
+
+With the flag on, `SAST-XSS-001` also fires for `end` when the argument is request data and that argument or the file contains an HTML tag. `send` and `write` stay as they are. `res.status(401).end()` with no argument stays silent. A string literal stays silent. Severity, CWE, and confidence stay `SAST-XSS-001`. The scanner does not render HTML.
+
+Flag off: this extra match is not loaded.
+
+### Phase 524 — SSRF options object [`FULLSHIELD_EXPERIMENTAL_DEEP`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_DEEP`. CLI: `scan --experimental-deep` sets the flag. Default is off. `stableChange: false`. No new rule id.
+
+With the flag on, `SAST-SSRF-001` also fires when `http.request` or `https.request` is passed an options object whose `hostname`, `host`, `href`, or `path` is request data. A literal hostname does not fire. `fetch` and `axios` stay as they are. If the existing rule already reports that call, this check does not add a second finding. Severity, CWE, and confidence stay `SAST-SSRF-001`. The scanner does not fetch a URL.
+
+Flag off: this extra match is not loaded.
+
+### Phase 525 — Bun.file, glob, and opendir [`FULLSHIELD_EXPERIMENTAL_DEEP`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_DEEP`. CLI: `scan --experimental-deep` sets the flag. Default is off. `stableChange: false`. No new rule id.
+
+With the flag on, `SAST-PATH-001` also fires for `Bun.file`, and for `glob` or `opendir` on `fs` or `fs.promises` or in a file that imports `fs` or `node:fs`, when the path is request data. A literal path does not fire. Existing `readFile` and `sendFile` matches stay as they are. Severity, CWE, and confidence stay `SAST-PATH-001`. The scanner does not read a file.
+
+Flag off: this extra match is not loaded.
+
+### Phase 526 — location redirect [`FULLSHIELD_EXPERIMENTAL_DEEP`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_DEEP`. CLI: `scan --experimental-deep` sets the flag. Default is off. `stableChange: false`. No new rule id.
+
+With the flag on, `SAST-REDIRECT-001` also fires for `location` when the target is request data. `redirect` stays as it is. A string-literal target does not fire, including the `/home` or `/` choice in `clean-app`. Severity, CWE, and confidence stay `SAST-REDIRECT-001`. The scanner does not redirect.
+
+Flag off: this extra match is not loaded.
+
+### Phase 527 — jwt.verify algorithms [`FULLSHIELD_EXPERIMENTAL_DEEP`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_DEEP`. CLI: `scan --experimental-deep` sets the flag. Default is off. `stableChange: false`. No new rule id.
+
+With the flag on, `SAST-JWT-001` also fires when `jwt.verify` is called with an empty `algorithms` array, or with an `algorithms` value that is not an array literal. A call with no `algorithms` option stays the existing stable finding and is not reported twice. A literal array that does not include `none`, including `['HS256']` in `clean-app`, does not fire. Existing `decode` and `none` matches stay as they are. Severity, CWE, and confidence stay `SAST-JWT-001`. The scanner does not verify a token.
+
+Flag off: this extra match is not loaded.
+
+### Phase 528 — Object.assign prototype merge [`FULLSHIELD_EXPERIMENTAL_DEEP`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_DEEP`. CLI: `scan --experimental-deep` sets the flag. Default is off. `stableChange: false`. No new rule id.
+
+With the flag on, `SAST-PROTO-001` also fires for `Object.assign` and for a call named `assign` when one argument is request data and the file does not compare a key to `__proto__`. `merge`, `defaultsDeep`, and `deepMerge` stay as they are. A local function named `merge`, including the one in `clean-app`, does not fire. A literal object does not fire. Severity, CWE, and confidence stay `SAST-PROTO-001`. The scanner does not merge an object.
+
+Flag off: this extra match is not loaded.

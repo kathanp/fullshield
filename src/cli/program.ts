@@ -111,6 +111,7 @@ interface ScanCliOptions {
   experimentalHostPoison?: boolean;
   experimentalMarkup?: boolean;
   experimentalTrustHost?: boolean;
+  experimentalDeep?: boolean;
   experimentalFrameworks?: boolean;
   experimentalClasses?: boolean;
   experimentalSecretsAdv?: boolean;
@@ -210,6 +211,7 @@ const SCAN_ENV: ReadonlyArray<readonly [keyof ScanCliOptions, string]> = [
   ['experimentalHostPoison', 'FULLSHIELD_EXPERIMENTAL_HOSTPOISON'],
   ['experimentalMarkup', 'FULLSHIELD_EXPERIMENTAL_MARKUP'],
   ['experimentalTrustHost', 'FULLSHIELD_EXPERIMENTAL_TRUSTHOST'],
+  ['experimentalDeep', 'FULLSHIELD_EXPERIMENTAL_DEEP'],
   ['experimentalFrameworks', 'FULLSHIELD_EXPERIMENTAL_FRAMEWORKS'],
   ['experimentalClasses', 'FULLSHIELD_EXPERIMENTAL_CLASSES'],
   ['experimentalSecretsAdv', 'FULLSHIELD_EXPERIMENTAL_SECRETS_ADV'],
@@ -539,7 +541,8 @@ function addPackageScanOptions(scan: Command): Command {
     .option('--experimental-vite-fs', 'experimental: Vite filesystem exposure (FULLSHIELD_EXPERIMENTAL_VITEFS=1)')
     .option('--experimental-host-poison', 'experimental: host-header links (FULLSHIELD_EXPERIMENTAL_HOSTPOISON=1)')
     .option('--experimental-markup', 'experimental: markdown HTML sinks (FULLSHIELD_EXPERIMENTAL_MARKUP=1)')
-    .option('--experimental-trust-host', 'experimental: Auth.js trustHost (FULLSHIELD_EXPERIMENTAL_TRUSTHOST=1)');
+    .option('--experimental-trust-host', 'experimental: Auth.js trustHost (FULLSHIELD_EXPERIMENTAL_TRUSTHOST=1)')
+    .option('--experimental-deep', 'experimental: deeper checks on the existing rules (FULLSHIELD_EXPERIMENTAL_DEEP=1)');
 }
 
 function registerScan(program: Command, io: ProgramIO): void {

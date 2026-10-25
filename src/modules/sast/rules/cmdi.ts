@@ -152,6 +152,14 @@ function shellRequested(
   return { dashC, execaCall };
 }
 
+function execFilePathTainted(node: TSESTree.CallExpression, isTainted: (n: AstNode) => boolean): boolean {
+  const name = calleeName(node);
+  if (name !== 'execFile' && name !== 'execFileSync') {return false;}
+  const first = node.arguments[0];
+  if (first === undefined || first.type === 'SpreadElement') {return false;}
+  return isTainted(first);
+}
+
 function memberAllowed(
   node: TSESTree.CallExpression,
   name: string,
@@ -182,6 +190,10 @@ export const cmdiRule: SastRule = {
         if (node.type !== 'CallExpression') {return;}
         const name = calleeName(node);
         if (name === undefined) {return;}
+        if (execFilePathTainted(node, tainted)) {
+          ctx.report({ node, message: 'Tainted input is the execFile command path.' });
+          return;
+        }
         if (bunSpawnTainted(node, tainted)) {
           ctx.report({ node, message: 'Tainted input reaches Bun.spawn.' });
           return;
