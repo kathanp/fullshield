@@ -1,6 +1,6 @@
 # FullShield
 
-**v1.4.0.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
+**v1.5.0.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
 
 **Headline: dependency reachability.** A lockfile CVE is not the same as an unused package. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (lockfile path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), `not-imported` (−2, only when no such path exists), or `reachability-unknown` (severity kept) when the lockfile format has no parsed dependency edges. DevDependency-only vulns are `info` with a `dev-only` note unless production sources import the package. Pair it with `fullshield sbom --format cyclonedx`.
 
@@ -10,7 +10,7 @@ npx fullshield scan --json --fail-on high
 npx fullshield scan --sarif fullshield.sarif
 ```
 
-1.4.0 is the version of this tree. The stable contract is [docs/stability.md](docs/stability.md). The 1.0.1 release moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. Do not treat a scan as a penetration test. Reviewed recall for untouched apps is not published. The stored Next.js cold scan is 71.7 seconds, above the 60-second target.
+1.5.0 is the version of this tree. The stable contract is [docs/stability.md](docs/stability.md). The 1.0.1 release moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. Do not treat a scan as a penetration test. Reviewed recall for untouched apps is not published. The stored Next.js cold scan is 71.7 seconds, above the 60-second target.
 
 **Supported runtime is Node.js >= 22.13.** `package.json` `engines` and `doctor` enforce that floor. `node:sqlite` runs without `--experimental-sqlite` from 22.13.0 (the module is still experimental and is loaded only by history/confirm, not by `--import` register).
 
@@ -85,7 +85,7 @@ Experimental RASP structure-change scoring on the vendored PayloadsAllTheThings 
 
 Path 51/51 and SSRF 39/39 on the same corpus. Benign corpus stays 0 blocked. Prefer `mode: 'monitor'`.
 
-These fixtures are self-authored. Numeric SQL (`WHERE id = ` + input), ORM raw-query APIs (Prisma/Sequelize/Knex/TypeORM/Drizzle/`$where`), and template-literal shell (`exec(\`…${x}\`)`, `spawn('sh', ['-c', …])`, execa `shell: true`, zx `$.raw`) are covered in the attack corpus. Extra SAST sinks for those ORM / `sh -c` / execa / zx shapes stay behind `FULLSHIELD_EXPERIMENTAL_SAST_GAPS=1` (or `scan --experimental-sast-gaps`) so default `scan` behavior does not change. Mongo `$where` strings are **stable** SAST (Juice Shop track-order / reviews).
+These fixtures are self-authored. Numeric SQL (`WHERE id = ` + input), ORM raw-query APIs (Prisma/Sequelize/Knex/TypeORM/Drizzle/`$where`), and template-literal shell (`exec(\`…${x}\`)`, `spawn('sh', ['-c', …])`, execa `shell: true`, zx `$.raw`) are covered in the attack corpus. Those ORM and shell sinks are part of the default scan. `FULLSHIELD_EXPERIMENTAL_SAST_GAPS` and `scan --experimental-sast-gaps` stay accepted and do not turn them off. Mongo `$where` strings are **stable** SAST (Juice Shop track-order / reviews).
 
 In-scope public-bench patterns we still do not claim (one line each):
 
@@ -226,9 +226,11 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | `agent` | **Experimental** remediation agent (`FULLSHIELD_EXPERIMENTAL_AGENT=1`). Mock/localhost GitHub API + local git remote only — never a real network. Never merges, never pushes to `main`/`master`. `--max-prs` (default 3). |
 | `scan --changed` / `--since` | **Experimental** incremental scan (`FULLSHIELD_EXPERIMENTAL_PLATFORM=1`). |
 | `scan --diff` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_DIFFSCAN=1` or `--experimental-diffscan`). Scans git-changed JS/TS files, the files they import by a relative literal, and the files that import them the same way. One hop. A sink in an unchanged importer still reports when the changed file returns the request value. A git failure is `FS-E018` and does not scan the rest of the tree. Off, or `scan` without `--diff`, matches today's scan. |
-| `scan --experimental-flow2` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_FLOW2=1`). Existing injection rules also fire when request data reaches the sink through one object field (`obj.a`) or one nested function that closes over the tainted name. `obj.b` stays clean. `JSON.parse` does not clear taint. Handlebars `{{ }}`, `res.json`, and a `url.includes` allowlist helper stay unflagged. |
+| `scan --experimental-flow2` | **Stable.** One object field (`obj.a`) and one nested function are part of the default scan. `FULLSHIELD_EXPERIMENTAL_FLOW2` and this flag stay accepted and do not turn that off. `obj.b` stays clean. `JSON.parse` does not clear taint. Handlebars `{{ }}`, `res.json`, and a `url.includes` allowlist helper stay unflagged. |
 | `dev` | **Experimental** save loop (`FULLSHIELD_EXPERIMENTAL_DEV=1`). Watches the project and prints only new and resolved findings. |
-| `scan --experimental-sast-gaps` | **Experimental** extra SAST sinks: ORM raw SQL, mongoose `$where`, `spawn('sh', ['-c'])`, execa `shell: true`, zx `$.raw` (`FULLSHIELD_EXPERIMENTAL_SAST_GAPS=1`). |
+| `scan --experimental-sast-gaps` | **Stable.** ORM raw SQL, `spawn('sh', ['-c'])`, execa `shell: true`, and zx `$.raw` are part of the default scan. `FULLSHIELD_EXPERIMENTAL_SAST_GAPS` and this flag stay accepted and do not turn that off. |
+| `scan --experimental-ldap` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_LDAP=1`). `SAST-LDAP-001`: `search`, `compare`, `modify`, or `bind` on an LDAP client when the filter or DN is request data. A string-literal filter does not fire. Off by default. |
+| `scan --experimental-cors-reflect` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_CORSREFLECT=1`). `CONFIG-CORS-002`: `Access-Control-Allow-Origin` is the request `Origin` and credentials are allowed on that response. A fixed origin does not fire. `origin: '*'` with credentials stays `CONFIG-CORS-001`. Off by default. |
 | `scan --experimental-frameworks` | **Experimental** Next.js / NestJS / Hono / Koa taint sources and AUTH (`FULLSHIELD_EXPERIMENTAL_FRAMEWORKS=1`). Default `scan` is unchanged. Runtime adapters: `fullshield/runtime/koa`, `fullshield/runtime/hono` (optional peers). |
 | `scan --experimental-classes` | **Experimental** extra vuln classes: ReDoS, deser, XXE, upload, cookies, CSRF, mass assignment, timing compare, hash cost, GraphQL, trust-proxy (`FULLSHIELD_EXPERIMENTAL_CLASSES=1`). Default `scan` is unchanged. |
 | `scan` crypto v2 | **Experimental** (`FULLSHIELD_EXPERIMENTAL_CRYPTO2=1`). `SAST-CIPHER-001`, `SAST-CIPHER-002`, `SAST-RSA-001`, and `SAST-JWT-002`: ECB and deprecated ciphers, literal IVs, literal symmetric keys, short RSA or secp192 keys, and JWTs with no expiry or a short HMAC secret. Off by default. |

@@ -128,6 +128,7 @@ const CALLBACK_METHODS = new Set([
 ]);
 const taintedThisFields = new WeakMap<AstNode, Set<string>>();
 const flow2LocalTaint = new WeakMap<AstNode, ReadonlySet<string>>();
+const flow2FieldLine = new WeakMap<Set<string>, Map<string, number>>();
 let flow2Active = false;
 
 type Flow2Seed = (functions: readonly AstNode[], seeds: Map<AstNode, Set<string>>) => boolean;
@@ -155,12 +156,62 @@ function enclosingClass(node: AstNode): AstNode | undefined {
   return undefined;
 }
 
+function startLine(node: AstNode): number | undefined {
+  return (node as { loc?: { start?: { line?: number } } }).loc?.start?.line;
+}
+
+function isProcessArgv(node: AstNode): boolean {
+  return (
+    node.type === 'MemberExpression' &&
+    node.object.type === 'Identifier' &&
+    node.object.name === 'process' &&
+    propName(node) === 'argv'
+  );
+}
+
+function isArgvSource(node: AstNode): boolean {
+  if (isProcessArgv(node)) {return true;}
+  return node.type === 'MemberExpression' && isArgvSource(node.object);
+}
+
+/** True when every taint source in the expression is process.argv or a name bound from it. */
+function exprIsArgvDerived(node: AstNode | undefined, argvNames: ReadonlySet<string>): boolean {
+  if (node === undefined) {return false;}
+  let argv = false;
+  let request = false;
+  walk(node, (current) => {
+    if (isArgvSource(current)) {argv = true;}
+    else if (current.type === 'Identifier' && argvNames.has(current.name)) {argv = true;}
+    else if (isTaintSource(current)) {request = true;}
+  });
+  return argv && !request;
+}
+
+function fieldLines(tainted: Set<string>): Map<string, number> {
+  const existing = flow2FieldLine.get(tainted);
+  if (existing !== undefined) {return existing;}
+  const created = new Map<string, number>();
+  flow2FieldLine.set(tainted, created);
+  return created;
+}
+
+/** A flow2 field counts only on a read after the assignment. A seeded key has no line. */
+function flow2FieldHit(node: AstNode, tainted: Set<string>): boolean {
+  if (!flow2Active || node.type !== 'MemberExpression') {return false;}
+  if (node.object.type !== 'Identifier' || node.computed === true) {return false;}
+  const field = propName(node);
+  if (field === undefined) {return false;}
+  const key = `${node.object.name}.${field}`;
+  if (!tainted.has(key)) {return false;}
+  const assigned = flow2FieldLine.get(tainted)?.get(key);
+  if (assigned === undefined) {return true;}
+  const line = startLine(node);
+  return line === undefined || line > assigned;
+}
+
 function memberIsTainted(node: AstNode, tainted: Set<string>, returners: ReadonlySet<string>): boolean {
   if (node.type !== 'MemberExpression') {return false;}
-  if (flow2Active && node.object.type === 'Identifier' && node.computed !== true) {
-    const field = propName(node);
-    if (field !== undefined && tainted.has(`${node.object.name}.${field}`)) {return true;}
-  }
+  if (flow2FieldHit(node, tainted)) {return true;}
   if (taintV2Enabled() && node.object.type === 'ThisExpression') {
     const cls = enclosingClass(node);
     const name = propName(node);
@@ -437,6 +488,7 @@ interface Absorb {
   customPath: Set<string>;
   urlSanitized: Set<string>;
   xssSanitized: Set<string>;
+  argvNames: Set<string>;
   note: (name: string) => void;
   changed: boolean;
 }
@@ -457,10 +509,12 @@ function markTainted(names: readonly string[], init: AstNode | undefined, state:
     for (const name of names) {state.xssSanitized.add(name);}
   }
   if (!exprIsTainted(init, state.tainted, state.returners)) {return;}
+  const argv = exprIsArgvDerived(init, state.argvNames);
   for (const name of names) {
+    if (argv) {state.argvNames.add(name);}
+    else {state.argvNames.delete(name); state.note(name);}
     if (!state.tainted.has(name)) {
       state.tainted.add(name);
-      state.note(name);
       state.changed = true;
     }
   }
@@ -472,9 +526,19 @@ function markFlow2Field(node: AstNode, state: Absorb): void {
   if (node.left.property.type !== 'Identifier') {return;}
   if (!exprIsTainted(node.right, state.tainted, state.returners)) {return;}
   const key = `${node.left.object.name}.${node.left.property.name}`;
+  const line = startLine(node);
+  if (line !== undefined) {
+    const lines = fieldLines(state.tainted);
+    const prev = lines.get(key);
+    if (prev === undefined || line < prev) {
+      lines.set(key, line);
+      state.changed = true;
+    }
+  }
+  const argv = exprIsArgvDerived(node.right, state.argvNames);
+  if (!argv) {state.note(key);}
   if (state.tainted.has(key)) {return;}
   state.tainted.add(key);
-  state.note(key);
   state.changed = true;
 }
 
@@ -635,6 +699,7 @@ function analyzeScope(
     customPath: new Set<string>(),
     urlSanitized: new Set<string>(),
     xssSanitized: new Set<string>(),
+    argvNames: new Set<string>(),
     note,
     changed: false,
   };

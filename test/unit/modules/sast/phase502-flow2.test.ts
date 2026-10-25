@@ -23,8 +23,8 @@ describe('phase 502 field and closure taint', () => {
     const deep = 'function go(req) {\n  const id = req.body.id;\n  function mid() {\n    function inner() { db.query(id); }\n  }\n}\n';
     const chain = 'function go(req) {\n  const obj = {};\n  obj.a = {};\n  obj.a.b = req.body.id;\n  db.query(obj.a.b);\n}\n';
     delete process.env.FULLSHIELD_EXPERIMENTAL_FLOW2;
-    expect(await ids(field)).not.toContain('SAST-SQLI-001');
-    expect(await ids(closure)).not.toContain('SAST-SQLI-001');
+    expect(await ids(field)).toContain('SAST-SQLI-001');
+    expect(await ids(closure)).toContain('SAST-SQLI-001');
     process.env.FULLSHIELD_EXPERIMENTAL_FLOW2 = '1';
     const fieldHits = await runSastOnText('fixture.js', field);
     expect(fieldHits.filter((finding) => finding.ruleId === 'SAST-SQLI-001')).toHaveLength(1);

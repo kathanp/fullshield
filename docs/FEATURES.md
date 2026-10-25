@@ -1,20 +1,30 @@
-# FullShield features (1.4.0)
+# FullShield features (1.5.0)
 
-Inventory of what this tree ships, plus the behaviors 1.4.0 adds. Default use is a Node.js/TypeScript scan that detects, classifies, reports, notifies, suggests fixes, and can gate CI. Experimental features stay off unless their flag is set to `1`.
+Inventory of what this tree ships, plus the behaviors 1.5.0 adds. Default use is a Node.js/TypeScript scan that detects, classifies, reports, notifies, suggests fixes, and can gate CI. Experimental features stay off unless their flag is set to `1`.
 
-1.4.0 does not change default `scan --json`. Nothing moves from Experimental to Stable. A `--repo` run of either new check uses local fixtures only and does not park.
+1.5.0 changes default `scan --json` for the two Stable behaviors below, and adds two new checks that stay off until their flag is `1`. All four ship in the published npm package. `clean-app` stays at 0 findings with the new flags off and on. A `--repo` run uses local fixtures and does not park.
 
 The public description is [README.md](../README.md). The frozen command and output contract is [stability.md](stability.md).
 
-## This version (1.4.0)
+## This version (1.5.0)
+
+### Stable (default scan, no flag)
+
+- **Field and closure taint** — the injection rules (SQL, NoSQL, command, path, SSRF, open redirect, XSS, `eval`) also fire when request data reaches the sink through a nested function that closes over the tainted name, or through one object field (`obj.a = req.body.id` later read as `obj.a`). A sibling field (`obj.b`) stays clean. `JSON.parse` and a bare `parse` do not clear the taint. It refuses to execute the file, to open a network connection, to flag Handlebars `{{ }}`, to flag `res.json` as HTML XSS, and to flag a `url.includes` allowlist helper. Dynamic dispatch and a computed property stay unreported. `FULLSHIELD_EXPERIMENTAL_FLOW2` and `scan --experimental-flow2` stay accepted and do not turn this off. `clean-app` stays at 0 findings.
+
+- **ORM raw queries and shell variants** — the same SQL and command rules also fire for Prisma, Sequelize, Knex, TypeORM, and Drizzle raw queries, for `` exec(`…${x}`) ``, for `spawn` of `sh -c`, for execa with `shell: true`, and for zx `$.raw`. Mongo `$where` strings stay as they are today. `FULLSHIELD_EXPERIMENTAL_SAST_GAPS` and `scan --experimental-sast-gaps` stay accepted and do not turn this off. No new rule id. `clean-app` stays at 0 findings. Scanned code is not executed and no package is installed.
+
+### Experimental (`FULLSHIELD_EXPERIMENTAL_LDAP`)
+
+- **LDAP injection** — `scan --experimental-ldap` sets the flag. With the flag on, `search`, `compare`, `modify`, and `bind` on an LDAP client report `SAST-LDAP-001` when the filter or the DN is request data (`req.query`, `req.body`, `req.params`, `req.headers`, or a binding of those). A string-literal filter does not fire. It refuses to open a network connection and refuses to execute the file. Flag off: this module is not loaded and default `scan --json` does not include this rule. `clean-app` stays at 0 findings with the flag on.
+
+### Experimental (`FULLSHIELD_EXPERIMENTAL_CORSREFLECT`)
+
+- **Reflected CORS origin** — `scan --experimental-cors-reflect` sets the flag. With the flag on, `CONFIG-CORS-002` fires when `Access-Control-Allow-Origin` is the request's `Origin` header and credentials are allowed on that same response (`cors({ origin: req.headers.origin, credentials: true })`, or `Access-Control-Allow-Credentials: true` next to a reflected origin). A fixed origin string does not fire. `origin: '*'` with credentials stays the existing `CONFIG-CORS-001` and is not this rule. It refuses to open a network connection. Flag off: this module is not loaded and default `scan --json` does not include this rule. `clean-app` stays at 0 findings with the flag on.
 
 ### Experimental (`FULLSHIELD_EXPERIMENTAL_DIFFSCAN`)
 
-- **Diff scan** — `scan --diff` scans the git-changed JS/TS files, the files that import them by a relative literal, and the files those changed files import by a relative literal. A sink in an unchanged importer still reports when the changed file is what carries the request value. It does not parse the rest of the repository. It refuses a non-literal or dynamic import (that edge is skipped, not guessed). If git fails, it exits with an error and does not fall open into a full scan. Flag off, or `scan` without `--diff`: output and work match today, and this module is not loaded.
-
-### Experimental (`FULLSHIELD_EXPERIMENTAL_FLOW2`)
-
-- **Field and closure taint** — with the flag on, the same injection rules (SQL, NoSQL, command, path, SSRF, open redirect, XSS, `eval`) also fire when request data reaches the sink through a nested function that closes over the tainted name, or through one object field (`obj.a = req.body.id` later read as `obj.a`). A sibling field (`obj.b`) stays clean. `JSON.parse` and a bare `parse` do not clear the taint. It refuses to execute the file, to open a network connection, to flag Handlebars `{{ }}`, to flag `res.json` as HTML XSS, and to flag a `url.includes` allowlist helper. Flows it does not model (dynamic dispatch, a computed property) stay unreported. Flag off: those extra findings are absent and this module is not loaded. `clean-app` stays at 0 findings with the flag on.
+- **Diff scan** — unchanged from 1.4.0. `scan --diff` still requires the flag. It scans the git-changed JS/TS files, the files that import them by a relative literal, and the files those changed files import by a relative literal. One hop. A git failure exits with an error and does not fall open into a full scan. Flag off, or `scan` without `--diff`: the rest of this version's default scan still runs, and the diff module is not loaded.
 
 ## Stable (on by default)
 

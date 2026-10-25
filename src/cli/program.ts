@@ -98,6 +98,8 @@ interface ScanCliOptions {
   diff?: boolean;
   experimentalFlow2?: boolean;
   experimentalSastGaps?: boolean;
+  experimentalLdap?: boolean;
+  experimentalCorsReflect?: boolean;
   experimentalFrameworks?: boolean;
   experimentalClasses?: boolean;
   experimentalSecretsAdv?: boolean;
@@ -184,6 +186,8 @@ const SCAN_ENV: ReadonlyArray<readonly [keyof ScanCliOptions, string]> = [
   ['experimentalDiffscan', 'FULLSHIELD_EXPERIMENTAL_DIFFSCAN'],
   ['experimentalFlow2', 'FULLSHIELD_EXPERIMENTAL_FLOW2'],
   ['experimentalSastGaps', 'FULLSHIELD_EXPERIMENTAL_SAST_GAPS'],
+  ['experimentalLdap', 'FULLSHIELD_EXPERIMENTAL_LDAP'],
+  ['experimentalCorsReflect', 'FULLSHIELD_EXPERIMENTAL_CORSREFLECT'],
   ['experimentalFrameworks', 'FULLSHIELD_EXPERIMENTAL_FRAMEWORKS'],
   ['experimentalClasses', 'FULLSHIELD_EXPERIMENTAL_CLASSES'],
   ['experimentalSecretsAdv', 'FULLSHIELD_EXPERIMENTAL_SECRETS_ADV'],
@@ -493,6 +497,18 @@ function addLateScanOptions(scan: Command): Command {
     );
 }
 
+function addPackageScanOptions(scan: Command): Command {
+  return scan
+    .option(
+      '--experimental-ldap',
+      'experimental: LDAP filter or DN injection (FULLSHIELD_EXPERIMENTAL_LDAP=1)',
+    )
+    .option(
+      '--experimental-cors-reflect',
+      'experimental: reflected CORS origin with credentials (FULLSHIELD_EXPERIMENTAL_CORSREFLECT=1)',
+    );
+}
+
 function registerScan(program: Command, io: ProgramIO): void {
   const scan = program
     .command('scan')
@@ -500,6 +516,7 @@ function registerScan(program: Command, io: ProgramIO): void {
     .argument('[path]', 'directory to scan', '.');
   addEarlyScanOptions(scan);
   addLateScanOptions(scan);
+  addPackageScanOptions(scan);
   scan.action((path: string, opts: ScanCliOptions) => runScanAction(io, path, opts));
 }
 
