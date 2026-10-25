@@ -58,9 +58,9 @@ export function tlsEnabled(): boolean {
   return process.env.FULLSHIELD_EXPERIMENTAL_TLS === '1';
 }
 
-/** Phase 27 extra SAST sinks. Off unless the env flag or CLI option is set. */
+/** Phase 504. These sinks are on the default scan. The flag stays accepted and does not turn them off. */
 export function sastGapsEnabled(): boolean {
-  return process.env.FULLSHIELD_EXPERIMENTAL_SAST_GAPS === '1';
+  return true;
 }
 
 /** Phase 28 Next/Nest/Hono/Koa taint + AUTH. Off unless the env flag or CLI option is set. */

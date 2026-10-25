@@ -251,7 +251,7 @@ describe('phase 27 SAST coverage gaps (experimental)', () => {
   });
 });
 
-describe('phase 27 SAST coverage gaps stay off without the flag', () => {
+describe('phase 27 SAST coverage gaps stay on without the flag', () => {
   beforeEach(() => {
     delete process.env[FLAG];
   });
@@ -261,34 +261,34 @@ describe('phase 27 SAST coverage gaps stay off without the flag', () => {
     else process.env[FLAG] = previous;
   });
 
-  it('does not flag Prisma $queryRawUnsafe or knex.raw without the experimental flag', async () => {
+  it('flags Prisma $queryRawUnsafe and knex.raw without the experimental flag', async () => {
     await expect(
       has(
         `app.get('/u', (req, res) => { prisma.$queryRawUnsafe('SELECT * FROM t WHERE id = ' + req.query.id); });`,
         'SAST-SQLI-001',
       ),
-    ).resolves.toBe(false);
+    ).resolves.toBe(true);
     await expect(
       has(
         `app.get('/u', (req, res) => { knex.raw('SELECT * FROM t WHERE id = ' + req.query.id); });`,
         'SAST-SQLI-001',
       ),
-    ).resolves.toBe(false);
+    ).resolves.toBe(true);
   });
 
-  it('does not flag spawn(sh, [-c]) or zx $.raw without the experimental flag', async () => {
+  it('flags spawn(sh, [-c]) and zx $.raw without the experimental flag', async () => {
     await expect(
       has(
         `const { spawn } = require('child_process');\napp.post('/r', (req, res) => { spawn('sh', ['-c', \`ls \${req.body.cmd}\`]); });`,
         'SAST-CMDI-001',
       ),
-    ).resolves.toBe(false);
+    ).resolves.toBe(true);
     await expect(
       has(
         `app.post('/r', (req, res) => { $.raw\`ls \${req.query.x}\`; });`,
         'SAST-CMDI-001',
       ),
-    ).resolves.toBe(false);
+    ).resolves.toBe(true);
   });
 
   it('still flags classic db.query concat (stable SQLI)', async () => {

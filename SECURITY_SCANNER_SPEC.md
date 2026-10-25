@@ -6456,3 +6456,52 @@ With the flag on, the existing injection rules also fire for two shapes the defa
 6. No network. Scanned code is not executed. `clean-app` stays at 0 findings with the flag on. Default `scan --json` with the flag unset is unchanged on `vulnerable-app` and on the phase fixture. Two runs sort to the same bytes.
 
 Field boundary: path length 1 fires. Path length 2 is silent. Closure boundary: depth 1 fires. Depth 2 is silent.
+
+---
+
+## 51. Version 1.5.0
+
+Target `1.5.0`, a minor (R16a). Two behaviors that 1.4.0 kept behind a flag become the default scan. Two new checks stay off until their flag is `1`. No new hard dependency. No new error code. Scanned code is not executed. No new network host. `clean-app` stays at 0 findings with the new flags off and on. A `--repo` run uses local fixtures and does not park.
+
+Order: 503, then 504, then 505, then 506. None of them import each other. 503 supersedes phase 502 item 6 for the default scan. 504 supersedes the phase 27 flag-off silence for the ORM and shell sinks named below. `FULLSHIELD_EXPERIMENTAL_DIFFSCAN` is unchanged from phase 501.
+
+The human delegated the R3 edit on 2026-10-24: the phase 502 assertions that one field and one closure stay silent when `FULLSHIELD_EXPERIMENTAL_FLOW2` is unset, and the phase 27 assertions that Prisma `$queryRawUnsafe`, knex `raw`, `spawn` of `sh -c`, and zx `$.raw` stay silent without `FULLSHIELD_EXPERIMENTAL_SAST_GAPS`, are updated to expect those findings. No other existing test line changes.
+
+### Phase 503 — Field and closure taint on the default scan
+
+Flag: `FULLSHIELD_EXPERIMENTAL_FLOW2` stays accepted. CLI: `scan --experimental-flow2` still sets it. The flag does not turn this behavior off. R10 approved.
+
+The shapes from phase 502 run when the flag is unset and when it is `1`.
+
+1. Field cap is 1. Closure cap is 1 function boundary. A sibling field stays clean. Depth 2 and a chain `obj.a.b` stay silent. A shadowing declaration stays silent.
+2. `JSON.parse` and a bare `parse` do not clear the taint.
+3. No new rule id. Severity and CWE stay the existing rule's values. The rules are the eight named in phase 502.
+4. This phase does not flag Handlebars `{{ }}`, does not flag `res.json` as `SAST-XSS-001`, and does not flag a `url.includes` allowlist helper.
+5. No network. Scanned code is not executed. `clean-app` stays at 0 findings. Two runs sort to the same bytes.
+
+### Phase 504 — ORM raw queries and shell variants on the default scan
+
+Flag: `FULLSHIELD_EXPERIMENTAL_SAST_GAPS` stays accepted. CLI: `scan --experimental-sast-gaps` still sets it. The flag does not turn this behavior off. R10 approved.
+
+The sinks that phase 27 gated run when the flag is unset and when it is `1`. No new rule id.
+
+1. SQL sinks, still `SAST-SQLI-001` (high, CWE-89): `$queryRawUnsafe`, `$executeRawUnsafe`, `raw`, `literal`, `whereRaw`, `orderByRaw`, and `where` on a `createQueryBuilder` chain whose first argument is not an object. `whereRaw` and `orderByRaw` with a bindings array or object stay silent. A Prisma `$queryRaw` tagged template stays silent.
+2. Command sinks, still `SAST-CMDI-001` (high, CWE-78): `` exec(`…${x}`) `` and the same for `execSync`, `spawn` or `spawnSync` of `sh`, `bash`, `zsh`, `dash`, `cmd`, `cmd.exe`, `powershell`, or `pwsh` with `-c` and a tainted next argument, `execa` with `shell: true`, and zx `$.raw`. `execFile` with an argument array stays silent. A default zx `$` tag stays silent.
+3. Mongo `$where` strings stay as they are without this promotion.
+4. No network. Scanned code is not executed. No package is installed. `clean-app` stays at 0 findings. Two runs sort to the same bytes.
+
+### Phase 505 — LDAP injection [`FULLSHIELD_EXPERIMENTAL_LDAP`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_LDAP`. CLI: `scan --experimental-ldap` sets the flag. Default is off. `stableChange: false`.
+
+With the flag on, `search`, `compare`, `modify`, and `bind` report `SAST-LDAP-001` when the file imports a module whose specifier contains `ldap`, or the receiver identifier contains `ldap`, and the filter or the DN is request data. Request data is `req.query`, `req.body`, `req.params`, `req.headers`, or a binding of those. A property named `filter`, `dn`, `base`, or `baseDN` counts. A string-literal filter does not fire. Severity is high. CWE is CWE-90 (`https://cwe.mitre.org/data/definitions/90.html`). Confidence is high. Module is `sast`.
+
+Flag off: this module is not loaded and default `scan --json` does not include `SAST-LDAP-001`. `clean-app` stays at 0 findings with the flag on. No network. Scanned code is not executed. Two runs sort to the same bytes.
+
+### Phase 506 — Reflected CORS origin [`FULLSHIELD_EXPERIMENTAL_CORSREFLECT`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_CORSREFLECT`. CLI: `scan --experimental-cors-reflect` sets the flag. Default is off. `stableChange: false`.
+
+With the flag on, `CONFIG-CORS-002` fires when `Access-Control-Allow-Origin` is the request `Origin` header and credentials are allowed on that same response. The origin match is `req.headers.origin` or a binding of that member. Credentials means `credentials: true` on a `cors()` options object, or `Access-Control-Allow-Credentials` set to `true` or `'true'` in the same function. A fixed origin string does not fire. `origin: '*'` with credentials stays `CONFIG-CORS-001` and is not this rule. Severity is high. CWE is CWE-942 (`https://cwe.mitre.org/data/definitions/942.html`). Confidence is medium. Module is `config`.
+
+Flag off: this module is not loaded and default `scan --json` does not include `CONFIG-CORS-002`. `clean-app` stays at 0 findings with the flag on. No network. Two runs sort to the same bytes.

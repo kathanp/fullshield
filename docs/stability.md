@@ -75,3 +75,7 @@ Stable rule ids are the rules whose front matter says `stability: stable`. Exper
 ## 1.3.0
 
 1.3.0 adds experimental phases behind their own flags. Stable scan fields in this file are unchanged. Default `scan --json` is unchanged.
+
+## 1.5.0
+
+1.5.0 adds findings to default `scan --json` for one object field, one nested function, ORM raw queries, and the shell variants named in the changelog. The finding fields in this file are unchanged. `SAST-LDAP-001` and `CONFIG-CORS-002` stay experimental.

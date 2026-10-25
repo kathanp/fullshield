@@ -2,6 +2,18 @@
 
 All notable changes to FullShield are documented here.
 
+## 1.5.0 — 2026-10-24
+
+### New/changed stable findings — may change CI results; use --update-baseline
+
+- Phase 503: one object field and one nested function are part of the default scan. `FULLSHIELD_EXPERIMENTAL_FLOW2` and `scan --experimental-flow2` stay accepted and do not turn this off. Against 1.4.0, NodeGoat gains `SAST-XSS-001` at `app/views/allocations.html:15` and `app/views/login.html:110`. vulnerable-app stays 38, clean-app stays 0, and juice-shop, dvna, goof, and vulnerable-node stay the same.
+- Phase 504: ORM raw queries, `` exec(`…${x}`) ``, `spawn` of `sh -c`, execa `shell: true`, and zx `$.raw` are part of the default scan. `FULLSHIELD_EXPERIMENTAL_SAST_GAPS` and `scan --experimental-sast-gaps` stay accepted and do not turn this off. No new rule id.
+
+### Experimental
+
+- Phase 505: `SAST-LDAP-001` behind `FULLSHIELD_EXPERIMENTAL_LDAP` (`scan --experimental-ldap`). A string-literal filter does not fire. Off by default.
+- Phase 506: `CONFIG-CORS-002` behind `FULLSHIELD_EXPERIMENTAL_CORSREFLECT` (`scan --experimental-cors-reflect`). A fixed origin does not fire. `origin: '*'` with credentials stays `CONFIG-CORS-001`. Off by default.
+
 ## 1.4.0 — 2026-10-24
 
 ### Experimental
