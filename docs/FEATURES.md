@@ -1,24 +1,33 @@
-# FullShield features (1.6.0)
+# FullShield features (1.7.0)
 
-Inventory of what this tree ships, plus the behaviors 1.6.0 adds. Default use is a Node.js/TypeScript scan that detects, classifies, reports, notifies, suggests fixes, and can gate CI. Experimental features stay off unless their flag is set to `1`.
+Inventory of what this tree ships, plus the behaviors 1.7.0 adds. Default use is a Node.js/TypeScript scan that detects, classifies, reports, notifies, suggests fixes, and can gate CI. Experimental features stay off unless their flag is set to `1`.
 
-1.6.0 changes default `scan --json` for the three Stable behaviors below. It also adds eleven checks that stay off until their flag is `1`. All of them ship in the published npm package. `clean-app` stays at 0 findings with the new flags off and on. A `--repo` run uses local fixtures and does not park.
+1.7.0 deepens the rules that already ship. It does not replace those rules, and it does not make a shipped rule go silent. Default `scan --json` changes only for the two Stable sinks below, and only in a file that uses that sink shape. An app that does not use them stays the same. The other deeper checks stay off until `FULLSHIELD_EXPERIMENTAL_DEEP` is `1`. All of them ship in the published npm package. `clean-app` stays at 0 findings with the new flag off and on. A `--repo` run uses local fixtures and does not park.
 
 The public description is [README.md](../README.md). The frozen command and output contract is [stability.md](stability.md).
 
-## This version (1.6.0)
+## This version (1.7.0)
 
-These follow checks that shipped in scanners and advisories through 2026: React Server Components RCE, the npm cooldown guidance after the Shai-Hulud waves, import-time worm files, agent-instruction poisoning, MCP metadata attacks, and the Bun/Deno and `node:sqlite` sinks the older SQL, command, and eval rules still miss. No check contacts a registry, opens a network connection, executes the scanned file, or spawns a package, a shell, or an agent.
+The SQL, command, XSS, SSRF, path, redirect, JWT, and prototype rules keep every match they have today. 1.7.0 adds the sink shapes those rules still skip. No check contacts a registry, opens a network connection, executes the scanned file, or spawns a process.
 
 ### Stable (default scan, no flag)
 
-Default `scan --json` gains a finding only in a file that uses one of these sinks. An app that does not use them stays the same. No new rule id.
+Default `scan --json` gains a finding only in a file that uses one of these sink shapes. An app that does not use them stays the same. No new rule id. The 1.6.0 sqlite, Bun, Deno, and library-eval matches stay as they are.
 
-- **SQLite sinks on the SQL rule** — `SAST-SQLI-001` also fires when request data is concatenated or interpolated into `node:sqlite` `DatabaseSync.exec` or `DatabaseSync.prepare`, or into `bun:sqlite` `exec` or `query`. A prepare or query that uses `?` or named placeholders, with the request value passed as a separate bound argument, does not fire. It refuses to open a database and refuses to execute the file. `clean-app` stays at 0 findings.
+- **Tagged-template SQL on the SQL rule** — `SAST-SQLI-001` also fires when a tagged template interpolates request data and the tag is `sql`, or the tag is a member named `sql`, and the file imports `postgres`, `mysql2`, `@databases/pg`, `slonik`, or `drizzle-orm`. A template with no interpolation does not fire. A tag that is not `sql` does not fire. A `query` or `execute` call that uses `?` or `$1` placeholders, with the request value passed as a separate bound argument, stays silent, including the parameterized query in `clean-app`. It refuses to open a database and refuses to execute the file. `clean-app` stays at 0 findings.
 
-- **Bun and Deno shells on the command rule** — `SAST-CMDI-001` also fires for `Bun.spawn` and `Bun.spawnSync`, for a `bun` shell template (`Bun.$` or `$`), and for `Deno.Command`, when the command or its arguments are request data, or when `shell` is true and the command string is request data. A string-literal argument list does not fire. It refuses to spawn a process. `clean-app` stays at 0 findings.
+- **execFile command path on the command rule** — `SAST-CMDI-001` also fires for `execFile` and `execFileSync` when the command path, the first argument, is request data. A string-literal command path does not fire, even when a later argument is request data. `execFile('ping', ['-c', '1', host])` in `clean-app` stays silent. `shell: true` is not required for this case. Existing `exec`, `spawn`, Bun, and Deno matches stay as they are. It refuses to spawn a process. `clean-app` stays at 0 findings.
 
-- **Library eval sinks on the eval rule** — `SAST-EVAL-001` also fires for `evaluate` when the call is on `mathjs`, `expr-eval`, or `vm2`, and for `vm2`'s `VM` or `NodeVM` when the code argument is not a string literal. A string-literal argument does not fire. A function named `evaluate` that is not one of those three libraries does not fire. Existing `eval`, `new Function`, and `vm.runIn*` calls stay as they are. `mathjs.eval` with a string literal stays silent. It refuses to evaluate the argument. `clean-app` stays at 0 findings.
+### Experimental (`FULLSHIELD_EXPERIMENTAL_DEEP`)
+
+- **Deeper checks on the existing rules** — `scan --experimental-deep` sets the flag. With the flag on, the rules below gain the extra matches. The rule id does not change. Flag off: these extra matches are not loaded, and default `scan --json` is unchanged. A string literal does not fire. It refuses to fetch a URL, refuses to read a file, refuses to redirect, refuses to verify a token, and refuses to merge an object. `clean-app` stays at 0 findings with the flag on.
+
+  - `SAST-XSS-001` also fires for `end` when the argument is request data and the argument or the file contains an HTML tag. `send` and `write` stay as they are. `res.status(401).end()` with no argument stays silent.
+  - `SAST-SSRF-001` also fires when `http.request` or `https.request` is passed an options object whose `hostname`, `host`, `href`, or `path` is request data. A literal hostname does not fire. `fetch` and `axios` stay as they are.
+  - `SAST-PATH-001` also fires for `Bun.file`, `glob`, and `opendir` when the path is request data. A literal path does not fire. The existing `readFile` and `sendFile` matches stay as they are.
+  - `SAST-REDIRECT-001` also fires for `location` when the target is request data. `redirect` stays as it is. A target that is only a string literal, including the `/home` or `/` choice in `clean-app`, does not fire.
+  - `SAST-JWT-001` also fires when `jwt.verify` is called with no `algorithms` option, with an empty `algorithms` array, or with an `algorithms` value that is not an array literal. A literal array that does not include `none`, including `['HS256']` in `clean-app`, does not fire. The existing `decode` and `none` matches stay as they are.
+  - `SAST-PROTO-001` also fires for `Object.assign` and for a call named `assign` when one argument is request data and the file does not compare a key to `__proto__`. `merge`, `defaultsDeep`, and `deepMerge` stay as they are. A local function named `merge`, including the one in `clean-app`, does not fire. A literal object does not fire.
 
 ### Experimental (`FULLSHIELD_EXPERIMENTAL_RSC`)
 
@@ -64,8 +73,10 @@ Default `scan --json` gains a finding only in a file that uses one of these sink
 
 - **Auth.js trustHost** — `scan --experimental-trust-host` sets the flag. With the flag on, `SAST-TRUSTHOST-001` fires when a NextAuth or Auth.js config sets `trustHost` to `true`. `trustHost: false`, or a config that omits `trustHost`, does not fire. It refuses to perform a login. Flag off: this module is not loaded and default `scan --json` does not include this rule. `clean-app` stays at 0 findings with the flag on.
 
-### Unchanged from 1.5.0
+### Unchanged from 1.6.0
 
+- **SQLite exec/prepare**, **Bun and Deno shells**, and **mathjs / expr-eval / vm2 evaluate** — still part of the default scan. No new rule id.
+- **React Server Components versions, release-age cooldown, import-time worm files, inflated versions, agent instruction files, coding-agent bypass spawn, MCP metadata attacks, Vite filesystem exposure, host-header links, markdown HTML, and Auth.js trustHost** — still experimental, still off until their own flag is `1`.
 - **Field and closure taint**, **ORM raw queries and shell variants** — still part of the default scan. Their old flags stay accepted and do not turn them off.
 - **LDAP injection**, **reflected CORS origin**, and **diff scan** — still experimental, still off until their own flag is `1`.
 
@@ -77,7 +88,7 @@ Default `scan --json` gains a finding only in a file that uses one of these sink
 
 - **Dependencies** — OSV advisories with reachability (`reachable`, `imported-not-called`, `reachable-via-dependency`, `not-imported`, `reachability-unknown`), dev-only notes, lockfile deprecation, typosquat names, malicious `MAL-` advisories (always critical), missing lockfile.
 - **Secrets** — AWS, Stripe, GitHub, Slack, Google, AI keys, PEM keys, DB URLs with passwords, hardcoded JWT secrets, committed `.env`.
-- **SAST** — SQL/NoSQL injection (including `node:sqlite` and `bun:sqlite`), command injection (including Bun and Deno shells), path traversal, `eval` / `new Function` / `vm` / `mathjs` / `expr-eval` / `vm2`, SSRF, open redirects, JWT `decode` / `none`, weak crypto, prototype pollution, XSS, missing auth middleware (low confidence), plus a basic comment-phrase check (`AI-INJECT-001`).
+- **SAST** — SQL/NoSQL injection (including `node:sqlite`, `bun:sqlite`, and a `sql` tagged template from postgres, mysql2, `@databases/pg`, slonik, or drizzle-orm), command injection (including Bun and Deno shells, and `execFile` / `execFileSync` when the command path is request data), path traversal, `eval` / `new Function` / `vm` / `mathjs` / `expr-eval` / `vm2`, SSRF, open redirects, JWT `decode` / `none`, weak crypto, prototype pollution, XSS, missing auth middleware (low confidence), plus a basic comment-phrase check (`AI-INJECT-001`).
 - **Config** — missing helmet, unbounded `express.json()`, CORS `*` with credentials, auth routes without a rate limiter, `err.stack` leaks, risky Dockerfiles, install scripts.
 
 ### Commands and outputs
@@ -108,14 +119,14 @@ Default `scan --json` gains a finding only in a file that uses one of these sink
 - **IaC** — short ruleset for GitHub Actions, Terraform, Kubernetes, docker-compose
 - **Remediation agent** — localhost mock GitHub API and local git only
 - **Extra scan classes** — ReDoS, deserialization, XXE, upload, cookies, CSRF, mass assignment, timing compare, hash cost, GraphQL, trust-proxy, IDOR hints, extra SAST sinks, framework taint (Next/Nest/Hono/Koa), crypto v2, Electron, vendored JS, template injection, webhooks, session fixation, log secrets, Next.js boundary, browser JS, TLS, credential files, git-history and bundle secrets, live credential checks
-- **This version, off until the flag is `1`** — RSC lockfile versions, release-age gate, import-time worm files, inflated versions, agent instruction files, coding-agent bypass spawn, MCP metadata attacks, Vite filesystem exposure, host-header links, markdown HTML, Auth.js `trustHost`
+- **This version, off until the flag is `1`** — `scan --experimental-deep` (`FULLSHIELD_EXPERIMENTAL_DEEP`): `end` XSS, `http.request` option objects, `Bun.file` / `glob` / `opendir`, `location` redirects, `jwt.verify` without a literal algorithm list, and `Object.assign` / `assign`. The 1.6.0 checks stay on their own flags: RSC lockfile versions, release-age gate, import-time worm files, inflated versions, agent instruction files, coding-agent bypass spawn, MCP metadata attacks, Vite filesystem exposure, host-header links, markdown HTML, Auth.js `trustHost`
 - **Host** — Linux OpenSSH exposure report only
 
 `SECURITY.md` is the vulnerability-reporting policy (private GitHub advisories, 7-day response, in-scope CLI/library/runtime). It does not add scan features.
 
 ## Dev checks (not packed)
 
-These scripts stay off unless their flag is `1`. They do not change a default scan. A parked line is a stop the spec requires. 1.6.0 does not add a dev check.
+These scripts stay off unless their flag is `1`. They do not change a default scan. A parked line is a stop the spec requires. 1.7.0 does not add a dev check.
 
 ### Holdout rows (`FULLSHIELD_EXPERIMENTAL_HOLDOUTS`)
 

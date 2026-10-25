@@ -45,3 +45,19 @@ D-18 | phase-518 | Host-header links are `Host` and `X-Forwarded-Host` inside an
 D-19 | phase-519 | Markdown HTML requires the library import and request data | `html: true` plus a literal `render` stays silent. `marked` of a literal stays silent. CWE-79. | APPROVED
 
 D-20 | phase-520 | `trustHost: true` requires an Auth.js or NextAuth mention | `false` and an omitted property stay silent. CWE-346. | APPROVED
+
+D-21 | phase-521 | A SQL tagged template is the tag `sql` plus one of the five driver imports | A bare tag, or a template with no interpolation, stays silent. The bound-argument `query` in `clean-app` stays silent. R10 approved. | APPROVED
+
+D-22 | phase-522 | `execFile` fires only when the command path is request data | A literal path with a tainted later argument stays silent, which is `clean-app`'s `ping`. `shell: true` is not required. R10 approved. | APPROVED
+
+D-23 | phase-523 | `end` is an XSS sink only when the body contains HTML | `send` and `write` stay on the existing rule. `res.status(401).end()` has no argument and stays silent. | APPROVED
+
+D-24 | phase-524 | SSRF options are `hostname`, `host`, `href`, or `path` on `http.request` or `https.request` | A literal hostname stays silent. A call the existing rule already reports is not reported again. | APPROVED
+
+D-25 | phase-525 | `Bun.file` is always a path sink; `glob` and `opendir` require `fs` | A literal path stays silent. Existing `readFile` and `sendFile` stay on the existing rule. | APPROVED
+
+D-26 | phase-526 | `location` joins the redirect rule | `redirect` stays on the existing rule. A literal `/home` or `/` stays silent. | APPROVED
+
+D-27 | phase-527 | Deep JWT is an empty algorithm list or a non-literal list | A missing `algorithms` option is already a stable finding and is not reported twice. `['HS256']` stays silent. | APPROVED
+
+D-28 | phase-528 | `assign` joins the prototype rule; `merge` does not | `clean-app` defines `merge`, not `assign`. A `__proto__` comparison in the file stays silent. | APPROVED

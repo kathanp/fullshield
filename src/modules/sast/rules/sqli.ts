@@ -1,10 +1,11 @@
 import type { TSESTree } from '@typescript-eslint/typescript-estree';
 
-import { calleeChainHas, calleeName } from '../ast.js';
+import { calleeChainHas, calleeName, propName } from '../ast.js';
 import { sastGapsEnabled } from '../experimental.js';
 import type { SastRule } from '../types.js';
 
 const STABLE_SQL_SINKS = new Set(['query', 'execute']);
+const SQL_TAG_IMPORT = /(?:from|require\()\s*['"](?:postgres|mysql2|@databases\/pg|slonik|drizzle-orm)['"]/;
 const GAP_SQL_SINKS = new Set([
   '$queryRawUnsafe',
   '$executeRawUnsafe',
@@ -27,6 +28,11 @@ function sqliteMember(node: TSESTree.CallExpression, source: string): boolean {
   const object = node.callee.object;
   if (object.type === 'Identifier' && (object.name === 'child_process' || object.name === 'cp')) {return false;}
   return /node:sqlite|bun:sqlite|DatabaseSync/.test(source);
+}
+
+function sqlTag(tag: TSESTree.Node): boolean {
+  if (tag.type === 'Identifier') {return tag.name === 'sql';}
+  return tag.type === 'MemberExpression' && !tag.computed && propName(tag) === 'sql';
 }
 
 function isSqlSink(node: TSESTree.CallExpression): boolean {
@@ -65,6 +71,15 @@ export const sqliRule: SastRule = {
             message: 'Tainted input is concatenated into a SQL string passed to query/execute.',
           });
         }
+      },
+      TaggedTemplateExpression(node) {
+        if (node.type !== 'TaggedTemplateExpression' || !sqlTag(node.tag) || !SQL_TAG_IMPORT.test(ctx.source)) {return;}
+        const hit = node.quasi.expressions.some((expr) => ctx.isTainted(expr) && !ctx.isSqlCleared(expr));
+        if (!hit) {return;}
+        ctx.report({
+          node,
+          message: 'Tainted input is interpolated into a SQL tagged template.',
+        });
       },
     };
   },
