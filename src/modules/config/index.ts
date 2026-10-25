@@ -15,6 +15,30 @@ interface ConfigBag {
   usesElectron: boolean;
 }
 
+const MARKET_FLAGS = [
+  'FULLSHIELD_EXPERIMENTAL_RSC',
+  'FULLSHIELD_EXPERIMENTAL_COOLDOWN',
+  'FULLSHIELD_EXPERIMENTAL_IMPORTIMPLANT',
+  'FULLSHIELD_EXPERIMENTAL_VERINFLATE',
+  'FULLSHIELD_EXPERIMENTAL_AGENTRULES',
+  'FULLSHIELD_EXPERIMENTAL_AGENTSPAWN',
+  'FULLSHIELD_EXPERIMENTAL_MCPPOISON',
+  'FULLSHIELD_EXPERIMENTAL_VITEFS',
+  'FULLSHIELD_EXPERIMENTAL_HOSTPOISON',
+  'FULLSHIELD_EXPERIMENTAL_MARKUP',
+  'FULLSHIELD_EXPERIMENTAL_TRUSTHOST',
+] as const;
+
+function marketOn(): boolean {
+  return MARKET_FLAGS.some((flag) => process.env[flag] === '1');
+}
+
+async function addMarket(cwd: string, files: readonly string[], findings: Finding[]): Promise<void> {
+  if (!marketOn()) {return;}
+  const { marketFindings } = await import('../market/scan.js');
+  findings.push(...(await marketFindings(cwd, files)));
+}
+
 async function addCorsReflect(findings: Finding[], sources: ReadonlyArray<{ rel: string; text: string }>): Promise<void> {
   if (process.env.FULLSHIELD_EXPERIMENTAL_CORSREFLECT !== '1') {return;}
   const { scanCorsReflect } = await import('./corsReflect.js');
@@ -89,6 +113,7 @@ export const configModule: ScanModule = {
     const bag = await scanConfigFiles(ctx.cwd, ctx.files);
     addElectron(bag);
     await addCorsReflect(bag.findings, bag.sources);
+    await addMarket(ctx.cwd, ctx.files, bag.findings);
     return bag.findings;
   },
 };

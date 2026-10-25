@@ -58,7 +58,7 @@ function isInterpreterDashC(node: TSESTree.CallExpression, isTainted: (n: AstNod
   if (args === undefined || args.type !== 'ArrayExpression') {return false;}
   for (let i = 0; i < args.elements.length; i += 1) {
     const el = args.elements[i];
-    if (el == null || el.type === 'SpreadElement') {continue;}
+    if (el === null || el === undefined || el.type === 'SpreadElement') {continue;}
     if (literalString(el) !== '-c') {continue;}
     const next = args.elements[i + 1];
     return next !== null && next !== undefined && next.type !== 'SpreadElement' && isTainted(next);
@@ -82,8 +82,89 @@ function isUnsafeZxTag(tag: AstNode): boolean {
   return false;
 }
 
+function isBunSpawn(node: TSESTree.CallExpression): boolean {
+  if (node.callee.type !== 'MemberExpression') {return false;}
+  const object = node.callee.object;
+  if (object.type !== 'Identifier' || object.name !== 'Bun') {return false;}
+  const name = calleeName(node);
+  return name === 'spawn' || name === 'spawnSync';
+}
+
+function arrayTainted(node: AstNode, isTainted: (n: AstNode) => boolean): boolean {
+  if (node.type !== 'ArrayExpression') {return false;}
+  for (const el of node.elements) {
+    if (el !== null && el.type !== 'SpreadElement' && isTainted(el)) {return true;}
+  }
+  return false;
+}
+
+function commandFieldsTainted(node: AstNode, isTainted: (n: AstNode) => boolean): boolean {
+  if (node.type !== 'ObjectExpression') {return false;}
+  for (const prop of node.properties) {
+    if (prop.type !== 'Property') {continue;}
+    const key = prop.key.type === 'Identifier' ? prop.key.name : literalString(prop.key);
+    if (key !== 'cmd' && key !== 'args') {continue;}
+    if (isTainted(prop.value) || arrayTainted(prop.value, isTainted)) {return true;}
+  }
+  return false;
+}
+
+function isBunTemplate(tag: AstNode, source: string): boolean {
+  if (tag.type === 'MemberExpression' && propName(tag) === '$') {
+    return tag.object.type === 'Identifier' && tag.object.name === 'Bun';
+  }
+  return tag.type === 'Identifier' && tag.name === '$' && /['"]bun['"]/.test(source);
+}
+
+function isDenoCommand(node: TSESTree.NewExpression): boolean {
+  if (node.callee.type !== 'MemberExpression' || propName(node.callee) !== 'Command') {return false;}
+  const object = node.callee.object;
+  return object.type === 'Identifier' && object.name === 'Deno';
+}
+
+function denoTainted(node: TSESTree.NewExpression, isTainted: (n: AstNode) => boolean): boolean {
+  const first = node.arguments[0];
+  if (first !== undefined && first.type !== 'SpreadElement' && isTainted(first)) {return true;}
+  const second = node.arguments[1];
+  return second !== undefined && commandFieldsTainted(second, isTainted);
+}
+
 function isExecaShellTag(tag: AstNode): boolean {
   return tag.type === 'CallExpression' && calleeName(tag) === 'execa' && hasShellTrue(tag);
+}
+
+function bunSpawnTainted(node: TSESTree.CallExpression, isTainted: (n: AstNode) => boolean): boolean {
+  if (!isBunSpawn(node)) {return false;}
+  if (argumentTainted(node, isTainted)) {return true;}
+  const options = node.arguments.find((arg) => arg.type === 'ObjectExpression');
+  return options !== undefined && commandFieldsTainted(options, isTainted);
+}
+
+function shellRequested(
+  node: TSESTree.CallExpression,
+  name: string,
+  isTainted: (n: AstNode) => boolean,
+): { dashC: boolean; execaCall: boolean } | undefined {
+  const dashC = sastGapsEnabled() && isInterpreterDashC(node, isTainted);
+  const execaCall = sastGapsEnabled() && name === 'execa' && hasShellTrue(node);
+  const shell = ALWAYS_SHELL.has(name) || (OPTIONAL_SHELL.has(name) && hasShellTrue(node)) || dashC || execaCall;
+  if (!shell) {return undefined;}
+  return { dashC, execaCall };
+}
+
+function memberAllowed(
+  node: TSESTree.CallExpression,
+  name: string,
+  dashC: boolean,
+  execaCall: boolean,
+): boolean {
+  if (node.callee.type !== 'MemberExpression') {return true;}
+  const obj = node.callee.object;
+  const fromChild =
+    (obj.type === 'Identifier' && (obj.name === 'child_process' || obj.name === 'cp')) ||
+    propName(node.callee) !== undefined;
+  if (fromChild || ALWAYS_SHELL.has(name) || OPTIONAL_SHELL.has(name) || dashC || execaCall) {return true;}
+  return false;
 }
 
 export const cmdiRule: SastRule = {
@@ -101,32 +182,30 @@ export const cmdiRule: SastRule = {
         if (node.type !== 'CallExpression') {return;}
         const name = calleeName(node);
         if (name === undefined) {return;}
-        const dashC = sastGapsEnabled() && isInterpreterDashC(node, tainted);
-        const execaCall = sastGapsEnabled() && name === 'execa' && hasShellTrue(node);
-        const shell =
-          ALWAYS_SHELL.has(name) ||
-          (OPTIONAL_SHELL.has(name) && hasShellTrue(node)) ||
-          dashC ||
-          execaCall;
-        if (!shell) {return;}
-        if (node.callee.type === 'MemberExpression') {
-          const obj = node.callee.object;
-          const fromChild =
-            (obj.type === 'Identifier' && (obj.name === 'child_process' || obj.name === 'cp')) ||
-            propName(node.callee) !== undefined;
-          if (!fromChild && !ALWAYS_SHELL.has(name) && !OPTIONAL_SHELL.has(name) && !dashC && !execaCall) {
-            return;
-          }
+        if (bunSpawnTainted(node, tainted)) {
+          ctx.report({ node, message: 'Tainted input reaches Bun.spawn.' });
+          return;
         }
-        if (!argumentTainted(node, tainted) && !dashC) {return;}
+        const shell = shellRequested(node, name, tainted);
+        if (shell === undefined || !memberAllowed(node, name, shell.dashC, shell.execaCall)) {return;}
+        if (!argumentTainted(node, tainted) && !shell.dashC) {return;}
         ctx.report({
           node,
           message: 'Tainted input reaches a shell command (exec/execSync/spawn with shell: true).',
         });
       },
+      NewExpression(node) {
+        if (node.type !== 'NewExpression' || !isDenoCommand(node) || !denoTainted(node, tainted)) {return;}
+        ctx.report({
+          node,
+          message: 'Tainted input reaches Deno.Command.',
+        });
+      },
       TaggedTemplateExpression(node) {
-        if (node.type !== 'TaggedTemplateExpression' || !sastGapsEnabled()) {return;}
-        if (!isUnsafeZxTag(node.tag) && !isExecaShellTag(node.tag)) {return;}
+        if (node.type !== 'TaggedTemplateExpression') {return;}
+        const bun = isBunTemplate(node.tag, ctx.source);
+        if (!bun && !sastGapsEnabled()) {return;}
+        if (!bun && !isUnsafeZxTag(node.tag) && !isExecaShellTag(node.tag)) {return;}
         if (!tainted(node.quasi)) {return;}
         ctx.report({
           node,

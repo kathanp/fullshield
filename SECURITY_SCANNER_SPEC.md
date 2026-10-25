@@ -6505,3 +6505,113 @@ Flag: `FULLSHIELD_EXPERIMENTAL_CORSREFLECT`. CLI: `scan --experimental-cors-refl
 With the flag on, `CONFIG-CORS-002` fires when `Access-Control-Allow-Origin` is the request `Origin` header and credentials are allowed on that same response. The origin match is `req.headers.origin` or a binding of that member. Credentials means `credentials: true` on a `cors()` options object, or `Access-Control-Allow-Credentials` set to `true` or `'true'` in the same function. A fixed origin string does not fire. `origin: '*'` with credentials stays `CONFIG-CORS-001` and is not this rule. Severity is high. CWE is CWE-942 (`https://cwe.mitre.org/data/definitions/942.html`). Confidence is medium. Module is `config`.
 
 Flag off: this module is not loaded and default `scan --json` does not include `CONFIG-CORS-002`. `clean-app` stays at 0 findings with the flag on. No network. Two runs sort to the same bytes.
+
+## 51. Version 1.6.0
+
+These phases are the approved `docs/FEATURES.md` for 1.6.0. A behavior that is not in that file is not in this section. No phase contacts a registry, opens a network connection, executes scanned code, or spawns a package, a shell, or an agent. `clean-app` stays at 0 findings with each flag off and on. Two runs sort to the same bytes. A `--repo` run does not park.
+
+### Phase 507 — SQLite sinks on the SQL rule
+
+Flag: none. `stableChange: true`. R10 approved. No new rule id.
+
+`SAST-SQLI-001` also fires when the file mentions `node:sqlite`, `bun:sqlite`, or `DatabaseSync`, and request data is concatenated or interpolated into a member call `exec` or `prepare`. A member call whose object is `child_process` or `cp` does not fire. A string-literal query that uses `?` or a named placeholder, with the request value in a separate argument, does not fire because the query text is not tainted. `query` stays the existing stable sink. Severity, CWE, and confidence stay `SAST-SQLI-001`. The scanner does not open a database.
+
+### Phase 508 — Bun and Deno shells on the command rule
+
+Flag: none. `stableChange: true`. R10 approved. No new rule id.
+
+`SAST-CMDI-001` also fires for `Bun.spawn` and `Bun.spawnSync`, including a `cmd` or `args` array, when the command or an argument is request data. It also fires for a tagged template `Bun.$`, and for a `$` template only when the file imports `bun`. It also fires for `new Deno.Command` when the command or an `args` entry is request data. A string-literal argument list does not fire. The scanner does not spawn a process. Severity, CWE, and confidence stay `SAST-CMDI-001`.
+
+### Phase 509 — Library eval sinks
+
+Flag: none. `stableChange: true`. R10 approved. No new rule id.
+
+`SAST-EVAL-001` also fires for `evaluate` when the callee is a namespace, default, or `require` binding of `mathjs`, `expr-eval`, or `vm2`, or a named import `evaluate` from one of those three, or `new Parser().evaluate` when `Parser` comes from `expr-eval`. It also fires for `new VM` and `new NodeVM` when the file imports `vm2` and the code argument, or a `code` or `eval` option, is not a string literal. A string-literal argument does not fire. A function named `evaluate` that is not one of those three libraries does not fire. Existing `eval`, `new Function`, and `vm.runIn*` calls stay as they are. The scanner does not evaluate the argument. Severity, CWE, and confidence stay `SAST-EVAL-001`.
+
+### Phase 510 — React Server Components versions [`FULLSHIELD_EXPERIMENTAL_RSC`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_RSC`. CLI: `scan --experimental-rsc` sets the flag. Default is off. `stableChange: false`.
+
+With the flag on, `DEPS-RSC-001` fires when `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, or `bun.lock` resolves `react-server-dom-webpack`, `react-server-dom-parcel`, or `react-server-dom-turbopack` to exactly `19.0.0`, `19.1.0`, `19.1.1`, or `19.2.0`. A prerelease such as `19.0.0-canary` does not fire. Any other version does not fire. A project with no lockfile does not fire. Severity is critical. CWE is CWE-502 (`https://cwe.mitre.org/data/definitions/502.html`). Confidence is high. Module is `deps`. The scanner does not contact a registry and does not install a package.
+
+Flag off: this check is not loaded and default `scan --json` does not include `DEPS-RSC-001`.
+
+### Phase 511 — Dependency release-age gate [`FULLSHIELD_EXPERIMENTAL_COOLDOWN`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_COOLDOWN`. CLI: `scan --experimental-cooldown` sets the flag. Default is off. `stableChange: false`.
+
+With the flag on, `CONFIG-COOLDOWN-001` fires when `.npmrc`, `pnpm-workspace.yaml`, `.yarnrc.yml`, or `bunfig.toml` is in the scan and its release-age gate is missing or shorter than three days. npm `min-release-age` is days. pnpm `minimumReleaseAge` is minutes (`4320` is three days). yarn `npmMinimalAgeGate` is a duration (`3d`, `72h`, `4320m`, or `259200s`). bun `minimumReleaseAge` is seconds (`259200` is three days). A value of `3` in the wrong unit fires, and the message names the unit. A gate of at least three days does not fire. A project that has only `package.json` and a lockfile, and none of those four files, does not fire. Severity is medium. CWE is CWE-829 (`https://cwe.mitre.org/data/definitions/829.html`). Confidence is medium. Module is `config`. The scanner does not install a package and does not contact a registry.
+
+Flag off: this check is not loaded and default `scan --json` does not include `CONFIG-COOLDOWN-001`.
+
+### Phase 512 — Import-time worm files [`FULLSHIELD_EXPERIMENTAL_IMPORTIMPLANT`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_IMPORTIMPLANT`. CLI: `scan --experimental-import-implant` sets the flag. Default is off. `stableChange: false`.
+
+With the flag on, `SUPPLY-IMPLANT-001` fires when a file already in the scan is named `setup_bun.js` or `bun_environment.js`, or a `package.json` `preinstall`, `install`, or `postinstall` script names either file. It also looks at `node_modules` on disk, which the default file walk skips, and stops after 2000 `package.json` files. It does not read the npm cache. A package whose files are not on disk is skipped. Symlinks are not followed. Severity is high. CWE is CWE-506 (`https://cwe.mitre.org/data/definitions/506.html`). Confidence is high. Module is `deps`. The scanner does not fetch a tarball, does not install a package, and does not execute a script.
+
+Flag off: this check is not loaded and default `scan --json` does not include `SUPPLY-IMPLANT-001`.
+
+### Phase 513 — Inflated dependency versions [`FULLSHIELD_EXPERIMENTAL_VERINFLATE`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_VERINFLATE`. CLI: `scan --experimental-ver-inflate` sets the flag. Default is off. `stableChange: false`.
+
+With the flag on, `DEPS-VERINFLATE-001` fires when a lockfile already in the tree contains a version whose major is `9999` or greater, or whose patch is `999` or `9999`. The version token is `major.minor.patch` and is not followed by a prerelease mark. `1.2.3` does not fire. Severity is high. CWE is CWE-427 (`https://cwe.mitre.org/data/definitions/427.html`). Confidence is high. Module is `deps`. The scanner does not contact a registry.
+
+Flag off: this check is not loaded and default `scan --json` does not include `DEPS-VERINFLATE-001`.
+
+### Phase 514 — Agent instruction files [`FULLSHIELD_EXPERIMENTAL_AGENTRULES`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_AGENTRULES`. CLI: `scan --experimental-agent-rules` sets the flag. Default is off. `stableChange: false`.
+
+With the flag on, the scan reads `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, files under `.cursor/rules/` and `.windsurf/rules/`, and `SKILL.md` under `.cursor/`, `.claude/`, or `.agents/`. `AGENT-UNICODE-001` fires on U+E0001–U+E007F, a zero-width character (U+200B, U+200C, U+200D, U+FEFF, U+2060), or a bidi override (U+202A–U+202E, U+2066–U+2069). `AGENT-INJECT-001` fires on `ignore previous` or `do not tell the user`. `AGENT-EXFIL-001` fires when the file contains an `http://` or `https://` URL and `.env`, `token`, or `secret`. `AGENT-SHELL-001` fires when the file names `claude`, `codex`, or `gemini` together with `--dangerously-skip-permissions`, `--permission-mode bypassPermissions`, or `--yolo`. A short guideline with none of those does not fire. Severity is high. CWE is CWE-74 for the first, second, and fourth, and CWE-200 for exfil (`https://cwe.mitre.org/data/definitions/74.html`, `https://cwe.mitre.org/data/definitions/200.html`). Confidence is high. Module is `config`. The scanner does not follow the instructions and does not fetch a URL.
+
+Flag off: this check is not loaded and default `scan --json` does not include `AGENT-UNICODE-001`, `AGENT-INJECT-001`, `AGENT-EXFIL-001`, or `AGENT-SHELL-001`.
+
+### Phase 515 — Coding-agent bypass spawn [`FULLSHIELD_EXPERIMENTAL_AGENTSPAWN`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_AGENTSPAWN`. CLI: `scan --experimental-agent-spawn` sets the flag. Default is off. `stableChange: false`.
+
+With the flag on, `SAST-AGENTSPAWN-001` fires when `exec`, `execSync`, `spawn`, `spawnSync`, `Bun.spawn`, `Bun.spawnSync`, or `new Deno.Command` launches `claude`, `codex`, or `gemini` with `--dangerously-skip-permissions`, `--permission-mode bypassPermissions`, or `--yolo` in that same call. Launching one of those programs without that flag does not fire. Severity is high. CWE is CWE-78 (`https://cwe.mitre.org/data/definitions/78.html`). Confidence is high. Module is `sast`. The scanner does not spawn the process.
+
+Flag off: this check is not loaded and default `scan --json` does not include `SAST-AGENTSPAWN-001`.
+
+### Phase 516 — MCP metadata attacks [`FULLSHIELD_EXPERIMENTAL_MCPPOISON`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_MCPPOISON`. CLI: `scan --experimental-mcp-poison` sets the flag. Default is off. `stableChange: false`.
+
+With the flag on, a JSON file that contains `mcpServers` gains three rules. `MCP-006` fires when a tool description or schema asks for a password, token, secret, or API key. `MCP-007` fires when a schema `default` string contains `ignore previous` or a shell marker (`` ` ``, `$(`, `&&`, or `|`). `MCP-008` fires when two servers in that file declare the same tool name. One server with a literal description does not fire. `MCP-001`–`MCP-005` stay on `FULLSHIELD_EXPERIMENTAL_MCPCFG`. Severity is high for `MCP-006` and `MCP-007`, and medium for `MCP-008`. CWE is CWE-74 for the first two and CWE-290 for the third (`https://cwe.mitre.org/data/definitions/290.html`). Confidence is high for the first two and medium for the third. Module is `config`. The scanner does not connect to a server.
+
+Flag off: this check is not loaded and default `scan --json` does not include `MCP-006`, `MCP-007`, or `MCP-008`.
+
+### Phase 517 — Vite filesystem exposure [`FULLSHIELD_EXPERIMENTAL_VITEFS`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_VITEFS`. CLI: `scan --experimental-vite-fs` sets the flag. Default is off. `stableChange: false`.
+
+With the flag on, `CONFIG-VITEFS-001` fires when `vite.config.js`, `vite.config.ts`, `vite.config.mjs`, `vite.config.cjs`, or `vite.config.mts` sets `server.fs.strict` to false, or sets `server.fs.allow` to `/` or a drive root. A config that leaves `server.fs` unset does not fire. Severity is high. CWE is CWE-22 (`https://cwe.mitre.org/data/definitions/22.html`). Confidence is high. Module is `config`. The scanner does not start Vite and does not contact a registry.
+
+Flag off: this check is not loaded and default `scan --json` does not include `CONFIG-VITEFS-001`.
+
+### Phase 518 — Host-header links [`FULLSHIELD_EXPERIMENTAL_HOSTPOISON`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_HOSTPOISON`. CLI: `scan --experimental-host-poison` sets the flag. Default is off. `stableChange: false`.
+
+With the flag on, `SAST-HOST-001` fires when `req.headers.host`, `req.headers['x-forwarded-host']`, `req.get('host')`, or `req.get('x-forwarded-host')`, or a binding of that value, is placed in an absolute URL (`http://`, `https://`, or `://`) that is passed to `redirect`, `location`, `sendMail`, or a `Location` header. A fixed host string does not fire. `req.hostname` by itself does not fire. Severity is high. CWE is CWE-644 (`https://cwe.mitre.org/data/definitions/644.html`). Confidence is high. Module is `sast`. The scanner does not send mail and does not open a connection.
+
+Flag off: this check is not loaded and default `scan --json` does not include `SAST-HOST-001`.
+
+### Phase 519 — Markdown HTML sinks [`FULLSHIELD_EXPERIMENTAL_MARKUP`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_MARKUP`. CLI: `scan --experimental-markup` sets the flag. Default is off. `stableChange: false`.
+
+With the flag on, `SAST-MARKUP-001` fires when `markdown-it` or `MarkdownIt` is constructed with `html: true` and `render` is called with request data, or when `marked` or `marked.parse` is called with request data. Request data is `req.query`, `req.body`, `req.params`, `req.headers`, or a binding of those. A string-literal markdown body does not fire. The file must import `markdown-it` or `marked`. Severity is high. CWE is CWE-79 (`https://cwe.mitre.org/data/definitions/79.html`). Confidence is high. Module is `sast`. The scanner does not render the markdown.
+
+Flag off: this check is not loaded and default `scan --json` does not include `SAST-MARKUP-001`.
+
+### Phase 520 — Auth.js trustHost [`FULLSHIELD_EXPERIMENTAL_TRUSTHOST`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_TRUSTHOST`. CLI: `scan --experimental-trust-host` sets the flag. Default is off. `stableChange: false`.
+
+With the flag on, `SAST-TRUSTHOST-001` fires when a file that mentions `next-auth`, `@auth/`, or `NextAuth` sets `trustHost` to `true`. `trustHost: false`, or a config that omits `trustHost`, does not fire. Severity is medium. CWE is CWE-346 (`https://cwe.mitre.org/data/definitions/346.html`). Confidence is medium. Module is `sast`. The scanner does not perform a login.
+
+Flag off: this check is not loaded and default `scan --json` does not include `SAST-TRUSTHOST-001`.

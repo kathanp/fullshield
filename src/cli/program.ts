@@ -100,6 +100,17 @@ interface ScanCliOptions {
   experimentalSastGaps?: boolean;
   experimentalLdap?: boolean;
   experimentalCorsReflect?: boolean;
+  experimentalRsc?: boolean;
+  experimentalCooldown?: boolean;
+  experimentalImportImplant?: boolean;
+  experimentalVerInflate?: boolean;
+  experimentalAgentRules?: boolean;
+  experimentalAgentSpawn?: boolean;
+  experimentalMcpPoison?: boolean;
+  experimentalViteFs?: boolean;
+  experimentalHostPoison?: boolean;
+  experimentalMarkup?: boolean;
+  experimentalTrustHost?: boolean;
   experimentalFrameworks?: boolean;
   experimentalClasses?: boolean;
   experimentalSecretsAdv?: boolean;
@@ -188,6 +199,17 @@ const SCAN_ENV: ReadonlyArray<readonly [keyof ScanCliOptions, string]> = [
   ['experimentalSastGaps', 'FULLSHIELD_EXPERIMENTAL_SAST_GAPS'],
   ['experimentalLdap', 'FULLSHIELD_EXPERIMENTAL_LDAP'],
   ['experimentalCorsReflect', 'FULLSHIELD_EXPERIMENTAL_CORSREFLECT'],
+  ['experimentalRsc', 'FULLSHIELD_EXPERIMENTAL_RSC'],
+  ['experimentalCooldown', 'FULLSHIELD_EXPERIMENTAL_COOLDOWN'],
+  ['experimentalImportImplant', 'FULLSHIELD_EXPERIMENTAL_IMPORTIMPLANT'],
+  ['experimentalVerInflate', 'FULLSHIELD_EXPERIMENTAL_VERINFLATE'],
+  ['experimentalAgentRules', 'FULLSHIELD_EXPERIMENTAL_AGENTRULES'],
+  ['experimentalAgentSpawn', 'FULLSHIELD_EXPERIMENTAL_AGENTSPAWN'],
+  ['experimentalMcpPoison', 'FULLSHIELD_EXPERIMENTAL_MCPPOISON'],
+  ['experimentalViteFs', 'FULLSHIELD_EXPERIMENTAL_VITEFS'],
+  ['experimentalHostPoison', 'FULLSHIELD_EXPERIMENTAL_HOSTPOISON'],
+  ['experimentalMarkup', 'FULLSHIELD_EXPERIMENTAL_MARKUP'],
+  ['experimentalTrustHost', 'FULLSHIELD_EXPERIMENTAL_TRUSTHOST'],
   ['experimentalFrameworks', 'FULLSHIELD_EXPERIMENTAL_FRAMEWORKS'],
   ['experimentalClasses', 'FULLSHIELD_EXPERIMENTAL_CLASSES'],
   ['experimentalSecretsAdv', 'FULLSHIELD_EXPERIMENTAL_SECRETS_ADV'],
@@ -506,7 +528,18 @@ function addPackageScanOptions(scan: Command): Command {
     .option(
       '--experimental-cors-reflect',
       'experimental: reflected CORS origin with credentials (FULLSHIELD_EXPERIMENTAL_CORSREFLECT=1)',
-    );
+    )
+    .option('--experimental-rsc', 'experimental: React Server Components versions (FULLSHIELD_EXPERIMENTAL_RSC=1)')
+    .option('--experimental-cooldown', 'experimental: dependency release-age gate (FULLSHIELD_EXPERIMENTAL_COOLDOWN=1)')
+    .option('--experimental-import-implant', 'experimental: import-time worm files (FULLSHIELD_EXPERIMENTAL_IMPORTIMPLANT=1)')
+    .option('--experimental-ver-inflate', 'experimental: inflated dependency versions (FULLSHIELD_EXPERIMENTAL_VERINFLATE=1)')
+    .option('--experimental-agent-rules', 'experimental: agent instruction files (FULLSHIELD_EXPERIMENTAL_AGENTRULES=1)')
+    .option('--experimental-agent-spawn', 'experimental: coding-agent bypass spawn (FULLSHIELD_EXPERIMENTAL_AGENTSPAWN=1)')
+    .option('--experimental-mcp-poison', 'experimental: MCP metadata attacks (FULLSHIELD_EXPERIMENTAL_MCPPOISON=1)')
+    .option('--experimental-vite-fs', 'experimental: Vite filesystem exposure (FULLSHIELD_EXPERIMENTAL_VITEFS=1)')
+    .option('--experimental-host-poison', 'experimental: host-header links (FULLSHIELD_EXPERIMENTAL_HOSTPOISON=1)')
+    .option('--experimental-markup', 'experimental: markdown HTML sinks (FULLSHIELD_EXPERIMENTAL_MARKUP=1)')
+    .option('--experimental-trust-host', 'experimental: Auth.js trustHost (FULLSHIELD_EXPERIMENTAL_TRUSTHOST=1)');
 }
 
 function registerScan(program: Command, io: ProgramIO): void {

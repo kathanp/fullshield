@@ -20,6 +20,15 @@ function hasBindings(node: TSESTree.CallExpression): boolean {
   return second.type === 'ArrayExpression' || second.type === 'ObjectExpression';
 }
 
+function sqliteMember(node: TSESTree.CallExpression, source: string): boolean {
+  const name = calleeName(node);
+  if (name !== 'exec' && name !== 'prepare') {return false;}
+  if (node.callee.type !== 'MemberExpression') {return false;}
+  const object = node.callee.object;
+  if (object.type === 'Identifier' && (object.name === 'child_process' || object.name === 'cp')) {return false;}
+  return /node:sqlite|bun:sqlite|DatabaseSync/.test(source);
+}
+
 function isSqlSink(node: TSESTree.CallExpression): boolean {
   const name = calleeName(node);
   if (name === undefined) {return false;}
@@ -47,7 +56,8 @@ export const sqliRule: SastRule = {
   create(ctx) {
     return {
       CallExpression(node) {
-        if (node.type !== 'CallExpression' || !isSqlSink(node)) {return;}
+        if (node.type !== 'CallExpression') {return;}
+        if (!isSqlSink(node) && !sqliteMember(node, ctx.source)) {return;}
         const sql = node.arguments[0];
         if (sql !== undefined && sql.type !== 'SpreadElement' && ctx.isTainted(sql) && !ctx.isSqlCleared(sql)) {
           ctx.report({
