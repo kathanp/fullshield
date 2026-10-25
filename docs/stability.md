@@ -76,6 +76,10 @@ Stable rule ids are the rules whose front matter says `stability: stable`. Exper
 
 1.3.0 adds experimental phases behind their own flags. Stable scan fields in this file are unchanged. Default `scan --json` is unchanged.
 
+## 1.6.0
+
+1.6.0 adds findings to default `scan --json` for `node:sqlite` and `bun:sqlite` exec/prepare, `Bun.spawn`, Bun shell templates, `Deno.Command`, and `evaluate` on mathjs, expr-eval, and vm2. The finding fields in this file are unchanged. The eleven checks in the 1.6.0 changelog stay experimental and off unless their flags are set.
+
 ## 1.5.0
 
 1.5.0 adds findings to default `scan --json` for one object field, one nested function, ORM raw queries, and the shell variants named in the changelog. The finding fields in this file are unchanged. `SAST-LDAP-001` and `CONFIG-CORS-002` stay experimental.

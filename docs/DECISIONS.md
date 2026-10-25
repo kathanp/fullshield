@@ -17,3 +17,31 @@ D-4 | phase-504 | ORM raw queries and the named shell variants are the default s
 D-5 | phase-505 | LDAP findings require an ldap import or an ldap receiver | A bare `bind` of request data is common and would light up `clean-app`. The import specifier or the receiver identifier must contain `ldap`. CWE-90. | APPROVED
 
 D-6 | phase-506 | Reflected CORS is the request Origin header plus credentials on that response | A fixed origin, including `clean-app`'s allow-list, stays silent. `origin: '*'` stays `CONFIG-CORS-001`. CWE-942. | APPROVED
+
+D-7 | phase-507 | SQLite `exec` and `prepare` join `SAST-SQLI-001` only when the file names sqlite | A global `exec` sink would also flag `child_process`. The query text has to be tainted, so a literal `?` placeholder stays silent. R10 approved. | APPROVED
+
+D-8 | phase-508 | Bun and Deno command sinks stay on the existing command rule | `Bun.spawn` reports a tainted argument without `shell: true`, as the features file says. A `$` template requires a `bun` import so a zx template stays on the existing `$.raw` check. R10 approved. | APPROVED
+
+D-9 | phase-509 | `evaluate` fires only for mathjs, expr-eval, and vm2 bindings | A bare `evaluate()` in the same file as an unrelated import stays silent. `new VM` reports only a non-literal `code` or `eval` option. R10 approved. | APPROVED
+
+D-10 | phase-510 | RSC findings are the four exact React versions from the 2025-12-03 advisory | `19.0.0-canary` is not one of those four. The check reads lockfile text and does not call the registry. CWE-502. | APPROVED
+
+D-11 | phase-511 | A release-age gate is three days, in the unit that package manager uses | npm is days, pnpm is minutes, yarn is a duration, bun is seconds. A project with no package-manager config file stays silent so `clean-app` stays at 0. CWE-829. | APPROVED
+
+D-12 | phase-512 | Worm files are `setup_bun.js` and `bun_environment.js`, capped at 2000 package manifests | The default walk skips `node_modules`, so this check reads that directory itself and does not follow symlinks or the npm cache. CWE-506. | APPROVED
+
+D-13 | phase-513 | An inflated version has major 9999 or greater, or patch 999 or 9999 | `1.2.3` stays silent. A prerelease suffix is not this shape. CWE-427. | APPROVED
+
+D-14 | phase-514 | Agent instruction files are the named paths only | Unicode Tag, zero-width, bidi, the two phrases, a secret word next to an http URL, and the three bypass flags. Other markdown stays unread by this check. | APPROVED
+
+D-15 | phase-515 | A coding-agent bypass is the program and the flag in the same call | `claude` without the flag stays silent. The scanner does not spawn it. CWE-78. | APPROVED
+
+D-16 | phase-516 | MCP poison reads `mcpServers` JSON and does not connect | Elicitation, a shell-like or injection default, and a tool name shared by two servers. `MCP-001` through `MCP-005` stay on their own flag. | APPROVED
+
+D-17 | phase-517 | Vite reports `server.fs.strict: false` and a root allow entry | A config that omits `server.fs` stays silent. CWE-22. | APPROVED
+
+D-18 | phase-518 | Host-header links are `Host` and `X-Forwarded-Host` inside an absolute URL at a redirect or mail sink | `req.hostname` and a fixed host stay silent. CWE-644. | APPROVED
+
+D-19 | phase-519 | Markdown HTML requires the library import and request data | `html: true` plus a literal `render` stays silent. `marked` of a literal stays silent. CWE-79. | APPROVED
+
+D-20 | phase-520 | `trustHost: true` requires an Auth.js or NextAuth mention | `false` and an omitted property stay silent. CWE-346. | APPROVED

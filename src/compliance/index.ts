@@ -31,6 +31,22 @@ export const RULE_MAP: readonly RuleMapping[] = [
   ROW('SAST-PROTO-001', 'A03:2021 Injection', 'CWE-1321', 'V5.3.3', 'PCI DSS 6.2.4'),
   ROW('SAST-XSS-001', 'A03:2021 Injection', 'CWE-79', 'V5.3.3', 'PCI DSS 6.2.4'),
   ROW('SAST-LDAP-001', 'A03:2021 Injection', 'CWE-90', 'V5.3.4', 'PCI DSS 6.4.2'),
+  ROW('DEPS-RSC-001', 'A06:2021 Vulnerable Components', 'CWE-502', 'V1.5.1', 'PCI DSS 6.3.3'),
+  ROW('CONFIG-COOLDOWN-001', 'A06:2021 Vulnerable Components', 'CWE-829', 'V1.5.1', 'PCI DSS 6.3.2'),
+  ROW('SUPPLY-IMPLANT-001', 'A08:2021 Software Integrity Failures', 'CWE-506', 'V1.5.1', 'PCI DSS 6.3.2'),
+  ROW('DEPS-VERINFLATE-001', 'A06:2021 Vulnerable Components', 'CWE-427', 'V1.5.1', 'PCI DSS 6.3.2'),
+  ROW('AGENT-UNICODE-001', 'A03:2021 Injection', 'CWE-74', 'V5.3.3', 'PCI DSS 6.2.4'),
+  ROW('AGENT-INJECT-001', 'A03:2021 Injection', 'CWE-74', 'V5.3.3', 'PCI DSS 6.2.4'),
+  ROW('AGENT-EXFIL-001', 'A01:2021 Broken Access Control', 'CWE-200', 'V8.3.4', 'PCI DSS 6.5.3'),
+  ROW('AGENT-SHELL-001', 'A03:2021 Injection', 'CWE-74', 'V5.3.3', 'PCI DSS 6.2.4'),
+  ROW('SAST-AGENTSPAWN-001', 'A03:2021 Injection', 'CWE-78', 'V5.3.3', 'PCI DSS 6.2.4'),
+  ROW('MCP-006', 'A03:2021 Injection', 'CWE-74', 'V5.3.3', 'PCI DSS 6.2.4'),
+  ROW('MCP-007', 'A03:2021 Injection', 'CWE-74', 'V5.3.3', 'PCI DSS 6.2.4'),
+  ROW('MCP-008', 'A04:2021 Insecure Design', 'CWE-290', 'V1.2.1', 'PCI DSS 6.2.4'),
+  ROW('CONFIG-VITEFS-001', 'A01:2021 Broken Access Control', 'CWE-22', 'V12.3.1', 'PCI DSS 6.2.4'),
+  ROW('SAST-HOST-001', 'A01:2021 Broken Access Control', 'CWE-644', 'V5.1.1', 'PCI DSS 6.2.4'),
+  ROW('SAST-MARKUP-001', 'A03:2021 Injection', 'CWE-79', 'V5.3.3', 'PCI DSS 6.2.4'),
+  ROW('SAST-TRUSTHOST-001', 'A07:2021 Identification Failures', 'CWE-346', 'V3.5.1', 'PCI DSS 6.2.4'),
   ROW('SAST-JWT-001', 'A07:2021 Identification Failures', 'CWE-347', 'V3.5.3', 'PCI DSS 6.5.10'),
   ROW('SAST-CRYPTO-001', 'A02:2021 Cryptographic Failures', 'CWE-338', 'V6.2.1', 'PCI DSS 3.6 / 4.2'),
   ROW('SAST-CIPHER-001', 'A02:2021 Cryptographic Failures', 'CWE-327', 'V6.2.1', 'PCI DSS 3.6 / 4.2'),
@@ -298,7 +314,7 @@ export function renderCompliance(
 
 export function collectRuleIdsFromSources(texts: readonly string[]): string[] {
   const ids = new Set<string>();
-  const re = /\b((?:SAST|SECRET|DEPS|CONFIG|EDGE|AI|LLM|SUPPLY|IAC|RASP|RUNTIME|DLP|MCP|HOST)(?:-[A-Z0-9]+)*-\d{3})\b/g;
+  const re = /\b((?:SAST|SECRET|DEPS|CONFIG|EDGE|AI|LLM|SUPPLY|IAC|RASP|RUNTIME|DLP|MCP|HOST|AGENT)(?:-[A-Z0-9]+)*-\d{3})\b/g;
   for (const text of texts) {
     let m: RegExpExecArray | null;
     while ((m = re.exec(text)) !== null) {ids.add(m[1] ?? '');}

@@ -2,6 +2,28 @@
 
 All notable changes to FullShield are documented here.
 
+## 1.6.0 — 2026-10-25
+
+### New/changed stable findings — may change CI results; use --update-baseline
+
+- Phase 507: `SAST-SQLI-001` also fires for `node:sqlite` `DatabaseSync.exec` / `prepare` and `bun:sqlite` `exec` / `prepare` when request data is concatenated or interpolated. A literal with placeholders and a separate bound argument does not fire. `child_process.exec` stays a command finding.
+- Phase 508: `SAST-CMDI-001` also fires for `Bun.spawn`, `Bun.spawnSync`, a Bun `$` template, and `Deno.Command` when the command or args are request data. A literal argv does not fire.
+- Phase 509: `SAST-EVAL-001` also fires for `evaluate` on `mathjs`, `expr-eval`, or `vm2`, and for `vm2` `VM` / `NodeVM` when the code argument is not a string literal. An unrelated `evaluate()` does not fire. `mathjs.eval('1 + 2')` stays silent.
+
+### Experimental
+
+- Phase 510: `DEPS-RSC-001` behind `FULLSHIELD_EXPERIMENTAL_RSC` (`scan --experimental-rsc`). Exact React Server Components versions 19.0.0, 19.1.0, 19.1.1, and 19.2.0 in a lockfile. A canary does not fire. Off by default.
+- Phase 511: `CONFIG-COOLDOWN-001` behind `FULLSHIELD_EXPERIMENTAL_COOLDOWN` (`scan --experimental-cooldown`). A release-age gate shorter than three days, in that tool's unit. No cooldown file means no finding. Off by default.
+- Phase 512: `SUPPLY-IMPLANT-001` behind `FULLSHIELD_EXPERIMENTAL_IMPORTIMPLANT` (`scan --experimental-import-implant`). `setup_bun.js` or `bun_environment.js`, including install scripts and `node_modules` up to 2000 manifests. Off by default.
+- Phase 513: `DEPS-VERINFLATE-001` behind `FULLSHIELD_EXPERIMENTAL_VERINFLATE` (`scan --experimental-ver-inflate`). Lockfile major 9999+ or patch 999 or 9999. Off by default.
+- Phase 514: `AGENT-UNICODE-001`, `AGENT-INJECT-001`, `AGENT-EXFIL-001`, and `AGENT-SHELL-001` behind `FULLSHIELD_EXPERIMENTAL_AGENTRULES` (`scan --experimental-agent-rules`). Named agent instruction files only. Off by default.
+- Phase 515: `SAST-AGENTSPAWN-001` behind `FULLSHIELD_EXPERIMENTAL_AGENTSPAWN` (`scan --experimental-agent-spawn`). A coding agent launched with a permission bypass in the same call. Off by default.
+- Phase 516: `MCP-006`, `MCP-007`, and `MCP-008` behind `FULLSHIELD_EXPERIMENTAL_MCPPOISON` (`scan --experimental-mcp-poison`). Secret elicitation, a shell or instruction default, and a duplicated tool name. `MCP-001`–`MCP-005` are unchanged. Off by default.
+- Phase 517: `CONFIG-VITEFS-001` behind `FULLSHIELD_EXPERIMENTAL_VITEFS` (`scan --experimental-vite-fs`). `server.fs.strict: false` or a filesystem root in `server.fs.allow`. Off by default.
+- Phase 518: `SAST-HOST-001` behind `FULLSHIELD_EXPERIMENTAL_HOSTPOISON` (`scan --experimental-host-poison`). Host or X-Forwarded-Host copied into an absolute redirect or mail URL. Off by default.
+- Phase 519: `SAST-MARKUP-001` behind `FULLSHIELD_EXPERIMENTAL_MARKUP` (`scan --experimental-markup`). markdown-it `html: true` or marked, rendering request data. Off by default.
+- Phase 520: `SAST-TRUSTHOST-001` behind `FULLSHIELD_EXPERIMENTAL_TRUSTHOST` (`scan --experimental-trust-host`). Auth.js `trustHost: true`. Off by default.
+
 ## 1.5.0 — 2026-10-24
 
 ### New/changed stable findings — may change CI results; use --update-baseline
