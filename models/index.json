@@ -1,5 +1,5 @@
 {
-  "fullshieldVersion": "1.7.0",
+  "fullshieldVersion": "1.8.0",
   "entries": [
     {
       "package": "express",

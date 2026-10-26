@@ -61,3 +61,9 @@ D-26 | phase-526 | `location` joins the redirect rule | `redirect` stays on the 
 D-27 | phase-527 | Deep JWT is an empty algorithm list or a non-literal list | A missing `algorithms` option is already a stable finding and is not reported twice. `['HS256']` stays silent. | APPROVED
 
 D-28 | phase-528 | `assign` joins the prototype rule; `merge` does not | `clean-app` defines `merge`, not `assign`. A `__proto__` comparison in the file stays silent. | APPROVED
+
+D-29 | phase-529 | An unparsed lockfile is an empty graph, not a thrown error | `JSON.parse` of `package-lock.json` already returns an empty graph. Yarn and pnpm parsers do not throw on `{`. The scan-level test locks that, including a workspace lockfile. No new finding, so default scan output does not change. | APPROVED
+
+D-30 | phase-530 | The test toolchain moves to vitest 5.0.5 or the phase is parked | `npm audit` names 5.0.5 as the fix for vitest, coverage, mocker, vite, esbuild, and tinypool. Those packages are devDependencies and are not packed. An existing test is not edited to make the bump pass. | APPROVED
+
+D-31 | phase-531 | body-parser is updated inside the ranges express and the MCP SDK already allow | GHSA-27r3-jxmh-p828. `express@^4.22.3` allows `body-parser@1.20.9`. The MCP SDK devDependency stays inside optional peer `^1.32.1`. No `overrides` entry, so installing fullshield does not force a consumer's body-parser. | APPROVED

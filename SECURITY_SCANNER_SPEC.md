@@ -6679,3 +6679,27 @@ Flag: `FULLSHIELD_EXPERIMENTAL_DEEP`. CLI: `scan --experimental-deep` sets the f
 With the flag on, `SAST-PROTO-001` also fires for `Object.assign` and for a call named `assign` when one argument is request data and the file does not compare a key to `__proto__`. `merge`, `defaultsDeep`, and `deepMerge` stay as they are. A local function named `merge`, including the one in `clean-app`, does not fire. A literal object does not fire. Severity, CWE, and confidence stay `SAST-PROTO-001`. The scanner does not merge an object.
 
 Flag off: this extra match is not loaded.
+
+## 53. Version 1.8.0
+
+These phases are the approved `docs/FEATURES.md` for 1.8.0. A behavior that is not in that file is not in this section. No phase contacts a registry, opens a network connection, executes scanned code, or spawns a process. Default `scan --json` on a project whose lockfile parses is unchanged. `stableChange: false`. `clean-app` stays at 0 findings. Two runs sort to the same bytes. A `--repo` run does not park.
+
+### Phase 529 — Unparsed lockfile
+
+Flag: none. `stableChange: false`. No new rule id. No new finding. No CWE. The scan does not throw.
+
+`package-lock.json`, `npm-shrinkwrap.json`, `pnpm-lock.yaml`, `yarn.lock`, and the same names inside a workspace directory, are parsed as they are today when the text parses. When the text does not parse, that file contributes no dependency findings and secrets, SAST, and config still run. A parsed lockfile keeps the same findings it has today. The scanner does not rewrite the lockfile.
+
+Acceptance: a tree whose `package-lock.json` is `{`, with a `preinstall` script in `package.json`, completes `scan` and still reports `CONFIG-INSTALLSCRIPT-001`. The same tree with `FULLSHIELD_EXPERIMENTAL_WORKSPACES=1` and a workspace lockfile of `{` also completes. Two scans of that tree sort to the same bytes. `{}` parses and does not throw. `clean-app` stays at 0 findings.
+
+### Phase 530 — Test-toolchain advisories
+
+Flag: none. `stableChange: false`. DevDependencies only. Not packed. No scan finding.
+
+`vitest` and `@vitest/coverage-v8` move to `5.0.5`, the version `npm audit` reports as the fix. That install also moves `vite`, `vite-node`, `esbuild`, `tinypool`, and `@vitest/mocker` off the open advisories GHSA-5xrq-8626-4rwp, GHSA-qxg6-89mg-rqv8, GHSA-82fw-gwwq-j7x9, GHSA-5gmw-xhrv-c9v3, GHSA-85c8-ppgw-ccpr, GHSA-67mh-4wv8-2f99, and GHSA-g7r4-m6w7-qqqr. They stay devDependencies. Existing tests are not edited. If `npm run verify` cannot stay green on those versions without editing an existing test, this phase is parked and the 1.7.0 ranges stay.
+
+### Phase 531 — body-parser dev install
+
+Flag: none. `stableChange: false`. No new hard dependency. No scan finding. The scanner does not open a server.
+
+The dev install resolves every `body-parser` copy outside `<1.20.9` and outside `>=2.0.0 <2.4.0` (GHSA-27r3-jxmh-p828). `express` stays on the existing `^4.22.3` range, which already allows `body-parser@1.20.9`. `@modelcontextprotocol/sdk` stays inside the optional peer range `^1.32.1`; the devDependency may move to `1.32.2`. No `overrides` entry is added. If a patched release cannot be installed without a new hard dependency, this phase is parked.
