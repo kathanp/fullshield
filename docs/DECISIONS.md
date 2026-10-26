@@ -67,3 +67,13 @@ D-29 | phase-529 | An unparsed lockfile is an empty graph, not a thrown error | 
 D-30 | phase-530 | The test toolchain moves to vitest 5.0.5 or the phase is parked | `npm audit` names 5.0.5 as the fix for vitest, coverage, mocker, vite, esbuild, and tinypool. Those packages are devDependencies and are not packed. An existing test is not edited to make the bump pass. | APPROVED
 
 D-31 | phase-531 | body-parser is updated inside the ranges express and the MCP SDK already allow | GHSA-27r3-jxmh-p828. `express@^4.22.3` allows `body-parser@1.20.9`. The MCP SDK devDependency stays inside optional peer `^1.32.1`. No `overrides` entry, so installing fullshield does not force a consumer's body-parser. | APPROVED
+
+D-32 | phase-532 | Header injection is the header value, not the status or the header name | CWE-113. A tainted status, or a tainted header name with a literal value, stays silent. `writeHead(200)` stays silent. | APPROVED
+
+D-33 | phase-533 | Mail findings require one of the three imports and a named field | A bare `send` of request data is `res.send`. The field has to be `to`, `cc`, `bcc`, `subject`, `from`, `replyTo`, `html`, or `text`. CWE-93. | APPROVED
+
+D-34 | phase-534 | A `.csv` `writeFile` fires without a csv import; other writers require the import | `writeFile('notes.txt', req.body)` is not a spreadsheet. `write(req.body)` without `csv-stringify`, `fast-csv`, `json2csv`, or `csv` stays silent. CWE-1236. | APPROVED
+
+D-35 | phase-535 | Browser automation uses the existing `FULLSHIELD_EXPERIMENTAL_BROWSER` flag | The features file names that flag. It is already phase 101. Phase 101 rules stay. `goto` and `pdf` are CWE-918. `setContent` is CWE-79. `vulnerable-app` has none of these imports, so the existing flag-on comparison stays equal. | APPROVED
+
+D-36 | phase-536 | Dynamic import fires only when the specifier is request data | A literal specifier and a binding of a literal stay silent. CWE-829. The scanner does not load the module. | APPROVED

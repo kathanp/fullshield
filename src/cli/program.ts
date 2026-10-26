@@ -112,6 +112,11 @@ interface ScanCliOptions {
   experimentalMarkup?: boolean;
   experimentalTrustHost?: boolean;
   experimentalDeep?: boolean;
+  experimentalCrlf?: boolean;
+  experimentalMail?: boolean;
+  experimentalFormula?: boolean;
+  experimentalBrowser?: boolean;
+  experimentalDynimport?: boolean;
   experimentalFrameworks?: boolean;
   experimentalClasses?: boolean;
   experimentalSecretsAdv?: boolean;
@@ -212,6 +217,11 @@ const SCAN_ENV: ReadonlyArray<readonly [keyof ScanCliOptions, string]> = [
   ['experimentalMarkup', 'FULLSHIELD_EXPERIMENTAL_MARKUP'],
   ['experimentalTrustHost', 'FULLSHIELD_EXPERIMENTAL_TRUSTHOST'],
   ['experimentalDeep', 'FULLSHIELD_EXPERIMENTAL_DEEP'],
+  ['experimentalCrlf', 'FULLSHIELD_EXPERIMENTAL_CRLF'],
+  ['experimentalMail', 'FULLSHIELD_EXPERIMENTAL_MAIL'],
+  ['experimentalFormula', 'FULLSHIELD_EXPERIMENTAL_FORMULA'],
+  ['experimentalBrowser', 'FULLSHIELD_EXPERIMENTAL_BROWSER'],
+  ['experimentalDynimport', 'FULLSHIELD_EXPERIMENTAL_DYNIMPORT'],
   ['experimentalFrameworks', 'FULLSHIELD_EXPERIMENTAL_FRAMEWORKS'],
   ['experimentalClasses', 'FULLSHIELD_EXPERIMENTAL_CLASSES'],
   ['experimentalSecretsAdv', 'FULLSHIELD_EXPERIMENTAL_SECRETS_ADV'],
@@ -542,7 +552,12 @@ function addPackageScanOptions(scan: Command): Command {
     .option('--experimental-host-poison', 'experimental: host-header links (FULLSHIELD_EXPERIMENTAL_HOSTPOISON=1)')
     .option('--experimental-markup', 'experimental: markdown HTML sinks (FULLSHIELD_EXPERIMENTAL_MARKUP=1)')
     .option('--experimental-trust-host', 'experimental: Auth.js trustHost (FULLSHIELD_EXPERIMENTAL_TRUSTHOST=1)')
-    .option('--experimental-deep', 'experimental: deeper checks on the existing rules (FULLSHIELD_EXPERIMENTAL_DEEP=1)');
+    .option('--experimental-deep', 'experimental: deeper checks on the existing rules (FULLSHIELD_EXPERIMENTAL_DEEP=1)')
+    .option('--experimental-crlf', 'experimental: HTTP header injection (FULLSHIELD_EXPERIMENTAL_CRLF=1)')
+    .option('--experimental-mail', 'experimental: mail header injection (FULLSHIELD_EXPERIMENTAL_MAIL=1)')
+    .option('--experimental-formula', 'experimental: spreadsheet formula injection (FULLSHIELD_EXPERIMENTAL_FORMULA=1)')
+    .option('--experimental-browser', 'experimental: browser checks (FULLSHIELD_EXPERIMENTAL_BROWSER=1)')
+    .option('--experimental-dynimport', 'experimental: dynamic import of request data (FULLSHIELD_EXPERIMENTAL_DYNIMPORT=1)');
 }
 
 function registerScan(program: Command, io: ProgramIO): void {
