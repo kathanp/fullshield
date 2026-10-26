@@ -1,6 +1,6 @@
 # Demo
 
-Captured from this checkout on 2026-10-20. That run's package version was 1.2.0. The current package version is 2.0.1. The transcript below is that run, with the home directory shown as `~`. Commands:
+Captured from this checkout on 2026-10-20. That run's package version was 1.2.0. The current package version is 2.0.2. The transcript below is that run, with the home directory shown as `~`. Commands:
 
 ```bash
 npm run build

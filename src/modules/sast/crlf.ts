@@ -5,6 +5,12 @@ import { analyzeFile, nodeIsTainted, type ScopeFacts } from './taint.js';
 import type { AstNode } from './types.js';
 
 const HEADER_METHODS = new Set(['setHeader', 'append', 'header', 'set']);
+const RESPONSE_NAMES = new Set(['res', 'resp', 'response', 'reply']);
+
+function receiverName(callee: AstNode): string | undefined {
+  if (callee.type !== 'MemberExpression' || callee.object.type !== 'Identifier') {return undefined;}
+  return callee.object.name;
+}
 
 function writeHeadTainted(node: AstNode, facts: WeakMap<AstNode, ScopeFacts>): boolean {
   if (node.type !== 'CallExpression') {return false;}
@@ -29,6 +35,7 @@ function headerTainted(node: AstNode, facts: WeakMap<AstNode, ScopeFacts>): bool
   const name = calleeName(node);
   if (name === 'writeHead') {return writeHeadTainted(node, facts);}
   if (name === undefined || !HEADER_METHODS.has(name)) {return false;}
+  if (name === 'set' && !RESPONSE_NAMES.has(receiverName(node.callee) ?? '')) {return false;}
   return methodHeaderTainted(node, facts);
 }
 

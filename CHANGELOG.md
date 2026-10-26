@@ -2,6 +2,14 @@
 
 All notable changes to FullShield are documented here.
 
+## 2.0.2 — 2026-10-26
+
+### Fixes
+
+- Phase 537: `SAST-CRLF-001` `set` fires only when the receiver is `res`, `resp`, `response`, or `reply`. `setHeader`, `append`, `header`, and `writeHead` stay. `cache.set` does not fire. Off by default.
+- Phase 538: `SAST-MAIL-001` `send` fires only on a mail client receiver (`mail`, `transporter`, `transport`, `sg`, `mg`, or a name that contains `mail`). `sendMail` stays. `res.send` does not fire. Off by default.
+- Phase 539: `SAST-FORMULA-001` `write` and `format` do not fire on `res`, `resp`, `response`, or `reply`. `stringify`, `writeToPath`, and a `.csv` `writeFile` stay. Off by default.
+
 ## 2.0.1 — 2026-10-26
 
 ### Experimental

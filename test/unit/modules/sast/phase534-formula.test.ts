@@ -70,6 +70,17 @@ describe('phase 534 spreadsheet formula injection', () => {
     expect(result.findings).toEqual([]);
   });
 
+  it('does not treat a response write as a spreadsheet', async () => {
+    process.env[FLAG] = '1';
+    const csv = "const csv = require('csv-stringify');\n";
+    expect(await ids(`${csv}function go(req) { csv.write(req.query.row); }\n`)).toContain('SAST-FORMULA-001');
+    expect(await ids(`${csv}function go(req) { res.write(req.body); }\n`)).not.toContain('SAST-FORMULA-001');
+    expect(await ids(`${csv}function go(req) { res.format(req.body); }\n`)).not.toContain('SAST-FORMULA-001');
+    expect(await ids(`${csv}function go(req) { reply.write(req.body); }\n`)).not.toContain('SAST-FORMULA-001');
+    expect(await ids(`${csv}function go(req) { write(req.body); }\n`)).toContain('SAST-FORMULA-001');
+    expect(await ids(`${csv}function go(req) { app.res.write(req.body); }\n`)).toContain('SAST-FORMULA-001');
+  });
+
   it('is byte-identical across two runs', async () => {
     process.env[FLAG] = '1';
     const code = 'function go(req) { fs.writeFile("out.csv", req.body); }\n';

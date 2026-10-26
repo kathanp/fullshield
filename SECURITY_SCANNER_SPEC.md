@@ -6767,3 +6767,37 @@ With the flag on, the rule fires when `import()` is called with request data. A 
 Flag off: this module is not loaded.
 
 Acceptance: `import(req.query.mod)` fires. `import('./local.js')` does not. `import(name)` where `name` is a string literal does not. Two scans sort to the same bytes. `clean-app` stays at 0 findings with the flag on.
+
+## 55. Version 2.0.2
+
+These phases are the approved `docs/FEATURES.md` for 2.0.2. A behavior that is not in that file is not in this section. No phase adds a flag or a rule id. No phase contacts a registry, opens a network connection, executes scanned code, sends mail, writes a file, or launches a browser. Default `scan --json` is unchanged. `stableChange: false`. `clean-app` stays at 0 findings with every flag off and on. Two runs sort to the same bytes. A `--repo` run does not park.
+
+### Phase 537 — Header method precision [`FULLSHIELD_EXPERIMENTAL_CRLF`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_CRLF`. CLI: `scan --experimental-crlf` sets the flag. Default is off. `stableChange: false`. No new rule id.
+
+`SAST-CRLF-001` stays severity `high`, confidence `high`, CWE-113. `setHeader`, `append`, `header`, and `writeHead` stay as phase 532. `set` fires only when the receiver identifier is `res`, `resp`, `response`, or `reply`. `cache.set`, `map.set`, and `session.set` do not fire. A string-literal value does not fire. The scanner does not send a response.
+
+Flag off: this module is not loaded.
+
+Acceptance: `res.set('X-Name', req.query.name)` still fires. `reply.set('X-Name', req.query.name)` fires. `cache.set('k', req.query.name)` does not. `map.set('k', req.query.name)` does not. `session.set('k', req.query.name)` does not. Two scans sort to the same bytes. `clean-app` stays at 0 findings with the flag on.
+
+### Phase 538 — Mail send precision [`FULLSHIELD_EXPERIMENTAL_MAIL`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_MAIL`. CLI: `scan --experimental-mail` sets the flag. Default is off. `stableChange: false`. No new rule id.
+
+`SAST-MAIL-001` stays severity `high`, confidence `high`, CWE-93. `sendMail` stays as phase 533 when the file imports `nodemailer`, `@sendgrid/mail`, or `mailgun.js`. `send` fires only when that import is present and the receiver identifier is `mail`, `transporter`, `transport`, `sg`, or `mg`, or the receiver name contains `mail`. `res.send` does not fire. A string-literal field does not fire. The scanner does not send mail.
+
+Flag off: this module is not loaded.
+
+Acceptance: `mail.send({ subject: req.query.subject })` in a file that imports `nodemailer` still fires. `sg.send({ to: req.body.to })` still fires. `transporter.send({ text: req.query.text })` fires. `res.send({ to: req.query.to })` in a file that imports `nodemailer` does not. Two scans sort to the same bytes. `clean-app` stays at 0 findings with the flag on.
+
+### Phase 539 — CSV writer precision [`FULLSHIELD_EXPERIMENTAL_FORMULA`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_FORMULA`. CLI: `scan --experimental-formula` sets the flag. Default is off. `stableChange: false`. No new rule id.
+
+`SAST-FORMULA-001` stays severity `high`, confidence `high`, CWE-1236. `stringify` and `writeToPath` stay as phase 534. `write` and `format` do not fire when the receiver identifier is `res`, `resp`, `response`, or `reply`. `writeFile` and `writeFileSync` of request data to a string literal ending in `.csv` stay as phase 534. A string-literal row does not fire. The scanner does not write a file.
+
+Flag off: this module is not loaded.
+
+Acceptance: `csv.write(req.query.row)` in a file that imports `fast-csv` still fires. `writeFile('out.csv', req.body)` still fires. `res.write(req.body)` in a file that imports `csv-stringify` does not. `res.format(req.body)` in that file does not. Two scans sort to the same bytes. `clean-app` stays at 0 findings with the flag on.

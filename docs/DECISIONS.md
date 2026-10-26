@@ -77,3 +77,9 @@ D-34 | phase-534 | A `.csv` `writeFile` fires without a csv import; other writer
 D-35 | phase-535 | Browser automation uses the existing `FULLSHIELD_EXPERIMENTAL_BROWSER` flag | The features file names that flag. It is already phase 101. Phase 101 rules stay. `goto` and `pdf` are CWE-918. `setContent` is CWE-79. `vulnerable-app` has none of these imports, so the existing flag-on comparison stays equal. | APPROVED
 
 D-36 | phase-536 | Dynamic import fires only when the specifier is request data | A literal specifier and a binding of a literal stay silent. CWE-829. The scanner does not load the module. | APPROVED
+
+D-37 | phase-537 | `set` is a header sink only on a response receiver | `cache.set`, `map.set`, and `session.set` are not HTTP headers. `setHeader`, `append`, `header`, and `writeHead` stay as phase 532. CWE-113. | APPROVED
+
+D-38 | phase-538 | `send` is a mail sink only on a mail receiver | `res.send` of an object is an HTTP body. `sendMail` stays as phase 533. The receiver is `mail`, `transporter`, `transport`, `sg`, `mg`, or a name that contains `mail`. CWE-93. | APPROVED
+
+D-39 | phase-539 | `write` and `format` are not CSV sinks on a response receiver | `res.write` is an HTTP body. `stringify`, `writeToPath`, and a `.csv` `writeFile` stay as phase 534. CWE-1236. | APPROVED
