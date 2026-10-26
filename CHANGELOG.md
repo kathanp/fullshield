@@ -2,6 +2,16 @@
 
 All notable changes to FullShield are documented here.
 
+## 2.0.1 — 2026-10-26
+
+### Experimental
+
+- Phase 532: `SAST-CRLF-001` behind `FULLSHIELD_EXPERIMENTAL_CRLF` (`scan --experimental-crlf`). Request data used as an HTTP header value. A literal value does not fire. Off by default.
+- Phase 533: `SAST-MAIL-001` behind `FULLSHIELD_EXPERIMENTAL_MAIL` (`scan --experimental-mail`). Request data in a nodemailer, SendGrid, or Mailgun field. A literal field does not fire. Off by default.
+- Phase 534: `SAST-FORMULA-001` behind `FULLSHIELD_EXPERIMENTAL_FORMULA` (`scan --experimental-formula`). Request data written through a csv package or to a `.csv` path. A literal row does not fire. Off by default.
+- Phase 535: `SAST-BROWSER-001` behind `FULLSHIELD_EXPERIMENTAL_BROWSER` (`scan --experimental-browser`). Request data passed to Puppeteer or Playwright `goto`, `setContent`, or `pdf`. The flag is the existing phase 101 flag. A literal URL or HTML body does not fire. Off by default.
+- Phase 536: `SAST-DYNIMPORT-001` behind `FULLSHIELD_EXPERIMENTAL_DYNIMPORT` (`scan --experimental-dynimport`). `import()` called with request data. A string-literal specifier does not fire. Off by default.
+
 ## 1.8.0 — 2026-10-25
 
 ### Fixes

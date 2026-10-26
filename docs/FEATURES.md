@@ -1,23 +1,29 @@
-# FullShield features (1.8.0)
+# FullShield features (2.0.1)
 
-Inventory of what 1.8.0 changes. Everything 1.7.0 already ships stays, including tagged-template SQL, the `execFile` command path, `FULLSHIELD_EXPERIMENTAL_DEEP`, and the 1.6.0 experimental flags. Default use is still a Node.js/TypeScript scan that detects, classifies, reports, notifies, suggests fixes, and can gate CI. Experimental features stay off unless their flag is set to `1`.
+Inventory of what 2.0.1 adds. Everything 1.8.0 already ships stays. Default `scan --json` does not change. No stable rule id is removed. No stable finding field is removed. Experimental features stay off unless their flag is set to `1`.
 
-1.8.0 fixes a scan crash and the open dependency advisories in this repository. It does not add a rule id, a flag, or a default-scan finding. Default `scan --json` on a project whose lockfile parses is unchanged. `clean-app` stays at 0 findings. A `--repo` run uses local fixtures and does not park.
+2.0.1 adds five scanners. Each one follows request data through the existing taint model. A string literal does not fire. `clean-app` stays at 0 findings with every new flag off and on. A `--repo` run uses local fixtures and does not park. No check contacts a registry, opens a network connection, executes the scanned file, sends mail, writes a file, or launches a browser.
 
 The public description is [README.md](../README.md). The frozen command and output contract is [stability.md](stability.md).
 
-## This version (1.8.0)
+## This version (2.0.1)
 
-No check contacts a registry, opens a network connection, executes the scanned file, or spawns a process. The published package's hard dependencies are unchanged: a production `npm audit` of this repository reports no advisory.
+### Experimental (`FULLSHIELD_EXPERIMENTAL_CRLF`)
 
-### Stable (default scan, no flag)
+- **Header injection** — `scan --experimental-crlf` sets the flag. With the flag on, `SAST-CRLF-001` fires when `setHeader`, `append`, `header`, or `set` is passed request data as the header value, or when `writeHead` is passed an options object whose header value is request data. Request data is `req.query`, `req.body`, `req.params`, `req.headers`, or a binding of those. A string-literal value does not fire. A numeric status alone does not fire. Flag off: this module is not loaded and default `scan --json` does not include this rule. It refuses to send a response. `clean-app` stays at 0 findings with the flag on.
 
-- **A lockfile that cannot be parsed does not abort the scan** — `package-lock.json`, `npm-shrinkwrap.json`, `pnpm-lock.yaml`, `yarn.lock`, and the same files inside a workspace directory, are read as they are today when the text parses. When the text does not parse, that file is skipped, the dependency module returns no findings for it, and secrets, SAST, and config still run. The scan command exits with the result of the modules that did run, instead of throwing. A lockfile that parses keeps the same findings it has today. It refuses to repair the lockfile and refuses to contact a registry. `clean-app` stays at 0 findings.
+### Experimental (`FULLSHIELD_EXPERIMENTAL_MAIL`)
 
-### Dev checks
+- **Mail header injection** — `scan --experimental-mail` sets the flag. With the flag on, `SAST-MAIL-001` fires when a file imports `nodemailer`, `@sendgrid/mail`, or `mailgun.js` and `sendMail` or `send` sets `to`, `cc`, `bcc`, `subject`, `from`, `replyTo`, `html`, or `text` from request data. A string-literal field does not fire. A `sendMail` in a file that does not import one of those three packages does not fire. Flag off: this module is not loaded and default `scan --json` does not include this rule. It refuses to send mail. `clean-app` stays at 0 findings with the flag on.
 
-These are not scan rules. They are not packed into the published tarball. They do not change default `scan --json`.
+### Experimental (`FULLSHIELD_EXPERIMENTAL_FORMULA`)
 
-- **Test-toolchain advisories** — `vitest`, `@vitest/coverage-v8`, `@vitest/mocker`, `vite`, `vite-node`, `esbuild`, and `tinypool` move to versions `npm audit` reports as clean. They stay devDependencies. Existing tests stay as they are. If those versions cannot keep `npm run verify` green without editing a test, this item is left out of the release.
+- **Spreadsheet formula injection** — `scan --experimental-formula` sets the flag. With the flag on, `SAST-FORMULA-001` fires when a file imports `csv-stringify`, `fast-csv`, `json2csv`, or `csv` and `stringify`, `write`, `writeToPath`, or `format` is passed request data, or when `writeFile` or `writeFileSync` writes request data to a path whose literal name ends in `.csv`. A string-literal row does not fire. A `writeFile` of request data to a path that does not end in `.csv` does not fire. Flag off: this module is not loaded and default `scan --json` does not include this rule. It refuses to write a file. `clean-app` stays at 0 findings with the flag on.
 
-- **body-parser in the dev install** — the dev installs of `express` and `@modelcontextprotocol/sdk` resolve `body-parser` outside the ranges `npm audit` currently reports (`<1.20.9` and `>=2.0.0 <2.4.0`). The optional peer ranges stay. The scanner does not open a server. If a patched release cannot be installed without a new hard dependency, this item is left out of the release.
+### Experimental (`FULLSHIELD_EXPERIMENTAL_BROWSER`)
+
+- **Browser-automation control** — `scan --experimental-browser` sets the flag. With the flag on, `SAST-BROWSER-001` fires when a file imports `puppeteer`, `puppeteer-core`, or `playwright` and `goto`, `setContent`, or `pdf` is passed request data. A string-literal URL or HTML body does not fire. A file that does not import one of those three packages does not fire. Flag off: this module is not loaded and default `scan --json` does not include this rule. It refuses to launch a browser. `clean-app` stays at 0 findings with the flag on.
+
+### Experimental (`FULLSHIELD_EXPERIMENTAL_DYNIMPORT`)
+
+- **Dynamic import of request data** — `scan --experimental-dynimport` sets the flag. With the flag on, `SAST-DYNIMPORT-001` fires when `import()` is called with request data. A string-literal specifier does not fire. An `import()` of a binding that is not request data does not fire. Flag off: this module is not loaded and default `scan --json` does not include this rule. It refuses to load the module. `clean-app` stays at 0 findings with the flag on.

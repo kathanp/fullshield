@@ -76,6 +76,10 @@ Stable rule ids are the rules whose front matter says `stability: stable`. Exper
 
 1.3.0 adds experimental phases behind their own flags. Stable scan fields in this file are unchanged. Default `scan --json` is unchanged.
 
+## 2.0.1
+
+2.0.1 does not change default `scan --json`. It adds five experimental scanners: HTTP header injection, mail header injection, spreadsheet formula injection, browser-automation control, and dynamic import of request data. Each stays off unless its flag is set. The finding fields in this file are unchanged. No stable rule id is removed.
+
 ## 1.8.0
 
 1.8.0 does not change default `scan --json`. A lockfile that does not parse no longer aborts the scan. The dev install of `body-parser` moves to 1.20.9 and 2.4.0. The finding fields in this file are unchanged.

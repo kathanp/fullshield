@@ -6703,3 +6703,67 @@ Flag: none. `stableChange: false`. DevDependencies only. Not packed. No scan fin
 Flag: none. `stableChange: false`. No new hard dependency. No scan finding. The scanner does not open a server.
 
 The dev install resolves every `body-parser` copy outside `<1.20.9` and outside `>=2.0.0 <2.4.0` (GHSA-27r3-jxmh-p828). `express` stays on the existing `^4.22.3` range, which already allows `body-parser@1.20.9`. `@modelcontextprotocol/sdk` stays inside the optional peer range `^1.32.1`; the devDependency may move to `1.32.2`. No `overrides` entry is added. If a patched release cannot be installed without a new hard dependency, this phase is parked.
+
+## 54. Version 2.0.1
+
+These phases are the approved `docs/FEATURES.md` for 2.0.1. A behavior that is not in that file is not in this section. No phase contacts a registry, opens a network connection, executes scanned code, sends mail, writes a file, or launches a browser. Default `scan --json` is unchanged. `stableChange: false`. No stable rule id is removed. `clean-app` stays at 0 findings with every new flag off and on. Two runs sort to the same bytes. A `--repo` run does not park. No new hard dependency. Request data is `req.query`, `req.body`, `req.params`, `req.headers`, or a binding of those. A string literal is not request data.
+
+### Phase 532 — HTTP header injection [`FULLSHIELD_EXPERIMENTAL_CRLF`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_CRLF`. CLI: `scan --experimental-crlf` sets the flag. Default is off. `stableChange: false`.
+
+Rule `SAST-CRLF-001`. Severity `high`. Confidence `high`. CWE-113 (https://cwe.mitre.org/data/definitions/113.html).
+
+With the flag on, the rule fires when `setHeader`, `append`, `header`, or `set` is called and the header value is request data. The value is the second argument, or a property value when the first argument is an object. `writeHead` fires when an argument is an object whose property value is request data. A string-literal value does not fire. A numeric status alone does not fire. A tainted header name with a literal value does not fire. A spread argument does not fire. The scanner does not send a response.
+
+Flag off: this module is not loaded.
+
+Acceptance: `res.setHeader('X-Name', req.query.name)` fires on that line. `res.setHeader('Content-Type', 'application/json')` does not. `res.writeHead(200)` does not. `res.writeHead(req.query.code)` does not. Two scans sort to the same bytes. `clean-app` stays at 0 findings with the flag on.
+
+### Phase 533 — Mail header injection [`FULLSHIELD_EXPERIMENTAL_MAIL`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_MAIL`. CLI: `scan --experimental-mail` sets the flag. Default is off. `stableChange: false`.
+
+Rule `SAST-MAIL-001`. Severity `high`. Confidence `high`. CWE-93 (https://cwe.mitre.org/data/definitions/93.html).
+
+With the flag on, the rule fires when the file imports `nodemailer`, `@sendgrid/mail`, or `mailgun.js` and `sendMail` or `send` is called with an object whose `to`, `cc`, `bcc`, `subject`, `from`, `replyTo`, `html`, or `text` is request data. A string-literal field does not fire. A call named `sendMail` or `send` in a file that does not import one of those three packages does not fire. A tainted argument that is not one of those fields does not fire. The scanner does not send mail.
+
+Flag off: this module is not loaded.
+
+Acceptance: `sendMail({ subject: req.query.subject })` in a file that imports `nodemailer` fires. `sendMail({ subject: 'hello' })` does not. The same call without one of the three imports does not. Two scans sort to the same bytes. `clean-app` stays at 0 findings with the flag on.
+
+### Phase 534 — Spreadsheet formula injection [`FULLSHIELD_EXPERIMENTAL_FORMULA`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_FORMULA`. CLI: `scan --experimental-formula` sets the flag. Default is off. `stableChange: false`.
+
+Rule `SAST-FORMULA-001`. Severity `high`. Confidence `high`. CWE-1236 (https://cwe.mitre.org/data/definitions/1236.html).
+
+With the flag on, the rule fires when the file imports `csv-stringify`, `fast-csv`, `json2csv`, or `csv` and `stringify`, `write`, `writeToPath`, or `format` is passed request data. It also fires when `writeFile` or `writeFileSync` writes request data to a path whose string literal ends with `.csv`, whether or not those packages are imported. A string-literal row does not fire. A `writeFile` of request data to a path that does not end in `.csv` does not fire. `write` of request data without one of those imports does not fire. The scanner does not write a file.
+
+Flag off: this module is not loaded.
+
+Acceptance: `stringify(req.body)` in a file that imports `csv-stringify` fires. `writeFile('out.csv', req.body)` fires. `writeFile('out.txt', req.body)` does not. `stringify('a,b')` does not. Two scans sort to the same bytes. `clean-app` stays at 0 findings with the flag on.
+
+### Phase 535 — Browser-automation control [`FULLSHIELD_EXPERIMENTAL_BROWSER`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_BROWSER`. CLI: `scan --experimental-browser` sets the flag. This is the existing phase 101 flag. Phase 101 rules stay as they are. Default is off. `stableChange: false`.
+
+Rule `SAST-BROWSER-001`. Severity `high`. Confidence `high`. `goto` and `pdf` use CWE-918 (https://cwe.mitre.org/data/definitions/918.html). `setContent` uses CWE-79 (https://cwe.mitre.org/data/definitions/79.html).
+
+With the flag on, the rule fires when the file imports `puppeteer`, `puppeteer-core`, `playwright`, or `@playwright/test` and `goto`, `setContent`, or `pdf` is passed request data, including a property of an options object. A string-literal URL or HTML body does not fire. A file that does not import one of those packages does not fire. A call with no argument does not fire. The scanner does not launch a browser.
+
+Flag off: this module is not loaded. Phase 101 stays off as well, because it is the same flag.
+
+Acceptance: `page.goto(req.query.url)` in a file that imports `puppeteer` fires with CWE-918. `page.setContent(req.body.html)` fires with CWE-79. `page.goto('https://example.com')` does not. The same `goto` without one of those imports does not. `vulnerable-app` and `clean-app` stay unchanged with the flag on. Two scans sort to the same bytes.
+
+### Phase 536 — Dynamic import of request data [`FULLSHIELD_EXPERIMENTAL_DYNIMPORT`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_DYNIMPORT`. CLI: `scan --experimental-dynimport` sets the flag. Default is off. `stableChange: false`.
+
+Rule `SAST-DYNIMPORT-001`. Severity `high`. Confidence `high`. CWE-829 (https://cwe.mitre.org/data/definitions/829.html).
+
+With the flag on, the rule fires when `import()` is called with request data. A string-literal specifier does not fire. An `import()` of a binding that is not request data does not fire. The scanner does not load the module.
+
+Flag off: this module is not loaded.
+
+Acceptance: `import(req.query.mod)` fires. `import('./local.js')` does not. `import(name)` where `name` is a string literal does not. Two scans sort to the same bytes. `clean-app` stays at 0 findings with the flag on.
