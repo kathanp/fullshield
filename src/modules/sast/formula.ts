@@ -6,6 +6,12 @@ import type { AstNode } from './types.js';
 
 const CSV_IMPORT = /(?:from|require\()\s*['"](?:csv-stringify|fast-csv|json2csv|csv)(?:\/[^'"]*)?['"]/;
 const WRITERS = new Set(['stringify', 'write', 'writeToPath', 'format']);
+const RESPONSE_NAMES = new Set(['res', 'resp', 'response', 'reply']);
+
+function receiverName(callee: AstNode): string | undefined {
+  if (callee.type !== 'MemberExpression' || callee.object.type !== 'Identifier') {return undefined;}
+  return callee.object.name;
+}
 
 function argTainted(node: AstNode, facts: WeakMap<AstNode, ScopeFacts>): boolean {
   if (node.type !== 'CallExpression') {return false;}
@@ -27,11 +33,18 @@ function csvWrite(node: AstNode, facts: WeakMap<AstNode, ScopeFacts>): boolean {
   return text !== undefined && text.endsWith('.csv') && nodeIsTainted(data, facts);
 }
 
+function responseWriter(callee: AstNode, name: string): boolean {
+  if (name !== 'write' && name !== 'format') {return false;}
+  const receiver = receiverName(callee);
+  return receiver !== undefined && RESPONSE_NAMES.has(receiver);
+}
+
 function formulaCall(node: AstNode, facts: WeakMap<AstNode, ScopeFacts>, imported: boolean): boolean {
   if (csvWrite(node, facts)) {return true;}
   if (!imported || node.type !== 'CallExpression') {return false;}
   const name = calleeName(node);
-  return name !== undefined && WRITERS.has(name) && argTainted(node, facts);
+  if (name === undefined || !WRITERS.has(name) || responseWriter(node.callee, name)) {return false;}
+  return argTainted(node, facts);
 }
 
 function formulaHit(filename: string, source: string, node: AstNode): Finding {

@@ -68,6 +68,17 @@ describe('phase 533 mail header injection', () => {
     expect(result.findings).toEqual([]);
   });
 
+  it('does not treat res.send as mail', async () => {
+    process.env[FLAG] = '1';
+    const nodemailerSend = `${nodemailer}function go(req) { transporter.send({ text: req.query.text }); }\n`;
+    expect(await ids(nodemailerSend)).toContain('SAST-MAIL-001');
+    expect(await ids(`${nodemailer}function go(req) { res.send({ to: req.query.to }); }\n`)).not.toContain('SAST-MAIL-001');
+    expect(await ids(`${nodemailer}function go(req) { fn.send({ subject: req.query.subject }); }\n`)).not.toContain('SAST-MAIL-001');
+    expect(await ids(`${nodemailer}function go(req) { mailer.send({ text: req.query.text }); }\n`)).toContain('SAST-MAIL-001');
+    expect(await ids(`${nodemailer}function go(req) { send({ to: req.query.to }); }\n`)).not.toContain('SAST-MAIL-001');
+    expect(await ids(`${nodemailer}function go(req) { app.mail.send({ to: req.query.to }); }\n`)).not.toContain('SAST-MAIL-001');
+  });
+
   it('is byte-identical across two runs', async () => {
     process.env[FLAG] = '1';
     const code = `${nodemailer}function go(req) { mail.sendMail({ subject: req.query.subject }); }\n`;

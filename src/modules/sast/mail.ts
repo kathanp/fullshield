@@ -7,11 +7,24 @@ import type { AstNode } from './types.js';
 const MAIL_IMPORT = /(?:from|require\()\s*['"](?:nodemailer|@sendgrid\/mail|mailgun\.js)(?:\/[^'"]*)?['"]/;
 const METHODS = new Set(['sendMail', 'send']);
 const FIELDS = new Set(['to', 'cc', 'bcc', 'subject', 'from', 'replyTo', 'html', 'text']);
+const MAIL_RECEIVERS = new Set(['mail', 'transporter', 'transport', 'sg', 'mg']);
+
+function receiverName(callee: AstNode): string | undefined {
+  if (callee.type !== 'MemberExpression' || callee.object.type !== 'Identifier') {return undefined;}
+  return callee.object.name;
+}
+
+function sendReceiverOk(callee: AstNode, name: string): boolean {
+  if (name === 'sendMail') {return true;}
+  const receiver = receiverName(callee);
+  if (receiver === undefined) {return false;}
+  return MAIL_RECEIVERS.has(receiver) || receiver.toLowerCase().includes('mail');
+}
 
 function mailCallTainted(node: AstNode, facts: WeakMap<AstNode, ScopeFacts>): boolean {
   if (node.type !== 'CallExpression') {return false;}
   const name = calleeName(node);
-  if (name === undefined || !METHODS.has(name)) {return false;}
+  if (name === undefined || !METHODS.has(name) || !sendReceiverOk(node.callee, name)) {return false;}
   for (const arg of node.arguments) {
     if (arg.type === 'SpreadElement') {continue;}
     if (namedValueTainted(arg, facts, FIELDS)) {return true;}

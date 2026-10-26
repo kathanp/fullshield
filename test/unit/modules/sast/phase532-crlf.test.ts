@@ -86,6 +86,16 @@ describe('phase 532 HTTP header injection', () => {
     expect(result.findings).toEqual([]);
   });
 
+  it('does not treat cache, map, or session set as a header', async () => {
+    process.env[FLAG] = '1';
+    expect(await ids('function go(req) { reply.set("X-Name", req.query.name); }\n')).toContain('SAST-CRLF-001');
+    expect(await ids('function go(req) { cache.set("k", req.query.name); }\n')).not.toContain('SAST-CRLF-001');
+    expect(await ids('function go(req) { map.set("k", req.query.name); }\n')).not.toContain('SAST-CRLF-001');
+    expect(await ids('function go(req) { session.set("k", req.query.name); }\n')).not.toContain('SAST-CRLF-001');
+    expect(await ids('function go(req) { set("X-Name", req.query.name); }\n')).not.toContain('SAST-CRLF-001');
+    expect(await ids('function go(req) { app.res.set("X-Name", req.query.name); }\n')).not.toContain('SAST-CRLF-001');
+  });
+
   it('is byte-identical across two runs', async () => {
     process.env[FLAG] = '1';
     const code = 'function go(req) { res.setHeader("X-Name", req.query.name); }\n';
