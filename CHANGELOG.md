@@ -2,6 +2,13 @@
 
 All notable changes to FullShield are documented here.
 
+## 1.8.0 — 2026-10-25
+
+### Fixes
+
+- Phase 529: a `package-lock.json`, `npm-shrinkwrap.json`, `pnpm-lock.yaml`, `yarn.lock`, or the same file in a workspace, that cannot be parsed does not abort the scan. Secrets, SAST, and config still run. A lockfile that parses keeps the same findings.
+- Phase 531: the dev installs of `express` and `@modelcontextprotocol/sdk` resolve `body-parser` at 1.20.9 and 2.4.0, outside GHSA-27r3-jxmh-p828. No new runtime dependency. The scanner does not open a server.
+
 ## 1.7.0 — 2026-10-25
 
 ### New/changed stable findings — may change CI results; use --update-baseline
