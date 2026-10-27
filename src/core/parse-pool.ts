@@ -1,27 +1,30 @@
 import { createHash } from 'node:crypto';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { availableParallelism, homedir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { Worker } from 'node:worker_threads';
 import { fileURLToPath } from 'node:url';
 
 import { LruMap } from '../runtime/lru.js';
+import { perf2Enabled } from './perf2.js';
 import { packageVersion } from './version.js';
 
 const workerUrl = new URL('./parse-worker.mjs', import.meta.url);
-const cache = new LruMap<string, unknown>(64);
+const memory = new LruMap<string, unknown>(64);
 
 export function parsePoolEnabled(): boolean {
-  return process.env.FULLSHIELD_PARSE_POOL === '1';
+  return perf2Enabled() || process.env.FULLSHIELD_PARSE_POOL === '1';
 }
 
-/** Explicit `FULLSHIELD_PARSE_WORKERS` is capped at 4. The default is at most 2. */
+/** Default `max(1, CPUs − 1)`. `FULLSHIELD_PARSE_WORKERS` is a positive integer cap. */
 export function parsePoolSize(): number {
+  const cores = Math.max(1, availableParallelism() - 1);
   const raw = process.env.FULLSHIELD_PARSE_WORKERS;
   if (raw !== undefined && raw !== '') {
     const parsed = Number(raw);
-    if (Number.isFinite(parsed) && parsed >= 1) {return Math.min(4, Math.floor(parsed));}
+    if (Number.isFinite(parsed) && parsed >= 1) {return Math.min(cores, Math.floor(parsed));}
   }
-  return Math.min(2, Math.max(1, availableParallelism() - 1));
+  return cores;
 }
 
 function workerMemoryMb(): number {
@@ -33,17 +36,39 @@ function workerMemoryMb(): number {
 
 /** On-disk parse cache. Taint summaries live in a subdirectory of this path. */
 export function parseCacheDir(): string {
-  return join(homedir(), '.cache', 'fullshield', 'parse');
+  return process.env.FULLSHIELD_PARSE_CACHE_DIR ?? join(homedir(), '.cache', 'fullshield', 'parse');
 }
 
 export function parseCacheKey(code: string): string {
   return createHash('sha256').update(packageVersion()).update('\0').update(code).digest('hex');
 }
 
-function parseOne(code: string): Promise<unknown> {
-  const key = parseCacheKey(code);
-  const hit = cache.get(key);
-  if (hit !== undefined) {return Promise.resolve(hit);}
+function diskPath(key: string): string {
+  return join(parseCacheDir(), 'ast', key.slice(0, 2), `${key}.json`);
+}
+
+async function readDisk(key: string): Promise<{ ast: unknown } | undefined> {
+  if (!perf2Enabled()) {return undefined;}
+  try {
+    const text = await readFile(diskPath(key), 'utf8');
+    return { ast: JSON.parse(text) as unknown };
+  } catch {
+    return undefined;
+  }
+}
+
+async function writeDisk(key: string, ast: unknown): Promise<void> {
+  if (!perf2Enabled() || ast === undefined || ast === null) {return;}
+  try {
+    const path = diskPath(key);
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(path, JSON.stringify(ast), 'utf8');
+  } catch {
+    // Cache write is best-effort.
+  }
+}
+
+function parseOnWorker(code: string): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const worker = new Worker(fileURLToPath(workerUrl), {
       workerData: { code },
@@ -56,7 +81,6 @@ function parseOne(code: string): Promise<unknown> {
     const succeed = (ast: unknown): void => {
       if (settled) {return;}
       settled = true;
-      cache.set(key, ast);
       finish();
       resolve(ast);
     };
@@ -72,12 +96,26 @@ function parseOne(code: string): Promise<unknown> {
     worker.once('error', (error: Error) => {
       fail(error);
     });
-    // terminate() after a message also emits exit. Ignore that one.
     worker.once('exit', (code) => {
       if (settled) {return;}
       fail(new Error(`parse worker exited ${code ?? 'null'}`));
     });
   });
+}
+
+async function parseOne(code: string): Promise<unknown> {
+  const key = parseCacheKey(code);
+  const hit = memory.get(key);
+  if (hit !== undefined) {return hit;}
+  const disk = await readDisk(key);
+  if (disk !== undefined) {
+    memory.set(key, disk.ast);
+    return disk.ast;
+  }
+  const ast = await parseOnWorker(code);
+  memory.set(key, ast);
+  await writeDisk(key, ast);
+  return ast;
 }
 
 /** Parse sources on a worker pool. Results are cached by content hash and FullShield version. */

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 import type { ScanModule } from '../../core/engine.js';
 import { makeFindingId, type Finding } from '../../core/finding.js';
-import { assignedNameOf, walk } from './ast.js';
+import { assignedNameOf, attachParents, walk } from './ast.js';
 import { crypto2Enabled, modelsEnabled, tlsEnabled, sstiEnabled, webhookEnabled, session2Enabled, logLeakEnabled, nextEnabled, browserEnabled, idorEnabled } from './experimental.js';
 import { modelSinkFindings, resolveModelPacks, setActiveModels } from './models.js';
 import { collectRequires, runInterproc, type ParsedSource } from './interproc.js';
@@ -62,7 +62,6 @@ import type { AstNode, RuleContext, SastRule } from './types.js';
 import { scanPromptInjection } from '../../ai/injection.js';
 import { budgetArmed, budgetExpired, markTaintStopped } from '../../core/budget.js';
 import { parsePoolEnabled, parseWithPool } from '../../core/parse-pool.js';
-import { perf2Enabled } from '../../core/perf2.js';
 import { sharedAstActive, sharedParse } from '../../core/shared-ast.js';
 import { clearTaintWalk, lazyTaintFiles } from './lazy-taint.js';
 import { semgrepRulesEnabled } from './semgrep/flag.js';
@@ -110,69 +109,101 @@ function snippetOf(source: string, node: AstNode): string {
   return source.slice(node.range[0], node.range[1]).replace(/\s+/g, ' ').trim().slice(0, 120);
 }
 
+export type FindingsAstOptions = {
+  extraReturners?: ReadonlySet<string>;
+  projectCsrfProtected?: boolean;
+  skipTaint?: boolean;
+};
+
+function scopeFacts(
+  ast: AstNode,
+  extraReturners: ReadonlySet<string>,
+  skipTaint: boolean,
+): WeakMap<AstNode, ScopeFacts> {
+  if (!skipTaint) {return analyzeFile(ast, extraReturners);}
+  // Parent links are required by non-taint rules (e.g. TLS medium for a NODE_ENV guard).
+  attachParents(ast);
+  return new WeakMap<AstNode, ScopeFacts>();
+}
+
+function rulesForFile(filename: string, source: string): SastRule[] {
+  const browserFile = browserEnabled() && isBrowserSource(filename, source);
+  const rules: SastRule[] = browserFile
+    ? [domRule, reactRule, postMessageRule, tokenStoreRule]
+    : [...sastRules];
+  if (tlsEnabled()) {rules.push(...tlsRules);}
+  if (crypto2Enabled()) {rules.push(...crypto2Rules);}
+  if (browserFile) {return rules;}
+  if (sstiEnabled()) {rules.push(sstiRule);}
+  if (logLeakEnabled()) {rules.push(logLeakRule);}
+  if (webhookEnabled()) {rules.push(webhookRule);}
+  if (session2Enabled()) {rules.push(sessionRule);}
+  if (idorEnabled()) {rules.push(idorRule);}
+  if (nextEnabled()) {rules.push(nextServerRule);}
+  return rules;
+}
+
+function ruleContext(
+  filename: string,
+  source: string,
+  facts: WeakMap<AstNode, ScopeFacts>,
+  findings: Finding[],
+  opts: { rule: SastRule; projectCsrfProtected: boolean },
+): RuleContext {
+  const { rule, projectCsrfProtected } = opts;
+  return {
+    filename,
+    source,
+    report: ({ node, message, confidence, severity, context }) => {
+      const snippet = snippetOf(source, node);
+      findings.push({
+        id: makeFindingId(rule.meta.id, filename, `${node.loc?.start.line ?? 0}|${snippet}`),
+        ruleId: rule.meta.id,
+        module: 'sast',
+        title: rule.meta.title,
+        severity: severity ?? rule.meta.severity,
+        confidence: confidence ?? 'high',
+        cwe: rule.meta.cwe,
+        file: filename,
+        line: node.loc?.start.line,
+        column: node.loc?.start.column,
+        snippet,
+        message,
+        remediation: `${rule.meta.title}. See ${rule.meta.docs}`,
+        references: [rule.meta.docs, rule.meta.cwe],
+        ...(context !== undefined ? { context } : {}),
+        ...(rule.meta.id === 'SAST-IDOR-001' ? { source: 'rule' as const } : {}),
+      });
+    },
+    isTainted: (node) => nodeIsTainted(node, facts),
+    isSqlCleared: (node) => nodeIsSqlCleared(node, facts),
+    isPathSanitized: (node) => nodeIsPathSanitized(node, facts),
+    isSanitizedFor: (node, kind) => nodeIsSanitizedFor(node, facts, kind),
+    isNosqlSanitized: (node) => nodeIsNosqlSanitized(node, facts),
+    isRequestObject: (node) => nodeIsRequestObject(node, facts),
+    holdsBuiltFilter: (node) => nodeHoldsBuiltFilter(node, facts),
+    functionHasPasswordName: (node) => factsFor(node, facts).hasPasswordName,
+    assignedName: (node) => assignedNameOf(node),
+    projectCsrfProtected,
+  };
+}
+
 export function findingsFromAst(
   filename: string,
   source: string,
   ast: AstNode,
-  extraReturners: ReadonlySet<string> = new Set(),
-  projectCsrfProtected = false,
-  skipTaint = false,
+  options: FindingsAstOptions = {},
 ): Finding[] {
-  const facts: WeakMap<AstNode, ScopeFacts> = skipTaint
-    ? new WeakMap<AstNode, ScopeFacts>()
-    : analyzeFile(ast, extraReturners);
+  const extraReturners = options.extraReturners ?? new Set<string>();
+  const facts = scopeFacts(ast, extraReturners, options.skipTaint === true);
   const findings: Finding[] = [];
-
-  const browserFile = browserEnabled() && isBrowserSource(filename, source);
-  const activeRules = [
-    ...(browserFile ? [] : sastRules),
-    ...(tlsEnabled() ? tlsRules : []),
-    ...(crypto2Enabled() ? crypto2Rules : []),
-    ...(sstiEnabled() && !browserFile ? [sstiRule] : []),
-    ...(logLeakEnabled() && !browserFile ? [logLeakRule] : []),
-    ...(webhookEnabled() && !browserFile ? [webhookRule] : []),
-    ...(session2Enabled() && !browserFile ? [sessionRule] : []),
-    ...(idorEnabled() && !browserFile ? [idorRule] : []),
-    ...(nextEnabled() && !browserFile ? [nextServerRule] : []),
-    ...(browserFile ? [domRule, reactRule, postMessageRule, tokenStoreRule] : []),
-  ];
-  for (const rule of activeRules) {
-    const ctx: RuleContext = {
-      filename,
-      source,
-      report: ({ node, message, confidence, severity, context }) => {
-        const snippet = snippetOf(source, node);
-        findings.push({
-          id: makeFindingId(rule.meta.id, filename, `${node.loc?.start.line ?? 0}|${snippet}`),
-          ruleId: rule.meta.id,
-          module: 'sast',
-          title: rule.meta.title,
-          severity: severity ?? rule.meta.severity,
-          confidence: confidence ?? 'high',
-          cwe: rule.meta.cwe,
-          file: filename,
-          line: node.loc?.start.line,
-          column: node.loc?.start.column,
-          snippet,
-          message,
-          remediation: `${rule.meta.title}. See ${rule.meta.docs}`,
-          references: [rule.meta.docs, rule.meta.cwe],
-          ...(context !== undefined ? { context } : {}),
-          ...(rule.meta.id === 'SAST-IDOR-001' ? { source: 'rule' as const } : {}),
-        });
-      },
-      isTainted: (node) => nodeIsTainted(node, facts),
-      isSqlCleared: (node) => nodeIsSqlCleared(node, facts),
-      isPathSanitized: (node) => nodeIsPathSanitized(node, facts),
-      isSanitizedFor: (node, kind) => nodeIsSanitizedFor(node, facts, kind),
-      isNosqlSanitized: (node) => nodeIsNosqlSanitized(node, facts),
-      isRequestObject: (node) => nodeIsRequestObject(node, facts),
-      holdsBuiltFilter: (node) => nodeHoldsBuiltFilter(node, facts),
-      functionHasPasswordName: (node) => factsFor(node, facts).hasPasswordName,
-      assignedName: (node) => assignedNameOf(node),
-      projectCsrfProtected,
-    };
-    const visitors = rule.create(ctx);
+  for (const rule of rulesForFile(filename, source)) {
+    const visitors = rule.create(
+      ruleContext(filename, source, facts, findings, {
+        rule,
+        projectCsrfProtected: options.projectCsrfProtected === true,
+      }),
+    );
     walk(ast, (node) => {
       visitors[node.type]?.(node);
     });
@@ -406,19 +437,30 @@ function extraReturners(
   return extra;
 }
 
-async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<Finding[]> {
-  if (haltTaint(ctx.files.filter((rel) => SOURCE_EXT.test(rel)).length)) {return [];}
+type StreamingLoad = {
+  findings: Finding[];
+  parseable: string[];
+  fileSet: Set<string>;
+  templates: { rel: string; source: string }[];
+  swigViews: Map<string, SwigViewTaint>;
+  lazyEntries: { file: string; source: string }[];
+  projectCsrf: boolean;
+  viewEngine: string | undefined;
+};
+
+async function loadStreamingInputs(ctx: Parameters<ScanModule['run']>[0]): Promise<StreamingLoad> {
   const maxBytes = ctx.config.sast.maxFileBytes;
   const viewEngine = await projectViewEngine(ctx);
-  const findings: Finding[] = [];
-  const returning = new Map<string, Set<string>>();
-  const parseable: string[] = [];
-  const fileSet = new Set<string>();
-  const templates: { rel: string; source: string }[] = [];
-  const swigViews = new Map<string, SwigViewTaint>();
-  const lazyEntries: { file: string; source: string }[] = [];
-  let projectCsrf = false;
-
+  const load: StreamingLoad = {
+    findings: [],
+    parseable: [],
+    fileSet: new Set(),
+    templates: [],
+    swigViews: new Map(),
+    lazyEntries: [],
+    projectCsrf: false,
+    viewEngine,
+  };
   for (const rel of ctx.files) {
     const isSource = SOURCE_EXT.test(rel);
     const isTemplate = TEMPLATE_EXT.test(rel) || (viewEngine === 'swig' && /\.(swig|html)$/.test(rel));
@@ -427,79 +469,102 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
     if (source === undefined) {continue;}
     const why = skipReason(source, maxBytes);
     if (why !== undefined) {
-      findings.push(skipFinding(rel, `Skipped ${rel}: ${why}.`));
+      load.findings.push(skipFinding(rel, `Skipped ${rel}: ${why}.`));
       continue;
     }
-    if (sourceHasCsrfGuard(source)) {projectCsrf = true;}
+    if (sourceHasCsrfGuard(source)) {load.projectCsrf = true;}
     if (isTemplate) {
-      templates.push({ rel, source });
+      load.templates.push({ rel, source });
       continue;
     }
     const ast = await parseCode(source, rel);
     if (ast === undefined) {continue;}
-    if (viewEngine === 'swig') {mergeSwigViews(swigViews, taintedSwigViews([{ ast }]));}
-    parseable.push(rel);
-    fileSet.add(rel);
-    if (perf2Enabled()) {lazyEntries.push({ file: rel, source });}
-    else {returning.set(rel, taintSummariesEnabled() ? cachedReturners(source, ast) : functionsThatReturnTaint(ast));}
+    if (viewEngine === 'swig') {mergeSwigViews(load.swigViews, taintedSwigViews([{ ast }]));}
+    load.parseable.push(rel);
+    load.fileSet.add(rel);
+    load.lazyEntries.push({ file: rel, source });
   }
+  return load;
+}
 
-  const streamedWalk = perf2Enabled() ? lazyTaintFiles(lazyEntries) : undefined;
-
-  if (streamedWalk !== undefined) {
-    for (const rel of parseable) {
-      if (!streamedWalk.has(rel)) {continue;}
-      const source = await readScanSource(ctx.cwd, rel);
-      if (source === undefined) {continue;}
-      const ast = await parseCode(source, rel);
-      if (ast === undefined) {continue;}
-      returning.set(rel, taintSummariesEnabled() ? cachedReturners(source, ast) : functionsThatReturnTaint(ast));
-    }
-  }
-
+async function scanStreamingFiles(
+  ctx: Parameters<ScanModule['run']>[0],
+  load: StreamingLoad,
+  walked: ReadonlySet<string>,
+  returning: Map<string, Set<string>>,
+): Promise<boolean> {
   let taintStopped = false;
-  for (let index = 0; index < parseable.length; index += 1) {
-    if (haltTaint(parseable.length - index)) {
+  for (let index = 0; index < load.parseable.length; index += 1) {
+    if (haltTaint(load.parseable.length - index)) {
       taintStopped = true;
       break;
     }
-    const rel = parseable[index];
+    const rel = load.parseable[index];
     if (rel === undefined) {continue;}
     const source = await readScanSource(ctx.cwd, rel);
     if (source === undefined) {continue;}
     const ast = await parseCode(source, rel);
     if (ast === undefined) {continue;}
-    const skip = streamedWalk !== undefined && !streamedWalk.has(rel);
+    const skip = !walked.has(rel);
     if (!skip && !returning.has(rel)) {
       returning.set(rel, taintSummariesEnabled() ? cachedReturners(source, ast) : functionsThatReturnTaint(ast));
     }
-    findings.push(
-      ...findingsFromAst(rel, source, ast, extraReturners(rel, ast, fileSet, returning), projectCsrf, skip),
+    load.findings.push(
+      ...findingsFromAst(rel, source, ast, {
+        extraReturners: extraReturners(rel, ast, load.fileSet, returning),
+        projectCsrfProtected: load.projectCsrf,
+        skipTaint: skip,
+      }),
     );
   }
+  return taintStopped;
+}
 
+async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<Finding[]> {
+  if (haltTaint(ctx.files.filter((rel) => SOURCE_EXT.test(rel)).length)) {return [];}
+  const load = await loadStreamingInputs(ctx);
+  const walked = lazyTaintFiles(load.lazyEntries);
+  const returning = new Map<string, Set<string>>();
+  for (const rel of load.parseable) {
+    if (!walked.has(rel)) {continue;}
+    const source = await readScanSource(ctx.cwd, rel);
+    if (source === undefined) {continue;}
+    const ast = await parseCode(source, rel);
+    if (ast === undefined) {continue;}
+    returning.set(rel, taintSummariesEnabled() ? cachedReturners(source, ast) : functionsThatReturnTaint(ast));
+  }
+  let taintStopped = await scanStreamingFiles(ctx, load, walked, returning);
   if (!taintStopped && haltTaint(0)) {taintStopped = true;}
   if (!taintStopped) {
-    const batch = sastBatchSize();
-    for (let i = 0; i < parseable.length; i += batch) {
-      const parsed: ParsedSource[] = [];
-      for (const rel of parseable.slice(i, i + batch)) {
-        if (streamedWalk !== undefined && !streamedWalk.has(rel)) {continue;}
-        const source = await readScanSource(ctx.cwd, rel);
-        if (source === undefined) {continue;}
-        const ast = await parseCode(source, rel);
-        if (ast === undefined) {continue;}
-        parsed.push({ file: rel, source, ast });
-      }
-      findings.push(...runInterproc(parsed));
-      findings.push(...crossFileReturnFindings(parsed));
-      releaseParsed(parsed);
+    await appendStreamingInterproc(ctx, load.parseable, walked, load.findings);
+  }
+  for (const template of load.templates) {
+    load.findings.push(...findingsFromTemplate(template.rel, template.source, load.viewEngine, load.swigViews));
+  }
+  return dedupeSastSinks(load.findings);
+}
+
+async function appendStreamingInterproc(
+  ctx: Parameters<ScanModule['run']>[0],
+  parseable: readonly string[],
+  walked: ReadonlySet<string>,
+  findings: Finding[],
+): Promise<void> {
+  const batch = sastBatchSize();
+  for (let i = 0; i < parseable.length; i += batch) {
+    const parsed: ParsedSource[] = [];
+    for (const rel of parseable.slice(i, i + batch)) {
+      if (!walked.has(rel)) {continue;}
+      const source = await readScanSource(ctx.cwd, rel);
+      if (source === undefined) {continue;}
+      const ast = await parseCode(source, rel);
+      if (ast === undefined) {continue;}
+      parsed.push({ file: rel, source, ast });
     }
+    findings.push(...runInterproc(parsed));
+    findings.push(...crossFileReturnFindings(parsed));
+    releaseParsed(parsed);
   }
-  for (const template of templates) {
-    findings.push(...findingsFromTemplate(template.rel, template.source, viewEngine, swigViews));
-  }
-  return dedupeSastSinks(findings);
 }
 
 async function withUserSemgrep(ctx: Parameters<ScanModule['run']>[0], findings: Finding[]): Promise<Finding[]> {
@@ -563,101 +628,130 @@ async function loadBreadthProject(cwd: string): Promise<void> {
   });
 }
 
+function applyCustomSanitizers(ctx: Parameters<ScanModule['run']>[0]): void {
+  if (process.env.FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS !== '1') {
+    setCustomTaint(undefined);
+    return;
+  }
+  const sources = new Set((ctx.config.sast.sources ?? []).map((row) => row.callee));
+  const sanitizers = new Map<string, Set<string>>();
+  for (const row of ctx.config.sast.sanitizers ?? []) {
+    const classes = sanitizers.get(row.callee) ?? new Set<string>();
+    for (const name of row.clears) {classes.add(name);}
+    sanitizers.set(row.callee, classes);
+  }
+  setCustomTaint({ sources, sanitizers });
+}
+
+function returnersFor(entry: ParsedSource): Set<string> {
+  return taintSummariesEnabled() ? cachedReturners(entry.source, entry.ast) : functionsThatReturnTaint(entry.ast);
+}
+
+async function collectBatchParsed(
+  ctx: Parameters<ScanModule['run']>[0],
+  viewEngine: string | undefined,
+  candidates: readonly string[],
+  findings: Finding[],
+): Promise<{ parsed: ParsedSource[]; templates: { rel: string; source: string }[] }> {
+  const maxBytes = ctx.config.sast.maxFileBytes;
+  const parsed: ParsedSource[] = [];
+  const templates: { rel: string; source: string }[] = [];
+  for (const rel of candidates) {
+    const source = await readScanSource(ctx.cwd, rel);
+    if (source === undefined) {continue;}
+    const why = skipReason(source, maxBytes);
+    if (why !== undefined) {
+      findings.push(skipFinding(rel, `Skipped ${rel}: ${why}.`));
+      continue;
+    }
+    if (TEMPLATE_EXT.test(rel) || (viewEngine === 'swig' && /\.(swig|html)$/.test(rel))) {
+      templates.push({ rel, source });
+      continue;
+    }
+    const ast = await parseCode(source, rel);
+    if (ast === undefined) {continue;}
+    parsed.push({ file: rel, source, ast });
+  }
+  return { parsed, templates };
+}
+
+function appendBatchFindings(
+  parsed: readonly ParsedSource[],
+  walked: ReadonlySet<string>,
+  returning: Map<string, Set<string>>,
+  projectCsrf: boolean,
+  findings: Finding[],
+): boolean {
+  const files = new Set(parsed.map((p) => p.file));
+  let taintStopped = false;
+  for (let index = 0; index < parsed.length; index += 1) {
+    if (haltTaint(parsed.length - index)) {
+      taintStopped = true;
+      break;
+    }
+    const entry = parsed[index];
+    if (entry === undefined) {continue;}
+    findings.push(
+      ...findingsFromAst(entry.file, entry.source, entry.ast, {
+        extraReturners: extraReturners(entry.file, entry.ast, files, returning),
+        projectCsrfProtected: projectCsrf,
+        skipTaint: !walked.has(entry.file),
+      }),
+    );
+  }
+  return taintStopped;
+}
+
+async function runSastBatch(
+  ctx: Parameters<ScanModule['run']>[0],
+  viewEngine: string | undefined,
+  candidates: readonly string[],
+): Promise<Finding[]> {
+  const findings: Finding[] = [];
+  const { parsed, templates } = await collectBatchParsed(ctx, viewEngine, candidates, findings);
+  const walked = lazyTaintFiles(parsed);
+  const projectCsrf = parsed.some((p) => sourceHasCsrfGuard(p.source));
+  const returning = new Map<string, Set<string>>();
+  for (const entry of parsed) {
+    if (!walked.has(entry.file)) {continue;}
+    returning.set(entry.file, returnersFor(entry));
+  }
+  setAuthProject(new Map(parsed.map((entry) => [entry.file, entry.ast])));
+  setBreadthSources(new Map(parsed.map((entry) => [entry.file, entry.source])));
+  let taintStopped = appendBatchFindings(parsed, walked, returning, projectCsrf, findings);
+  if (!taintStopped && haltTaint(0)) {taintStopped = true;}
+  if (!taintStopped) {
+    const interprocInput = parsed.filter((entry) => walked.has(entry.file));
+    findings.push(...runInterproc(interprocInput));
+    findings.push(...crossFileReturnFindings(interprocInput));
+  }
+  const swigViews = viewEngine === 'swig' ? taintedSwigViews(parsed) : undefined;
+  for (const template of templates) {
+    findings.push(...findingsFromTemplate(template.rel, template.source, viewEngine, swigViews));
+  }
+  const out = dedupeSastSinks(findings);
+  releaseParsed(parsed);
+  return out;
+}
+
 export const sastModule: ScanModule = {
   name: 'sast',
   async run(ctx) {
-    if (process.env.FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS === '1') {
-      const sources = new Set((ctx.config.sast.sources ?? []).map((row) => row.callee));
-      const sanitizers = new Map<string, Set<string>>();
-      for (const row of ctx.config.sast.sanitizers ?? []) {
-        const classes = sanitizers.get(row.callee) ?? new Set<string>();
-        for (const name of row.clears) {classes.add(name);}
-        sanitizers.set(row.callee, classes);
-      }
-      setCustomTaint({ sources, sanitizers });
-    } else {
-      setCustomTaint(undefined);
-    }
+    applyCustomSanitizers(ctx);
     setTaintSummaryConfig(taintSummariesEnabled() ? ctx.config : undefined);
     clearTaintWalk();
     setActiveModels(modelsEnabled() ? resolveModelPacks(ctx.cwd).active : undefined);
     try {
-    await loadBreadthProject(ctx.cwd);
-    const viewEngine = await projectViewEngine(ctx);
-    const candidates = ctx.files.filter(
-      (rel) => SOURCE_EXT.test(rel) || TEMPLATE_EXT.test(rel) || (viewEngine === 'swig' && /\.(swig|html)$/.test(rel)),
-    );
-    if (candidates.length > sastStreamThreshold()) {
-      return await withUserSemgrep(ctx, await runSastStreaming(ctx));
-    }
-    if (haltTaint(candidates.filter((rel) => SOURCE_EXT.test(rel)).length)) {return [];}
-
-    const maxBytes = ctx.config.sast.maxFileBytes;
-    const findings: Finding[] = [];
-    const parsed: ParsedSource[] = [];
-    const templates: { rel: string; source: string }[] = [];
-    for (const rel of candidates) {
-      const source = await readScanSource(ctx.cwd, rel);
-      if (source === undefined) {continue;}
-      const why = skipReason(source, maxBytes);
-      if (why !== undefined) {
-        findings.push(skipFinding(rel, `Skipped ${rel}: ${why}.`));
-        continue;
-      }
-      if (TEMPLATE_EXT.test(rel) || (viewEngine === 'swig' && /\.(swig|html)$/.test(rel))) {
-        templates.push({ rel, source });
-        continue;
-      }
-      const ast = await parseCode(source, rel);
-      if (ast === undefined) {continue;}
-      parsed.push({ file: rel, source, ast });
-    }
-    const files = new Set(parsed.map((p) => p.file));
-    const walked = perf2Enabled() ? lazyTaintFiles(parsed) : undefined;
-    const projectCsrf = parsed.some((p) => sourceHasCsrfGuard(p.source));
-    const returning = new Map<string, Set<string>>();
-    for (const entry of parsed) {
-      if (walked !== undefined && !walked.has(entry.file)) {continue;}
-      returning.set(
-        entry.file,
-        taintSummariesEnabled() ? cachedReturners(entry.source, entry.ast) : functionsThatReturnTaint(entry.ast),
+      await loadBreadthProject(ctx.cwd);
+      const viewEngine = await projectViewEngine(ctx);
+      const candidates = ctx.files.filter(
+        (rel) => SOURCE_EXT.test(rel) || TEMPLATE_EXT.test(rel) || (viewEngine === 'swig' && /\.(swig|html)$/.test(rel)),
       );
-    }
-    setAuthProject(new Map(parsed.map((entry) => [entry.file, entry.ast])));
-    setBreadthSources(new Map(parsed.map((entry) => [entry.file, entry.source])));
-    let taintStopped = false;
-    for (let index = 0; index < parsed.length; index += 1) {
-      if (haltTaint(parsed.length - index)) {
-        taintStopped = true;
-        break;
+      if (candidates.length > sastStreamThreshold()) {
+        return await withUserSemgrep(ctx, await runSastStreaming(ctx));
       }
-      const entry = parsed[index];
-      if (entry === undefined) {continue;}
-      const skip = walked !== undefined && !walked.has(entry.file);
-      findings.push(
-        ...findingsFromAst(
-          entry.file,
-          entry.source,
-          entry.ast,
-          extraReturners(entry.file, entry.ast, files, returning),
-          projectCsrf,
-          skip,
-        ),
-      );
-    }
-    if (!taintStopped && haltTaint(0)) {taintStopped = true;}
-    if (!taintStopped) {
-      const interprocInput = walked === undefined ? parsed : parsed.filter((entry) => walked.has(entry.file));
-      findings.push(...runInterproc(interprocInput));
-      findings.push(...crossFileReturnFindings(interprocInput));
-    }
-    const swigViews = viewEngine === 'swig' ? taintedSwigViews(parsed) : undefined;
-    for (const template of templates) {
-      findings.push(...findingsFromTemplate(template.rel, template.source, viewEngine, swigViews));
-    }
-    const out = dedupeSastSinks(findings);
-    releaseParsed(parsed);
-    return await withUserSemgrep(ctx, out);
+      if (haltTaint(candidates.filter((rel) => SOURCE_EXT.test(rel)).length)) {return [];}
+      return await withUserSemgrep(ctx, await runSastBatch(ctx, viewEngine, candidates));
     } finally {
       setCustomTaint(undefined);
       setTaintSummaryConfig(undefined);

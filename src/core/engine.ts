@@ -198,14 +198,6 @@ async function collectModuleFindings(
   modulesRun: readonly ModuleName[],
   ctx: ModuleContext,
 ): Promise<Finding[]> {
-  if (!perf2Enabled()) {
-    const collected: Finding[] = [];
-    for (const name of modulesRun) {
-      const module = available.get(name);
-      if (module !== undefined) {collected.push(...(await module.run(ctx)));}
-    }
-    return collected;
-  }
   const runs = await Promise.all(
     modulesRun.map(async (name) => {
       const module = available.get(name);
@@ -340,15 +332,13 @@ async function readModuleFindings(
   const available = new Map(modules.map((mod) => [mod.name, mod]));
   const modulesRun = loaded.modulesRequested.filter((name) => available.has(name));
   const ctx: ModuleContext = { cwd, files, config: loaded.config };
-  if (perf2Enabled()) {
-    beginSharedAst();
-    await preparseProject(cwd, files, loaded.config.sast.maxFileBytes);
-  }
+  beginSharedAst();
   try {
+    await preparseProject(cwd, files, loaded.config.sast.maxFileBytes);
     const findings = await collectModuleFindings(available, modulesRun, ctx);
     return { findings, modulesRun };
   } finally {
-    if (perf2Enabled()) {endSharedAst();}
+    endSharedAst();
   }
 }
 

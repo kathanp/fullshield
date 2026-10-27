@@ -2,6 +2,18 @@
 
 All notable changes to FullShield are documented here.
 
+## 2.2.0 — 2026-10-27
+
+### Performance
+
+- Phase 545: every scan shares one AST per source file (parse at most once).
+- Phase 546: `deps`, `secrets`, `config`, and `sast` run concurrently with a deterministic merge.
+- Phase 547: lazy taint walks only files on a path from a request source (depth ≤ 5).
+- Phase 548: `FULLSHIELD_EXPERIMENTAL_PERF2` enables a worker parse pool (`FULLSHIELD_PARSE_WORKERS` caps size).
+- Phase 549: `FULLSHIELD_EXPERIMENTAL_PERF2` may reuse a local parse cache under the FullShield cache directory. Corrupt entries are discarded.
+
+Default `scan --json` finding keys stay identical. File skipping (`.d.ts`, `dist/`, `.next/`, minified) stays behind `FULLSHIELD_EXPERIMENTAL_PERF2` only.
+
 ## 2.1.0 — 2026-10-26
 
 ### Experimental
