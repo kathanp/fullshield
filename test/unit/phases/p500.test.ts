@@ -35,7 +35,7 @@ describe('phase 500 stability contract', () => {
     const later = run(['--deprecated', '1.2.0', '--removed', '1.4.0'], true);
     expect(later.status).toBe(0);
     const version = readFileSync(join(root, 'package.json'), 'utf8');
-    expect(version).toContain('"version": "2.0.2"');
+    expect(version).toContain('"version": "2.1.0"');
   });
 
   it('omits a rule without the stable bit and leaves a scan snapshot unchanged', () => {

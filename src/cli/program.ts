@@ -117,6 +117,11 @@ interface ScanCliOptions {
   experimentalFormula?: boolean;
   experimentalBrowser?: boolean;
   experimentalDynimport?: boolean;
+  experimentalRedis?: boolean;
+  experimentalXpath?: boolean;
+  experimentalSearch?: boolean;
+  experimentalObjectkey?: boolean;
+  experimentalWorker?: boolean;
   experimentalFrameworks?: boolean;
   experimentalClasses?: boolean;
   experimentalSecretsAdv?: boolean;
@@ -222,6 +227,11 @@ const SCAN_ENV: ReadonlyArray<readonly [keyof ScanCliOptions, string]> = [
   ['experimentalFormula', 'FULLSHIELD_EXPERIMENTAL_FORMULA'],
   ['experimentalBrowser', 'FULLSHIELD_EXPERIMENTAL_BROWSER'],
   ['experimentalDynimport', 'FULLSHIELD_EXPERIMENTAL_DYNIMPORT'],
+  ['experimentalRedis', 'FULLSHIELD_EXPERIMENTAL_REDIS'],
+  ['experimentalXpath', 'FULLSHIELD_EXPERIMENTAL_XPATH'],
+  ['experimentalSearch', 'FULLSHIELD_EXPERIMENTAL_SEARCH'],
+  ['experimentalObjectkey', 'FULLSHIELD_EXPERIMENTAL_OBJECTKEY'],
+  ['experimentalWorker', 'FULLSHIELD_EXPERIMENTAL_WORKER'],
   ['experimentalFrameworks', 'FULLSHIELD_EXPERIMENTAL_FRAMEWORKS'],
   ['experimentalClasses', 'FULLSHIELD_EXPERIMENTAL_CLASSES'],
   ['experimentalSecretsAdv', 'FULLSHIELD_EXPERIMENTAL_SECRETS_ADV'],
@@ -557,7 +567,12 @@ function addPackageScanOptions(scan: Command): Command {
     .option('--experimental-mail', 'experimental: mail header injection (FULLSHIELD_EXPERIMENTAL_MAIL=1)')
     .option('--experimental-formula', 'experimental: spreadsheet formula injection (FULLSHIELD_EXPERIMENTAL_FORMULA=1)')
     .option('--experimental-browser', 'experimental: browser checks (FULLSHIELD_EXPERIMENTAL_BROWSER=1)')
-    .option('--experimental-dynimport', 'experimental: dynamic import of request data (FULLSHIELD_EXPERIMENTAL_DYNIMPORT=1)');
+    .option('--experimental-dynimport', 'experimental: dynamic import of request data (FULLSHIELD_EXPERIMENTAL_DYNIMPORT=1)')
+    .option('--experimental-redis', 'experimental: Redis command injection (FULLSHIELD_EXPERIMENTAL_REDIS=1)')
+    .option('--experimental-xpath', 'experimental: XPath injection (FULLSHIELD_EXPERIMENTAL_XPATH=1)')
+    .option('--experimental-search', 'experimental: search query injection (FULLSHIELD_EXPERIMENTAL_SEARCH=1)')
+    .option('--experimental-objectkey', 'experimental: object-storage key from request data (FULLSHIELD_EXPERIMENTAL_OBJECTKEY=1)')
+    .option('--experimental-worker', 'experimental: worker entry from request data (FULLSHIELD_EXPERIMENTAL_WORKER=1)');
 }
 
 function registerScan(program: Command, io: ProgramIO): void {

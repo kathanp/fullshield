@@ -83,3 +83,13 @@ D-37 | phase-537 | `set` is a header sink only on a response receiver | `cache.s
 D-38 | phase-538 | `send` is a mail sink only on a mail receiver | `res.send` of an object is an HTTP body. `sendMail` stays as phase 533. The receiver is `mail`, `transporter`, `transport`, `sg`, `mg`, or a name that contains `mail`. CWE-93. | APPROVED
 
 D-39 | phase-539 | `write` and `format` are not CSV sinks on a response receiver | `res.write` is an HTTP body. `stringify`, `writeToPath`, and a `.csv` `writeFile` stay as phase 534. CWE-1236. | APPROVED
+
+D-40 | phase-540 | Redis `eval` / `call` / `sendCommand` with request data | Ordinary `get`/`set` of a key are not script sinks. CWE-94. The scanner does not talk to Redis. | APPROVED
+
+D-41 | phase-541 | XPath `select` / `evaluate` with request data | Only when `xpath`, `xpath.js`, or `libxmljs` is imported. CWE-643. | APPROVED
+
+D-42 | phase-542 | Search `q` or `query.query_string.query` from request data | `index`/`get`/`ping` stay silent. CWE-943. | APPROVED
+
+D-43 | phase-543 | Object-storage `Key` or `Prefix` from request data | `Bucket` alone is not enough. CWE-22. | APPROVED
+
+D-44 | phase-544 | `Worker` path or `workerData` from request data | Requires a `worker_threads` import. CWE-94. | APPROVED

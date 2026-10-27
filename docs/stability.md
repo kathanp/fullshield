@@ -76,6 +76,10 @@ Stable rule ids are the rules whose front matter says `stability: stable`. Exper
 
 1.3.0 adds experimental phases behind their own flags. Stable scan fields in this file are unchanged. Default `scan --json` is unchanged.
 
+## 2.1.0
+
+2.1.0 does not change default `scan --json`. It adds five experimental scanners: Redis command injection, XPath injection, search query injection, object-storage key from request data, and worker entry from request data. Each stays off unless its flag is set. The finding fields in this file are unchanged. No stable rule id is removed.
+
 ## 2.0.2
 
 2.0.2 does not change default `scan --json`. The same five experimental scanners stay off unless their flags are set. `set` is an HTTP header only on `res`, `resp`, `response`, or `reply`. `send` is mail only on a mail-client receiver. `write` and `format` are not spreadsheet writers on a response receiver. The finding fields in this file are unchanged. No stable rule id is removed.

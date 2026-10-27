@@ -1,21 +1,29 @@
-# FullShield features (2.0.2)
+# FullShield features (2.1.0)
 
-Inventory of what 2.0.2 fixes. Everything 2.0.1 already ships stays. Default `scan --json` does not change. No new flag. No new rule id. No stable rule id is removed. No stable finding field is removed. The same experimental flags stay off unless they are set to `1`.
+Inventory of what 2.1.0 adds. Everything 2.0.2 already ships stays. Default `scan --json` does not change. No stable rule id is removed. No stable finding field is removed. Every new scanner is behind its own flag and stays off unless that flag is set to `1`. Each new flag also has a matching `scan --experimental-*` CLI option that sets the flag.
 
-2.0.2 tightens three of the 2.0.1 scanners so a common method name is not treated as the sink. `clean-app` stays at 0 findings with every flag off and on. A `--repo` run uses local fixtures and does not park. No check contacts a registry, opens a network connection, executes the scanned file, sends mail, writes a file, or launches a browser.
+2.1.0 is a **minor**: five new experimental scanners with new rule ids and flags. It is not 2.0.3. A patch would only fix already-shipped behavior without a new rule id or flag. Production `npm audit --omit=dev` is already clean. The open vitest/vite/esbuild/tinypool advisories stay parked (phase 530); this version does not rewrite the lockfile for them. `clean-app` stays at 0 findings with every new flag off and on. A `--repo` run uses local fixtures and does not park. No check contacts a registry, opens a network connection, executes the scanned file, sends a Redis or search command, reads or writes object storage, starts a worker, or evaluates XPath.
 
 The public description is [README.md](../README.md). The frozen command and output contract is [stability.md](stability.md).
 
-## This version (2.0.2)
+## This version (2.1.0)
 
-### Experimental (`FULLSHIELD_EXPERIMENTAL_CRLF`)
+### Experimental (`FULLSHIELD_EXPERIMENTAL_REDIS`)
 
-- **Header method precision** — the flag and `scan --experimental-crlf` stay as they are. `SAST-CRLF-001` still fires for `setHeader`, `append`, `header`, and `writeHead` when the header value is request data. `set` fires only when the receiver is `res`, `resp`, `response`, or `reply`. `cache.set`, `map.set`, and `session.set` do not fire. A string-literal value does not fire. A numeric status alone does not fire. Flag off: this module is not loaded and default `scan --json` does not include this rule. It refuses to send a response. `clean-app` stays at 0 findings with the flag on.
+- **Redis command injection** — `scan --experimental-redis` sets the flag. Rule `SAST-REDIS-001` (CWE-94). Fires when the file imports `redis` or `ioredis` and `eval`, `evalSha`, `evalsha`, `call`, or `sendCommand` is invoked with an argument that is request data (`req.query`, `req.body`, `req.params`, `req.headers`, or a binding of those). A string-literal argument does not fire. `get`, `set`, `hget`, and `hset` of request data do not fire (they are not script or arbitrary-command sinks). Flag off: this module is not loaded and default `scan --json` does not include this rule. It refuses to talk to Redis. `clean-app` stays at 0 findings with the flag on.
 
-### Experimental (`FULLSHIELD_EXPERIMENTAL_MAIL`)
+### Experimental (`FULLSHIELD_EXPERIMENTAL_XPATH`)
 
-- **Mail send precision** — the flag and `scan --experimental-mail` stay as they are. `SAST-MAIL-001` still fires for `sendMail` when the file imports `nodemailer`, `@sendgrid/mail`, or `mailgun.js` and `to`, `cc`, `bcc`, `subject`, `from`, `replyTo`, `html`, or `text` is request data. `send` fires only when that same import is present and the receiver is `mail`, `transporter`, `transport`, `sg`, or `mg`, or the receiver name contains `mail`. `res.send` does not fire. A string-literal field does not fire. A file that does not import one of those three packages does not fire. Flag off: this module is not loaded and default `scan --json` does not include this rule. It refuses to send mail. `clean-app` stays at 0 findings with the flag on.
+- **XPath injection** — `scan --experimental-xpath` sets the flag. Rule `SAST-XPATH-001` (CWE-643). Fires when the file imports `xpath`, `xpath.js`, or `libxmljs` and `select`, `select1`, or `evaluate` is invoked with an argument that is request data. A string-literal expression does not fire. A file that does not import one of those packages does not fire. Flag off: this module is not loaded and default `scan --json` does not include this rule. It refuses to evaluate XPath. `clean-app` stays at 0 findings with the flag on.
 
-### Experimental (`FULLSHIELD_EXPERIMENTAL_FORMULA`)
+### Experimental (`FULLSHIELD_EXPERIMENTAL_SEARCH`)
 
-- **CSV writer precision** — the flag and `scan --experimental-formula` stay as they are. `SAST-FORMULA-001` still fires for `stringify` and `writeToPath` when the file imports `csv-stringify`, `fast-csv`, `json2csv`, or `csv` and an argument is request data. `write` and `format` do not fire when the receiver is `res`, `resp`, `response`, or `reply`. `writeFile` and `writeFileSync` of request data to a path whose literal name ends in `.csv` stay as they are. A string-literal row does not fire. A `writeFile` of request data to a path that does not end in `.csv` does not fire. Flag off: this module is not loaded and default `scan --json` does not include this rule. It refuses to write a file. `clean-app` stays at 0 findings with the flag on.
+- **Search query injection** — `scan --experimental-search` sets the flag. Rule `SAST-SEARCH-001` (CWE-943). Fires when the file imports `@elastic/elasticsearch`, `@opensearch-project/opensearch`, or `elasticsearch` and `search` is invoked with a first-argument object whose `q` property, or nested `query.query_string.query` property, is request data. A string-literal query does not fire. `index`, `get`, and `ping` do not fire. Flag off: this module is not loaded and default `scan --json` does not include this rule. It refuses to contact a search cluster. `clean-app` stays at 0 findings with the flag on.
+
+### Experimental (`FULLSHIELD_EXPERIMENTAL_OBJECTKEY`)
+
+- **Object-storage key from request data** — `scan --experimental-objectkey` sets the flag. Rule `SAST-OBJECTKEY-001` (CWE-22). Fires when the file imports `@aws-sdk/client-s3` or `aws-sdk` and `send` is called with a `GetObjectCommand`, `PutObjectCommand`, `DeleteObjectCommand`, or `ListObjectsV2Command` whose input `Key` or `Prefix` is request data, or when `s3.getObject` / `s3.putObject` / `s3.deleteObject` / `s3.listObjectsV2` is called with an options object whose `Key` or `Prefix` is request data. A string-literal key does not fire. `Bucket` alone being request data does not fire. Flag off: this module is not loaded and default `scan --json` does not include this rule. It refuses to call object storage. `clean-app` stays at 0 findings with the flag on.
+
+### Experimental (`FULLSHIELD_EXPERIMENTAL_WORKER`)
+
+- **Worker entry from request data** — `scan --experimental-worker` sets the flag. Rule `SAST-WORKER-001` (CWE-94). Fires when `new Worker(...)` (from `worker_threads` or `node:worker_threads`) takes a first argument that is request data, or when the options object’s `workerData` property is request data. A string-literal module path with literal `workerData` does not fire. `Worker` constructed without that import style still matches the global `Worker` callee name only when the file also imports `worker_threads` or `node:worker_threads`. Flag off: this module is not loaded and default `scan --json` does not include this rule. It refuses to start a worker. `clean-app` stays at 0 findings with the flag on.
