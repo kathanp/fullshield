@@ -2,6 +2,16 @@
 
 All notable changes to FullShield are documented here.
 
+## 2.1.0 — 2026-10-26
+
+### Experimental
+
+- Phase 540: `SAST-REDIS-001` behind `FULLSHIELD_EXPERIMENTAL_REDIS` (`scan --experimental-redis`). Request data passed to Redis `eval`, `call`, or `sendCommand`. Off by default.
+- Phase 541: `SAST-XPATH-001` behind `FULLSHIELD_EXPERIMENTAL_XPATH` (`scan --experimental-xpath`). Request data passed to an XPath `select` or `evaluate`. Off by default.
+- Phase 542: `SAST-SEARCH-001` behind `FULLSHIELD_EXPERIMENTAL_SEARCH` (`scan --experimental-search`). Request data in an Elasticsearch or OpenSearch query. Off by default.
+- Phase 543: `SAST-OBJECTKEY-001` behind `FULLSHIELD_EXPERIMENTAL_OBJECTKEY` (`scan --experimental-objectkey`). Request data used as an S3 object key or prefix. Off by default.
+- Phase 544: `SAST-WORKER-001` behind `FULLSHIELD_EXPERIMENTAL_WORKER` (`scan --experimental-worker`). Request data used as a worker module path or `workerData`. Off by default.
+
 ## 2.0.2 — 2026-10-26
 
 ### Fixes

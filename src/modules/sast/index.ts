@@ -19,53 +19,42 @@ async function withDeep(filename: string, source: string, findings: Finding[]): 
   return [...findings, ...(await deepFindings(filename, source))];
 }
 
+async function appendFlag(
+  flag: string,
+  findings: Finding[],
+  load: () => Promise<Finding[]>,
+): Promise<Finding[]> {
+  if (process.env[flag] !== '1') {return findings;}
+  return [...findings, ...(await load())];
+}
+
 async function experimentalOnText(filename: string, source: string, findings: Finding[]): Promise<Finding[]> {
   let next = findings;
-  if (process.env.FULLSHIELD_EXPERIMENTAL_CRLF === '1') {
-    const { crlfFindings } = await import('./crlf.js');
-    next = [...next, ...(await crlfFindings(filename, source))];
-  }
-  if (process.env.FULLSHIELD_EXPERIMENTAL_MAIL === '1') {
-    const { mailFindings } = await import('./mail.js');
-    next = [...next, ...(await mailFindings(filename, source))];
-  }
-  if (process.env.FULLSHIELD_EXPERIMENTAL_FORMULA === '1') {
-    const { formulaFindings } = await import('./formula.js');
-    next = [...next, ...(await formulaFindings(filename, source))];
-  }
-  if (process.env.FULLSHIELD_EXPERIMENTAL_BROWSER === '1') {
-    const { browserCtlFindings } = await import('./browserCtl.js');
-    next = [...next, ...(await browserCtlFindings(filename, source))];
-  }
-  if (process.env.FULLSHIELD_EXPERIMENTAL_DYNIMPORT === '1') {
-    const { dynimportFindings } = await import('./dynimport.js');
-    next = [...next, ...(await dynimportFindings(filename, source))];
-  }
+  next = await appendFlag('FULLSHIELD_EXPERIMENTAL_CRLF', next, async () => (await import('./crlf.js')).crlfFindings(filename, source));
+  next = await appendFlag('FULLSHIELD_EXPERIMENTAL_MAIL', next, async () => (await import('./mail.js')).mailFindings(filename, source));
+  next = await appendFlag('FULLSHIELD_EXPERIMENTAL_FORMULA', next, async () => (await import('./formula.js')).formulaFindings(filename, source));
+  next = await appendFlag('FULLSHIELD_EXPERIMENTAL_BROWSER', next, async () => (await import('./browserCtl.js')).browserCtlFindings(filename, source));
+  next = await appendFlag('FULLSHIELD_EXPERIMENTAL_DYNIMPORT', next, async () => (await import('./dynimport.js')).dynimportFindings(filename, source));
+  next = await appendFlag('FULLSHIELD_EXPERIMENTAL_REDIS', next, async () => (await import('./redis.js')).redisFindings(filename, source));
+  next = await appendFlag('FULLSHIELD_EXPERIMENTAL_XPATH', next, async () => (await import('./xpath.js')).xpathFindings(filename, source));
+  next = await appendFlag('FULLSHIELD_EXPERIMENTAL_SEARCH', next, async () => (await import('./search.js')).searchFindings(filename, source));
+  next = await appendFlag('FULLSHIELD_EXPERIMENTAL_OBJECTKEY', next, async () => (await import('./objectkey.js')).objectkeyFindings(filename, source));
+  next = await appendFlag('FULLSHIELD_EXPERIMENTAL_WORKER', next, async () => (await import('./worker.js')).workerFindings(filename, source));
   return next;
 }
 
 async function experimentalOnFiles(cwd: string, files: readonly string[]): Promise<Finding[]> {
-  const found: Finding[] = [];
-  if (process.env.FULLSHIELD_EXPERIMENTAL_CRLF === '1') {
-    const { crlfOnFiles } = await import('./crlf.js');
-    found.push(...(await crlfOnFiles(cwd, files)));
-  }
-  if (process.env.FULLSHIELD_EXPERIMENTAL_MAIL === '1') {
-    const { mailOnFiles } = await import('./mail.js');
-    found.push(...(await mailOnFiles(cwd, files)));
-  }
-  if (process.env.FULLSHIELD_EXPERIMENTAL_FORMULA === '1') {
-    const { formulaOnFiles } = await import('./formula.js');
-    found.push(...(await formulaOnFiles(cwd, files)));
-  }
-  if (process.env.FULLSHIELD_EXPERIMENTAL_BROWSER === '1') {
-    const { browserCtlOnFiles } = await import('./browserCtl.js');
-    found.push(...(await browserCtlOnFiles(cwd, files)));
-  }
-  if (process.env.FULLSHIELD_EXPERIMENTAL_DYNIMPORT === '1') {
-    const { dynimportOnFiles } = await import('./dynimport.js');
-    found.push(...(await dynimportOnFiles(cwd, files)));
-  }
+  let found: Finding[] = [];
+  found = await appendFlag('FULLSHIELD_EXPERIMENTAL_CRLF', found, async () => (await import('./crlf.js')).crlfOnFiles(cwd, files));
+  found = await appendFlag('FULLSHIELD_EXPERIMENTAL_MAIL', found, async () => (await import('./mail.js')).mailOnFiles(cwd, files));
+  found = await appendFlag('FULLSHIELD_EXPERIMENTAL_FORMULA', found, async () => (await import('./formula.js')).formulaOnFiles(cwd, files));
+  found = await appendFlag('FULLSHIELD_EXPERIMENTAL_BROWSER', found, async () => (await import('./browserCtl.js')).browserCtlOnFiles(cwd, files));
+  found = await appendFlag('FULLSHIELD_EXPERIMENTAL_DYNIMPORT', found, async () => (await import('./dynimport.js')).dynimportOnFiles(cwd, files));
+  found = await appendFlag('FULLSHIELD_EXPERIMENTAL_REDIS', found, async () => (await import('./redis.js')).redisOnFiles(cwd, files));
+  found = await appendFlag('FULLSHIELD_EXPERIMENTAL_XPATH', found, async () => (await import('./xpath.js')).xpathOnFiles(cwd, files));
+  found = await appendFlag('FULLSHIELD_EXPERIMENTAL_SEARCH', found, async () => (await import('./search.js')).searchOnFiles(cwd, files));
+  found = await appendFlag('FULLSHIELD_EXPERIMENTAL_OBJECTKEY', found, async () => (await import('./objectkey.js')).objectkeyOnFiles(cwd, files));
+  found = await appendFlag('FULLSHIELD_EXPERIMENTAL_WORKER', found, async () => (await import('./worker.js')).workerOnFiles(cwd, files));
   return found;
 }
 

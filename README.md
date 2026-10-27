@@ -1,6 +1,6 @@
 # FullShield
 
-**v2.0.2.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
+**v2.1.0.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
 
 **Headline: dependency reachability.** A lockfile CVE is not the same as an unused package. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (lockfile path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), `not-imported` (−2, only when no such path exists), or `reachability-unknown` (severity kept) when the lockfile format has no parsed dependency edges. DevDependency-only vulns are `info` with a `dev-only` note unless production sources import the package. Pair it with `fullshield sbom --format cyclonedx`.
 
@@ -10,7 +10,7 @@ npx fullshield scan --json --fail-on high
 npx fullshield scan --sarif fullshield.sarif
 ```
 
-2.0.2 is the version of this tree. The stable contract is [docs/stability.md](docs/stability.md). The 1.0.1 release moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. Do not treat a scan as a penetration test. Reviewed recall for untouched apps is not published. The stored Next.js cold scan is 71.7 seconds, above the 60-second target.
+2.1.0 is the version of this tree. The stable contract is [docs/stability.md](docs/stability.md). The 1.0.1 release moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. Do not treat a scan as a penetration test. Reviewed recall for untouched apps is not published. The stored Next.js cold scan is 71.7 seconds, above the 60-second target.
 
 **Supported runtime is Node.js >= 22.13.** `package.json` `engines` and `doctor` enforce that floor. `node:sqlite` runs without `--experimental-sqlite` from 22.13.0 (the module is still experimental and is loaded only by history/confirm, not by `--import` register).
 
@@ -248,6 +248,11 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | `scan --experimental-formula` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_FORMULA=1`). `SAST-FORMULA-001`: request data passed to `stringify`, `write`, `writeToPath`, or `format` from `csv-stringify`, `fast-csv`, `json2csv`, or `csv`, or written to a `.csv` path. `write` and `format` do not fire when the receiver is `res`, `resp`, `response`, or `reply`. A literal row does not fire. Off by default. |
 | `scan --experimental-browser` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_BROWSER=1`). Sets the existing browser flag. `SAST-BROWSER-001`: `puppeteer`, `puppeteer-core`, `playwright`, or `@playwright/test` passes request data to `goto`, `setContent`, or `pdf`. A literal URL or HTML body does not fire. Phase 101 browser rules stay on this same flag. Off by default. |
 | `scan --experimental-dynimport` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_DYNIMPORT=1`). `SAST-DYNIMPORT-001`: `import()` called with request data. A string-literal specifier does not fire. Off by default. |
+| `scan --experimental-redis` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_REDIS=1`). `SAST-REDIS-001`: `redis` or `ioredis` passes request data to `eval`, `evalSha`, `evalsha`, `call`, or `sendCommand`. `get`/`set` of request data do not fire. Off by default. |
+| `scan --experimental-xpath` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_XPATH=1`). `SAST-XPATH-001`: `xpath`, `xpath.js`, or `libxmljs` passes request data to `select`, `select1`, or `evaluate`. A literal expression does not fire. Off by default. |
+| `scan --experimental-search` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_SEARCH=1`). `SAST-SEARCH-001`: Elasticsearch or OpenSearch `search` with request data in `q` or `query.query_string.query`. `index`/`get`/`ping` do not fire. Off by default. |
+| `scan --experimental-objectkey` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_OBJECTKEY=1`). `SAST-OBJECTKEY-001`: S3 `Key` or `Prefix` from request data on `GetObjectCommand` / `getObject` and the matching put/delete/list forms. `Bucket` alone does not fire. Off by default. |
+| `scan --experimental-worker` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_WORKER=1`). `SAST-WORKER-001`: `new Worker` path or `workerData` from request data when `worker_threads` is imported. A literal path does not fire. Off by default. |
 | `scan --experimental-frameworks` | **Experimental** Next.js / NestJS / Hono / Koa taint sources and AUTH (`FULLSHIELD_EXPERIMENTAL_FRAMEWORKS=1`). Default `scan` is unchanged. Runtime adapters: `fullshield/runtime/koa`, `fullshield/runtime/hono` (optional peers). |
 | `scan --experimental-classes` | **Experimental** extra vuln classes: ReDoS, deser, XXE, upload, cookies, CSRF, mass assignment, timing compare, hash cost, GraphQL, trust-proxy (`FULLSHIELD_EXPERIMENTAL_CLASSES=1`). Default `scan` is unchanged. |
 | `scan` crypto v2 | **Experimental** (`FULLSHIELD_EXPERIMENTAL_CRYPTO2=1`). `SAST-CIPHER-001`, `SAST-CIPHER-002`, `SAST-RSA-001`, and `SAST-JWT-002`: ECB and deprecated ciphers, literal IVs, literal symmetric keys, short RSA or secp192 keys, and JWTs with no expiry or a short HMAC secret. Off by default. |

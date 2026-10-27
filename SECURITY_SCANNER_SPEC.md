@@ -6801,3 +6801,67 @@ Flag: `FULLSHIELD_EXPERIMENTAL_FORMULA`. CLI: `scan --experimental-formula` sets
 Flag off: this module is not loaded.
 
 Acceptance: `csv.write(req.query.row)` in a file that imports `fast-csv` still fires. `writeFile('out.csv', req.body)` still fires. `res.write(req.body)` in a file that imports `csv-stringify` does not. `res.format(req.body)` in that file does not. Two scans sort to the same bytes. `clean-app` stays at 0 findings with the flag on.
+
+## 56. Version 2.1.0
+
+These phases are the approved `docs/FEATURES.md` for 2.1.0. A behavior that is not in that file is not in this section. No phase contacts a registry, opens a network connection, executes scanned code, talks to Redis or a search cluster, reads or writes object storage, starts a worker, or evaluates XPath. Default `scan --json` is unchanged. `stableChange: false`. No stable rule id is removed. `clean-app` stays at 0 findings with every new flag off and on. Two runs sort to the same bytes. A `--repo` run does not park. No new hard dependency. Request data is `req.query`, `req.body`, `req.params`, `req.headers`, or a binding of those. A string literal is not request data.
+
+### Phase 540 — Redis command injection [`FULLSHIELD_EXPERIMENTAL_REDIS`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_REDIS`. CLI: `scan --experimental-redis` sets the flag. Default is off. `stableChange: false`.
+
+Rule `SAST-REDIS-001`. Severity `high`. Confidence `high`. CWE-94 (https://cwe.mitre.org/data/definitions/94.html).
+
+With the flag on, the rule fires when the file imports `redis` or `ioredis` and `eval`, `evalSha`, `evalsha`, `call`, or `sendCommand` is invoked with an argument that is request data. A string-literal argument does not fire. `get`, `set`, `hget`, and `hset` of request data do not fire. The scanner does not talk to Redis.
+
+Flag off: this module is not loaded.
+
+Acceptance: `client.eval(req.query.lua)` in a file that imports `ioredis` fires. `client.call(req.body.cmd)` fires. `client.get(req.query.key)` does not. A file without those imports does not fire. Two scans sort to the same bytes. `clean-app` stays at 0 findings with the flag on.
+
+### Phase 541 — XPath injection [`FULLSHIELD_EXPERIMENTAL_XPATH`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_XPATH`. CLI: `scan --experimental-xpath` sets the flag. Default is off. `stableChange: false`.
+
+Rule `SAST-XPATH-001`. Severity `high`. Confidence `high`. CWE-643 (https://cwe.mitre.org/data/definitions/643.html).
+
+With the flag on, the rule fires when the file imports `xpath`, `xpath.js`, or `libxmljs` and `select`, `select1`, or `evaluate` is invoked with an argument that is request data. A string-literal expression does not fire. A file that does not import one of those packages does not fire. The scanner does not evaluate XPath.
+
+Flag off: this module is not loaded.
+
+Acceptance: `select(req.query.q, doc)` in a file that imports `xpath` fires. `select('//a', doc)` does not. Two scans sort to the same bytes. `clean-app` stays at 0 findings with the flag on.
+
+### Phase 542 — Search query injection [`FULLSHIELD_EXPERIMENTAL_SEARCH`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_SEARCH`. CLI: `scan --experimental-search` sets the flag. Default is off. `stableChange: false`.
+
+Rule `SAST-SEARCH-001`. Severity `high`. Confidence `high`. CWE-943 (https://cwe.mitre.org/data/definitions/943.html).
+
+With the flag on, the rule fires when the file imports `@elastic/elasticsearch`, `@opensearch-project/opensearch`, or `elasticsearch` and `search` is invoked with a first-argument object whose `q` property, or nested `query.query_string.query` property, is request data. A string-literal query does not fire. `index`, `get`, and `ping` do not fire. The scanner does not contact a search cluster.
+
+Flag off: this module is not loaded.
+
+Acceptance: `client.search({ q: req.query.q })` in a file that imports `@elastic/elasticsearch` fires. `client.search({ query: { query_string: { query: req.body.q } } })` fires. `client.search({ q: 'x' })` does not. `client.ping()` does not. Two scans sort to the same bytes. `clean-app` stays at 0 findings with the flag on.
+
+### Phase 543 — Object-storage key from request data [`FULLSHIELD_EXPERIMENTAL_OBJECTKEY`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_OBJECTKEY`. CLI: `scan --experimental-objectkey` sets the flag. Default is off. `stableChange: false`.
+
+Rule `SAST-OBJECTKEY-001`. Severity `high`. Confidence `high`. CWE-22 (https://cwe.mitre.org/data/definitions/22.html).
+
+With the flag on, the rule fires when the file imports `@aws-sdk/client-s3` or `aws-sdk` and either (1) `new GetObjectCommand`, `new PutObjectCommand`, `new DeleteObjectCommand`, or `new ListObjectsV2Command` is constructed with an input object whose `Key` or `Prefix` is request data, or (2) `getObject`, `putObject`, `deleteObject`, or `listObjectsV2` is called with an options object whose `Key` or `Prefix` is request data. A string-literal key does not fire. `Bucket` alone being request data does not fire. The scanner does not call object storage.
+
+Flag off: this module is not loaded.
+
+Acceptance: `new GetObjectCommand({ Key: req.query.key })` in a file that imports `@aws-sdk/client-s3` fires. `s3.getObject({ Key: req.body.key })` fires. `new GetObjectCommand({ Key: 'a', Bucket: req.query.b })` does not. Two scans sort to the same bytes. `clean-app` stays at 0 findings with the flag on.
+
+### Phase 544 — Worker entry from request data [`FULLSHIELD_EXPERIMENTAL_WORKER`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_WORKER`. CLI: `scan --experimental-worker` sets the flag. Default is off. `stableChange: false`.
+
+Rule `SAST-WORKER-001`. Severity `high`. Confidence `high`. CWE-94 (https://cwe.mitre.org/data/definitions/94.html).
+
+With the flag on, the rule fires when the file imports `worker_threads` or `node:worker_threads` and `new Worker(...)` takes a first argument that is request data, or an options object whose `workerData` property is request data. A string-literal module path with a literal `workerData` does not fire. The scanner does not start a worker.
+
+Flag off: this module is not loaded.
+
+Acceptance: `new Worker(req.query.path)` in a file that imports `worker_threads` fires. `new Worker('./w.js', { workerData: req.body })` fires. `new Worker('./w.js')` does not. A file without that import does not fire. Two scans sort to the same bytes. `clean-app` stays at 0 findings with the flag on.
