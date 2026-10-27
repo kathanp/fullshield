@@ -72,13 +72,17 @@ It is not a promise that each flag stays.
 
 Stable rule ids are the rules whose front matter says `stability: stable`. Experimental keys may disappear in a minor. This section does not say the product is complete.
 
-## 1.3.0
+## 2.2.0
 
-1.3.0 adds experimental phases behind their own flags. Stable scan fields in this file are unchanged. Default `scan --json` is unchanged.
+2.2.0 does not change default `scan --json` finding keys. The default engine shares one AST, runs modules in parallel, and uses lazy taint. `FULLSHIELD_EXPERIMENTAL_PERF2` still owns file skipping, the worker parse pool, and the local parse cache. The finding fields in this file are unchanged. No stable rule id is removed.
 
 ## 2.1.0
 
 2.1.0 does not change default `scan --json`. It adds five experimental scanners: Redis command injection, XPath injection, search query injection, object-storage key from request data, and worker entry from request data. Each stays off unless its flag is set. The finding fields in this file are unchanged. No stable rule id is removed.
+
+## 1.3.0
+
+1.3.0 adds experimental phases behind their own flags. Stable scan fields in this file are unchanged. Default `scan --json` is unchanged.
 
 ## 2.0.2
 

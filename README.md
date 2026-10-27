@@ -1,6 +1,6 @@
 # FullShield
 
-**v2.1.0.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
+**v2.2.0.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
 
 **Headline: dependency reachability.** A lockfile CVE is not the same as an unused package. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (lockfile path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), `not-imported` (−2, only when no such path exists), or `reachability-unknown` (severity kept) when the lockfile format has no parsed dependency edges. DevDependency-only vulns are `info` with a `dev-only` note unless production sources import the package. Pair it with `fullshield sbom --format cyclonedx`.
 
@@ -10,7 +10,7 @@ npx fullshield scan --json --fail-on high
 npx fullshield scan --sarif fullshield.sarif
 ```
 
-2.1.0 is the version of this tree. The stable contract is [docs/stability.md](docs/stability.md). The 1.0.1 release moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. Do not treat a scan as a penetration test. Reviewed recall for untouched apps is not published. The stored Next.js cold scan is 71.7 seconds, above the 60-second target.
+2.2.0 is the version of this tree. The stable contract is [docs/stability.md](docs/stability.md). The 1.0.1 release moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. Do not treat a scan as a penetration test. Reviewed recall for untouched apps is not published. The stored Next.js cold scan is 71.7 seconds, above the 60-second target. Default scans now share one AST, run modules in parallel, and use lazy taint; finding keys stay the same.
 
 **Supported runtime is Node.js >= 22.13.** `package.json` `engines` and `doctor` enforce that floor. `node:sqlite` runs without `--experimental-sqlite` from 22.13.0 (the module is still experimental and is loaded only by history/confirm, not by `--import` register).
 

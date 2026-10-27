@@ -906,10 +906,10 @@ Acceptance: workflows green; reproducibility passes or differences documented; S
 
 | Item | State |
 |---|---|
-| Repo `package.json` | 1.2.0. npm still serves 1.0.1, published 2026-10-21T02:43:27Z with provenance. Tag `v1.0.1` is `dc2b719` on `main`. |
+| Repo `package.json` | 2.2.0 on this tree. npm latest is whatever Publish last staged; check the registry, not this row alone. |
 | `engines` | `>=22.13` in package.json, doctor, and CI (Node 22 and 24). `main` requires the six checks in `docs/branch-protection.md`. |
-| Built | Phases 1–55 and 57–94 are in this tree. Phase 56 is not (R15). Phase 65 is coded; the 5-second nest and undici target is unmet. |
-| Today's queue | Section 45 autopilot run for 1.2.0. Scope order: 105 → 95 → 96 → 102 → 104 → 97 → 99 → 100 → 98 → 103 → 101 → 106 → 107, then 108 through 250 (Section 47). Experimental only (R11). No promotion. One version, `1.2.0`. |
+| Built | Phases 1–55 and 57–94 are in this tree. Phase 56 is not (R15). Phase 65 is coded; the 5-second nest and undici target is unmet. Phases 545–549 (2.2.0 speed) are done. |
+| Today's queue | Section 45 autopilot run for 2.2.0 (`run/2.2-speed`): shared AST, module parallel, lazy taint by default; PERF2 worker pool + parse cache. No new rule ids. Finding keys stay identical to 2.1.0. |
 | Phases 76–93 | in this tree, behind their experimental flags |
 | Precision | Phase 76 writes null labels. No reviewed precision rate is published. |
 | Phase 56 | blocked on R15 amendment (EPSS/KEV hosts) |
@@ -6865,3 +6865,47 @@ With the flag on, the rule fires when the file imports `worker_threads` or `node
 Flag off: this module is not loaded.
 
 Acceptance: `new Worker(req.query.path)` in a file that imports `worker_threads` fires. `new Worker('./w.js', { workerData: req.body })` fires. `new Worker('./w.js')` does not. A file without that import does not fire. Two scans sort to the same bytes. `clean-app` stays at 0 findings with the flag on.
+
+## 57. Version 2.2.0
+
+These phases are the approved `docs/FEATURES.md` for 2.2.0. A behavior that is not in that file is not in this section. Default `scan --json` **findings** stay byte-identical to 2.1.0 on vulnerable-app, clean-app, and every bench app (same `(ruleId, file, line, severity)` multiset after sort). No new rule id. No stable rule id is removed. No stable finding field is removed. Accuracy is never traded for speed. If a step cannot stay byte-identical, that step is parked (S3). No phase contacts a registry for performance work, executes scanned code, or rewrites the lockfile for parked vitest advisories. `clean-app` stays at 0 high/critical findings. A `--repo` run does not park. No new hard dependency. `stableChange: false`.
+
+### [X] Phase 545 — Shared AST on every scan
+
+Flag: none. Default engine. `stableChange: false`.
+
+Every scan begins a shared AST session, preparses selected source files once, and reuses that tree. A counter test proves each source file is parsed at most once per scan. Finding keys stay identical to 2.1.0. Skipping `.d.ts`, `.map`, `dist/`, `build/`, `.next/`, `coverage/`, `out/`, oversize, and minified files stays behind `FULLSHIELD_EXPERIMENTAL_PERF2` only.
+
+Acceptance: without `FULLSHIELD_EXPERIMENTAL_PERF2`, a two-file fixture reports parse count 1 for each file. `scan --json` findings on vulnerable-app and clean-app match 2.1.0 keys. Two scans sort to the same bytes.
+
+### [X] Phase 546 — Module-level parallelism on every scan
+
+Flag: none. Default engine. `stableChange: false`.
+
+`deps`, `secrets`, `config`, and `sast` run concurrently. Results merge in fixed module order, then the existing finding sort. Finding keys stay identical to 2.1.0.
+
+Acceptance: vulnerable-app and clean-app finding keys match a sequential baseline fixture test (same as phase 545 identity). Two scans sort to the same bytes.
+
+### [X] Phase 547 — Lazy taint on every scan
+
+Flag: none. Default engine. `stableChange: false`.
+
+Interprocedural taint walks only files that contain a recognized source or are on an import path (depth ≤ 5) from such a file. Finding keys stay identical to 2.1.0.
+
+Acceptance: without `FULLSHIELD_EXPERIMENTAL_PERF2`, a fixture with `app.js` (request source), `lib.js` (imported), and `plain.js` (unrelated) walks `app.js` and `lib.js` and does not walk `plain.js`, and still reports `SAST-SQLI-001` when present. vulnerable-app finding keys stay identical. Two scans sort to the same bytes.
+
+### [X] Phase 548 — Worker parse pool [`FULLSHIELD_EXPERIMENTAL_PERF2`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_PERF2`. CLI: existing `scan` experimental PERF2 path sets the flag. Default is off. `stableChange: false`.
+
+With the flag on, TypeScript-estree parse work may run in a `worker_threads` pool sized to `max(1, CPUs − 1)`, capped by a positive integer `FULLSHIELD_PARSE_WORKERS` when set. A pool error falls back to in-process parse for that file. Findings stay byte-identical to the same flag with `FULLSHIELD_PARSE_WORKERS=1`. File skipping stays as phase 78.
+
+Acceptance: with the flag on, vulnerable-app findings with `FULLSHIELD_PARSE_WORKERS=1` match `FULLSHIELD_PARSE_WORKERS=2` (sorted keys). A forced worker failure still completes the scan. Two scans sort to the same bytes. `clean-app` stays at 0 findings with the flag on.
+
+### [X] Phase 549 — Persistent parse cache [`FULLSHIELD_EXPERIMENTAL_PERF2`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_PERF2`. Default is off. `stableChange: false`.
+
+With the flag on, a successful parse may be reused from a local cache under the FullShield cache directory, keyed by file content hash, FullShield version, and parser options. A corrupt or foreign entry is discarded. The cache is never uploaded and never contacted over the network. Warm scans on an unchanged tree stay finding-identical to a cold scan with the flag on.
+
+Acceptance: with the flag on and a dedicated cache directory, a second scan of a fixture matches the first scan’s finding keys. After writing `{` into a cache file, a third scan still matches. Two scans sort to the same bytes.

@@ -93,3 +93,13 @@ D-42 | phase-542 | Search `q` or `query.query_string.query` from request data | 
 D-43 | phase-543 | Object-storage `Key` or `Prefix` from request data | `Bucket` alone is not enough. CWE-22. | APPROVED
 
 D-44 | phase-544 | `Worker` path or `workerData` from request data | Requires a `worker_threads` import. CWE-94. | APPROVED
+
+D-45 | phase-545 | Shared AST is on by default | Phase 78 proved parse-once is finding-identical. File skip stays PERF2-only. | APPROVED
+
+D-46 | phase-546 | Module parallelism is on by default | Deterministic merge by module name then finding id. Finding keys stay identical. | APPROVED
+
+D-47 | phase-547 | Lazy taint is on by default | Phase 78 proved byte-identical on fixtures and bench apps. | APPROVED
+
+D-48 | phase-548 | PERF2 enables the worker parse pool | `FULLSHIELD_PARSE_WORKERS` caps pool size. Pool errors fall back in-process. | APPROVED
+
+D-49 | phase-549 | PERF2 may reuse a local parse cache | Keyed by content hash and version. Corrupt entries are discarded. No network. | APPROVED
