@@ -2,7 +2,7 @@
   "measured": true,
   "measuredAt": "2026-10-19T22:55:00.000Z",
   "label": "unreviewed",
-  "note": "Three cold scans after steps 3-6 together (fea3ce2), flag FULLSHIELD_EXPERIMENTAL_PERF2=1, --json --offline-safe, no --cpu-prof. The same machine was also running npm run verify mutation-smoke, so these times are not a quiet-machine p50. --changed was not measured. Exit 1 is findings, not a crash.",
+  "note": "Three cold scans after steps 3-6 together (fea3ce2), flag FULLSHIELD_EXPERIMENTAL_PERF2=1, --json --offline-safe, no --cpu-prof. The same machine was also running npm run verify mutation-smoke, so these times are not a quiet-machine p50. --changed was not measured. Exit 1 is findings, not a crash. 2.3.0 adoption (phase 552) cites this file; next/nest/undici samples were not re-checked-out for a new quiet-machine run.",
   "targets": {
     "nextColdSeconds": 60,
     "changedSeconds": 5,

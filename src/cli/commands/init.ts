@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 export interface InitOptions {
   cwd: string;
   force?: boolean;
+  /** Phase 553. Write profile: recommended and the Action-based workflow. */
+  recommended?: boolean;
 }
 
 export interface InitResult {
@@ -43,9 +45,16 @@ async function writeIfMissing(path: string, contents: string, force: boolean): P
 export async function runInit(options: InitOptions): Promise<InitResult> {
   const root = await packageRoot();
   const templates = join(root, 'templates');
+  const recommended = options.recommended === true;
+  const configSrc = recommended
+    ? join(templates, 'fullshield.config.recommended.json')
+    : join(templates, 'fullshield.config.json');
+  const workflowSrc = recommended
+    ? join(templates, 'github-workflow-action.yml')
+    : join(templates, 'github-workflow.yml');
   const files: Array<[string, string]> = [
-    ['fullshield.config.json', join(templates, 'fullshield.config.json')],
-    ['.github/workflows/fullshield.yml', join(templates, 'github-workflow.yml')],
+    ['fullshield.config.json', configSrc],
+    ['.github/workflows/fullshield.yml', workflowSrc],
     ['.github/workflows/fullshield-watch.yml', join(templates, 'github-watch.yml')],
     ['.gitlab-ci.yml', join(templates, 'gitlab-ci.yml')],
     ['.fullshield/pre-commit.sh', join(templates, 'pre-commit.sh')],

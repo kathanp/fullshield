@@ -268,8 +268,11 @@ rules/SUPPLY-SECHOLDER-001.md
 rules/SUPPLY-STEALER-001.md
 rules/SUPPLY-WORKFLOW-001.md
 rules/SUPPLY-WORM-001.md
+templates/action/action.yml
 templates/fullshield.config.json
+templates/fullshield.config.recommended.json
 templates/github-watch.yml
+templates/github-workflow-action.yml
 templates/github-workflow.yml
 templates/gitlab-ci.yml
 templates/pre-commit.sh

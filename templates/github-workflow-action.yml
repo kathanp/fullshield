@@ -1,0 +1,21 @@
+name: FullShield
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+  security-events: write
+jobs:
+  scan:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      # Pin this Action by commit SHA in your repo after copying templates/action/.
+      # Example Marketplace ref once published: kathanp/fullshield-action@<sha>
+      - uses: ./templates/action
+        with:
+          version: '2.3.0'
+          fail-on: high
+          cache-baseline: 'true'
+          upload-sarif: 'true'

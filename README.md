@@ -1,6 +1,6 @@
 # FullShield
 
-**v2.2.0.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
+**v2.3.0.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
 
 **Headline: dependency reachability.** A lockfile CVE is not the same as an unused package. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (lockfile path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), `not-imported` (−2, only when no such path exists), or `reachability-unknown` (severity kept) when the lockfile format has no parsed dependency edges. DevDependency-only vulns are `info` with a `dev-only` note unless production sources import the package. Pair it with `fullshield sbom --format cyclonedx`.
 
@@ -10,7 +10,38 @@ npx fullshield scan --json --fail-on high
 npx fullshield scan --sarif fullshield.sarif
 ```
 
-2.2.0 is the version of this tree. The stable contract is [docs/stability.md](docs/stability.md). The 1.0.1 release moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. Do not treat a scan as a penetration test. Reviewed recall for untouched apps is not published. The stored Next.js cold scan is 71.7 seconds, above the 60-second target. Default scans now share one AST, run modules in parallel, and use lazy taint; finding keys stay the same.
+2.3.0 is the version of this tree. The stable contract is [docs/stability.md](docs/stability.md). The 1.0.1 release moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. Do not treat a scan as a penetration test. Reviewed recall for untouched apps is not published. From `bench/perf-v2.json` (`measured: true`, `label: unreviewed`), the stored Next.js cold p50 is 107.95 seconds — still above the 60-second target (target unmet). Default scans share one AST, run modules in parallel, and use lazy taint; finding keys stay the same as 2.2.0.
+
+## Verify in 60 seconds
+
+```bash
+# fresh temp / empty cache is enough — no install-guard phones home
+npx fullshield@2.3.0 --version
+```
+
+Package page: [npmjs.com/package/fullshield](https://www.npmjs.com/package/fullshield). Release tag: [v2.3.0](https://github.com/kathanp/fullshield/releases/tag/v2.3.0). Publish stages with npm provenance (OIDC). After install, the stranger checks in the build spec (scan / json / sarif / fail-on / fix / init / sbom) are the post-publish gate — no Rekor/sigstore SaaS dependency in the CLI.
+
+## GitHub Action
+
+Copy `templates/action/` into your repo (or use `kathanp/fullshield-action` once the Marketplace listing is published) and pin by **commit SHA**:
+
+```yaml
+- uses: your-org/your-repo/.github/actions/fullshield@<commit-sha>
+  with:
+    version: '2.3.0'
+```
+
+Or run `npx fullshield init --recommended` to write `profile: "recommended"` and a workflow that calls `./templates/action`. The Action runs `fullshield scan`, uploads SARIF, and may cache the baseline. It does not post a pull-request comment, open issues, or phone home.
+
+Badge (point at the workflow file you own):
+
+```markdown
+![FullShield](https://github.com/OWNER/REPO/actions/workflows/fullshield.yml/badge.svg)
+```
+
+## Profiles
+
+Optional config key `profile`: `recommended` | `ci-strict` | `pr-fast` | `prod-monitor`. Bundles existing fail-on / offline recommendations only — it does not enable experimental SAST rules. `fullshield doctor` warns when many `FULLSHIELD_EXPERIMENTAL_*` flags are set without a profile.
 
 **Supported runtime is Node.js >= 22.13.** `package.json` `engines` and `doctor` enforce that floor. `node:sqlite` runs without `--experimental-sqlite` from 22.13.0 (the module is still experimental and is loaded only by history/confirm, not by `--import` register).
 
@@ -97,7 +128,7 @@ In-scope public-bench patterns we still do not claim (one line each):
 - `DEPS-VULN-001` — when an OSV hit exists, the finding is attributed to the `package.json` name line; `--offline-safe` on a cache-less clone still emits no OSV hits (`package.json:N` will not match).
 - `SUPPLY-PROV-001` (`FULLSHIELD_EXPERIMENTAL_PROVENANCE=1`) — registry provenance, publisher, and release-age signals from `registry.npmjs.org` only. Offline with an empty cache stays unknown. These signals are not a malicious-package claim.
 - DVNA calculator “stack leak” — that line is `mathjs.eval` (`SAST-EVAL-001`), not `err.stack`.
-- Worker-pool timings from `node bench/perf.mjs --measure` on 2026-10-16 (`bench/perf-baseline.json`): next.js finished all 5 samples (cold p50 71.7s, warm 71.5s, incremental 70.6s, peak RSS 788 MB, every sample under 1 GB). nest cold p50 9.1s, warm 9.3s, peak 815 MB; undici cold p50 8.4s, warm 8.4s, peak 563 MB. nest and undici still miss the 5s incremental target (nest 9.4s, undici 8.2s). These are local timings, not a recall claim.
+- PERF2 cold timings from `bench/perf-v2.json` (`measured: true`, `label: unreviewed`): next.js cold p50 107.95s (target 60s — still unmet), nest 12.23s, undici 15.26s. Older worker-pool samples remain in `bench/perf-baseline.json` (2026-10-16). These are local timings, not a recall claim.
 - Real-world precision is not sampled. Nine of the ten pins in `bench/realworld.json` have finding counts in `BENCHMARK.md`. next.js produced no JSON. No false-positive rate is claimed.
 
 Public-app in-scope detection on **unreviewed** ground truth (`"reviewed": false` in `bench/*/ground-truth.json`). These are not product recall claims. Matching is class + file + line ±3. Helmet comment-only line attribution is not counted.

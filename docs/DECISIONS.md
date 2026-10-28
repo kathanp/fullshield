@@ -103,3 +103,9 @@ D-47 | phase-547 | Lazy taint is on by default | Phase 78 proved byte-identical 
 D-48 | phase-548 | PERF2 enables the worker parse pool | `FULLSHIELD_PARSE_WORKERS` caps pool size. Pool errors fall back in-process. | APPROVED
 
 D-49 | phase-549 | PERF2 may reuse a local parse cache | Keyed by content hash and version. Corrupt entries are discarded. No network. | APPROVED
+
+
+D-50 | phase-550 | Ship templates/action/ as Phase 59 named; no PR comments | Action pins fullshield version, uploads SARIF, optional baseline cache. Marketplace listing stays human (R1). | APPROVED
+D-51 | phase-551 | Verify-in-60s docs only; no install phone-home | README names 2.3.0, npm page, GitHub tag, OIDC provenance. No new hosts. | APPROVED
+D-52 | phase-552 | Speed claims only from bench/perf-v2.json | measured:true + label. Unmet Next.js target stated; no invented timings. | APPROVED
+D-53 | phase-553 | profile enum recommended|ci-strict|pr-fast|prod-monitor | Bundles existing defaults only. init --recommended writes profile. Doctor warns on many experimental flags without profile. No R10. | APPROVED

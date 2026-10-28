@@ -74,6 +74,21 @@ export interface ResolvedConfig {
   types: TypesConfig;
   /** Phase 90. Path to a user Semgrep-style YAML file. Read only when the experimental flag is on. */
   semgrepRules?: string;
+  /** Phase 553. Documented bundle of existing defaults; does not enable experimental SAST. */
+  profile?: ProfileName;
+}
+
+const PROFILE_NAMES = [
+  'recommended',
+  'ci-strict',
+  'pr-fast',
+  'prod-monitor',
+] as const;
+
+export type ProfileName = (typeof PROFILE_NAMES)[number];
+
+function isProfileName(value: string): value is ProfileName {
+  return (PROFILE_NAMES as readonly string[]).includes(value);
 }
 
 export const DEFAULT_CONFIG: ResolvedConfig = {
@@ -104,6 +119,7 @@ const KNOWN_KEYS = new Set([
   'sast',
   'types',
   'semgrepRules',
+  'profile',
 ]);
 
 const SAST_CLASSES = new Set([
@@ -195,7 +211,7 @@ function parseCapabilityPolicy(value: unknown, source: string): CapabilityPolicy
   };
 }
 
-function validate(raw: unknown, source: string): Partial<ResolvedConfig> {
+function asConfigRecord(raw: unknown, source: string): Record<string, unknown> {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
     throw new ConfigError(`${source}: config must be a JSON object`);
   }
@@ -207,105 +223,172 @@ function validate(raw: unknown, source: string): Partial<ResolvedConfig> {
       );
     }
   }
-  const out: Partial<ResolvedConfig> = {};
-  if (record.modules !== undefined) {
-    if (!Array.isArray(record.modules)) {
-      throw new ConfigError(`${source}: "modules" must be an array`);
-    }
-    out.modules = record.modules.map((m) => {
-      if (typeof m !== 'string' || !isModuleName(m)) {
-        throw new ConfigError(
-          `${source}: unknown module "${String(m)}" (valid: ${MODULE_NAMES.join(', ')})`,
-        );
-      }
-      return m;
-    });
+  return record;
+}
+
+function parseModulesField(value: unknown, source: string): ModuleName[] {
+  if (!Array.isArray(value)) {
+    throw new ConfigError(`${source}: "modules" must be an array`);
   }
-  if (record.failOn !== undefined) {
-    if (typeof record.failOn !== 'string' || !isSeverity(record.failOn)) {
+  return value.map((m) => {
+    if (typeof m !== 'string' || !isModuleName(m)) {
       throw new ConfigError(
-        `${source}: invalid "failOn" severity ${JSON.stringify(record.failOn)}`,
+        `${source}: unknown module "${String(m)}" (valid: ${MODULE_NAMES.join(', ')})`,
       );
     }
-    out.failOn = record.failOn;
+    return m;
+  });
+}
+
+function parseFailOnField(value: unknown, source: string): Severity {
+  if (typeof value !== 'string' || !isSeverity(value)) {
+    throw new ConfigError(`${source}: invalid "failOn" severity ${JSON.stringify(value)}`);
   }
-  if (record.ignore !== undefined) {
-    if (
-      !Array.isArray(record.ignore) ||
-      record.ignore.some((p) => typeof p !== 'string')
-    ) {
-      throw new ConfigError(`${source}: "ignore" must be an array of glob strings`);
+  return value;
+}
+
+function parseStringGlobs(value: unknown, source: string, label: string): string[] {
+  if (!Array.isArray(value) || value.some((p) => typeof p !== 'string')) {
+    throw new ConfigError(`${source}: "${label}" must be an array of glob strings`);
+  }
+  return value as string[];
+}
+
+function parseNotifyField(value: unknown, source: string): NotifyConfig {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    typeof (value as Record<string, unknown>).slackWebhookEnv !== 'string'
+  ) {
+    throw new ConfigError(`${source}: "notify" must be an object with a "slackWebhookEnv" string`);
+  }
+  return { slackWebhookEnv: (value as { slackWebhookEnv: string }).slackWebhookEnv };
+}
+
+function parseDepsField(value: unknown, source: string): DepsConfig {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new ConfigError(`${source}: "deps" must be an object`);
+  }
+  const rawDeps = value as Record<string, unknown>;
+  const deps: DepsConfig = { offline: false };
+  if (rawDeps.offline !== undefined) {
+    if (typeof rawDeps.offline !== 'boolean') {
+      throw new ConfigError(`${source}: "deps.offline" must be a boolean`);
     }
-    out.ignore = record.ignore as string[];
+    deps.offline = rawDeps.offline;
   }
+  if (rawDeps.cacheDir !== undefined) {
+    if (typeof rawDeps.cacheDir !== 'string') {
+      throw new ConfigError(`${source}: "deps.cacheDir" must be a string`);
+    }
+    deps.cacheDir = rawDeps.cacheDir;
+  }
+  if (process.env.FULLSHIELD_EXPERIMENTAL_CAPABILITIES === '1' && rawDeps.capabilityPolicy !== undefined) {
+    deps.capabilityPolicy = parseCapabilityPolicy(rawDeps.capabilityPolicy, source);
+  }
+  return deps;
+}
+
+function parseAiField(value: unknown, source: string): AiConfig {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new ConfigError(`${source}: "ai" must be an object`);
+  }
+  const rawAi = value as Record<string, unknown>;
+  const ai: AiConfig = { enabled: false, maxCostUsd: 1, maxFindings: 50 };
+  if (rawAi.enabled !== undefined) {
+    if (typeof rawAi.enabled !== 'boolean') {
+      throw new ConfigError(`${source}: "ai.enabled" must be a boolean`);
+    }
+    ai.enabled = rawAi.enabled;
+  }
+  if (rawAi.maxCostUsd !== undefined) {
+    if (typeof rawAi.maxCostUsd !== 'number' || rawAi.maxCostUsd < 0) {
+      throw new ConfigError(`${source}: "ai.maxCostUsd" must be a non-negative number`);
+    }
+    ai.maxCostUsd = rawAi.maxCostUsd;
+  }
+  if (rawAi.maxFindings !== undefined) {
+    if (typeof rawAi.maxFindings !== 'number' || rawAi.maxFindings < 1) {
+      throw new ConfigError(`${source}: "ai.maxFindings" must be a positive number`);
+    }
+    ai.maxFindings = rawAi.maxFindings;
+  }
+  return ai;
+}
+
+function parseSastField(value: unknown, source: string): SastConfig {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new ConfigError(`${source}: "sast" must be an object`);
+  }
+  const rawSast = value as Record<string, unknown>;
+  const sast: SastConfig = { maxFileBytes: 1024 * 1024 };
+  if (rawSast.maxFileBytes !== undefined) {
+    if (typeof rawSast.maxFileBytes !== 'number' || rawSast.maxFileBytes < 1) {
+      throw new ConfigError(`${source}: "sast.maxFileBytes" must be a positive number`);
+    }
+    sast.maxFileBytes = rawSast.maxFileBytes;
+  }
+  const custom = process.env.FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS === '1';
+  if (!custom && (rawSast.sources !== undefined || rawSast.sanitizers !== undefined)) {
+    throw new ConfigError(
+      `${source}: unknown key "sast.sources" (FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS)`,
+    );
+  }
+  if (custom) {
+    sast.sources = parseSastSources(rawSast.sources, source);
+    sast.sanitizers = parseSastSanitizers(rawSast.sanitizers, source);
+  }
+  return sast;
+}
+
+function parseTypesField(value: unknown, source: string): TypesConfig {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new ConfigError(`${source}: "types" must be an object`);
+  }
+  const rawTypes = value as Record<string, unknown>;
+  const types: TypesConfig = { maxFiles: DEFAULT_CONFIG.types.maxFiles };
+  if (rawTypes.maxFiles !== undefined) {
+    if (typeof rawTypes.maxFiles !== 'number' || !Number.isInteger(rawTypes.maxFiles) || rawTypes.maxFiles < 1) {
+      throw new ConfigError(`${source}: "types.maxFiles" must be a positive integer`);
+    }
+    types.maxFiles = rawTypes.maxFiles;
+  }
+  return types;
+}
+
+function parseProfileField(value: unknown, source: string): ProfileName {
+  if (typeof value !== 'string' || !isProfileName(value)) {
+    throw new ConfigError(
+      `${source}: invalid "profile" ${JSON.stringify(value)} (valid: ${PROFILE_NAMES.join(', ')})`,
+    );
+  }
+  return value;
+}
+
+function applyCoreFields(
+  out: Partial<ResolvedConfig>,
+  record: Record<string, unknown>,
+  source: string,
+): void {
+  if (record.modules !== undefined) {out.modules = parseModulesField(record.modules, source);}
+  if (record.failOn !== undefined) {out.failOn = parseFailOnField(record.failOn, source);}
+  if (record.ignore !== undefined) {out.ignore = parseStringGlobs(record.ignore, source, 'ignore');}
   if (record.baseline !== undefined) {
     if (typeof record.baseline !== 'string') {
       throw new ConfigError(`${source}: "baseline" must be a string path`);
     }
     out.baseline = record.baseline;
   }
-  if (record.notify !== undefined) {
-    const notify = record.notify;
-    if (
-      typeof notify !== 'object' ||
-      notify === null ||
-      typeof (notify as Record<string, unknown>).slackWebhookEnv !== 'string'
-    ) {
-      throw new ConfigError(
-        `${source}: "notify" must be an object with a "slackWebhookEnv" string`,
-      );
-    }
-    out.notify = { slackWebhookEnv: (notify as { slackWebhookEnv: string }).slackWebhookEnv };
-  }
-  if (record.deps !== undefined) {
-    if (typeof record.deps !== 'object' || record.deps === null || Array.isArray(record.deps)) {
-      throw new ConfigError(`${source}: "deps" must be an object`);
-    }
-    const rawDeps = record.deps as Record<string, unknown>;
-    const deps: DepsConfig = { offline: false };
-    if (rawDeps.offline !== undefined) {
-      if (typeof rawDeps.offline !== 'boolean') {
-        throw new ConfigError(`${source}: "deps.offline" must be a boolean`);
-      }
-      deps.offline = rawDeps.offline;
-    }
-    if (rawDeps.cacheDir !== undefined) {
-      if (typeof rawDeps.cacheDir !== 'string') {
-        throw new ConfigError(`${source}: "deps.cacheDir" must be a string`);
-      }
-      deps.cacheDir = rawDeps.cacheDir;
-    }
-    if (process.env.FULLSHIELD_EXPERIMENTAL_CAPABILITIES === '1' && rawDeps.capabilityPolicy !== undefined) {
-      deps.capabilityPolicy = parseCapabilityPolicy(rawDeps.capabilityPolicy, source);
-    }
-    out.deps = deps;
-  }
-  if (record.ai !== undefined) {
-    if (typeof record.ai !== 'object' || record.ai === null || Array.isArray(record.ai)) {
-      throw new ConfigError(`${source}: "ai" must be an object`);
-    }
-    const rawAi = record.ai as Record<string, unknown>;
-    const ai: AiConfig = { enabled: false, maxCostUsd: 1, maxFindings: 50 };
-    if (rawAi.enabled !== undefined) {
-      if (typeof rawAi.enabled !== 'boolean') {
-        throw new ConfigError(`${source}: "ai.enabled" must be a boolean`);
-      }
-      ai.enabled = rawAi.enabled;
-    }
-    if (rawAi.maxCostUsd !== undefined) {
-      if (typeof rawAi.maxCostUsd !== 'number' || rawAi.maxCostUsd < 0) {
-        throw new ConfigError(`${source}: "ai.maxCostUsd" must be a non-negative number`);
-      }
-      ai.maxCostUsd = rawAi.maxCostUsd;
-    }
-    if (rawAi.maxFindings !== undefined) {
-      if (typeof rawAi.maxFindings !== 'number' || rawAi.maxFindings < 1) {
-        throw new ConfigError(`${source}: "ai.maxFindings" must be a positive number`);
-      }
-      ai.maxFindings = rawAi.maxFindings;
-    }
-    out.ai = ai;
-  }
+  if (record.notify !== undefined) {out.notify = parseNotifyField(record.notify, source);}
+  if (record.deps !== undefined) {out.deps = parseDepsField(record.deps, source);}
+  if (record.ai !== undefined) {out.ai = parseAiField(record.ai, source);}
+}
+
+function applyExtraFields(
+  out: Partial<ResolvedConfig>,
+  record: Record<string, unknown>,
+  source: string,
+): void {
   if (record.defaultExcludes !== undefined) {
     if (typeof record.defaultExcludes !== 'boolean') {
       throw new ConfigError(`${source}: "defaultExcludes" must be a boolean`);
@@ -313,58 +396,24 @@ function validate(raw: unknown, source: string): Partial<ResolvedConfig> {
     out.defaultExcludes = record.defaultExcludes;
   }
   if (record.excludes !== undefined) {
-    if (
-      !Array.isArray(record.excludes) ||
-      record.excludes.some((p) => typeof p !== 'string')
-    ) {
-      throw new ConfigError(`${source}: "excludes" must be an array of glob strings`);
-    }
-    out.excludes = record.excludes as string[];
+    out.excludes = parseStringGlobs(record.excludes, source, 'excludes');
   }
-  if (record.sast !== undefined) {
-    if (typeof record.sast !== 'object' || record.sast === null || Array.isArray(record.sast)) {
-      throw new ConfigError(`${source}: "sast" must be an object`);
-    }
-    const rawSast = record.sast as Record<string, unknown>;
-    const sast: SastConfig = { maxFileBytes: 1024 * 1024 };
-    if (rawSast.maxFileBytes !== undefined) {
-      if (typeof rawSast.maxFileBytes !== 'number' || rawSast.maxFileBytes < 1) {
-        throw new ConfigError(`${source}: "sast.maxFileBytes" must be a positive number`);
-      }
-      sast.maxFileBytes = rawSast.maxFileBytes;
-    }
-    const custom = process.env.FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS === '1';
-    if (!custom && (rawSast.sources !== undefined || rawSast.sanitizers !== undefined)) {
-      throw new ConfigError(
-        `${source}: unknown key "sast.sources" (FULLSHIELD_EXPERIMENTAL_CUSTOM_SANITIZERS)`,
-      );
-    }
-    if (custom) {
-      sast.sources = parseSastSources(rawSast.sources, source);
-      sast.sanitizers = parseSastSanitizers(rawSast.sanitizers, source);
-    }
-    out.sast = sast;
-  }
-  if (record.types !== undefined) {
-    if (typeof record.types !== 'object' || record.types === null || Array.isArray(record.types)) {
-      throw new ConfigError(`${source}: "types" must be an object`);
-    }
-    const rawTypes = record.types as Record<string, unknown>;
-    const types: TypesConfig = { maxFiles: DEFAULT_CONFIG.types.maxFiles };
-    if (rawTypes.maxFiles !== undefined) {
-      if (typeof rawTypes.maxFiles !== 'number' || !Number.isInteger(rawTypes.maxFiles) || rawTypes.maxFiles < 1) {
-        throw new ConfigError(`${source}: "types.maxFiles" must be a positive integer`);
-      }
-      types.maxFiles = rawTypes.maxFiles;
-    }
-    out.types = types;
-  }
+  if (record.sast !== undefined) {out.sast = parseSastField(record.sast, source);}
+  if (record.types !== undefined) {out.types = parseTypesField(record.types, source);}
   if (record.semgrepRules !== undefined) {
     if (typeof record.semgrepRules !== 'string' || record.semgrepRules.length === 0) {
       throw new ConfigError(`${source}: "semgrepRules" must be a path string`);
     }
     out.semgrepRules = record.semgrepRules;
   }
+  if (record.profile !== undefined) {out.profile = parseProfileField(record.profile, source);}
+}
+
+function validate(raw: unknown, source: string): Partial<ResolvedConfig> {
+  const record = asConfigRecord(raw, source);
+  const out: Partial<ResolvedConfig> = {};
+  applyCoreFields(out, record, source);
+  applyExtraFields(out, record, source);
   return out;
 }
 
