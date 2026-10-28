@@ -1,0 +1,8 @@
+{
+  "profile": "recommended",
+  "modules": ["deps", "secrets", "sast", "config"],
+  "failOn": "high",
+  "ignore": ["dist/**", "**/*.test.ts"],
+  "baseline": ".fullshield-baseline.json",
+  "notify": { "slackWebhookEnv": "FULLSHIELD_SLACK_WEBHOOK" }
+}

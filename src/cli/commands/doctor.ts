@@ -55,12 +55,25 @@ export async function runDoctor(cwd: string, options: DoctorOptions = {}): Promi
   lines.push(`cache: ${existsSync(cacheDir) ? cacheDir : 'absent'} (${cacheFiles} files)`);
   const on = FLAGS.filter((name) => process.env[name] === '1');
   lines.push(on.length > 0 ? `flags: ${on.join(', ')}` : 'flags: none');
+  let profile: string | undefined;
   try {
     const config = await loadConfig(cwd, options.config);
-    lines.push(`config: valid (failOn ${config.failOn}, offline ${config.deps.offline})`);
+    profile = config.profile;
+    const profilePart = config.profile ? `, profile ${config.profile}` : '';
+    lines.push(
+      `config: valid (failOn ${config.failOn}, offline ${config.deps.offline}${profilePart})`,
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     lines.push(`config: invalid (${message})`);
+  }
+  const experimentalOn = Object.keys(process.env).filter(
+    (name) => name.startsWith('FULLSHIELD_EXPERIMENTAL_') && process.env[name] === '1',
+  );
+  if (experimentalOn.length >= 3 && profile === undefined) {
+    lines.push(
+      `warning: ${experimentalOn.length} FULLSHIELD_EXPERIMENTAL_* flags are set without a config profile (set profile to recommended | ci-strict | pr-fast | prod-monitor)`,
+    );
   }
   const offline = options.offline === true;
   lines.push(

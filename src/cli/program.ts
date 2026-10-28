@@ -680,9 +680,14 @@ function registerInit(program: Command, io: ProgramIO): void {
     .description('Write fullshield.config.json, CI workflows, and a pre-commit hook')
     .argument('[path]', 'project directory', '.')
     .option('--force', 'overwrite existing generated files')
-    .action(async (path: string, opts: { force?: boolean }) => {
+    .option('--recommended', 'write profile recommended and the Action-based workflow')
+    .action(async (path: string, opts: { force?: boolean; recommended?: boolean }) => {
       try {
-        const result = await runInit({ cwd: resolve(path), force: opts.force === true });
+        const result = await runInit({
+          cwd: resolve(path),
+          force: opts.force === true,
+          recommended: opts.recommended === true,
+        });
         if (result.written.length === 0) {
           io.out('Nothing to write (files already exist). Pass --force to overwrite.');
         } else {

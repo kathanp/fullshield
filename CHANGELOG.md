@@ -2,6 +2,17 @@
 
 All notable changes to FullShield are documented here.
 
+## 2.3.0 — 2026-10-28
+
+### Adoption
+
+- Phase 550: `templates/action/` composite GitHub Action (pinned `fullshield`, SARIF upload, optional baseline cache). Does not post pull-request comments. `init --recommended` can write the Action-based workflow.
+- Phase 551: README “Verify in 60 seconds” path for `fullshield@2.3.0` with npm provenance note.
+- Phase 552: README speed claims cite `bench/perf-v2.json` only (Next.js cold target still unmet).
+- Phase 553: config `profile` (`recommended` | `ci-strict` | `pr-fast` | `prod-monitor`), `init --recommended`, and doctor warning when many experimental flags are set without a profile.
+
+Default `scan --json` finding keys stay identical to 2.2.0.
+
 ## 2.2.0 — 2026-10-27
 
 ### Performance

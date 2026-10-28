@@ -6909,3 +6909,39 @@ Flag: `FULLSHIELD_EXPERIMENTAL_PERF2`. Default is off. `stableChange: false`.
 With the flag on, a successful parse may be reused from a local cache under the FullShield cache directory, keyed by file content hash, FullShield version, and parser options. A corrupt or foreign entry is discarded. The cache is never uploaded and never contacted over the network. Warm scans on an unchanged tree stay finding-identical to a cold scan with the flag on.
 
 Acceptance: with the flag on and a dedicated cache directory, a second scan of a fixture matches the first scan’s finding keys. After writing `{` into a cache file, a third scan still matches. Two scans sort to the same bytes.
+
+## 58. Version 2.3.0
+
+These phases are the approved `docs/FEATURES.md` for 2.3.0 (items 3, 5, 6, 7 only). A behavior that is not in that file is not in this section. Default `scan --json` **findings** stay byte-identical to 2.2.0 on vulnerable-app, clean-app, and every bench app (same `(ruleId, file, line, severity)` multiset after sort). No new rule id. No stable rule id is removed. No stable finding field is removed. Accuracy is never traded for speed. No phase contacts a new host, posts a pull-request comment, opens an issue, or ships a VS Code extension or Dashboard SaaS. `clean-app` stays at 0 high/critical findings. A `--repo` run does not park. No new hard dependency. `stableChange: false`.
+
+### [X] Phase 550 — Official GitHub Action template (no PR comments)
+
+Flag: none. Adoption surface. `stableChange: false`.
+
+Ship `templates/action/` as the Action wrapper Phase 59 named (`kathanp/fullshield-action` or in-repo composite usable via `uses:`). The Action runs `fullshield scan`, uploads SARIF to code scanning when permissions allow, caches the baseline directory when configured, and pins the `fullshield` npm version. It does not post a pull-request comment, does not request changes, does not open issues, and does not phone home. `fullshield init` may write a workflow that calls this Action; the existing inline `npx` workflow remains valid. Marketplace listing is a human release step (R1), not an autopilot `npm publish`. README gains a short “GitHub Action” section with a SHA-pinned example and a status-badge snippet that points at the workflow file the user owns.
+
+Acceptance: `templates/action/action.yml` exists and is valid composite/YAML; a unit test asserts SARIF upload and baseline-cache steps exist, asserts the Action and generated workflow contain no `pull-request` comment / `issues` create / telemetry URL, and asserts a pinned `fullshield@` version string. Two default scans of vulnerable-app sort to the same finding keys as 2.2.0.
+
+### [X] Phase 551 — Verify-in-60s / attested install docs
+
+Flag: none. Documentation only. `stableChange: false`.
+
+README gains a “Verify in 60 seconds” path: empty cache / fresh temp, `npx fullshield@2.3.0 --version`, link to the npm package page and to GitHub release/tag `v2.3.0`, and a one-line note that Publish stages with provenance (OIDC) — no new network hosts. Document the existing stranger-check commands from Section 2 as the post-publish gate. No install-guard that phones home. No Rekor/sigstore SaaS dependency in the CLI. If Publish provenance is red for this version, stop (S6); do not claim attestation in README for a version that did not get a green provenance gate.
+
+Acceptance: README contains the verify-in-60s path with package version `2.3.0` and a provenance note that names no new host. A unit or doc fixture test asserts those strings. Default scan findings unchanged.
+
+### [X] Phase 552 — Stored speed claim (measured file only)
+
+Flag: none for the claim path; PERF2 harness remains experimental. `stableChange: false`.
+
+Run the existing Phase 42 / Phase 78 / PERF2 harness on a quiet machine class documented for `bench/perf-v2.json`, store the new timings with `measured: true` and a reviewed-or-unreviewed label (R7). Update README Known Limitations / Section 28 **only** from that stored file. If the Next.js cold target is still unmet, say so; do not invent a number. Optional doctor lines for parse-cache / PERF2 when those flags are on must not change finding keys. Incremental `--changed` / experimental diffscan stay as they are; this version does not make diffscan the default PR path.
+
+Acceptance: any new speed sentence in README cites `bench/perf-v2.json` (or states the target is still unmet). `bench/perf-v2.json` has `measured: true` and a `label`. A test or script asserts README numbers (if any) match the stored file. Finding keys unchanged.
+
+### [X] Phase 553 — Recommended profiles (no default-scan promotion)
+
+Flag: none. Config + init + doctor. `stableChange: false`.
+
+Add a config key `profile` with values exactly `recommended` | `ci-strict` | `pr-fast` | `prod-monitor`. Each profile is a documented bundle of existing flags and CLI defaults (fail-on, modules, offline-safe recommendations). It does not turn on experimental SAST rules that change default `scan --json` finding keys. `fullshield init --recommended` writes `fullshield.config.json` with `profile: "recommended"` and the matching workflow snippet. `fullshield doctor` warns when three or more `FULLSHIELD_EXPERIMENTAL_*` env vars are set without a profile, or when a profile name is unknown (unknown is also a config load error). Promoting any experimental rule into the default scan is out of scope (would be R10). Profiles only organize what already exists. Default scan without a profile key is unchanged.
+
+Acceptance: unit tests cover profile validation, `init --recommended`, and the doctor warning. An unknown profile is rejected. Default `scan --json` without `profile` matches 2.2.0 finding keys.

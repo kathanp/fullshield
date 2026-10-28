@@ -72,6 +72,10 @@ It is not a promise that each flag stays.
 
 Stable rule ids are the rules whose front matter says `stability: stable`. Experimental keys may disappear in a minor. This section does not say the product is complete.
 
+## 2.3.0
+
+2.3.0 does not change default `scan --json` finding keys. It adds the GitHub Action template, verify-in-60s docs, stored speed claims from `bench/perf-v2.json`, and optional config `profile` / `init --recommended`. Finding fields in this file are unchanged. No stable rule id is removed.
+
 ## 2.2.0
 
 2.2.0 does not change default `scan --json` finding keys. The default engine shares one AST, runs modules in parallel, and uses lazy taint. `FULLSHIELD_EXPERIMENTAL_PERF2` still owns file skipping, the worker parse pool, and the local parse cache. The finding fields in this file are unchanged. No stable rule id is removed.
