@@ -79,6 +79,11 @@ const KNOWN: Array<{ test: RegExp; code: string; hint: string }> = [
     code: 'FS-E017',
     hint: 'Set FULLSHIELD_EXPERIMENTAL_NPM_AUDIT_DIFF=1. Pass --file for an npm audit --json file you already have. --from is a scan --json file. Without --from the command reads .fullshield/last-scan.json.',
   },
+  {
+    test: /schedule (install could not register the timer|uninstall could not remove the timer|status could not read the timer)/,
+    code: 'FS-E019',
+    hint: 'The timer is a user LaunchAgent, user crontab, or scheduled task. FullShield does not use sudo.',
+  },
 ];
 
 const DOCS = 'https://github.com/kathanp/fullshield/blob/main/docs/errors.md';

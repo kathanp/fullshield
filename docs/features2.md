@@ -69,9 +69,9 @@ List only — not committing to build. Each item has: **today**, **basic add**, 
 
 **A — more advanced (extra)**
 
-- A8. **Monorepo workspace orchestration** as a stable product (scan each lockfile, merge findings, show which workspace owns a reachable CVE).
-- A9. **Policy-as-code pack** for orgs: “no reachable critical in main”, “secrets always fail”, exceptions with expiry — fold experimental policy into the recommended profile carefully.
-- A10. **Zero-config first PR**: `npx fullshield@latest init --ci` opens a PR that adds Action + config and posts first scan comment.
+- A8. [X] **Monorepo workspace orchestration** as a stable product (2.4.0 — multi-workspace lockfile scan by default; single-package unchanged).
+- A9. [X] **Policy-as-code pack** for orgs (2.4.0 — `templates/policy/` + load with `profile: recommended` / `ci-strict`).
+- A10. [X] **Zero-config first PR**: `init --ci` (2.4.0 — writes Action + config; optional `gh` recipe / injected runner; **no** PR comments per SPEC §31).
 
 ---
 

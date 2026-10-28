@@ -13,7 +13,7 @@ Phase 56 (EPSS / CISA) is not in this release. Default scan does not contact
 ## Stable
 
 ### Commands
-- `scan`, `fix`, `init`, `sbom --format cyclonedx`, `watch`, `edge`, `notify`, `doctor`.
+- `scan`, `fix`, `init`, `sbom --format cyclonedx`, `watch`, `edge`, `notify`, `doctor`, `schedule`.
 - The flags each command prints in `--help` that are not labeled experimental.
 
 ### Exit codes (scan)
@@ -22,7 +22,7 @@ Phase 56 (EPSS / CISA) is not in this release. Default scan does not contact
 - `2` the command failed (`FS-E` code printed).
 
 ### Error codes
-- `FS-E000` through `FS-E004`. Each has one meaning in [errors.md](errors.md).
+- `FS-E000` through `FS-E004`, and `FS-E019` (`schedule` timer). Each has one meaning in [errors.md](errors.md).
 - Code numbers are never reused, including the experimental and internal codes below.
 
 ### Config keys (`fullshield.config.json`)
@@ -71,6 +71,10 @@ It is not a promise that each flag stays.
 ## Phase 500
 
 Stable rule ids are the rules whose front matter says `stability: stable`. Experimental keys may disappear in a minor. This section does not say the product is complete.
+
+## 3.0.0
+
+3.0.0 adds `schedule install`, `schedule run`, `schedule status`, and `schedule uninstall`. `install` registers a user timer every 2 hours, creates `fullShieldReport/`, and adds that folder to `.gitignore` once. `run` writes `fullShieldReport/fullShieldReport_YYYYMMDD_HHMM.md` and keeps the newest 60 reports. `scan` does not create that folder or edit `.gitignore`. Default `scan --json` finding keys are unchanged. No stable rule id is removed.
 
 ## 2.4.0
 

@@ -2,6 +2,15 @@
 
 All notable changes to FullShield are documented here.
 
+## 3.0.0 — 2026-10-28
+
+### Scheduler
+
+- `schedule install` registers an every-2-hours user timer (LaunchAgent, user crontab, or Task Scheduler), creates `fullShieldReport/`, and adds that folder to `.gitignore` once. It does not use sudo and it does not stay running.
+- `schedule run` writes `fullShieldReport/fullShieldReport_YYYYMMDD_HHMM.md` in local time and keeps the newest 60 reports. A standing finding does not fail the run.
+- `schedule status` and `schedule uninstall` inspect or remove the timer. Uninstall leaves the reports and the `.gitignore` line.
+- `scan` does not create `fullShieldReport/` or edit `.gitignore`. Default `scan --json` finding keys are unchanged.
+
 ## 2.4.0 — 2026-10-28
 
 ### Workspaces and policy

@@ -58,5 +58,10 @@
     "path": "src/policy/index.ts",
     "api": "child_process",
     "reason": "Existing call recorded in Phase 94. It is not a new execution path."
+  },
+  {
+    "path": "src/schedule/index.ts",
+    "api": "child_process",
+    "reason": "3.0.0 schedule install registers a user LaunchAgent, user crontab, or scheduled task. It does not use sudo and does not stay running."
   }
 ]
