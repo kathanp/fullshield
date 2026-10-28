@@ -2,6 +2,14 @@
 
 All notable changes to FullShield are documented here.
 
+## 2.4.0 — 2026-10-28
+
+### Workspaces and policy
+
+- Phase 554: multi-workspace repos scan each workspace lockfile by default (single-package apps unchanged vs 2.3.0).
+- Phase 555: `templates/policy/fullshield.policy.json` starter pack; loaded when `profile` is `recommended` or `ci-strict`.
+- Phase 556: `init --ci` writes Action + config (+ policy with `--recommended`); optional `gh` PR; `--no-pr` skips it; never posts PR comments.
+
 ## 2.3.0 — 2026-10-28
 
 ### Adoption

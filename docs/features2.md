@@ -37,7 +37,7 @@ List only — not committing to build. Each item has: **today**, **basic add**, 
    - **Advanced:** Language-server-style diagnostics via MCP resources; “apply this fix” that shells to `fullshield fix` with verification; workspace trust prompts; never silently scan `$HOME`.
    - **Risk:** Do not fork into a second product surface that diverges from CLI JSON.
 
-3. **One-click GitHub Action + marketplace**
+3. [X] **One-click GitHub Action + marketplace** (2.3.0 — Action template + init; Marketplace listing still human)
    - **Today:** `init` can write workflows; marketplace listing/badges are thin.
    - **Basic:** Official Action with pinned digest, `fail-on`, SARIF upload to code scanning, status badge.
    - **Advanced:** Composite Action that runs scan → reachability-ranked summary → optional `fix` dry-run artifact; reusable workflow for monorepos; OIDC-only publish path documented as the trust story.
@@ -49,19 +49,19 @@ List only — not committing to build. Each item has: **today**, **basic add**, 
    - **Advanced:** Org graph of reachable vulns across repos; “blast radius” when a shared lockfile package turns critical; SSO; retention policies; export to SIEM; still no claim of live attack prevention.
    - **Risk:** SaaS is a company product, not a CLI phase; needs privacy, billing, SOC2. Keep scanner useful offline without SaaS.
 
-5. **Signed / attested install for strangers**
+5. [X] **Signed / attested install for strangers** (2.3.0 — Verify-in-60s + provenance note; no Rekor/sigstore SaaS)
    - **Today:** Provenance on publish; stranger check exists in SPEC release steps.
    - **Basic:** README “verify in 60s” with `npx fullshield@x.y.z --version` + attested package link.
    - **Advanced:** SLSA build provenance on every release; public Rekor/sigstore page; install-guard that refuses non-attested tarballs in CI; weekly rebuild-reproducibility report.
    - **Risk:** Provenance theater without green gates (as with prior 2.1.0 publish timeouts) hurts more than it helps.
 
-6. **Speed as a product claim**
+6. [X] **Speed as a product claim** (2.3.0 — README cites `bench/perf-v2.json` only; Next.js cold target still unmet)
    - **Today:** 2.2.0 shared AST / parallel modules / lazy taint; PERF2 pool + cache; stored Next.js cold scan still above target.
    - **Basic:** Publish reviewed p50 cold/warm numbers from `bench/perf-v2.json` only after a quiet-machine run.
    - **Advanced:** Public “scan under N seconds on app class X” SLA for CI; incremental `--changed` / diffscan as the default PR path; parse-cache hit-rate metrics in doctor; never invent numbers in docs.
    - **Risk:** Invented benches = credibility death. Accuracy never traded for speed (R26 / FEATURES rules).
 
-7. **Stable recommended defaults**
+7. [X] **Stable recommended defaults** (2.3.0 — `profile` + `init --recommended` + doctor warning)
    - **Today:** Hundreds of `FULLSHIELD_EXPERIMENTAL_*` flags; new users drown.
    - **Basic:** A documented `profile: recommended` (or `fullshield init --recommended`) that enables a small, reviewed set.
    - **Advanced:** Profiles per maturity (`ci-strict`, `pr-fast`, `prod-monitor`); doctor warns when experimental flags are on without a profile; promote flags only with R1 evidence.

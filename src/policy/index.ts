@@ -40,6 +40,8 @@ export interface FullShieldPolicy {
 
 export interface PolicyLoadOptions {
   experimental?: boolean;
+  /** Phase 555. When `recommended` or `ci-strict`, load policy without the experimental flag. */
+  profile?: string;
 }
 
 export interface ApplyPolicyContext {
@@ -64,8 +66,11 @@ const defaultLoadZod: ZodLoader = async () => {
   return { z };
 };
 
+const PROFILE_POLICY = new Set(['recommended', 'ci-strict']);
+
 export function isPolicyEnabled(opts: PolicyLoadOptions = {}): boolean {
-  return opts.experimental === true || process.env[POLICY_FLAG] === '1';
+  if (opts.experimental === true || process.env[POLICY_FLAG] === '1') {return true;}
+  return typeof opts.profile === 'string' && PROFILE_POLICY.has(opts.profile);
 }
 
 function formatZodIssues(error: { issues: Array<{ path: PropertyKey[]; message: string }> }): string {

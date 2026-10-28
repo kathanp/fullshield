@@ -681,23 +681,41 @@ function registerInit(program: Command, io: ProgramIO): void {
     .argument('[path]', 'project directory', '.')
     .option('--force', 'overwrite existing generated files')
     .option('--recommended', 'write profile recommended and the Action-based workflow')
-    .action(async (path: string, opts: { force?: boolean; recommended?: boolean }) => {
-      try {
-        const result = await runInit({
-          cwd: resolve(path),
-          force: opts.force === true,
-          recommended: opts.recommended === true,
-        });
-        if (result.written.length === 0) {
-          io.out('Nothing to write (files already exist). Pass --force to overwrite.');
-        } else {
-          io.out(`Wrote ${result.written.join(', ')}`);
+    .option('--ci', 'write CI Action workflow (and policy pack); optional gh PR')
+    .option('--no-pr', 'with --ci, never open a pull request via gh')
+    .action(
+      async (
+        path: string,
+        opts: { force?: boolean; recommended?: boolean; ci?: boolean; noPr?: boolean },
+      ) => {
+        try {
+          const result = await runInit({
+            cwd: resolve(path),
+            force: opts.force === true,
+            recommended: opts.recommended === true,
+            ci: opts.ci === true,
+            noPr: opts.noPr === true,
+          });
+          if (result.written.length === 0) {
+            io.out('Nothing to write (files already exist). Pass --force to overwrite.');
+          } else {
+            io.out(`Wrote ${result.written.join(', ')}`);
+          }
+          if (result.summaryPath) {
+            io.out(`Local summary: ${result.summaryPath} (FullShield does not post pull-request comments)`);
+          }
+          if (result.prUrl) {
+            io.out(`Opened PR: ${result.prUrl}`);
+          }
+          if (result.prHint) {
+            io.out(result.prHint);
+          }
+        } catch (error) {
+          io.err(formatCliError(error));
+          process.exitCode = 2;
         }
-      } catch (error) {
-        io.err(formatCliError(error));
-        process.exitCode = 2;
-      }
-    });
+      },
+    );
 }
 
 function registerNotify(program: Command, io: ProgramIO): void {

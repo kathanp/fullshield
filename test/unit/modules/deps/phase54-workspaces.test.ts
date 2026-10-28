@@ -32,8 +32,12 @@ describe('phase 54 workspace lockfiles', () => {
     expect(keys(on.findings)).toEqual(keys(off.findings));
   });
 
-  it('does not read workspace lockfiles when the flag is off', async () => {
+  it('reads workspace lockfiles by default on multi-workspace trees (phase 554)', async () => {
+    delete process.env.FULLSHIELD_EXPERIMENTAL_WORKSPACES;
     const result = await scan({ cwd: app, modules: ['deps'], offline: true });
-    expect(result.findings.some((finding) => finding.ruleId === 'DEPS-VULN-001')).toBe(false);
+    expect(result.findings.some((finding) => finding.ruleId === 'DEPS-VULN-001')).toBe(true);
+    expect(result.findings.some((finding) => finding.file === 'packages/vuln/package-lock.json')).toBe(
+      true,
+    );
   });
 });
