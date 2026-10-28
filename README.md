@@ -1,6 +1,6 @@
 # FullShield
 
-**v2.4.0.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself.
+**v3.0.0.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself. Scan when you want with `npx fullshield scan`, or install an every-2-hours timer with `npx fullshield schedule install`.
 
 **Headline: dependency reachability.** A lockfile CVE is not the same as an unused package. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (lockfile path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), `not-imported` (−2, only when no such path exists), or `reachability-unknown` (severity kept) when the lockfile format has no parsed dependency edges. DevDependency-only vulns are `info` with a `dev-only` note unless production sources import the package. Pair it with `fullshield sbom --format cyclonedx`.
 
@@ -10,16 +10,16 @@ npx fullshield scan --json --fail-on high
 npx fullshield scan --sarif fullshield.sarif
 ```
 
-2.4.0 is the version of this tree. The stable contract is [docs/stability.md](docs/stability.md). The 1.0.1 release moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. Do not treat a scan as a penetration test. Reviewed recall for untouched apps is not published. From `bench/perf-v2.json` (`measured: true`, `label: unreviewed`), the stored Next.js cold p50 is 107.95 seconds — still above the 60-second target (target unmet). Default scans share one AST, run modules in parallel, and use lazy taint. Multi-workspace repos scan each workspace lockfile by default; single-package finding keys stay the same as 2.3.0.
+3.0.0 is the version of this tree. `schedule install` writes `fullShieldReport/fullShieldReport_YYYYMMDD_HHMM.md` every 2 hours and keeps 60 reports. `scan` does not create that folder. The stable contract is [docs/stability.md](docs/stability.md). The 1.0.1 release moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. Do not treat a scan as a penetration test. Reviewed recall for untouched apps is not published. From `bench/perf-v2.json` (`measured: true`, `label: unreviewed`), the stored Next.js cold p50 is 107.95 seconds — still above the 60-second target (target unmet). Default scans share one AST, run modules in parallel, and use lazy taint. Multi-workspace repos scan each workspace lockfile by default; single-package finding keys stay the same as 2.3.0.
 
 ## Verify in 60 seconds
 
 ```bash
 # fresh temp / empty cache is enough — no install-guard phones home
-npx fullshield@2.4.0 --version
+npx fullshield@3.0.0 --version
 ```
 
-Package page: [npmjs.com/package/fullshield](https://www.npmjs.com/package/fullshield). Release tag: [v2.4.0](https://github.com/kathanp/fullshield/releases/tag/v2.4.0). Publish stages with npm provenance (OIDC). After install, the stranger checks in the build spec (scan / json / sarif / fail-on / fix / init / sbom) are the post-publish gate — no Rekor/sigstore SaaS dependency in the CLI.
+Package page: [npmjs.com/package/fullshield](https://www.npmjs.com/package/fullshield). Release tag: [v3.0.0](https://github.com/kathanp/fullshield/releases/tag/v3.0.0). Publish stages with npm provenance (OIDC). After install, the stranger checks in the build spec (scan / json / sarif / fail-on / fix / init / sbom) are the post-publish gate — no Rekor/sigstore SaaS dependency in the CLI.
 
 ## GitHub Action
 
@@ -28,7 +28,7 @@ Copy `templates/action/` into your repo (or use `kathanp/fullshield-action` once
 ```yaml
 - uses: your-org/your-repo/.github/actions/fullshield@<commit-sha>
   with:
-    version: '2.4.0'
+    version: '3.0.0'
 ```
 
 Or run `npx fullshield init --recommended` to write `profile: "recommended"` and a workflow that calls `./templates/action`. The Action runs `fullshield scan`, uploads SARIF, and may cache the baseline. It does not post a pull-request comment, open issues, or phone home.
@@ -168,9 +168,13 @@ npx fullshield watch
 npx fullshield edge https://app.example.com
 npx fullshield doctor
 npx fullshield doctor --offline
+npx fullshield schedule install
+npx fullshield schedule run
+npx fullshield schedule status
+npx fullshield schedule uninstall
 ```
 
-`scan` runs deps, secrets, sast, and config. `fix` prints patches and writes only with `--apply` on a clean git tree. `init` writes config, CI, and a pre-commit hook. `notify` sends the last scan to Slack, a webhook, or SMTP. `sbom` writes CycloneDX 1.5. `watch` alerts only on a new OSV hit. `edge` checks one URL you pass for a CDN, HTTPS, headers, and `/.env` or `/.git`. `doctor` prints Node, the lockfile, the cache, flags set to `1`, and whether OSV may use the network.
+`scan` runs deps, secrets, sast, and config. It does not create `fullShieldReport/` or edit `.gitignore`. `schedule install` registers a user timer every 2 hours (LaunchAgent, user crontab, or Task Scheduler — no sudo). Each run writes `fullShieldReport/fullShieldReport_YYYYMMDD_HHMM.md`, keeps the newest 60 reports, and exits. `schedule uninstall` removes the timer and leaves the reports. Details: [`docs/scheduled-reports.md`](docs/scheduled-reports.md). `fix` prints patches and writes only with `--apply` on a clean git tree. `init` writes config, CI, and a pre-commit hook. `notify` sends the last scan to Slack, a webhook, or SMTP. `sbom` writes CycloneDX 1.5. `watch` alerts only on a new OSV hit. `edge` checks one URL you pass for a CDN, HTTPS, headers, and `/.env` or `/.git`. `doctor` prints Node, the lockfile, the cache, flags set to `1`, and whether OSV may use the network.
 
 Each command below exits with `FS-E###` until its flag is exactly `1`. None of them run on a default `scan`.
 
@@ -235,7 +239,8 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 
 | Command | Purpose |
 |---|---|
-| `scan` | Run deps, secrets, sast, config. `--json`, `--sarif`, `--markdown`, `--html`, `--fail-on`, `--offline`, `--staged`, `--update-baseline`. `--ai explain` is **experimental** (off by default; explanation text only, never a verdict). `--pr-summary` is **experimental** (`FULLSHIELD_EXPERIMENTAL_POLICY=1`): deterministic Markdown of new findings versus baseline for GitHub/GitLab PR comments (no AI; links to rule docs). |
+| `scan` | Run deps, secrets, sast, config. `--json`, `--sarif`, `--markdown`, `--html`, `--fail-on`, `--offline`, `--staged`, `--update-baseline`. `--ai explain` is **experimental** (off by default; explanation text only, never a verdict). `--pr-summary` is **experimental** (`FULLSHIELD_EXPERIMENTAL_POLICY=1`): deterministic Markdown of new findings versus baseline for GitHub/GitLab PR comments (no AI; links to rule docs). Does not write `fullShieldReport/` or edit `.gitignore`. |
+| `schedule` | Every 2 hours. `install` gitignores `fullShieldReport/` once and registers the OS timer. `run` writes `fullShieldReport/fullShieldReport_YYYYMMDD_HHMM.md` and keeps 60. `status` and `uninstall` inspect or remove the timer. Uninstall leaves reports. A standing finding does not fail `run`. |
 | `diff` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_DIFF=1`). Compare two `scan --json` files. `--fail-on` applies to added findings only. |
 | `ingest` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_INGEST=1`). Read local SARIF, npm audit, OSV-Scanner, and Semgrep JSON and dedupe. Does not run those tools. |
 | `fullshield.policy.json` | **Experimental** policy-as-code (`FULLSHIELD_EXPERIMENTAL_POLICY=1`): `requiredModules`, per-rule `severityOverrides`, `failOn` per branch, and `exceptions` that require `owner`, `reason`, and ISO `expires`. Expired exceptions fail CI. Exceptions without owner or expiry are rejected. |

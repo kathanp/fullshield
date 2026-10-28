@@ -57,6 +57,14 @@ import { runSpdxCli } from '../sbom/spdx-command.js';
 import { runEdge } from '../modules/edge/index.js';
 import { runHostCheck } from '../host/index.js';
 import { runDoctor } from './commands/doctor.js';
+import {
+  createScheduleHost,
+  installSchedule,
+  runSchedule,
+  scheduleStatus,
+  uninstallSchedule,
+  type ScheduleHost,
+} from '../schedule/index.js';
 import { formatCliError } from './errors.js';
 import { runIngestCommand } from '../ingest/command.js';
 import { DEV_FLAG, DevError, devEnabled, startDevLoop } from '../dev/index.js';
@@ -66,6 +74,8 @@ export interface ProgramIO {
   err(text: string): void;
   /** Defaults to the built-in scan. Tests pass a scan that includes a slow rule. */
   scan?(options: Parameters<typeof scan>[0]): ReturnType<typeof scan>;
+  /** Defaults to the OS timer. Tests pass a host that does not edit crontab. */
+  scheduleHost?: ScheduleHost;
 }
 
 const defaultIO: ProgramIO = {
@@ -1478,6 +1488,82 @@ function registerNpmAuditDiff(program: Command, io: ProgramIO): void {
     });
 }
 
+function scheduleHostFor(io: ProgramIO): ScheduleHost {
+  return io.scheduleHost ?? createScheduleHost(process.argv[1] ?? '');
+}
+
+function registerSchedule(program: Command, io: ProgramIO): void {
+  const schedule = program
+    .command('schedule')
+    .description('Every 2 hours, write a dated Markdown report and keep 60 files');
+
+  schedule
+    .command('install')
+    .description('Gitignore fullShieldReport/ and register the every-2-hours timer')
+    .argument('[path]', 'project directory', '.')
+    .action(async (path: string) => {
+      try {
+        const result = await installSchedule(resolve(path), scheduleHostFor(io));
+        const gitignore = result.gitignore === 'added'
+          ? 'gitignore: fullShieldReport/'
+          : 'gitignore already lists fullShieldReport/';
+        io.out(`schedule installed every 2 hours -> ${result.reportsDir}/ (keeps 60)`);
+        io.out(gitignore);
+      } catch (error) {
+        io.err(formatCliError(error));
+        process.exitCode = 2;
+      }
+    });
+
+  schedule
+    .command('run')
+    .description('Scan once, write fullShieldReport_YYYYMMDD_HHMM.md, and keep 60 reports')
+    .argument('[path]', 'project directory', '.')
+    .action(async (path: string) => {
+      try {
+        const written = await runSchedule(resolve(path), new Date(), (options) => {
+          if (io.scan !== undefined) {
+            return io.scan(options);
+          }
+          return scan(options);
+        });
+        io.out(`wrote ${written.file}`);
+      } catch (error) {
+        io.err(formatCliError(error));
+        process.exitCode = 2;
+      }
+    });
+
+  schedule
+    .command('status')
+    .description('Show whether the timer is installed and how many reports are on disk')
+    .argument('[path]', 'project directory', '.')
+    .action(async (path: string) => {
+      try {
+        const status = await scheduleStatus(resolve(path), scheduleHostFor(io));
+        io.out(status.installed ? 'schedule installed' : 'schedule not installed');
+        io.out(`reports: ${status.reports}`);
+      } catch (error) {
+        io.err(formatCliError(error));
+        process.exitCode = 2;
+      }
+    });
+
+  schedule
+    .command('uninstall')
+    .description('Remove the timer and leave reports and .gitignore in place')
+    .argument('[path]', 'project directory', '.')
+    .action(async (path: string) => {
+      try {
+        const removed = await uninstallSchedule(resolve(path), scheduleHostFor(io));
+        io.out(removed ? 'schedule removed' : 'schedule is not installed');
+      } catch (error) {
+        io.err(formatCliError(error));
+        process.exitCode = 2;
+      }
+    });
+}
+
 function registerDoctor(program: Command, io: ProgramIO): void {
   program
     .command('doctor')
@@ -1527,6 +1613,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
   registerIngest(program, io);
   registerDev(program, io);
   registerNpmAuditDiff(program, io);
+  registerSchedule(program, io);
   registerDoctor(program, io);
   return program;
 }
