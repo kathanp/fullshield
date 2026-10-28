@@ -72,6 +72,10 @@ It is not a promise that each flag stays.
 
 Stable rule ids are the rules whose front matter says `stability: stable`. Experimental keys may disappear in a minor. This section does not say the product is complete.
 
+## 2.4.0
+
+2.4.0 does not change default `scan --json` finding keys on single-package apps. Multi-workspace trees scan each workspace lockfile by default (R10 for those trees only). Policy packs load with `profile: recommended` or `ci-strict`. `init --ci` writes CI files and never posts PR comments. Finding fields in this file are unchanged. No stable rule id is removed.
+
 ## 2.3.0
 
 2.3.0 does not change default `scan --json` finding keys. It adds the GitHub Action template, verify-in-60s docs, stored speed claims from `bench/perf-v2.json`, and optional config `profile` / `init --recommended`. Finding fields in this file are unchanged. No stable rule id is removed.

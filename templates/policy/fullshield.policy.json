@@ -1,0 +1,8 @@
+{
+  "requiredModules": ["secrets", "deps", "sast", "config"],
+  "failOn": {
+    "main": "critical",
+    "*": "high"
+  },
+  "exceptions": []
+}

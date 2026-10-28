@@ -6945,3 +6945,31 @@ Flag: none. Config + init + doctor. `stableChange: false`.
 Add a config key `profile` with values exactly `recommended` | `ci-strict` | `pr-fast` | `prod-monitor`. Each profile is a documented bundle of existing flags and CLI defaults (fail-on, modules, offline-safe recommendations). It does not turn on experimental SAST rules that change default `scan --json` finding keys. `fullshield init --recommended` writes `fullshield.config.json` with `profile: "recommended"` and the matching workflow snippet. `fullshield doctor` warns when three or more `FULLSHIELD_EXPERIMENTAL_*` env vars are set without a profile, or when a profile name is unknown (unknown is also a config load error). Promoting any experimental rule into the default scan is out of scope (would be R10). Profiles only organize what already exists. Default scan without a profile key is unchanged.
 
 Acceptance: unit tests cover profile validation, `init --recommended`, and the doctor warning. An unknown profile is rejected. Default `scan --json` without `profile` matches 2.2.0 finding keys.
+
+## 59. Version 2.4.0
+
+These phases are the approved `docs/FEATURES.md` for 2.4.0 (items A8, A9, A10 only). A behavior that is not in that file is not in this section. Default `scan --json` **findings** on single-package trees stay byte-identical to 2.3.0 on vulnerable-app, clean-app, and every bench app (same `(ruleId, file, line, severity)` multiset after sort). No new rule id. No stable rule id is removed. No stable finding field is removed. This version does not post a pull-request comment, open an issue, ship a VS Code extension or Dashboard SaaS, or contact a new host. `clean-app` stays at 0 high/critical findings. A `--repo` run does not park. No new hard dependency. Workspace multi-package trees may gain attributed dependency findings (R10 approved in the features file for those trees only).
+
+### [X] Phase 554 — Stable workspace lockfile orchestration
+
+Flag: none for multi-workspace trees. `FULLSHIELD_EXPERIMENTAL_WORKSPACES` remains accepted and may force the behavior on for tests. `stableChange: true` only on multi-workspace trees (R10 approved). Single-package: `stableChange: false`.
+
+When the project declares npm/pnpm/yarn workspaces and expands to **more than one** package directory, scan each workspace that has its own lockfile and attribute dependency advisories to that workspace path (as Phase 54). Merge findings with the existing sort (file path already encodes the workspace). A single-package repo, or a workspace field that expands to zero or one package directory, stays finding-identical to 2.3.0 without the experimental flag. Console may group by workspace path prefix; no new rule id.
+
+Acceptance: a two-workspace fixture reports `DEPS-VULN-001` on the workspace that locks the vulnerable package and not on the clean workspace, with no experimental flag set. The same fixture with the flag on matches the flag-off result. Single-package vulnerable-app and clean-app finding keys match 2.3.0. Two scans sort to the same bytes.
+
+### [X] Phase 555 — Policy pack + recommended profile
+
+Flag: none for profile-gated policy. `FULLSHIELD_EXPERIMENTAL_POLICY` remains accepted. `stableChange: false` for scans without a profile.
+
+Ship `templates/policy/fullshield.policy.json` (org starter): failOn for `main` at least `critical` in the Phase 34 `failOn` map sense, secrets module required or equivalent so secret findings fail CI under the pack, exceptions require `owner` / `reason` / ISO `expires`. When config `profile` is `recommended` or `ci-strict`, load and apply `fullshield.policy.json` if present (same apply path as the experimental flag). When no `profile` is set, policy stays off unless the experimental flag is on. `init --recommended` writes the starter policy file when missing. Doctor warns when a profile is set but the policy file is missing or invalid. No new SAST rule ids.
+
+Acceptance: with `profile: "recommended"` and the starter policy file, policy applies (failOn / exceptions shape tested). Without `profile`, default scan findings match 2.3.0 keys on single-package fixtures. Unit tests cover init writing the pack and the doctor warning.
+
+### [X] Phase 556 — `init --ci` (no PR comments)
+
+Flag: none. CLI. `stableChange: false`.
+
+Add `fullshield init --ci`: writes Action workflow and `fullshield.config.json` (and the A9 policy pack when `--recommended` is also set, or as documented for `--ci` defaults). Opt-out of opening a PR with `--no-pr`. When `gh` is on PATH and the cwd is a git repo with a remote, and `--no-pr` is not set, the command may create a branch and open a pull request that adds **only** those generated files. After writes (and optional PR), print a deterministic first-scan Markdown summary locally (reuse `--pr-summary` machinery or write `fullshield-pr-summary.md` in the tree). It does not post a pull-request comment, does not call `createComment`, does not request changes, does not open issues, and does not phone home.
+
+Acceptance: unit tests assert files are written; `--no-pr` never invokes `gh`; source and templates contain no PR-comment API. README states FullShield never posts PR comments. Default scan findings unchanged.

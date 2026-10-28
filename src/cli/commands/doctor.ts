@@ -3,6 +3,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 import { loadConfig } from '../../core/config.js';
+import { POLICY_FILE_NAME } from '../../policy/index.js';
 
 const MIN_NODE = [22, 13, 0] as const;
 const LOCKFILES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'] as const;
@@ -74,6 +75,9 @@ export async function runDoctor(cwd: string, options: DoctorOptions = {}): Promi
     lines.push(
       `warning: ${experimentalOn.length} FULLSHIELD_EXPERIMENTAL_* flags are set without a config profile (set profile to recommended | ci-strict | pr-fast | prod-monitor)`,
     );
+  }
+  if (profile !== undefined && !existsSync(join(cwd, POLICY_FILE_NAME))) {
+    lines.push(`warning: profile ${profile} is set but ${POLICY_FILE_NAME} is missing`);
   }
   const offline = options.offline === true;
   lines.push(

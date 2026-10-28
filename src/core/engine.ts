@@ -43,6 +43,29 @@ import {
   resolvePolicyBranch,
   type FullShieldPolicy,
 } from '../policy/index.js';
+import { isMultiWorkspaceProject } from '../workspaces/index.js';
+
+const WORKSPACES_FLAG = 'FULLSHIELD_EXPERIMENTAL_WORKSPACES';
+
+async function withWorkspaceDefault(
+  cwd: string,
+  run: () => Promise<ScanResult>,
+): Promise<ScanResult> {
+  const prev = process.env[WORKSPACES_FLAG];
+  let armed = false;
+  try {
+    if (prev !== '1' && isMultiWorkspaceProject(cwd)) {
+      process.env[WORKSPACES_FLAG] = '1';
+      armed = true;
+    }
+    return await run();
+  } finally {
+    if (armed) {
+      if (prev === undefined) {delete process.env[WORKSPACES_FLAG];}
+      else {process.env[WORKSPACES_FLAG] = prev;}
+    }
+  }
+}
 
 export interface ModuleContext {
   cwd: string;
@@ -256,7 +279,10 @@ async function loadScanConfig(cwd: string, options: ScanOptions): Promise<Loaded
       config = { ...config, ai: { ...config.ai, maxFindings } };
     }
   }
-  const loadedPolicy = await loadPolicy(cwd, { experimental: options.experimentalPolicy });
+  const loadedPolicy = await loadPolicy(cwd, {
+    experimental: options.experimentalPolicy,
+    profile: config.profile,
+  });
   const modulesRequested = mergeRequiredModules(
     options.modules ?? config.modules,
     loadedPolicy?.requiredModules,
@@ -608,34 +634,36 @@ export async function runScan(
   try {
     armScanBudget(options);
     const cwd = await requireScanDirectory(options.cwd);
-    const loaded = await loadScanConfig(cwd, options);
-    const selected = await selectScanFiles(cwd, options, loaded.config);
-    const gathered = await gatherFindings(cwd, options, loaded, selected.files, modules);
-    const baselined = await baselineFindings(cwd, loaded.config, options, gathered.findings);
-    let findings = baselined.findings;
-    if (secretsNeedVerify(options, loaded.modulesRequested)) {
-      findings = await verifyOwnedSecrets(findings, gathered.extraHits, baselined.sources, cwd, options);
-    }
-    const tail = await decorateFindings(findings, {
-      cwd,
-      files: selected.files,
-      loaded,
-      options,
-      sources: baselined.sources,
-      modulesRun: gathered.modulesRun,
-    });
-    return buildScanResult({
-      findings: tail.findings,
-      startedAt,
-      t0,
-      cwd,
-      files: selected.files,
-      loaded,
-      selected,
-      gathered,
-      baselined,
-      tail,
-      modulesRun: gathered.modulesRun,
+    return await withWorkspaceDefault(cwd, async () => {
+      const loaded = await loadScanConfig(cwd, options);
+      const selected = await selectScanFiles(cwd, options, loaded.config);
+      const gathered = await gatherFindings(cwd, options, loaded, selected.files, modules);
+      const baselined = await baselineFindings(cwd, loaded.config, options, gathered.findings);
+      let findings = baselined.findings;
+      if (secretsNeedVerify(options, loaded.modulesRequested)) {
+        findings = await verifyOwnedSecrets(findings, gathered.extraHits, baselined.sources, cwd, options);
+      }
+      const tail = await decorateFindings(findings, {
+        cwd,
+        files: selected.files,
+        loaded,
+        options,
+        sources: baselined.sources,
+        modulesRun: gathered.modulesRun,
+      });
+      return buildScanResult({
+        findings: tail.findings,
+        startedAt,
+        t0,
+        cwd,
+        files: selected.files,
+        loaded,
+        selected,
+        gathered,
+        baselined,
+        tail,
+        modulesRun: gathered.modulesRun,
+      });
     });
   } finally {
     clearBudget();

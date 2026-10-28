@@ -109,3 +109,9 @@ D-50 | phase-550 | Ship templates/action/ as Phase 59 named; no PR comments | Ac
 D-51 | phase-551 | Verify-in-60s docs only; no install phone-home | README names 2.3.0, npm page, GitHub tag, OIDC provenance. No new hosts. | APPROVED
 D-52 | phase-552 | Speed claims only from bench/perf-v2.json | measured:true + label. Unmet Next.js target stated; no invented timings. | APPROVED
 D-53 | phase-553 | profile enum recommended|ci-strict|pr-fast|prod-monitor | Bundles existing defaults only. init --recommended writes profile. Doctor warns on many experimental flags without profile. No R10. | APPROVED
+
+D-54 | phase-554 | Workspace lockfile scan on by default for multi-workspace trees | Single-package identical to 2.3.0. R10 only for multi-workspace attribution. Flag remains accepted. | APPROVED
+D-55 | phase-555 | Policy pack under templates/policy; on for profile recommended|ci-strict | No profile → policy off unless experimental flag. No new SAST ids. | APPROVED
+D-56 | phase-556 | init --ci writes CI files; optional gh PR; local summary only | Never posts PR comments (SPEC §31). --no-pr skips gh. | APPROVED
+
+D-57 | phase-554 | R3 edit of phase54 flag-off assertion | Approved FEATURES 2.4.0 A8 promotes workspace scan to default; the old flag-off silence assertion is replaced. | APPROVED

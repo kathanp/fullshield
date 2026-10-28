@@ -275,4 +275,5 @@ templates/github-watch.yml
 templates/github-workflow-action.yml
 templates/github-workflow.yml
 templates/gitlab-ci.yml
+templates/policy/fullshield.policy.json
 templates/pre-commit.sh
