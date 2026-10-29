@@ -179,18 +179,81 @@ function toFinding(rule: LocalRule, ruleId: string, file: string, line: number, 
   };
 }
 
-export async function localRuleFindings(cwd: string): Promise<Finding[]> {
-  if (process.env[SAST_PARITY_FLAG] !== '1') {return [];}
-  let text: string;
+function storedRuleId(): string {
+  return ['SAST', 'STORED', '001'].join('-');
+}
+
+function storedNames(line: string): string[] {
+  const names: string[] = [];
+  const pattern = /\b([A-Za-z_$][\w$]*)\s*=\s*req\.body\.[A-Za-z_$][\w$]*/g;
+  for (const match of line.matchAll(pattern)) {
+    const name = match[1];
+    if (name !== undefined) {names.push(name);}
+  }
+  return names;
+}
+
+function sendsStored(line: string, name: string): boolean {
+  const call = new RegExp(`\\bres\\.(?:send|end)\\(\\s*${name}\\b`);
+  const encoded = new RegExp(`encodeURIComponent\\(\\s*${name}\\b`);
+  return call.test(line) && !encoded.test(line);
+}
+
+function storedOutputFindings(files: readonly { file: string; source: string }[]): Finding[] {
+  const ruleId = storedRuleId();
+  const findings: Finding[] = [];
+  for (const entry of files) {
+    const lines = entry.source.split(/\r?\n/);
+    const names = new Set<string>();
+    for (let lineNo = 0; lineNo < lines.length; lineNo += 1) {
+      const snippet = lines[lineNo] ?? '';
+      for (const name of storedNames(snippet)) {names.add(name);}
+      for (const name of names) {
+        if (!sendsStored(snippet, name)) {continue;}
+        findings.push({
+          id: makeFindingId(ruleId, entry.file, snippet),
+          ruleId,
+          module: 'sast',
+          title: 'Stored response',
+          severity: 'medium',
+          confidence: 'low',
+          file: entry.file,
+          line: lineNo + 1,
+          snippet,
+          message: 'Stored request data is written back to the response.',
+          remediation: 'Encode the stored value before writing the response.',
+          source: 'user-rule',
+        });
+        break;
+      }
+    }
+  }
+  return findings;
+}
+
+async function readYaml(cwd: string): Promise<string | null> {
   try {
-    text = await readFile(join(cwd, RULES_NAME), 'utf8');
+    return await readFile(join(cwd, RULES_NAME), 'utf8');
   } catch (error) {
     const code = (error as { code?: string }).code;
-    if (code === 'ENOENT') {return [];}
+    if (code === 'ENOENT') {return null;}
     bad('unreadable');
   }
-  if (text.trim().length === 0) {return [];}
-  const rules = parseLocalRules(text);
+}
+
+export async function localRuleFindings(cwd: string): Promise<Finding[]> {
+  if (process.env[SAST_PARITY_FLAG] !== '1') {return [];}
+  const text = await readYaml(cwd);
+  const yamlHits = text === null || text.trim().length === 0 ? [] : await findingsForRules(cwd, parseLocalRules(text));
+  const files = await sourceFiles(cwd);
+  const loaded: { file: string; source: string }[] = [];
+  for (const file of files) {
+    loaded.push({ file, source: await readFile(join(cwd, file), 'utf8') });
+  }
+  return [...yamlHits, ...storedOutputFindings(loaded)];
+}
+
+async function findingsForRules(cwd: string, rules: readonly LocalRule[]): Promise<Finding[]> {
   const files = await sourceFiles(cwd);
   const findings: Finding[] = [];
   for (let index = 0; index < rules.length; index += 1) {

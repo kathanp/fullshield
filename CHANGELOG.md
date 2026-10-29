@@ -2,6 +2,12 @@
 
 All notable changes to FullShield are documented here.
 
+## 3.2.2 — 2026-10-29
+
+### Stored response
+
+- Phase 566: with `FULLSHIELD_EXPERIMENTAL_SAST_PARITY` already on, a same-file `req.body` binding later passed to `res.send` or `res.end` is a medium, low-confidence finding. Encoded output, Prisma `$queryRaw`, tRPC `input`, Nest `@Body()`, and `req.params.id` are not. No new command or flag.
+
 ## 3.2.1 — 2026-10-29
 
 ### SAST parity
