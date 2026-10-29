@@ -1,3 +1,4 @@
+import { guardMode, resetWebhookRate, webhookFor } from '../exp/p567.js';
 import { clearDnsPins, setDnsPinTtl } from './dns-pin.js';
 import { decideSink } from './decide.js';
 import { installHooks, restoreHooks } from './hooks.js';
@@ -5,7 +6,7 @@ import { clearCanaries } from './honey.js';
 import { setSsrfLookup } from './ssrf.js';
 import { clearThreats, configureThreat } from './threat.js';
 import { patchForcesBlock, type VirtualPatch } from './vpatch.js';
-import type { Decision, RaspEvent, RaspRequestContext, SinkKind } from './types.js';
+import { RASP_RULE, type Decision, type RaspEvent, type RaspRequestContext, type SinkKind } from './types.js';
 
 export type RaspMode = 'monitor' | 'block';
 
@@ -28,6 +29,16 @@ let enabled = false;
 let options: RaspOptions = {};
 const events: RaspEvent[] = [];
 const MAX_EVENTS = 1000;
+let pendingWebhook = false;
+
+function noteWebhook(kind: SinkKind, mode: RaspMode): void {
+  if (!pendingWebhook) {return;}
+  pendingWebhook = false;
+  const last = events[events.length - 1];
+  if (!last || last.ruleId !== RASP_RULE[kind]) {return;}
+  const body = webhookFor(kind, mode, last.ruleId, Date.now());
+  if (body !== undefined) {last.webhookJson = body;}
+}
 
 export function isRaspEnabled(): boolean {
   return enabled;
@@ -38,8 +49,10 @@ export function raspMode(): RaspMode {
 }
 
 export function raspModeFor(route: string, kind: SinkKind): RaspMode {
-  if (patchForcesBlock(options.virtualPatches ?? [], route, kind)) {return 'block';}
-  return raspMode();
+  const requested = patchForcesBlock(options.virtualPatches ?? [], route, kind) ? 'block' : raspMode();
+  const mode = guardMode(requested, kind);
+  noteWebhook(kind, mode);
+  return mode;
 }
 
 export function raspEgressAllow(): readonly string[] | undefined {
@@ -54,6 +67,7 @@ export function runDecide(kind: SinkKind, sink: unknown, ctx: RaspRequestContext
 export function emitRaspEvent(event: RaspEvent): void {
   if (events.length >= MAX_EVENTS) {events.shift();}
   events.push(event);
+  pendingWebhook = true;
   options.onEvent?.(event);
 }
 
@@ -63,6 +77,8 @@ export function getRaspEvents(): readonly RaspEvent[] {
 
 export function clearRaspEvents(): void {
   events.length = 0;
+  pendingWebhook = false;
+  resetWebhookRate();
 }
 
 export function enableRasp(opts: RaspOptions = {}): void {

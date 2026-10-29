@@ -7104,3 +7104,19 @@ Flag: `FULLSHIELD_EXPERIMENTAL_SAST_PARITY`, already shipped in 3.2.1. `stableCh
 When the flag is on, a same-file binding `name = req.body.<field>` that is later passed to `res.send(name)` or `res.end(name)` is one finding. Severity is `medium`. Confidence is `low`. The `ruleId` is `SAST-STORED-001`. A call wrapped in `encodeURIComponent(name)` is not a finding. `prisma.$queryRaw` tagged templates, `publicProcedure.input(...)`, and `@Body() dto` are not findings from this check. A route that reads `req.params.id` is not an IDOR finding and does not fail the default `high` CI gate. The flag off adds nothing. No cross-file cache is added.
 
 Acceptance: the stored `res.send` is one medium finding; the encoded call, the framework snippets, and the `req.params.id` route are not. The flag off reports nothing from this check. Default scan findings unchanged.
+
+## 64. Version 3.3.1
+
+These phases are the approved `docs/FEATURES.md` for 3.3.1 (features2.md section D, items 21–23). A behavior that is not in that file is not in this section. This is a minor. It adds no `.command()` and no `.option()`. It adds `FULLSHIELD_EXPERIMENTAL_RUNTIME_GUARD`. Default `scan --json` findings stay byte-identical to 3.2.2. `stableChange: false`.
+
+### [X] Phase 567 — Monitor-first block allowlist [`FULLSHIELD_EXPERIMENTAL_RUNTIME_GUARD`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_RUNTIME_GUARD`. Off unless the value is `1`. `stableChange: false`.
+
+With the flag off, runtime mode is unchanged, including an existing block mode. With the flag on, a requested `block` mode blocks only `sql` and `shell`. `path`, `nosql`, `ssrf`, `proto`, and `ssti` stay `monitor`. A requested `monitor` mode stays `monitor`.
+
+When the flag is on and a runtime event is recorded, `webhookJson` may be set to one JSON object: `schema` 1, `kind`, `action`, and `ruleId`. At most 5 bodies are produced in any 60 second window. A body over the cap is omitted. The body is not posted and does not include the request sample, path, or address. The flag off does not set `webhookJson`.
+
+eBPF and network-layer detection are not implemented. An external alert is still a local file passed to `ingest`. This phase does not claim to prevent attacks. No new host. No new `rules/*.md` file.
+
+Acceptance: flag off returns the requested mode and no webhook body. Flag on blocks `sql` and `shell` only. The sixth body inside 60 seconds is omitted, and a body at 60 seconds is allowed. Default scan findings unchanged.
