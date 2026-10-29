@@ -84,6 +84,26 @@ const KNOWN: Array<{ test: RegExp; code: string; hint: string }> = [
     code: 'FS-E019',
     hint: 'The timer is a user LaunchAgent, user crontab, or scheduled task. FullShield does not use sudo.',
   },
+  {
+    test: /FULLSHIELD_EXPERIMENTAL_BUMP_PR/,
+    code: 'FS-E020',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_BUMP_PR=1. The command reads a local scan JSON file and does not merge.',
+  },
+  {
+    test: /FULLSHIELD_EXPERIMENTAL_PRIVATE_REG/,
+    code: 'FS-E021',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_PRIVATE_REG=1. deps.registry must be https with no userinfo. The host is not contacted.',
+  },
+  {
+    test: /FULLSHIELD_EXPERIMENTAL_EXCEPTIONS/,
+    code: 'FS-E022',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_EXCEPTIONS=1. Each exception needs owner, reason, and an expiry within 365 days.',
+  },
+  {
+    test: /FULLSHIELD_EXPERIMENTAL_EPSS_LOCAL/,
+    code: 'FS-E023',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_EPSS_LOCAL=1. deps.epssFile is a local JSON file. epss is from 0 to 1.',
+  },
 ];
 
 const DOCS = 'https://github.com/kathanp/fullshield/blob/main/docs/errors.md';

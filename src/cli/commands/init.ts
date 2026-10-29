@@ -130,6 +130,9 @@ export async function runInit(options: InitOptions): Promise<InitResult> {
   if (recommended || ci) {
     files.push(['fullshield.policy.json', join(templates, 'policy', 'fullshield.policy.json')]);
   }
+  if (recommended) {
+    files.push(['.github/workflows/fullshield-diff.yml', join(templates, 'github-workflow-diff.yml')]);
+  }
   const written: string[] = [];
   for (const [rel, src] of files) {
     const contents = await readFile(src, 'utf8');

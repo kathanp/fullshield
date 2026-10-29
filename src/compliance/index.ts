@@ -163,6 +163,8 @@ export const RULE_MAP: readonly RuleMapping[] = [
   ROW('IAC-GHA-INJECT-001', 'A03:2021 Injection', 'CWE-94', 'V5.2.4', 'PCI DSS 6.2.4'),
   ROW('IAC-GHA-PRCHECKOUT-001', 'A01:2021 Broken Access Control', 'CWE-829', 'V4.1.1', 'PCI DSS 6.2.4'),
   ROW('DEPS-LICENSE-001', 'A06:2021 Vulnerable Components', 'CWE-1104', 'V14.2.1', 'PCI DSS 6.3.3'),
+  ROW('DEPS-LICENSE-002', 'A06:2021 Vulnerable Components', 'CWE-1104', 'V14.2.1', 'PCI DSS 6.3.3'),
+  ROW('DEPS-ORG-ADV-001', 'A06:2021 Vulnerable Components', 'CWE-1104', 'V14.2.1', 'PCI DSS 6.3.3'),
   ROW('IAC-TF-S3PUBLIC-001', 'A01:2021 Broken Access Control', 'CWE-284', 'V12.1.1', 'PCI DSS 1.3 / 3.2'),
   ROW('IAC-TF-SGOPEN-001', 'A05:2021 Security Misconfiguration', 'CWE-284', 'V1.4.1', 'PCI DSS 1.2 / 1.3'),
   ROW('IAC-TF-UNENCRYPTED-001', 'A02:2021 Cryptographic Failures', 'CWE-311', 'V6.2.1', 'PCI DSS 3.4 / 4.2'),

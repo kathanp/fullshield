@@ -514,6 +514,7 @@ interface ScanTail {
   typeSuppressed: Finding[] | undefined;
   typesNotice: string | undefined;
   attackPaths: AttackPath[] | undefined;
+  exceptionErrors?: string[];
 }
 
 function aiRequested(aiMode: ScanOptions['ai'], config: ResolvedConfig): boolean {
@@ -572,12 +573,78 @@ async function decorateFindings(findingsIn: Finding[], input: DecorateInput): Pr
     typeSuppressed = applied.suppressed;
     typesNotice = applied.notice;
   }
+  let exceptionErrors: string[] | undefined;
+  if (process.env.FULLSHIELD_EXPERIMENTAL_EXCEPTIONS === '1') {
+    const { applyExceptions, loadExceptions } = await import('../policy/exceptions.js');
+    const rows = await loadExceptions(input.cwd);
+    if (rows !== undefined) {
+      const applied = applyExceptions(findings, rows, new Date());
+      findings = applied.findings;
+      if (applied.errors.length > 0) {exceptionErrors = applied.errors;}
+    }
+  }
+  if (process.env.FULLSHIELD_EXPERIMENTAL_EPSS_LOCAL === '1' && input.loaded.config.deps.epssFile !== undefined) {
+    const { enrichEpss, readEpssTable } = await import('../modules/deps/epss-local.js');
+    const table = await readEpssTable(input.cwd, input.loaded.config.deps.epssFile);
+    findings = enrichEpss(findings, table);
+  }
   let attackPaths: AttackPath[] | undefined;
   if (input.options.paths === true && process.env.FULLSHIELD_EXPERIMENTAL_PATHS === '1') {
     const { buildAttackPathsFromFiles } = await import('../paths/index.js');
     attackPaths = await buildAttackPathsFromFiles(findings, input.cwd, input.files);
   }
-  return { findings, policyResult, modelSuppressed, modelInfo, typeSuppressed, typesNotice, attackPaths };
+  return {
+    findings,
+    policyResult,
+    modelSuppressed,
+    modelInfo,
+    typeSuppressed,
+    typesNotice,
+    attackPaths,
+    ...(exceptionErrors !== undefined ? { exceptionErrors } : {}),
+  };
+}
+
+function scanMetadata(input: {
+  startedAt: string;
+  t0: number;
+  cwd: string;
+  files: readonly string[];
+  loaded: LoadedScan;
+  selected: SelectedFiles;
+  gathered: Gathered;
+  tail: ScanTail;
+  modulesRun: ModuleName[];
+}): ScanResult['metadata'] {
+  const { startedAt, t0, cwd, files, loaded, selected, gathered, tail, modulesRun } = input;
+  return {
+    version: packageVersion(),
+    startedAt,
+    durationMs: Math.round((performance.now() - t0) * 100) / 100,
+    cwd,
+    filesScanned: files.length,
+    modulesRequested: [...loaded.modulesRequested],
+    modulesRun,
+    ...(gathered.historyNotice !== undefined ? { history: gathered.historyNotice } : {}),
+    ...(selected.skipped !== undefined ? { skipped: selected.skipped } : {}),
+    ...(depsModule.unusedDirect !== undefined ? { unusedDirect: depsModule.unusedDirect } : {}),
+    ...(depsModule.upgradePlan !== undefined ? { upgradePlan: depsModule.upgradePlan } : {}),
+    ...(budgetSnapshot() ?? {}),
+    ...(tail.modelInfo !== undefined ? { info: tail.modelInfo } : {}),
+  };
+}
+
+function scanAttachments(input: { baselined: Baselined; tail: ScanTail }): Partial<ScanResult> {
+  const { baselined, tail } = input;
+  const out: Partial<ScanResult> = {};
+  const errors = [...baselined.suppressionErrors, ...(tail.exceptionErrors ?? [])];
+  if (errors.length > 0) {out.suppressionErrors = errors;}
+  if (tail.typeSuppressed !== undefined || tail.modelSuppressed !== undefined) {
+    out.suppressed = [...(tail.modelSuppressed ?? []), ...(tail.typeSuppressed ?? [])];
+  }
+  if (tail.typesNotice !== undefined) {out.typesNotice = tail.typesNotice;}
+  if (tail.attackPaths !== undefined) {out.paths = tail.attackPaths;}
+  return out;
 }
 
 function buildScanResult(input: {
@@ -593,33 +660,13 @@ function buildScanResult(input: {
   tail: ScanTail;
   modulesRun: ModuleName[];
 }): ScanResult {
-  const { findings, startedAt, t0, cwd, files, loaded, selected, gathered, baselined, tail, modulesRun } = input;
   return {
-    findings,
-    summary: summarize(findings),
-    metadata: {
-      version: packageVersion(),
-      startedAt,
-      durationMs: Math.round((performance.now() - t0) * 100) / 100,
-      cwd,
-      filesScanned: files.length,
-      modulesRequested: [...loaded.modulesRequested],
-      modulesRun,
-      ...(gathered.historyNotice !== undefined ? { history: gathered.historyNotice } : {}),
-      ...(selected.skipped !== undefined ? { skipped: selected.skipped } : {}),
-      ...(depsModule.unusedDirect !== undefined ? { unusedDirect: depsModule.unusedDirect } : {}),
-      ...(depsModule.upgradePlan !== undefined ? { upgradePlan: depsModule.upgradePlan } : {}),
-      ...(budgetSnapshot() ?? {}),
-      ...(tail.modelInfo !== undefined ? { info: tail.modelInfo } : {}),
-    },
-    config: loaded.config,
-    policy: tail.policyResult,
-    ...(baselined.suppressionErrors.length > 0 ? { suppressionErrors: baselined.suppressionErrors } : {}),
-    ...(tail.typeSuppressed !== undefined || tail.modelSuppressed !== undefined
-      ? { suppressed: [...(tail.modelSuppressed ?? []), ...(tail.typeSuppressed ?? [])] }
-      : {}),
-    ...(tail.typesNotice !== undefined ? { typesNotice: tail.typesNotice } : {}),
-    ...(tail.attackPaths !== undefined ? { paths: tail.attackPaths } : {}),
+    findings: input.findings,
+    summary: summarize(input.findings),
+    metadata: scanMetadata(input),
+    config: input.loaded.config,
+    policy: input.tail.policyResult,
+    ...scanAttachments(input),
   };
 }
 
