@@ -1,4 +1,5 @@
 import { guardMode, resetWebhookRate, webhookFor } from '../exp/p567.js';
+import { matchingSinkLines, responseWithinCap, runtimeMode, sqlFingerprint } from '../exp/p568.js';
 import { clearDnsPins, setDnsPinTtl } from './dns-pin.js';
 import { decideSink } from './decide.js';
 import { installHooks, restoreHooks } from './hooks.js';
@@ -38,6 +39,11 @@ function noteWebhook(kind: SinkKind, mode: RaspMode): void {
   if (!last || last.ruleId !== RASP_RULE[kind]) {return;}
   const body = webhookFor(kind, mode, last.ruleId, Date.now());
   if (body !== undefined) {last.webhookJson = body;}
+  const fingerprint = kind === 'sql' ? sqlFingerprint(last.sample) : undefined;
+  if (fingerprint !== undefined) {last.fingerprint = fingerprint;}
+  const lines = matchingSinkLines(last.sample, fingerprint ?? '');
+  if (lines.length > 0) {last.sinkLines = lines;}
+  if (!responseWithinCap(Buffer.byteLength(last.sample))) {last.overCap = true;}
 }
 
 export function isRaspEnabled(): boolean {
@@ -110,6 +116,6 @@ export function enableRaspFromEnv(): void {
   if (process.env.FULLSHIELD_EXPERIMENTAL_RASP !== '1') {return;}
   enableRasp({
     experimental: true,
-    mode: process.env.FULLSHIELD_RASP_MODE === 'block' ? 'block' : 'monitor',
+    mode: runtimeMode(process.env.FULLSHIELD_RASP_MODE),
   });
 }

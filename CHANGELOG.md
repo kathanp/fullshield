@@ -2,6 +2,12 @@
 
 All notable changes to FullShield are documented here.
 
+## 3.3.2 — 2026-10-29
+
+### Runtime loop
+
+- Phase 568: the same runtime guard flag stores a collapsed SQL `fingerprint`, sets `overCap` above 4096 bytes, and treats `confirm` `unconfirmed` as not a pass. `FULLSHIELD_RASP_MODE=block-experimental` is the block name while the flag is on. No new command or flag.
+
 ## 3.3.1 — 2026-10-29
 
 ### Runtime guard

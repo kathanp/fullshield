@@ -21,6 +21,11 @@ export interface RaspEvent {
   count?: number;
   /** Set only when FULLSHIELD_EXPERIMENTAL_RUNTIME_GUARD is on and the rate cap allows it. */
   webhookJson?: string;
+  /** Collapsed SQL shape. Set only for sql events while the runtime guard flag is on. */
+  fingerprint?: string;
+  sinkLines?: number[];
+  /** Set when the sample is larger than 4096 bytes and the runtime guard flag is on. */
+  overCap?: boolean;
 }
 
 export const RASP_RULE: Record<SinkKind, string> = {
