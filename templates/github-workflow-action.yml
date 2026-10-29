@@ -15,7 +15,7 @@ jobs:
       # Example Marketplace ref once published: kathanp/fullshield-action@<sha>
       - uses: ./templates/action
         with:
-          version: '3.3.2'
+          version: '3.4.1'
           fail-on: high
           cache-baseline: 'true'
           upload-sarif: 'true'

@@ -2,6 +2,12 @@
 
 All notable changes to FullShield are documented here.
 
+## 3.4.1 — 2026-10-29
+
+### Adoption
+
+- Phase 569: `FULLSHIELD_EXPERIMENTAL_ADOPT` adds `init --tour`, `init --stack` for express, nest, next, fastify, and hono, and `digest --file` for a local npm id list. The tour writes nothing. The digest does not fetch. No grade, no recall number, and no SOC2 claim.
+
 ## 3.3.2 — 2026-10-29
 
 ### Runtime loop

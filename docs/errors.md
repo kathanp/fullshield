@@ -30,6 +30,7 @@ FullShield prints `fullshield: FS-E### <message>`. The message is the same text 
 | FS-E022 | `fullshield.exceptions.json` is missing owner, reason, or a valid expiry, or the expiry is more than 365 days ahead | Set `FULLSHIELD_EXPERIMENTAL_EXCEPTIONS=1`. There is no forever exception. An expired row fails CI and does not suppress. |
 | FS-E023 | Local EPSS file is missing, not an object, has `epss` outside 0..1, or `kev` is not a boolean | Set `FULLSHIELD_EXPERIMENTAL_EPSS_LOCAL=1`. The file is local. FullShield does not download EPSS or KEV. |
 | FS-E024 | SAST parity flag is off, the local rules file is invalid, or `fix --finding` did not match one safe fix | Set `FULLSHIELD_EXPERIMENTAL_SAST_PARITY=1`. `fullshield.rules.yml` is local. FullShield does not download rules. |
+| FS-E025 | Adoption flag is off, the stack name is unknown, or the digest file is not a JSON array | Set `FULLSHIELD_EXPERIMENTAL_ADOPT=1`. Digest reads a local file and does not fetch. |
 | FS-E330 | Access-control matrix report while `FULLSHIELD_EXPERIMENTAL_ACLREPORT` is off | Set the flag. The command does not write the report when the flag is off. |
 | FS-E341 | Secret allowlist file is missing, not JSON, incomplete, or contains a raw secret | Pass a local allow file. The scanner does not read it when `FULLSHIELD_EXPERIMENTAL_SECRETALLOW` is off. |
 | FS-E347 | Patch-diff symbol candidates while `FULLSHIELD_EXPERIMENTAL_PATCHDIFF` is off | Set the flag. The command does not read the diff when the flag is off. |
