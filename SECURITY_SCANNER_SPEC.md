@@ -7092,3 +7092,15 @@ Flag: `FULLSHIELD_EXPERIMENTAL_SAST_PARITY`. `stableChange: false`.
 The HTML report, when the flag is on, adds `<p class="taint">source file:line sink file:line</p>` for a finding whose `trace` has a first step and a last step that both include `file` and `line`. A shorter trace, or a step with no line, adds no edge. With the flag off, the HTML report is unchanged.
 
 Acceptance: counts group two reachable high rows and label a missing reachability `unspecified`, and the JSON has no grade. The flag off does not read `fullshield.rules.yml` and does not scan. A literal pattern matches a project file and not `node_modules`. Invalid rules throw. One safe fix changes one file. HTML with the flag off matches the previous report. Default scan findings unchanged.
+
+## 63. Version 3.2.2
+
+These phases are the approved `docs/FEATURES.md` for 3.2.2 (features2.md section C, items C21–C24). A behavior that is not in that file is not in this section. This is a patch. It adds no `.command()`, no `.option()`, no `rules/*.md` id, no package export, and no new `FULLSHIELD_EXPERIMENTAL_*` flag. Default `scan --json` findings stay byte-identical to 3.2.1. `stableChange: false`.
+
+### [X] Phase 566 — Stored response on the existing parity flag [`FULLSHIELD_EXPERIMENTAL_SAST_PARITY`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_SAST_PARITY`, already shipped in 3.2.1. `stableChange: false`.
+
+When the flag is on, a same-file binding `name = req.body.<field>` that is later passed to `res.send(name)` or `res.end(name)` is one finding. Severity is `medium`. Confidence is `low`. The `ruleId` is `SAST-STORED-001`. A call wrapped in `encodeURIComponent(name)` is not a finding. `prisma.$queryRaw` tagged templates, `publicProcedure.input(...)`, and `@Body() dto` are not findings from this check. A route that reads `req.params.id` is not an IDOR finding and does not fail the default `high` CI gate. The flag off adds nothing. No cross-file cache is added.
+
+Acceptance: the stored `res.send` is one medium finding; the encoded call, the framework snippets, and the `req.params.id` route are not. The flag off reports nothing from this check. Default scan findings unchanged.

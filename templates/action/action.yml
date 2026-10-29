@@ -45,7 +45,7 @@ runs:
       uses: actions/setup-node@v7
       with:
         node-version: '22'
-    - name: Install fullshield@3.2.1
+    - name: Install fullshield@3.2.2
       shell: bash
       run: npm install --global fullshield@${{ inputs.version }}
     - name: Cache FullShield baseline
