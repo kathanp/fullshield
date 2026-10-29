@@ -7053,3 +7053,24 @@ Flag: none for init. The generated workflow sets `FULLSHIELD_EXPERIMENTAL_DIFFSC
 `init --recommended` also writes `.github/workflows/fullshield-diff.yml` from `templates/github-workflow-diff.yml`. The workflow runs `fullshield scan --diff` with `FULLSHIELD_EXPERIMENTAL_DIFFSCAN=1`. It does not contain `createComment` or `gh pr merge`. Default `scan` without `--diff` is unchanged. `init` without `--recommended` does not write this file.
 
 Acceptance: `init --recommended` writes the diff workflow; a plain `init` does not; the template has `--diff` and the flag and no comment API. Default scan findings unchanged.
+
+## 61. Version 3.1.2
+
+These phases are the approved `docs/FEATURES.md` for 3.1.2 (features2.md section B, items B15–B18). A behavior that is not in that file is not in this section. This is a patch. It adds no `.command()`, no `.option()`, no `rules/*.md` id, no package export, and no new `FULLSHIELD_EXPERIMENTAL_*` flag. Default `scan --json` findings stay byte-identical to 3.1.1. `stableChange: false`.
+
+### [X] Phase 564 — Bump plan extras on the existing commands [`FULLSHIELD_EXPERIMENTAL_BUMP_PR`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_BUMP_PR`, already shipped in 3.1.1. Provenance blocking also reads `FULLSHIELD_EXPERIMENTAL_PROVENANCE`, already shipped. `stableChange: false`.
+
+`bumps plan --from <scan.json>` prints one JSON object:
+
+- `bumps`: reachable high and critical `dependency-bump` rows, ranked as in 3.1.1 (critical, then name, then advisory). Rows with the same `name` and the same `to` are one row. `clears` is the number of reachable findings in that row. `rank` starts at 1 after grouping.
+- `skippedNotImported`: count of `DEPS-VULN-001` findings whose `reachability` is `not-imported`. They stay out of `bumps`.
+- `installScripts`: for each bump name, `{ name, scripts }` where `scripts` are the `preinstall`, `install`, and `postinstall` strings from `<cwd>/node_modules/<name>/package.json`. Missing package or missing script keys yield an empty `scripts` array. The process does not spawn a package manager and does not run the script text.
+- `provenanceBlocked`: when `FULLSHIELD_EXPERIMENTAL_PROVENANCE` is `1`, a bump whose local registry cache (`<cacheDir>/registry/<name>.json`, `/` in the name replaced by `__`) has a version entry and `dist.attestations` absent. Those rows are omitted from `bumps` and from `bumps open`. A missing cache file, or the provenance flag unset, blocks nothing.
+
+`bumps open` opens one pull request per remaining grouped row. The `gh pr create` arguments still omit `merge`, `createComment`, and `createReview`. When `clears` is greater than 1, the body adds the sentence `This upgrade clears N reachable findings.` The body still says a person accepts the pull request.
+
+With `FULLSHIELD_EXPERIMENTAL_BUMP_PR` unset, both subcommands throw before reading the file (`FS-E020`).
+
+Acceptance: a not-imported row increments `skippedNotImported` and is absent from `bumps`. Two reachable findings with the same name and `to` become one row with `clears` 2 and one `gh pr create`. An install script string is reported and no child process is started for it. With the provenance flag on and a cache entry that lacks attestations, the row is in `provenanceBlocked` and is not opened. With that flag off, the same cache does not block. Default scan findings unchanged.

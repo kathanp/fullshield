@@ -23,6 +23,7 @@ export interface RankedBump {
   reachability: 'reachable';
   advisory: string;
   rank: number;
+  clears?: number;
 }
 
 interface BumpFix {
@@ -115,6 +116,7 @@ export function bumpPullRequestArgs(item: RankedBump): string[] {
   const title = `chore: bump ${item.name} to ${item.to}`;
   const body = [
     `Reachable ${item.severity} advisory ${item.advisory}.`,
+    ...((item.clears ?? 1) > 1 ? [`This upgrade clears ${item.clears} reachable findings.`] : []),
     `Bump ${item.name} from ${item.from} to ${item.to} with the package manager.`,
     'FullShield does not edit the lockfile and does not post pull-request comments.',
     'A person accepts this pull request.',

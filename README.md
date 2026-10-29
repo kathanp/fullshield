@@ -1,6 +1,6 @@
 # FullShield
 
-**v3.1.1.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself. Scan when you want with `npx fullshield scan`, or install an every-2-hours timer with `npx fullshield schedule install`.
+**v3.1.2.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself. Scan when you want with `npx fullshield scan`, or install an every-2-hours timer with `npx fullshield schedule install`.
 
 **Headline: dependency reachability.** A lockfile CVE is not the same as an unused package. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (lockfile path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), `not-imported` (−2, only when no such path exists), or `reachability-unknown` (severity kept) when the lockfile format has no parsed dependency edges. DevDependency-only vulns are `info` with a `dev-only` note unless production sources import the package. Pair it with `fullshield sbom --format cyclonedx`.
 
@@ -10,16 +10,16 @@ npx fullshield scan --json --fail-on high
 npx fullshield scan --sarif fullshield.sarif
 ```
 
-3.1.1 is the version of this tree. `schedule install` writes `fullShieldReport/fullShieldReport_YYYYMMDD_HHMM.md` every 2 hours and keeps 60 reports. `scan` does not create that folder. The stable contract is [docs/stability.md](docs/stability.md). The 1.0.1 release moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. Do not treat a scan as a penetration test. Reviewed recall for untouched apps is not published. From `bench/perf-v2.json` (`measured: true`, `label: unreviewed`), the stored Next.js cold p50 is 107.95 seconds — still above the 60-second target (target unmet). Default scans share one AST, run modules in parallel, and use lazy taint. Multi-workspace repos scan each workspace lockfile by default; single-package finding keys stay the same as 2.3.0.
+3.1.2 is the version of this tree. `schedule install` writes `fullShieldReport/fullShieldReport_YYYYMMDD_HHMM.md` every 2 hours and keeps 60 reports. `scan` does not create that folder. The stable contract is [docs/stability.md](docs/stability.md). The 1.0.1 release moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. Do not treat a scan as a penetration test. Reviewed recall for untouched apps is not published. From `bench/perf-v2.json` (`measured: true`, `label: unreviewed`), the stored Next.js cold p50 is 107.95 seconds — still above the 60-second target (target unmet). Default scans share one AST, run modules in parallel, and use lazy taint. Multi-workspace repos scan each workspace lockfile by default; single-package finding keys stay the same as 2.3.0.
 
 ## Verify in 60 seconds
 
 ```bash
 # fresh temp / empty cache is enough — no install-guard phones home
-npx fullshield@3.1.1 --version
+npx fullshield@3.1.2 --version
 ```
 
-Package page: [npmjs.com/package/fullshield](https://www.npmjs.com/package/fullshield). Release tag: [v3.1.1](https://github.com/kathanp/fullshield/releases/tag/v3.1.1). Publish stages with npm provenance (OIDC). After install, the stranger checks in the build spec (scan / json / sarif / fail-on / fix / init / sbom) are the post-publish gate — no Rekor/sigstore SaaS dependency in the CLI.
+Package page: [npmjs.com/package/fullshield](https://www.npmjs.com/package/fullshield). Release tag: [v3.1.2](https://github.com/kathanp/fullshield/releases/tag/v3.1.2). Publish stages with npm provenance (OIDC). After install, the stranger checks in the build spec (scan / json / sarif / fail-on / fix / init / sbom) are the post-publish gate — no Rekor/sigstore SaaS dependency in the CLI.
 
 ## GitHub Action
 
@@ -28,7 +28,7 @@ Copy `templates/action/` into your repo (or use `kathanp/fullshield-action` once
 ```yaml
 - uses: your-org/your-repo/.github/actions/fullshield@<commit-sha>
   with:
-    version: '3.1.1'
+    version: '3.1.2'
 ```
 
 Or run `npx fullshield init --recommended` to write `profile: "recommended"` and a workflow that calls `./templates/action`. The Action runs `fullshield scan`, uploads SARIF, and may cache the baseline. It does not post a pull-request comment, open issues, or phone home.
@@ -263,7 +263,7 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | `agent` | **Experimental** remediation agent (`FULLSHIELD_EXPERIMENTAL_AGENT=1`). Mock/localhost GitHub API + local git remote only — never a real network. Never merges, never pushes to `main`/`master`. `--max-prs` (default 3). |
 | `scan --changed` / `--since` | **Experimental** incremental scan (`FULLSHIELD_EXPERIMENTAL_PLATFORM=1`). |
 | `scan --diff` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_DIFFSCAN=1` or `--experimental-diffscan`). Scans git-changed JS/TS files, the files they import by a relative literal, and the files that import them the same way. One hop. A sink in an unchanged importer still reports when the changed file returns the request value. A git failure is `FS-E018` and does not scan the rest of the tree. Off, or `scan` without `--diff`, matches today's scan. `init --recommended` writes `.github/workflows/fullshield-diff.yml`, which sets `FULLSHIELD_EXPERIMENTAL_DIFFSCAN=1` and runs `scan --diff`. |
-| `bumps plan` / `bumps open` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_BUMP_PR=1`). Ranks reachable high and critical `DEPS-VULN-001` bumps from a local `scan --json` file (`--from`). `open` runs `gh pr create` once per row and never merges. Not-imported and below-high rows are omitted. `templates/fullshield-bumps.yml` is a nightly copy-in workflow. |
+| `bumps plan` / `bumps open` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_BUMP_PR=1`). Ranks reachable high and critical `DEPS-VULN-001` bumps from a local `scan --json` file (`--from`). One pull request covers one package name and target (`clears` counts the findings). Plan JSON includes `skippedNotImported` and static `installScripts` (never executed). With `FULLSHIELD_EXPERIMENTAL_PROVENANCE=1`, a local cache entry that lacks `dist.attestations` is `provenanceBlocked` and is not opened. `open` runs `gh pr create` and never merges. `templates/fullshield-bumps.yml` is a nightly copy-in workflow. |
 | License policy | **Experimental** (`FULLSHIELD_EXPERIMENTAL_LICENSE_POLICY=1`). `deps.licenseDeny` and `deps.licenseAllow` match the installed direct dependency `license` string. `DEPS-LICENSE-002` is a license policy, not a vulnerability. A missing license stays silent. |
 | Private registry | **Experimental** (`FULLSHIELD_EXPERIMENTAL_PRIVATE_REG=1`). `deps.registry` must be https with no userinfo. The host is not contacted and is not added to the allowlist. Org advisories are read from `<cacheDir>/org-advisories.json` (`DEPS-ORG-ADV-001`), at most 1000000 bytes. |
 | Local EPSS / KEV | **Experimental** (`FULLSHIELD_EXPERIMENTAL_EPSS_LOCAL=1`). `deps.epssFile` is local JSON. `epss` is from 0 to 1. Sets `epss`, `kev`, and `epssPriority` = `(kev ? 1000 : 0) + round(epss * 100) + (reachable ? 10 : 0) + severity points` (critical 4, high 3, medium 2, low 1, info 0). No download. EPSS and CISA hosts stay blocked. |

@@ -2,6 +2,12 @@
 
 All notable changes to FullShield are documented here.
 
+## 3.1.2 — 2026-10-28
+
+### Bump plan extras
+
+- Phase 564: `bumps plan` groups one package name and target version, counts not-imported rows in `skippedNotImported`, and reports `preinstall` / `install` / `postinstall` text without executing it. When `FULLSHIELD_EXPERIMENTAL_PROVENANCE` is on, a local registry cache entry without `dist.attestations` is `provenanceBlocked` and is not opened. No new command or flag.
+
 ## 3.1.1 — 2026-10-28
 
 ### Dependency parity
