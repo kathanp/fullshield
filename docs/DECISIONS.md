@@ -123,3 +123,4 @@ D-61 | phase-560 | EPSS and KEV come from a local file | Scores outside 0..1 are
 D-62 | phase-561 | Container and OS scanning is a documented non-goal | Trivy SARIF goes to existing ingest. No new rule and no new host. | APPROVED
 D-63 | phase-562 | Exceptions need owner, reason, and expiry within 365 days | Expired rows fail CI and do not suppress. No forever value. FS-E022. | APPROVED
 D-64 | phase-563 | init --recommended writes the diff workflow | scan --diff stays behind FULLSHIELD_EXPERIMENTAL_DIFFSCAN. Plain init does not write the file. No PR comments. | APPROVED
+D-65 | phase-564 | Bump plan groups one name and target, reports install scripts, and can block missing provenance | No new flag or command. Scripts are read and never executed. Provenance block uses the existing provenance flag and the local registry cache only. Not-imported rows stay unopened and are counted. | APPROVED

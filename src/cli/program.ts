@@ -1577,7 +1577,8 @@ function registerBumps(program: Command, io: ProgramIO): void {
     .requiredOption('--from <file>', 'path to a scan --json file')
     .action(async (opts: { from: string }) => {
       try {
-        const { assertBumpPrEnabled, rankBumpsJson, BUMP_PR_FLAG } = await import('../modules/deps/bump-pr.js');
+        const { assertBumpPrEnabled, BUMP_PR_FLAG } = await import('../modules/deps/bump-pr.js');
+        const { bumpPlanText } = await import('../modules/deps/bump-extra.js');
         assertBumpPrEnabled();
         let text: string;
         try {
@@ -1586,7 +1587,7 @@ function registerBumps(program: Command, io: ProgramIO): void {
           const err = new Error(`cannot read bumps file (${BUMP_PR_FLAG})`);
           throw err;
         }
-        io.out(rankBumpsJson(text).trimEnd());
+        io.out((await bumpPlanText(text, process.cwd())).trimEnd());
       } catch (error) {
         io.err(formatCliError(error));
         process.exitCode = 2;
@@ -1603,9 +1604,9 @@ function registerBumps(program: Command, io: ProgramIO): void {
           assertBumpPrEnabled,
           defaultGhRunner,
           openBumpPullRequests,
-          rankedBumpsFromText,
           BUMP_PR_FLAG,
         } = await import('../modules/deps/bump-pr.js');
+        const { buildBumpPlan } = await import('../modules/deps/bump-extra.js');
         assertBumpPrEnabled();
         let text: string;
         try {
@@ -1615,7 +1616,7 @@ function registerBumps(program: Command, io: ProgramIO): void {
           throw err;
         }
         const opened = await openBumpPullRequests(
-          rankedBumpsFromText(text),
+          (await buildBumpPlan(text, process.cwd())).bumps,
           io.runGh ?? defaultGhRunner,
         );
         if (opened.urls.length === 0) {
