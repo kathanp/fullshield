@@ -2,6 +2,12 @@
 
 All notable changes to FullShield are documented here.
 
+## 3.3.1 — 2026-10-29
+
+### Runtime guard
+
+- Phase 567: `FULLSHIELD_EXPERIMENTAL_RUNTIME_GUARD` keeps block mode to SQL and shell. Other sinks stay monitor. A runtime event may include a local `webhookJson` body, at most 5 per 60 seconds, and that body is not posted. No eBPF and no new host.
+
 ## 3.2.2 — 2026-10-29
 
 ### Stored response

@@ -19,6 +19,8 @@ export interface RaspEvent {
   sample: string;
   severity?: 'low' | 'medium' | 'high' | 'critical';
   count?: number;
+  /** Set only when FULLSHIELD_EXPERIMENTAL_RUNTIME_GUARD is on and the rate cap allows it. */
+  webhookJson?: string;
 }
 
 export const RASP_RULE: Record<SinkKind, string> = {
