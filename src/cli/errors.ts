@@ -104,6 +104,11 @@ const KNOWN: Array<{ test: RegExp; code: string; hint: string }> = [
     code: 'FS-E023',
     hint: 'Set FULLSHIELD_EXPERIMENTAL_EPSS_LOCAL=1. deps.epssFile is a local JSON file. epss is from 0 to 1.',
   },
+  {
+    test: /FULLSHIELD_EXPERIMENTAL_SAST_PARITY/,
+    code: 'FS-E024',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_SAST_PARITY=1. Counts, local YAML rules, one safe fix, and HTML taint edges stay off otherwise.',
+  },
 ];
 
 const DOCS = 'https://github.com/kathanp/fullshield/blob/main/docs/errors.md';

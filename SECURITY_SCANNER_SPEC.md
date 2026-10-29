@@ -7074,3 +7074,21 @@ Flag: `FULLSHIELD_EXPERIMENTAL_BUMP_PR`, already shipped in 3.1.1. Provenance bl
 With `FULLSHIELD_EXPERIMENTAL_BUMP_PR` unset, both subcommands throw before reading the file (`FS-E020`).
 
 Acceptance: a not-imported row increments `skippedNotImported` and is absent from `bumps`. Two reachable findings with the same name and `to` become one row with `clears` 2 and one `gh pr create`. An install script string is reported and no child process is started for it. With the provenance flag on and a cache entry that lacks attestations, the row is in `provenanceBlocked` and is not opened. With that flag off, the same cache does not block. Default scan findings unchanged.
+
+## 62. Version 3.2.1
+
+These phases are the approved `docs/FEATURES.md` for 3.2.1 (features2.md section C, items 15–20, basic only). A behavior that is not in that file is not in this section. This is a minor. It adds `scan --counts` and `fix --finding`. It adds no `rules/*.md` id and no package export. Default `scan --json` findings stay byte-identical to 3.1.2. `stableChange: false`. FullShield stays a Node.js and TypeScript scanner. Reviewed recall for untouched apps is not published. No letter grade.
+
+### [X] Phase 565 — Local SAST parity [`FULLSHIELD_EXPERIMENTAL_SAST_PARITY`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_SAST_PARITY`. `stableChange: false`.
+
+`scan --counts` prints one JSON object `{ bySeverityReachability: [{ severity, reachability, count }] }`. Rows are sorted by severity descending, then reachability. A finding with no `reachability` is counted as `unspecified`. The object has no grade, score, or certification field. With the flag unset, the option throws `FS-E024` before the scan.
+
+`fullshield.rules.yml` in the project directory is read only when the flag is on. It is a list of maps with exactly `schema: 1`, a non-empty string `pattern`, a non-empty string `message`, and `severity` of `low`, `medium`, or `high`. `pattern` is a literal substring, not a regular expression. Each matching line in a `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, or `.cjs` file becomes one finding. `node_modules`, `.git`, `dist`, `coverage`, `.fullshield`, and symbolic links are skipped. The finding `ruleId` is `YAML-RULE-` plus a 3-digit index of the rule. A missing file adds nothing. An empty file adds nothing. Invalid YAML of this subset throws `FS-E024` before the report is printed. The file is never fetched.
+
+`fix --finding <ruleId>:<file>:<line>` writes the one safe fix for that finding and no other file. It does not run the project test script. A path containing `..` or starting with `/` is refused. With the flag unset, the option throws `FS-E024` before the scan. A dirty tree or a directory that is not a git repository is refused unless `--force` is set. Zero matches, two matches, or a fix that is missing or not safe throws `FS-E024` and writes nothing.
+
+The HTML report, when the flag is on, adds `<p class="taint">source file:line sink file:line</p>` for a finding whose `trace` has a first step and a last step that both include `file` and `line`. A shorter trace, or a step with no line, adds no edge. With the flag off, the HTML report is unchanged.
+
+Acceptance: counts group two reachable high rows and label a missing reachability `unspecified`, and the JSON has no grade. The flag off does not read `fullshield.rules.yml` and does not scan. A literal pattern matches a project file and not `node_modules`. Invalid rules throw. One safe fix changes one file. HTML with the flag off matches the previous report. Default scan findings unchanged.

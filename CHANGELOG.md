@@ -2,6 +2,12 @@
 
 All notable changes to FullShield are documented here.
 
+## 3.2.1 — 2026-10-29
+
+### SAST parity
+
+- Phase 565: `FULLSHIELD_EXPERIMENTAL_SAST_PARITY` adds `scan --counts` (severity and reachability, no grade), local `fullshield.rules.yml` literal patterns, `fix --finding` for one safe fix, and HTML source/sink lines when a trace already has both. No other languages. No published recall.
+
 ## 3.1.2 — 2026-10-28
 
 ### Bump plan extras

@@ -1,18 +1,13 @@
-# FullShield features (3.1.2)
+# FullShield features (3.2.1)
 
-Inventory of what **3.1.2** adds. Planning source: [features2.md](features2.md) section B advanced extras B15–B18. This is a patch on 3.1.1. It adds no command, no CLI option, no rule id, no package export, and no new `FULLSHIELD_EXPERIMENTAL_*` flag.
+Inventory of what **3.2.1** adds. Planning source: features2.md section C, items 15–20, basic only. This is a minor on 3.1.2. It adds `scan --counts` and `fix --finding`. It adds no rule id, no package export, and one new `FULLSHIELD_EXPERIMENTAL_*` flag.
 
-Default `scan --json` findings stay byte-identical to 3.1.1 on single-package fixtures: same `(ruleId, file, line, severity)` multiset after sort. No stable rule id is removed. No stable finding field is removed. This version does not post pull-request comments, does not auto-merge, does not execute install scripts, and does not contact a host that is not already allowlisted. `clean-app` stays at 0 findings on the default scan.
+Default `scan --json` findings stay byte-identical to 3.1.2 on single-package fixtures: same `(ruleId, file, line, severity)` multiset after sort. No stable rule id is removed. No stable finding field is removed. This version does not scan Python or any language other than Node.js and TypeScript. It does not publish precision or recall. It does not download a rule registry. It does not assign a letter grade. `clean-app` stays at 0 findings on the default scan. A `--repo` run does not park.
 
-The public description is [README.md](../README.md). The frozen command and output contract is [stability.md](stability.md).
+## Experimental (`FULLSHIELD_EXPERIMENTAL_SAST_PARITY`)
 
-## Experimental (`FULLSHIELD_EXPERIMENTAL_BUMP_PR`)
-
-Same commands as 3.1.1: `bumps plan --from <scan.json>` and `bumps open --from <scan.json>`.
-
-- Plan output is a JSON object. `bumps` is the ranked list. `skippedNotImported` counts `DEPS-VULN-001` rows whose reachability is `not-imported`. Those rows are still omitted from the pull requests.
-- Rows that share a package name and the same target version become one pull request. `clears` is how many reachable findings that one upgrade covers. The pull-request body names that count only when it is greater than 1. The arguments still exclude merge and comment APIs.
-- `installScripts` lists `preinstall`, `install`, and `postinstall` strings read from the installed `node_modules/<name>/package.json`. The strings are reported. They are never executed.
-- When `FULLSHIELD_EXPERIMENTAL_PROVENANCE` is also `1`, a target version whose local registry cache says `dist.attestations` is absent is listed in `provenanceBlocked` and is not opened. A missing cache file does not block. The flag off leaves the 3.1.1 open list, plus the workspace grouping above.
-
-With `FULLSHIELD_EXPERIMENTAL_BUMP_PR` unset, both subcommands still refuse before reading the file.
+- `scan --counts` prints one JSON object of counts by severity and reachability. The object has no grade, no score, and no certification text. The flag off refuses the option before the scan. Default `scan --json` does not gain this object.
+- A local YAML file named `fullshield.rules.yml` in the project directory is read only when the flag is on. Each rule has `schema` 1, a string `pattern`, a string `message`, and a severity of `low`, `medium`, or `high`. Matching lines become findings. The file is never fetched. A missing file adds nothing. Invalid YAML or a rule outside that shape throws before findings are emitted.
+- `fix --finding <ruleId>:<file>:<line>` writes the one safe fix for that finding and leaves every other file untouched. It still requires a clean git tree unless `--force` is already set. It does not run the project test script. The flag off refuses the option before a scan.
+- The HTML report, when the flag is on, lists `source` and `sink` file and line for a taint finding that already has both. It does not invent an edge. The flag off leaves the HTML report unchanged.
+- README states that other languages are out of scope and that reviewed recall for untouched apps is not published.
