@@ -18,7 +18,8 @@ Out of scope: findings in `test/fixtures/**` (intentionally vulnerable), third-p
 
 | Version | Status |
 |---|---|
-| 3.1.2 | This tree. |
+| 3.2.1 | This tree. |
+| 3.1.2 | Previous. |
 | 3.1.1 | Previous. |
 | 3.0.0 | Previous. |
 | 2.4.0 | Previous. |

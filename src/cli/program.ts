@@ -97,6 +97,7 @@ interface ScanCliOptions {
   sarif?: string;
   markdown?: string;
   html?: string;
+  counts?: boolean;
   githubAnnotations?: string;
   junit?: string;
   gitlab?: string;
@@ -298,7 +299,10 @@ async function writeNamedReport(file: string | undefined, body: string): Promise
 async function writeScanReports(result: Awaited<ReturnType<typeof scan>>, opts: ScanCliOptions): Promise<void> {
   await writeNamedReport(opts.sarif, renderSarifReport(result));
   await writeNamedReport(opts.markdown, renderMarkdownReport(result));
-  await writeNamedReport(opts.html, renderHtmlReport(result));
+  await writeNamedReport(
+    opts.html,
+    renderHtmlReport(result, process.env.FULLSHIELD_EXPERIMENTAL_SAST_PARITY === '1'),
+  );
   await writeNamedReport(opts.githubAnnotations, renderGithubAnnotations(result));
   await writeNamedReport(opts.junit, renderJunitReport(result));
   await writeNamedReport(opts.gitlab, renderGitlabCodeQuality(result));
@@ -358,38 +362,66 @@ function reportScan(io: ProgramIO, opts: ScanCliOptions, result: Awaited<ReturnT
   setScanExit(result, failOnOverride);
 }
 
+function scanRequest(
+  path: string,
+  opts: ScanCliOptions,
+  maxTimeSeconds: number | undefined,
+): Parameters<typeof scan>[0] {
+  const modules = opts.modules !== undefined ? parseModules(opts.modules) : undefined;
+  return {
+    cwd: resolve(path),
+    modules,
+    includeHome: opts.includeHome === true,
+    configPath: opts.config,
+    staged: opts.staged === true,
+    offline: opts.offline === true || opts.offlineSafe === true,
+    updateBaseline: opts.updateBaseline === true,
+    ai: parseAiMode(opts.ai),
+    changed: opts.changed === true,
+    diff: opts.diff === true,
+    since: opts.since,
+    experimentalIncremental: process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM === '1',
+    history: opts.history === true,
+    bundle: opts.bundle !== undefined ? resolve(path, opts.bundle) : undefined,
+    verifySecrets: opts.verifySecrets === true,
+    iOwnTheseCredentials: opts.iOwnTheseCredentials === true,
+    experimentalPolicy: process.env[POLICY_FLAG] === '1',
+    paths: opts.paths === true,
+    ...(maxTimeSeconds !== undefined ? { maxTimeSeconds } : {}),
+    semgrepRules: opts.semgrepRules,
+  };
+}
+
+async function mergeLocalRules(
+  path: string,
+  result: Awaited<ReturnType<typeof scan>>,
+): Promise<Awaited<ReturnType<typeof scan>>> {
+  if (process.env.FULLSHIELD_EXPERIMENTAL_SAST_PARITY !== '1') {return result;}
+  const parity = await import('../modules/sast/parity.js');
+  return parity.withExtraFindings(result, await parity.localRuleFindings(resolve(path)));
+}
+
 async function runScanAction(io: ProgramIO, path: string, opts: ScanCliOptions): Promise<void> {
   try {
+    if (opts.counts === true) {
+      const parity = await import('../modules/sast/parity.js');
+      parity.assertSastParity('scan --counts');
+    }
     const failOnOverride = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;
-    const modules = opts.modules !== undefined ? parseModules(opts.modules) : undefined;
     applyScanFlags(opts);
     const maxTimeSeconds = budgetEnabled() && opts.maxTime !== undefined ? parseMaxTime(opts.maxTime) : undefined;
-    const result = await (io.scan ?? scan)({
-      cwd: resolve(path),
-      modules,
-      includeHome: opts.includeHome === true,
-      configPath: opts.config,
-      staged: opts.staged === true,
-      offline: opts.offline === true || opts.offlineSafe === true,
-      updateBaseline: opts.updateBaseline === true,
-      ai: parseAiMode(opts.ai),
-      changed: opts.changed === true,
-      diff: opts.diff === true,
-      since: opts.since,
-      experimentalIncremental: process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM === '1',
-      history: opts.history === true,
-      bundle: opts.bundle !== undefined ? resolve(path, opts.bundle) : undefined,
-      verifySecrets: opts.verifySecrets === true,
-      iOwnTheseCredentials: opts.iOwnTheseCredentials === true,
-      experimentalPolicy: process.env[POLICY_FLAG] === '1',
-      paths: opts.paths === true,
-      ...(maxTimeSeconds !== undefined ? { maxTimeSeconds } : {}),
-      semgrepRules: opts.semgrepRules,
-    });
-    await writeScanReports(result, opts);
-    await writeLastScan(resolve(path), result);
-    await emitScanPatches(io, path, opts, result);
-    reportScan(io, opts, result, failOnOverride);
+    const reported = await mergeLocalRules(path, await (io.scan ?? scan)(scanRequest(path, opts, maxTimeSeconds)));
+    await writeScanReports(reported, opts);
+    await writeLastScan(resolve(path), reported);
+    await emitScanPatches(io, path, opts, reported);
+    if (opts.counts === true) {
+      const parity = await import('../modules/sast/parity.js');
+      io.out(parity.reachabilityCounts(reported.findings).trimEnd());
+      noteScanProblems(io, reported);
+      setScanExit(reported, failOnOverride);
+      return;
+    }
+    reportScan(io, opts, reported, failOnOverride);
   } catch (error) {
     io.err(formatCliError(error));
     process.exitCode = 2;
@@ -399,6 +431,7 @@ async function runScanAction(io: ProgramIO, path: string, opts: ScanCliOptions):
 function addEarlyScanOptions(scan: Command): Command {
   return scan
     .option('--json', 'machine-readable JSON output')
+    .option('--counts', 'severity and reachability counts (FULLSHIELD_EXPERIMENTAL_SAST_PARITY=1)')
     .option('--all', 'print every finding in the console, with no 20-row cap')
     .option('--fail-on <severity>', 'exit 1 if any finding is at or above this severity')
     .option(
@@ -635,6 +668,7 @@ function registerFix(program: Command, io: ProgramIO): void {
     .description('Propose or apply safe auto-fixes (dry-run by default)')
     .argument('[path]', 'directory to fix', '.')
     .option('--apply', 'write safe fixes (requires a clean git tree)')
+    .option('--finding <selector>', 'write one safe fix, ruleId:file:line (FULLSHIELD_EXPERIMENTAL_SAST_PARITY=1)')
     .option('--force', 'apply even if the tree is dirty or not a git repo')
     .option('--unsafe', 'include major-version bumps and code patches marked unsafe')
     .option('--no-branch', 'do not create a fullshield/fixes-* branch')
@@ -653,8 +687,19 @@ function registerFix(program: Command, io: ProgramIO): void {
       experimentalFixVerify?: boolean;
       forceUnverified?: boolean;
       yes?: boolean;
+      finding?: string;
     }) => {
       try {
+        if (opts.finding !== undefined) {
+          const { applyOneSafeFix } = await import('../fixer/one-finding.js');
+          const wrote = await applyOneSafeFix({
+            cwd: resolve(path),
+            selector: opts.finding,
+            force: opts.force === true,
+          });
+          io.out(`wrote ${wrote.file}`);
+          return;
+        }
         const modules = opts.modules !== undefined ? parseModules(opts.modules) : undefined;
         if (opts.ai === true) {
           const client = createAiClient({ enabled: true, useFixtures: !isLiveAi() });

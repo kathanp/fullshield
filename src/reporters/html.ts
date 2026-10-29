@@ -1,5 +1,6 @@
 import type { ScanResult } from '../core/engine.js';
 import { SEVERITIES, type Finding } from '../core/finding.js';
+import { taintEdgeLine } from '../modules/sast/parity.js';
 import type { AttackPath } from '../paths/types.js';
 import { redactScan } from './redact.js';
 
@@ -34,25 +35,31 @@ function location(finding: Finding): string {
   return finding.line !== undefined ? `${finding.file}:${finding.line}` : finding.file;
 }
 
+function articleHtml(finding: Finding, edges: boolean): string {
+  const edge = edges ? taintEdgeLine(finding) : undefined;
+  const edgeRow = edge === undefined ? '' : `\n  <p class="taint">${esc(edge)}</p>`;
+  const explanation =
+    finding.explanation !== undefined && finding.explanation.length > 0
+      ? `<p class="explain">${esc(finding.explanation)}</p>`
+      : '';
+  return `<article class="finding ${esc(finding.severity)}">
+  <h3>${esc(finding.ruleId)} — ${esc(finding.title)}</h3>
+  <p class="where">${esc(location(finding))}</p>
+  <p>${esc(finding.message)}</p>
+  <p class="fix">Fix: ${esc(finding.remediation)}</p>
+  ${explanation}${edgeRow}
+</article>`;
+}
+
 /** Standalone HTML report. Finding text is escaped; secrets are already masked. */
-export function renderHtmlReport(input: ScanResult): string {
+export function renderHtmlReport(input: ScanResult, edges = false): string {
   const result = redactScan(input);
   const sections: string[] = [];
   const bySeverityDesc = [...SEVERITIES].reverse();
   for (const severity of bySeverityDesc) {
     const group = result.findings.filter((f) => f.severity === severity);
     if (group.length === 0) {continue;}
-    const items = group
-      .map(
-        (f) => `<article class="finding ${esc(severity)}">
-  <h3>${esc(f.ruleId)} — ${esc(f.title)}</h3>
-  <p class="where">${esc(location(f))}</p>
-  <p>${esc(f.message)}</p>
-  <p class="fix">Fix: ${esc(f.remediation)}</p>
-  ${f.explanation !== undefined && f.explanation.length > 0 ? `<p class="explain">${esc(f.explanation)}</p>` : ''}
-</article>`,
-      )
-      .join('\n');
+    const items = group.map((f) => articleHtml(f, edges)).join('\n');
     sections.push(`<h2>${esc(severity)} (${group.length})</h2>\n${items}`);
   }
   if (sections.length === 0) {
