@@ -7120,3 +7120,23 @@ When the flag is on and a runtime event is recorded, `webhookJson` may be set to
 eBPF and network-layer detection are not implemented. An external alert is still a local file passed to `ingest`. This phase does not claim to prevent attacks. No new host. No new `rules/*.md` file.
 
 Acceptance: flag off returns the requested mode and no webhook body. Flag on blocks `sql` and `shell` only. The sixth body inside 60 seconds is omitted, and a body at 60 seconds is allowed. Default scan findings unchanged.
+
+## 65. Version 3.3.2
+
+These phases are the approved `docs/FEATURES.md` for 3.3.2 (features2.md section D, items D24–D27). A behavior that is not in that file is not in this section. This is a patch. It adds no `.command()`, no `.option()`, no `rules/*.md` id, no package export, and no new `FULLSHIELD_EXPERIMENTAL_*` flag. Default `scan --json` findings stay byte-identical to 3.3.1. `stableChange: false`.
+
+### [X] Phase 568 — Fingerprint, confirm pass, and block-experimental [`FULLSHIELD_EXPERIMENTAL_RUNTIME_GUARD`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_RUNTIME_GUARD`, already shipped in 3.3.1. `stableChange: false`.
+
+When the flag is on, a SQL runtime event stores `fingerprint`, an 8-hex hash of the sample after quoted text is collapsed and digits become `0`. `webhookJson` keeps the 3.3.1 keys. The flag off does not set `fingerprint`.
+
+`matchingSinkLines` returns 1-based line numbers for lines that contain `.query(` or `$queryRaw` when the fingerprint is non-empty. It does not read the project and does not add a scan finding.
+
+`confirm` writes `"ok": false` and sets exit code 1 when any confirmation status is `unconfirmed` and the flag is on. The flag off still writes `"ok": true`. An unconfirmed row is not a pass.
+
+A runtime sample larger than 4096 bytes sets `overCap`. This is not a DLP product. The flag off does not set `overCap`.
+
+While the flag is on, `FULLSHIELD_RASP_MODE=block-experimental` selects block mode and the value `block` selects monitor. The flag off still treats `block` as block. No new host. No eBPF.
+
+Acceptance: the fingerprint ignores a quoted literal and a number. `webhookJson` keys stay `schema`, `kind`, `action`, and `ruleId`. An unconfirmed confirm row is not a pass only while the flag is on. A 4097-byte sample sets `overCap`. `block-experimental` blocks and `block` monitors while the flag is on. Default scan findings unchanged.

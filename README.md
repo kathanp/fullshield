@@ -1,6 +1,6 @@
 # FullShield
 
-**v3.3.1.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself. Scan when you want with `npx fullshield scan`, or install an every-2-hours timer with `npx fullshield schedule install`.
+**v3.3.2.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself. Scan when you want with `npx fullshield scan`, or install an every-2-hours timer with `npx fullshield schedule install`.
 
 **Headline: dependency reachability.** A lockfile CVE is not the same as an unused package. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (lockfile path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), `not-imported` (−2, only when no such path exists), or `reachability-unknown` (severity kept) when the lockfile format has no parsed dependency edges. DevDependency-only vulns are `info` with a `dev-only` note unless production sources import the package. Pair it with `fullshield sbom --format cyclonedx`.
 
@@ -10,16 +10,16 @@ npx fullshield scan --json --fail-on high
 npx fullshield scan --sarif fullshield.sarif
 ```
 
-3.3.1 is the version of this tree. Python and other languages are out of scope. `schedule install` writes `fullShieldReport/fullShieldReport_YYYYMMDD_HHMM.md` every 2 hours and keeps 60 reports. `scan` does not create that folder. The stable contract is [docs/stability.md](docs/stability.md). The 1.0.1 release moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. Do not treat a scan as a penetration test. Reviewed recall for untouched apps is not published. From `bench/perf-v2.json` (`measured: true`, `label: unreviewed`), the stored Next.js cold p50 is 107.95 seconds — still above the 60-second target (target unmet). Default scans share one AST, run modules in parallel, and use lazy taint. Multi-workspace repos scan each workspace lockfile by default; single-package finding keys stay the same as 2.3.0.
+3.3.2 is the version of this tree. Python and other languages are out of scope. `schedule install` writes `fullShieldReport/fullShieldReport_YYYYMMDD_HHMM.md` every 2 hours and keeps 60 reports. `scan` does not create that folder. The stable contract is [docs/stability.md](docs/stability.md). The 1.0.1 release moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. Do not treat a scan as a penetration test. Reviewed recall for untouched apps is not published. From `bench/perf-v2.json` (`measured: true`, `label: unreviewed`), the stored Next.js cold p50 is 107.95 seconds — still above the 60-second target (target unmet). Default scans share one AST, run modules in parallel, and use lazy taint. Multi-workspace repos scan each workspace lockfile by default; single-package finding keys stay the same as 2.3.0.
 
 ## Verify in 60 seconds
 
 ```bash
 # fresh temp / empty cache is enough — no install-guard phones home
-npx fullshield@3.3.1 --version
+npx fullshield@3.3.2 --version
 ```
 
-Package page: [npmjs.com/package/fullshield](https://www.npmjs.com/package/fullshield). Release tag: [v3.3.1](https://github.com/kathanp/fullshield/releases/tag/v3.3.1). Publish stages with npm provenance (OIDC). After install, the stranger checks in the build spec (scan / json / sarif / fail-on / fix / init / sbom) are the post-publish gate — no Rekor/sigstore SaaS dependency in the CLI.
+Package page: [npmjs.com/package/fullshield](https://www.npmjs.com/package/fullshield). Release tag: [v3.3.2](https://github.com/kathanp/fullshield/releases/tag/v3.3.2). Publish stages with npm provenance (OIDC). After install, the stranger checks in the build spec (scan / json / sarif / fail-on / fix / init / sbom) are the post-publish gate — no Rekor/sigstore SaaS dependency in the CLI.
 
 ## GitHub Action
 
@@ -28,7 +28,7 @@ Copy `templates/action/` into your repo (or use `kathanp/fullshield-action` once
 ```yaml
 - uses: your-org/your-repo/.github/actions/fullshield@<commit-sha>
   with:
-    version: '3.3.1'
+    version: '3.3.2'
 ```
 
 Or run `npx fullshield init --recommended` to write `profile: "recommended"` and a workflow that calls `./templates/action`. The Action runs `fullshield scan`, uploads SARIF, and may cache the baseline. It does not post a pull-request comment, open issues, or phone home.
@@ -230,7 +230,7 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 
 **Experimental ingest (off by default):** `FULLSHIELD_EXPERIMENTAL_INGEST=1` or `fullshield ingest --experimental-ingest <file...>`. Reads local SARIF 2.1.0, OSV-Scanner JSON, `npm audit --json`, and Semgrep JSON. It does not run those tools and does not fetch. Severity stays the tool's severity (`moderate` and Semgrep `WARNING` are stored as medium; the original token is `externalSeverity`). `fullshieldPriority` is not set.
 
-**Experimental RASP** (Frontier, off by default): structure-change sink hooks via `node --import fullshield/runtime/register app.js` or `import 'fullshield/runtime/auto'` as the first import. Enable only with `FULLSHIELD_EXPERIMENTAL_RASP=1`. Default mode is `monitor` (events only). `FULLSHIELD_RASP_MODE=block` throws on structure-changing SQL/shell/path/NoSQL/SSRF/prototype input. With `FULLSHIELD_EXPERIMENTAL_RUNTIME_GUARD=1`, block mode throws only for SQL and shell; path, NoSQL, SSRF, prototype, and SSTI stay monitor. A matching event may include `webhookJson` (`schema`, `kind`, `action`, `ruleId`) at most 5 times per 60 seconds. That JSON is not posted and has no request sample. Hooks **fail open**: a hook error logs `RASP-FAIL-OPEN-001` and the original call proceeds. Do not use block mode in production until you have measured the benign corpus on your app.
+**Experimental RASP** (Frontier, off by default): structure-change sink hooks via `node --import fullshield/runtime/register app.js` or `import 'fullshield/runtime/auto'` as the first import. Enable only with `FULLSHIELD_EXPERIMENTAL_RASP=1`. Default mode is `monitor` (events only). `FULLSHIELD_RASP_MODE=block` throws on structure-changing SQL/shell/path/NoSQL/SSRF/prototype input. With `FULLSHIELD_EXPERIMENTAL_RUNTIME_GUARD=1`, block mode throws only for SQL and shell; path, NoSQL, SSRF, prototype, and SSTI stay monitor. A matching event may include `webhookJson` (`schema`, `kind`, `action`, `ruleId`) at most 5 times per 60 seconds. That JSON is not posted and has no request sample. A SQL event may also store `fingerprint`, a hash of the collapsed statement, and a sample over 4096 bytes sets `overCap` (not a DLP product). While the guard flag is on, `FULLSHIELD_RASP_MODE=block-experimental` is the block mode and `block` stays monitor, and `confirm` exits 1 when any row is `unconfirmed`. Hooks **fail open**: a hook error logs `RASP-FAIL-OPEN-001` and the original call proceeds. Do not use block mode in production until you have measured the benign corpus on your app.
 
 `npm run bench` reports `inspect()` p50/p95 (must stay under 1ms) and full Express request overhead p50/p95 with the middleware on the stack.
 

@@ -1203,9 +1203,12 @@ function registerConfirm(program: Command, io: ProgramIO): void {
           throw new Error('confirm requires FULLSHIELD_EXPERIMENTAL_CONFIRM=1');
         }
         const { assertLocalTarget, confirmTarget } = await import('../confirm/index.js');
+        const { confirmAllowsPass } = await import('../runtime/exp/p568.js');
         assertLocalTarget(url);
         const result = await confirmTarget(url, { experimental: true, routes: [] });
-        io.out(JSON.stringify({ ok: true, confirmations: result.confirmations }));
+        const passed = confirmAllowsPass(result.confirmations);
+        if (!passed) {process.exitCode = 1;}
+        io.out(JSON.stringify({ ok: passed, confirmations: result.confirmations }));
       } catch (error) {
         io.err(formatCliError(error));
         process.exitCode = 2;
