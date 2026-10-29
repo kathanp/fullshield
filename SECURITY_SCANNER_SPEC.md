@@ -7140,3 +7140,19 @@ A runtime sample larger than 4096 bytes sets `overCap`. This is not a DLP produc
 While the flag is on, `FULLSHIELD_RASP_MODE=block-experimental` selects block mode and the value `block` selects monitor. The flag off still treats `block` as block. No new host. No eBPF.
 
 Acceptance: the fingerprint ignores a quoted literal and a number. `webhookJson` keys stay `schema`, `kind`, `action`, and `ruleId`. An unconfirmed confirm row is not a pass only while the flag is on. A 4097-byte sample sets `overCap`. `block-experimental` blocks and `block` monitors while the flag is on. Default scan findings unchanged.
+
+## 66. Version 3.4.1
+
+These phases are the approved `docs/FEATURES.md` for 3.4.1 (features2.md section E, items 24–28). A behavior that is not in that file is not in this section. This is a minor. It adds `init --tour`, `init --stack <name>`, and `digest --file <path>`. It adds `FULLSHIELD_EXPERIMENTAL_ADOPT`. Default `scan --json` findings stay byte-identical to 3.3.2. `stableChange: false`.
+
+### [X] Phase 569 — Tour, stack notes, and a local digest [`FULLSHIELD_EXPERIMENTAL_ADOPT`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_ADOPT`. Off unless the value is `1`. `stableChange: false`.
+
+With the flag off, `init --tour`, `init --stack`, and `digest` throw `FS-E025` before they read or write a file. `init --tour` prints five steps and writes nothing: scan, fix dry-run, init CI, no project tests, and no scan of the home directory. `init --stack` writes `fullshield.stack.md` for `express`, `nest`, `next`, `fastify`, or `hono`. The note says monitor mode and does not suppress a finding. An unknown name throws `FS-E025` and writes nothing. An existing file is left in place unless `--force` is set.
+
+`digest --file` reads a local JSON array and prints the sorted npm `id` values. It does not fetch. Rows for other ecosystems are omitted. The output is not a published CVE count.
+
+No letter grade, no recall number, and no benchmark number is added. `docs/security-page.md` says a cloud-free scan sends no customer scan data and does not claim SOC2. No new host. No new `rules/*.md` file.
+
+Acceptance: the flag off throws before a read or a write. The tour writes nothing. The express stack file names monitor and has no suppression. An unknown stack writes nothing. A local array with one npm id and one other ecosystem prints only the npm id. Default scan findings unchanged.

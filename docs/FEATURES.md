@@ -1,17 +1,16 @@
-# FullShield features (3.3.2)
+# FullShield features (3.4.1)
 
-Inventory of what **3.3.2** adds. Planning source: features2.md section D advanced extras D24–D27. This is a patch on 3.3.1. It adds no command, no CLI option, no rule id file, no package export, and no new `FULLSHIELD_EXPERIMENTAL_*` flag.
+Inventory of what **3.4.1** adds. Planning source: features2.md section E, items 24–28. This is a minor on 3.3.2. It adds `init --tour`, `init --stack <name>`, and `digest --file <path>`.
 
-Default `scan --json` findings stay byte-identical to 3.3.1 on single-package fixtures: same `(ruleId, file, line, severity)` multiset after sort. `clean-app` stays at 0 findings on the default scan. A `--repo` run does not park.
+Default `scan --json` findings stay byte-identical to 3.3.2 on single-package fixtures: same `(ruleId, file, line, severity)` multiset after sort. `clean-app` stays at 0 findings on the default scan. A `--repo` run does not park.
 
-## Experimental (`FULLSHIELD_EXPERIMENTAL_RUNTIME_GUARD`)
+## Experimental (`FULLSHIELD_EXPERIMENTAL_ADOPT`)
 
-Same flag as 3.3.1.
+Off unless the flag is `1`. With the flag off, `--tour`, `--stack`, and `digest` throw `FS-E025` before they read or write a file.
 
-- A SQL runtime event stores `fingerprint`, a short hash of the statement after quoted text and numbers are collapsed. The 3.3.1 `webhookJson` object stays the same keys. The flag off sets no fingerprint.
-- Lines in the text you pass that contain `.query(` or `$queryRaw` are reported when that fingerprint is non-empty. This does not scan the project and does not change default scan findings.
-- `confirm` prints `"ok": false` and exits 1 when any confirmation is `unconfirmed` and this flag is on. The flag off still prints `"ok": true`. An unconfirmed result is not a pass.
-- A runtime sample larger than 4096 bytes sets `overCap`. This is not a DLP product. The flag off does not set `overCap`.
-- While this flag is on, `FULLSHIELD_RASP_MODE=block-experimental` is the block mode and the value `block` stays monitor. The flag off still treats `block` as block.
+- `init --tour` prints five steps: scan, fix dry-run, init CI, no project tests, and no scan of the home directory. It writes no file.
+- `init --stack <name>` writes `fullshield.stack.md` for `express`, `nest`, `next`, `fastify`, or `hono`. The file names monitor mode and does not suppress a finding. An unknown name throws `FS-E025` and writes nothing.
+- `digest --file <path>` reads a local JSON array and prints the sorted npm `id` values. It does not fetch. Other ecosystems are omitted. This is not a published CVE count.
+- No letter grade, no recall number, and no benchmark number is added. The security page says a cloud-free scan sends no customer scan data. It does not claim SOC2.
 
-No eBPF. No new host. No new rule file.
+No new host. No new rule file. No eBPF.

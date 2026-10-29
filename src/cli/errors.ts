@@ -109,6 +109,11 @@ const KNOWN: Array<{ test: RegExp; code: string; hint: string }> = [
     code: 'FS-E024',
     hint: 'Set FULLSHIELD_EXPERIMENTAL_SAST_PARITY=1. Counts, local YAML rules, one safe fix, and HTML taint edges stay off otherwise.',
   },
+  {
+    test: /FULLSHIELD_EXPERIMENTAL_ADOPT/,
+    code: 'FS-E025',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_ADOPT=1. The tour writes nothing. Digest reads a local file and does not fetch.',
+  },
 ];
 
 const DOCS = 'https://github.com/kathanp/fullshield/blob/main/docs/errors.md';

@@ -740,12 +740,23 @@ function registerInit(program: Command, io: ProgramIO): void {
     .option('--recommended', 'write profile recommended and the Action-based workflow')
     .option('--ci', 'write CI Action workflow (and policy pack); optional gh PR')
     .option('--no-pr', 'with --ci, never open a pull request via gh')
+    .option('--tour', 'print the five-step tour and write nothing')
+    .option('--stack <name>', 'write fullshield.stack.md for express, nest, next, fastify, or hono')
     .action(
       async (
         path: string,
-        opts: { force?: boolean; recommended?: boolean; ci?: boolean; noPr?: boolean },
+        opts: { force?: boolean; recommended?: boolean; ci?: boolean; noPr?: boolean; tour?: boolean; stack?: string },
       ) => {
         try {
+          if (opts.tour === true || opts.stack !== undefined) {
+            const { adoptOutput } = await import('./adopt.js');
+            for (const line of adoptOutput(resolve(path), {
+              tour: opts.tour === true,
+              stack: opts.stack,
+              force: opts.force === true,
+            })) {io.out(line);}
+            return;
+          }
           const result = await runInit({
             cwd: resolve(path),
             force: opts.force === true,
@@ -773,6 +784,22 @@ function registerInit(program: Command, io: ProgramIO): void {
         }
       },
     );
+}
+
+function registerDigest(program: Command, io: ProgramIO): void {
+  program
+    .command('digest')
+    .description('Print npm ids from a local JSON array')
+    .requiredOption('--file <path>', 'local JSON array')
+    .action(async (opts: { file: string }) => {
+      try {
+        const { digestFile } = await import('./adopt.js');
+        io.out(JSON.stringify({ ids: digestFile(opts.file) }));
+      } catch (error) {
+        io.err(formatCliError(error));
+        process.exitCode = 2;
+      }
+    });
 }
 
 function registerNotify(program: Command, io: ProgramIO): void {
@@ -1707,6 +1734,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
   registerScan(program, io);
   registerFix(program, io);
   registerInit(program, io);
+  registerDigest(program, io);
   registerNotify(program, io);
   registerSbom(program, io);
   registerEdge(program, io);
