@@ -2,6 +2,18 @@
 
 All notable changes to FullShield are documented here.
 
+## 3.1.1 — 2026-10-28
+
+### Dependency parity
+
+- Phase 557: `FULLSHIELD_EXPERIMENTAL_BUMP_PR` adds `bumps plan` and `bumps open` for reachable high and critical bumps. It does not merge.
+- Phase 558: `FULLSHIELD_EXPERIMENTAL_LICENSE_POLICY` adds `DEPS-LICENSE-002` for direct-dependency license deny and allow lists. The message is a license policy, not a vulnerability.
+- Phase 559: `FULLSHIELD_EXPERIMENTAL_PRIVATE_REG` stores `deps.registry` and reads `DEPS-ORG-ADV-001` from a local org advisory cache. The private host is not contacted.
+- Phase 560: `FULLSHIELD_EXPERIMENTAL_EPSS_LOCAL` enriches findings from a local EPSS file. It does not download EPSS or KEV.
+- Phase 561: README states FullShield does not scan container images or OS packages. Trivy SARIF goes to `ingest`.
+- Phase 562: `FULLSHIELD_EXPERIMENTAL_EXCEPTIONS` loads `fullshield.exceptions.json` with owner, reason, and a 365-day expiry.
+- Phase 563: `init --recommended` writes a `scan --diff` workflow. Default scan without `--diff` is unchanged.
+
 ## 3.0.0 — 2026-10-28
 
 ### Scheduler

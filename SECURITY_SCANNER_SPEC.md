@@ -6973,3 +6973,83 @@ Flag: none. CLI. `stableChange: false`.
 Add `fullshield init --ci`: writes Action workflow and `fullshield.config.json` (and the A9 policy pack when `--recommended` is also set, or as documented for `--ci` defaults). Opt-out of opening a PR with `--no-pr`. When `gh` is on PATH and the cwd is a git repo with a remote, and `--no-pr` is not set, the command may create a branch and open a pull request that adds **only** those generated files. After writes (and optional PR), print a deterministic first-scan Markdown summary locally (reuse `--pr-summary` machinery or write `fullshield-pr-summary.md` in the tree). It does not post a pull-request comment, does not call `createComment`, does not request changes, does not open issues, and does not phone home.
 
 Acceptance: unit tests assert files are written; `--no-pr` never invokes `gh`; source and templates contain no PR-comment API. README states FullShield never posts PR comments. Default scan findings unchanged.
+
+## 60. Version 3.1.1
+
+These phases are the approved `docs/FEATURES.md` for 3.1.1 (features2.md section B, items 8–14, basic only). A behavior that is not in that file is not in this section. Default `scan --json` findings stay byte-identical to 3.0.0 on single-package trees. No stable rule id is removed. No stable finding field is removed. This version does not post a pull-request comment, auto-merge, scan containers or OS packages, or contact a host that is not already allowlisted. `clean-app` stays at 0 findings on the default scan. A `--repo` run does not park. No new hard dependency. `stableChange: false`.
+
+### [X] Phase 557 — Reachability-ranked bump pull requests [`FULLSHIELD_EXPERIMENTAL_BUMP_PR`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_BUMP_PR`. `stableChange: false`.
+
+`fullshield bumps plan --from <scan.json>` reads a local scan JSON file. It keeps a row only when `ruleId` is `DEPS-VULN-001`, `reachability` is `reachable`, severity is `high` or `critical`, and `fix.kind` is `dependency-bump` with a `to` version parsed from `fix.diff` (`from <name> to <version>` is not required; the name and from-version come from `snippet` `name@version`). Sort: critical before high, then package name ascending, then advisory id (`references[0]`) ascending. Each kept row has `rank` starting at 1. Not-imported, `reachability-unknown`, medium, and rows without a bump fix are omitted. Two runs of the same file stringify to the same bytes.
+
+`fullshield bumps open --from <scan.json>` opens one pull request per ranked row via `gh pr create`. The arguments never include `merge`, `createComment`, or `createReview`. The command does not merge. With the flag unset, both subcommands throw a message that contains `FULLSHIELD_EXPERIMENTAL_BUMP_PR` and map to `FS-E020`. They do not read the scan file in that case.
+
+`templates/fullshield-bumps.yml` is a nightly `schedule` workflow (`cron: '0 7 * * *'`) that runs `bumps plan`. It does not call `gh pr merge` and does not contain `createComment`. Copying it is the user's act. The scanner does not register a timer for it.
+
+Acceptance: unit tests cover the rank order, the omissions, flag-off `FS-E020`, open-args without merge or comment, and the template. Default scan findings unchanged. `clean-app` with the flag on stays at 0 findings.
+
+### [X] Phase 558 — Direct-dependency license policy [`FULLSHIELD_EXPERIMENTAL_LICENSE_POLICY`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_LICENSE_POLICY`. `stableChange: false`.
+
+New rule id `DEPS-LICENSE-002`. Severity `medium`. CWE-1104. The title and message say license policy, not vulnerability.
+
+When the flag is on, `deps.licenseDeny` and `deps.licenseAllow` are string arrays. A direct dependency (dependencies, devDependencies, optionalDependencies) whose installed `node_modules/<name>/package.json` `license` string equals a deny entry, compared case-insensitively as the whole string, fires unless that same string is on the allow list. When the allow list is non-empty, a known license string that is on neither list also fires. Missing `node_modules`, a missing `license`, or both lists empty or absent: no finding. The scanner does not guess an SPDX id and does not call the registry.
+
+With the flag off, those config keys are ignored. `clean-app` with the flag on and no lists stays at 0 findings.
+
+Acceptance: positive deny hit, allow suppresses that string, unknown license with a non-empty allow list fires, missing license stays silent, flag off is silent on the same tree. Two scans sort to the same bytes.
+
+### [X] Phase 559 — Private registry config and offline org advisories [`FULLSHIELD_EXPERIMENTAL_PRIVATE_REG`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_PRIVATE_REG`. `stableChange: false`.
+
+`deps.registry` must be an `https` URL with no userinfo when the flag is on. `http`, a missing host, or `user:pass@host` throws `FS-E021` and the message contains `FULLSHIELD_EXPERIMENTAL_PRIVATE_REG`. The host is not added to `ALLOWED_HOSTS`. The scanner never fetches it. Offline and online both read only `<cacheDir>/org-advisories.json`.
+
+That file is a JSON object `{ "advisories": [...] }` of at most `1000000` bytes. Each advisory has `name`, `version`, `id`, `severity` (`critical`|`high`|`medium`|`low`), and `summary`. A direct dependency whose installed `package.json` `version` equals `version` produces `DEPS-ORG-ADV-001` at that severity. CWE-1104. A byte length of `1000001` is rejected and produces no finding. A missing file produces no finding. The message says the advisory came from the local org cache, not from a network feed.
+
+`api.first.org` and `www.cisa.gov` stay absent from `ALLOWED_HOSTS`.
+
+With the flag off, `deps.registry` is ignored and the cache file is not read.
+
+Acceptance: https URL is accepted and no fetch function is called; http and userinfo throw `FS-E021`; a matching cached advisory fires; `1000000` bytes can be parsed when it is valid JSON within that cap; `1000001` bytes does not fire; flag off is silent. `clean-app` with the flag on stays at 0 findings.
+
+### [X] Phase 560 — Local EPSS and KEV file [`FULLSHIELD_EXPERIMENTAL_EPSS_LOCAL`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_EPSS_LOCAL`. `stableChange: false`.
+
+`deps.epssFile` is a path, read only when the flag is on. The JSON object maps an advisory id to `{ "epss": number, "kev": boolean }`. `epss` must be `>= 0` and `<= 1`. `0` and `1` are accepted. A value `< 0` or `> 1`, or a non-boolean `kev`, throws `FS-E023` and the message contains `FULLSHIELD_EXPERIMENTAL_EPSS_LOCAL`. No network call is made.
+
+On a match against `finding.references`, set `epss`, `kev`, and `epssPriority`. Do not add a finding and do not change `ruleId`, `file`, `line`, or `severity`. Formula, deterministic: `(kev ? 1000 : 0) + Math.round(epss * 100) + (reachability === 'reachable' ? 10 : 0) + severityPoints` where severity points are critical `4`, high `3`, medium `2`, low `1`, info `0`. Unmatched findings are unchanged. With the flag off, the file is not read and those fields stay absent.
+
+Acceptance: boundary `0` and `1` enrich; `-0.001` and `1.001` throw; two runs match; flag off leaves findings without `epss`. `clean-app` stays at 0 findings. Default scan keys unchanged.
+
+### [X] Phase 561 — Container scanning stays out of scope
+
+Flag: none. Documentation only. `stableChange: false`.
+
+README Non-goals states that FullShield does not scan container images or OS packages. It names `fullshield ingest` as the place to pass a Trivy SARIF file the user already produced. No new scanner, no new host, no new rule id.
+
+Acceptance: a doc test asserts those sentences. Default scan findings unchanged.
+
+### [X] Phase 562 — Exception file with owner and expiry [`FULLSHIELD_EXPERIMENTAL_EXCEPTIONS`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_EXCEPTIONS`. `stableChange: false`.
+
+`fullshield.exceptions.json` is `{ "exceptions": [ { "ruleId", "owner", "reason", "expires", "file"? } ] }`. `owner` and `reason` are non-empty. `expires` is an ISO date or datetime. A missing owner, reason, or expires throws `FS-E022` and the message contains `FULLSHIELD_EXPERIMENTAL_EXCEPTIONS`.
+
+An expiry whose UTC end-of-day (date-only) or exact instant is before `now` does not suppress. It adds a suppression error so CI exits 1. An expiry more than `365` days after `now` (`365 * 86400000` milliseconds) throws `FS-E022`. A date that is inside that window and still in the future suppresses matching `ruleId` (and `file` when set). There is no forever value.
+
+With the flag off, the file is not read. `clean-app` with the flag on and no file stays at 0 findings.
+
+Acceptance: a valid row suppresses; an expired row does not and yields an error; `365` days is the boundary (inside accepted, past it rejected); flag off does not suppress. Default scan findings unchanged.
+
+### [X] Phase 563 — Recommended CI diff workflow
+
+Flag: none for init. The generated workflow sets `FULLSHIELD_EXPERIMENTAL_DIFFSCAN`. `stableChange: false`.
+
+`init --recommended` also writes `.github/workflows/fullshield-diff.yml` from `templates/github-workflow-diff.yml`. The workflow runs `fullshield scan --diff` with `FULLSHIELD_EXPERIMENTAL_DIFFSCAN=1`. It does not contain `createComment` or `gh pr merge`. Default `scan` without `--diff` is unchanged. `init` without `--recommended` does not write this file.
+
+Acceptance: `init --recommended` writes the diff workflow; a plain `init` does not; the template has `--diff` and the flag and no comment API. Default scan findings unchanged.

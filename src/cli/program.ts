@@ -76,6 +76,8 @@ export interface ProgramIO {
   scan?(options: Parameters<typeof scan>[0]): ReturnType<typeof scan>;
   /** Defaults to the OS timer. Tests pass a host that does not edit crontab. */
   scheduleHost?: ScheduleHost;
+  /** Defaults to `gh` on PATH. Tests pass a runner that does not open a pull request. */
+  runGh?: (args: string[]) => Promise<{ status: number; stdout: string; stderr: string }>;
 }
 
 const defaultIO: ProgramIO = {
@@ -1564,6 +1566,70 @@ function registerSchedule(program: Command, io: ProgramIO): void {
     });
 }
 
+function registerBumps(program: Command, io: ProgramIO): void {
+  const bumps = program
+    .command('bumps')
+    .description('Rank reachable high and critical dependency bumps. Does not merge.');
+
+  bumps
+    .command('plan')
+    .description('Print the ranked bump list from a local scan JSON file')
+    .requiredOption('--from <file>', 'path to a scan --json file')
+    .action(async (opts: { from: string }) => {
+      try {
+        const { assertBumpPrEnabled, rankBumpsJson, BUMP_PR_FLAG } = await import('../modules/deps/bump-pr.js');
+        assertBumpPrEnabled();
+        let text: string;
+        try {
+          text = await readFile(resolve(opts.from), 'utf8');
+        } catch {
+          const err = new Error(`cannot read bumps file (${BUMP_PR_FLAG})`);
+          throw err;
+        }
+        io.out(rankBumpsJson(text).trimEnd());
+      } catch (error) {
+        io.err(formatCliError(error));
+        process.exitCode = 2;
+      }
+    });
+
+  bumps
+    .command('open')
+    .description('Open one pull request per ranked bump. Never merges.')
+    .requiredOption('--from <file>', 'path to a scan --json file')
+    .action(async (opts: { from: string }) => {
+      try {
+        const {
+          assertBumpPrEnabled,
+          defaultGhRunner,
+          openBumpPullRequests,
+          rankedBumpsFromText,
+          BUMP_PR_FLAG,
+        } = await import('../modules/deps/bump-pr.js');
+        assertBumpPrEnabled();
+        let text: string;
+        try {
+          text = await readFile(resolve(opts.from), 'utf8');
+        } catch {
+          const err = new Error(`cannot read bumps file (${BUMP_PR_FLAG})`);
+          throw err;
+        }
+        const opened = await openBumpPullRequests(
+          rankedBumpsFromText(text),
+          io.runGh ?? defaultGhRunner,
+        );
+        if (opened.urls.length === 0) {
+          io.out(`opened 0 pull requests`);
+          return;
+        }
+        for (const url of opened.urls) {io.out(url);}
+      } catch (error) {
+        io.err(formatCliError(error));
+        process.exitCode = 2;
+      }
+    });
+}
+
 function registerDoctor(program: Command, io: ProgramIO): void {
   program
     .command('doctor')
@@ -1614,6 +1680,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
   registerDev(program, io);
   registerNpmAuditDiff(program, io);
   registerSchedule(program, io);
+  registerBumps(program, io);
   registerDoctor(program, io);
   return program;
 }

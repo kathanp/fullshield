@@ -3,7 +3,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-import type { ScanModule } from '../../core/engine.js';
+import type { ModuleContext, ScanModule } from '../../core/engine.js';
 import { makeFindingId, type Finding } from '../../core/finding.js';
 import { parseLockfileGraph, type LockedPackage, type LockfileGraph } from './lockfile.js';
 import { isMaliciousAdvisory, queryOsv, type OsvVuln } from './osv.js';
@@ -23,6 +23,8 @@ import { healthEnabled, licenseEnabled, vendoredEnabled } from '../sast/experime
 import { unfixedFindings } from './unfixed.js';
 import { vendoredFindings } from './vendored.js';
 import { scanCopyleftLicenses } from './license.js';
+import { scanLicensePolicy } from './license-policy.js';
+import { scanOrgAdvisories } from './private-reg.js';
 import { attachOverrideProposals, scanInstalledPackages } from './phase31.js';
 import { provenanceEnabled, provenanceFindingsForScan } from '../../provenance/index.js';
 import { capabilitiesEnabled, capabilityFindings } from '../../capabilities/index.js';
@@ -168,7 +170,33 @@ export const depsModule: ScanModule & {
   async run(ctx) {
     depsModule.unusedDirect = undefined;
     depsModule.upgradePlan = undefined;
-    const lockTexts = await readLockTexts(ctx.cwd, ctx.files);
+    const prepared = await prepareDeps(ctx);
+    if (prepared.lockFile === undefined) {return scanDepsWithoutLock(ctx, prepared);}
+    return scanDepsWithLock(ctx, prepared, prepared.lockFile);
+  },
+};
+
+type LockTexts = Awaited<ReturnType<typeof readLockTexts>>;
+
+interface PreparedDeps {
+  lockTexts: LockTexts;
+  lockFile: string | undefined;
+  cacheDir: string;
+  osvOpts: { cacheDir: string; offline: boolean };
+  manifestRaw: string | undefined;
+  npmInput: {
+    cwd: string;
+    files: string[];
+    manifestRaw: string | undefined;
+    lockTexts: LockTexts;
+    cacheDir: string;
+    offline: boolean;
+  };
+  depLoc: (name: string) => { file: string; line?: number } | undefined;
+}
+
+async function prepareDeps(ctx: ModuleContext): Promise<PreparedDeps> {
+  const lockTexts = await readLockTexts(ctx.cwd, ctx.files);
     const lockFile = pickNpmLock(ctx.files) ?? LOCKFILE_NAMES.find((name) => ctx.files.includes(name));
     const cacheDir =
       ctx.config.deps.cacheDir !== undefined
@@ -195,9 +223,12 @@ export const depsModule: ScanModule & {
       const line = lineOfManifestDep(manifestRaw, name);
       return line === undefined ? undefined : { file: 'package.json', line };
     };
+    return { lockTexts, lockFile, cacheDir, osvOpts, manifestRaw, npmInput, depLoc };
+}
 
-    if (lockFile === undefined) {
-      if (!ctx.files.includes('package.json')) {return [];}
+async function scanDepsWithoutLock(ctx: ModuleContext, prepared: PreparedDeps): Promise<Finding[]> {
+    const { cacheDir, osvOpts, manifestRaw, npmInput, depLoc } = prepared;
+    if (!ctx.files.includes('package.json')) {return [];}
       const findings: Finding[] = [noLockFinding()];
       let manifest: Record<string, unknown> = {};
       try {
@@ -233,9 +264,12 @@ export const depsModule: ScanModule & {
       }
       const noLockReached = applyReachability(findings, noLockCtx, symbols);
       noLockReached.push(...(await npmDepthFindings(npmInput)));
-      return withWorkspaceAdvisories(ctx.cwd, manifestRaw, osvOpts, noLockReached);
-    }
+      noLockReached.push(...(await parityFindings(ctx.cwd, ctx.config.deps)));
+    return withWorkspaceAdvisories(ctx.cwd, manifestRaw, osvOpts, noLockReached);
+}
 
+async function scanDepsWithLock(ctx: ModuleContext, prepared: PreparedDeps, lockFile: string): Promise<Finding[]> {
+    const { osvOpts, depLoc } = prepared;
     let contents: string;
     try {
       contents = await readFile(join(ctx.cwd, lockFile), 'utf8');
@@ -271,7 +305,96 @@ export const depsModule: ScanModule & {
       }
     }
     const reachCtx = await reachabilityCtx(ctx.cwd, ctx.files, graph, ctx.config.sast.maxFileBytes);
-    let reached = applyReachability(findings, reachCtx, symbols);
+    return finishLockedScan(ctx, prepared, lockFile, contents, {
+      graph,
+      packages,
+      osvHits,
+      reachCtx,
+      reached: applyReachability(findings, reachCtx, symbols),
+    });
+}
+
+function upgradeAdvisories(
+  osvHits: Awaited<ReturnType<typeof queryOsv>>,
+  direct: ReadonlySet<string>,
+): UpgradeAdvisory[] {
+  const advisories: UpgradeAdvisory[] = [];
+  for (const hit of osvHits) {
+    if (!direct.has(hit.pkg.name)) {continue;}
+    for (const vuln of hit.vulns) {
+      if (isMaliciousAdvisory(vuln)) {continue;}
+      advisories.push({
+        name: hit.pkg.name,
+        from: hit.pkg.version,
+        id: vuln.id,
+        fixed: minFixedVersion(vuln.affected ?? []),
+      });
+    }
+  }
+  return advisories;
+}
+
+function withReachEvidence(
+  reached: Finding[],
+  sources: ReadonlyMap<string, string>,
+  edgesKnown: boolean,
+): Finding[] {
+  if (process.env.FULLSHIELD_EXPERIMENTAL_REACH_EVIDENCE !== '1') {return reached;}
+  const sites = collectImportSites(sources);
+  const files = [...sources.keys()].sort();
+  return reached.map((finding) => {
+    const evidence = evidenceForFinding(finding, sites, files, edgesKnown);
+    return evidence === undefined ? finding : { ...finding, reachabilityEvidence: evidence };
+  });
+}
+
+async function readShapeSources(cwd: string, files: readonly string[]): Promise<{ file: string; text: string }[]> {
+  const shapeSources: { file: string; text: string }[] = [];
+  for (const rel of files) {
+    if (!/\.[cm]?[jt]sx?$/.test(rel)) {continue;}
+    try {
+      shapeSources.push({ file: rel, text: await readFile(join(cwd, rel), 'utf8') });
+    } catch {
+      continue;
+    }
+  }
+  return shapeSources;
+}
+
+async function supplyPlaceholders(
+  sources: ReadonlyMap<string, string>,
+  direct: ReadonlySet<string>,
+  packages: readonly LockedPackage[],
+  cacheDir: string,
+): Promise<Finding[]> {
+  if (process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY !== '1') {return [];}
+  const out = campaignFindings([...sources.entries()].map(([file, text]) => ({ file, text })));
+  for (const name of [...direct].sort()) {
+    const locked = packages.find((pkg) => pkg.name === name)?.version;
+    if (locked === undefined) {continue;}
+    const latest = await readPlaceholderLatest(join(cacheDir, 'registry', `${name.replaceAll('/', '__')}.json`));
+    const placeholder = securityPlaceholderFinding(name, locked, latest);
+    if (placeholder !== undefined) {out.push(placeholder);}
+  }
+  return out;
+}
+
+async function finishLockedScan(
+  ctx: ModuleContext,
+  prepared: PreparedDeps,
+  lockFile: string,
+  contents: string,
+  input: {
+    graph: LockfileGraph;
+    packages: LockedPackage[];
+    osvHits: Awaited<ReturnType<typeof queryOsv>>;
+    reachCtx: Awaited<ReturnType<typeof reachabilityCtx>>;
+    reached: Finding[];
+  },
+): Promise<Finding[]> {
+    const { cacheDir, osvOpts, manifestRaw, npmInput, lockTexts } = prepared;
+    const { graph, packages, osvHits, reachCtx } = input;
+    let reached = input.reached;
     if (experimentalVex()) {
       reached = attachOverrideProposals(reached, graph, lockFile, manifestRaw);
       reached.push(...scanInstalledPackages(ctx.cwd, packages));
@@ -279,59 +402,20 @@ export const depsModule: ScanModule & {
     if (licenseEnabled()) {reached.push(...(await scanCopyleftLicenses(ctx.cwd)));}
     depsModule.unusedDirect = unusedDirectPlan(reached, reachCtx);
     const direct = new Set([...graph.directProd, ...graph.directDev]);
-    const advisories: UpgradeAdvisory[] = [];
-    for (const hit of osvHits) {
-      if (!direct.has(hit.pkg.name)) {continue;}
-      for (const vuln of hit.vulns) {
-        if (isMaliciousAdvisory(vuln)) {continue;}
-        advisories.push({
-          name: hit.pkg.name,
-          from: hit.pkg.version,
-          id: vuln.id,
-          fixed: minFixedVersion(vuln.affected ?? []),
-        });
-      }
-    }
-    depsModule.upgradePlan = chooseUpgradePlan(advisories);
-    if (process.env.FULLSHIELD_EXPERIMENTAL_REACH_EVIDENCE === '1') {
-      const sites = collectImportSites(reachCtx.sources);
-      const files = [...reachCtx.sources.keys()].sort();
-      reached = reached.map((finding) => {
-        const evidence = evidenceForFinding(finding, sites, files, graph.edgesKnown);
-        return evidence === undefined ? finding : { ...finding, reachabilityEvidence: evidence };
-      });
-    }
+    depsModule.upgradePlan = chooseUpgradePlan(upgradeAdvisories(osvHits, direct));
+    reached = withReachEvidence(reached, reachCtx.sources, graph.edgesKnown);
     reached = await withWorkspaceAdvisories(ctx.cwd, manifestRaw, osvOpts, reached);
-    const shapeSources: { file: string; text: string }[] = [];
-    for (const rel of ctx.files) {
-      if (!/\.[cm]?[jt]sx?$/.test(rel)) {continue;}
-      try {
-        shapeSources.push({ file: rel, text: await readFile(join(ctx.cwd, rel), 'utf8') });
-      } catch {
-        continue;
-      }
-    }
+    const shapeSources = await readShapeSources(ctx.cwd, ctx.files);
     reached = [...reached, ...dependencyShapeFindings(manifestRaw, packages, shapeSources)];
     if (capabilitiesEnabled()) {
-      reached.push(
-        ...capabilityFindings({
-          cwd: ctx.cwd,
-          lockText: contents,
-          cacheDir,
-          policy: ctx.config.deps.capabilityPolicy,
-        }),
-      );
+      reached.push(...capabilityFindings({
+        cwd: ctx.cwd,
+        lockText: contents,
+        cacheDir,
+        policy: ctx.config.deps.capabilityPolicy,
+      }));
     }
-    if (process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY === '1') {
-      reached.push(...campaignFindings([...reachCtx.sources.entries()].map(([file, text]) => ({ file, text }))));
-      for (const name of [...direct].sort()) {
-        const locked = packages.find((pkg) => pkg.name === name)?.version;
-        if (locked === undefined) {continue;}
-        const latest = await readPlaceholderLatest(join(cacheDir, 'registry', `${name.replaceAll('/', '__')}.json`));
-        const placeholder = securityPlaceholderFinding(name, locked, latest);
-        if (placeholder !== undefined) {reached.push(placeholder);}
-      }
-    }
+    reached.push(...(await supplyPlaceholders(reachCtx.sources, direct, packages, cacheDir)));
     if (provenanceEnabled()) {
       const provenance = await provenanceFindingsForScan(packages, lockFile, {
         cacheDir,
@@ -342,9 +426,23 @@ export const depsModule: ScanModule & {
     if (vendoredEnabled()) {reached.push(...(await vendoredFindings(ctx.cwd, ctx.files, osvOpts)));}
     if (healthEnabled()) {reached.push(...(await unfixedFindings(osvHits, graph.directProd, reachCtx, cacheDir)));}
     reached.push(...(await npmDepthFindings({ ...npmInput, lockTexts: { ...lockTexts, [lockFile]: contents } })));
+    reached.push(...(await parityFindings(ctx.cwd, ctx.config.deps)));
     return reached;
-  },
-};
+}
+
+async function parityFindings(
+  cwd: string,
+  deps: { licenseDeny?: string[]; licenseAllow?: string[]; cacheDir?: string },
+): Promise<Finding[]> {
+  const out: Finding[] = [];
+  if (process.env.FULLSHIELD_EXPERIMENTAL_LICENSE_POLICY === '1') {
+    out.push(...(await scanLicensePolicy(cwd, { deny: deps.licenseDeny, allow: deps.licenseAllow })));
+  }
+  if (process.env.FULLSHIELD_EXPERIMENTAL_PRIVATE_REG === '1') {
+    out.push(...(await scanOrgAdvisories(cwd, deps.cacheDir ?? defaultCacheDir())));
+  }
+  return out;
+}
 
 function workspacesEnabled(): boolean {
   return process.env.FULLSHIELD_EXPERIMENTAL_WORKSPACES === '1';

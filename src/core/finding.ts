@@ -101,6 +101,12 @@ export interface Finding {
   verification?: 'live' | 'revoked' | 'unknown';
   /** 0–100. Present only with FULLSHIELD_EXPERIMENTAL_PRIORITY=1. Severity is never changed. */
   priority?: number;
+  /** Local EPSS score. Present only with FULLSHIELD_EXPERIMENTAL_EPSS_LOCAL=1. Not a live feed. */
+  epss?: number;
+  /** Local KEV flag from the same file. Not a CISA download. */
+  kev?: boolean;
+  /** Deterministic score from epss, kev, reachability, and severity. Same flag as `epss`. */
+  epssPriority?: number;
   /** Why `priority` was chosen. Same flag as `priority`. */
   priorityFactors?: Array<{ name: string; points: number; detail: string }>;
   /**

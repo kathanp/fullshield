@@ -115,3 +115,11 @@ D-55 | phase-555 | Policy pack under templates/policy; on for profile recommende
 D-56 | phase-556 | init --ci writes CI files; optional gh PR; local summary only | Never posts PR comments (SPEC §31). --no-pr skips gh. | APPROVED
 
 D-57 | phase-554 | R3 edit of phase54 flag-off assertion | Approved FEATURES 2.4.0 A8 promotes workspace scan to default; the old flag-off silence assertion is replaced. | APPROVED
+
+D-58 | phase-557 | Bump PRs keep reachable high and critical only, one gh pr create each, never merge | The features file ranks by reachability then severity and refuses auto-merge. Not-imported rows are omitted. FS-E020. | APPROVED
+D-59 | phase-558 | License policy matches the whole license string, case-insensitive | Allow wins over the same deny string. A missing license stays silent. The message says policy, not vulnerability. Medium, CWE-1104. | APPROVED
+D-60 | phase-559 | Private registry is config plus a local org-advisories cache | https without userinfo. The host is not allowlisted and is never fetched. 1000000 byte cap. EPSS and CISA hosts stay blocked. | APPROVED
+D-61 | phase-560 | EPSS and KEV come from a local file | Scores outside 0..1 are rejected. epssPriority uses the published formula. No new finding and no network. | APPROVED
+D-62 | phase-561 | Container and OS scanning is a documented non-goal | Trivy SARIF goes to existing ingest. No new rule and no new host. | APPROVED
+D-63 | phase-562 | Exceptions need owner, reason, and expiry within 365 days | Expired rows fail CI and do not suppress. No forever value. FS-E022. | APPROVED
+D-64 | phase-563 | init --recommended writes the diff workflow | scan --diff stays behind FULLSHIELD_EXPERIMENTAL_DIFFSCAN. Plain init does not write the file. No PR comments. | APPROVED

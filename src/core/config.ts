@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
 import { isCapabilityName, type CapabilityName } from '../capabilities/names.js';
+import { parsePrivateRegistry } from '../modules/deps/private-reg.js';
 import type { CapabilityPolicy } from '../capabilities/policy.js';
 import {
   MODULE_NAMES,
@@ -24,6 +25,14 @@ export interface DepsConfig {
   cacheDir?: string;
   /** Present only when FULLSHIELD_EXPERIMENTAL_CAPABILITIES=1. */
   capabilityPolicy?: CapabilityPolicy;
+  /** Present only when FULLSHIELD_EXPERIMENTAL_LICENSE_POLICY=1. */
+  licenseDeny?: string[];
+  /** Present only when FULLSHIELD_EXPERIMENTAL_LICENSE_POLICY=1. */
+  licenseAllow?: string[];
+  /** Present only when FULLSHIELD_EXPERIMENTAL_PRIVATE_REG=1. Stored, never fetched. */
+  registry?: string;
+  /** Present only when FULLSHIELD_EXPERIMENTAL_EPSS_LOCAL=1. Local file only. */
+  epssFile?: string;
 }
 
 export interface AiConfig {
@@ -286,7 +295,38 @@ function parseDepsField(value: unknown, source: string): DepsConfig {
   if (process.env.FULLSHIELD_EXPERIMENTAL_CAPABILITIES === '1' && rawDeps.capabilityPolicy !== undefined) {
     deps.capabilityPolicy = parseCapabilityPolicy(rawDeps.capabilityPolicy, source);
   }
+  applyParityDeps(deps, rawDeps, source);
   return deps;
+}
+
+function applyParityDeps(deps: DepsConfig, rawDeps: Record<string, unknown>, source: string): void {
+  if (process.env.FULLSHIELD_EXPERIMENTAL_LICENSE_POLICY === '1') {
+    if (rawDeps.licenseDeny !== undefined) {
+      deps.licenseDeny = parseStringGlobs(rawDeps.licenseDeny, source, 'deps.licenseDeny');
+    }
+    if (rawDeps.licenseAllow !== undefined) {
+      deps.licenseAllow = parseStringGlobs(rawDeps.licenseAllow, source, 'deps.licenseAllow');
+    }
+  }
+  applyRegistry(deps, rawDeps, source);
+  applyEpssFile(deps, rawDeps, source);
+}
+
+function applyRegistry(deps: DepsConfig, rawDeps: Record<string, unknown>, source: string): void {
+  if (process.env.FULLSHIELD_EXPERIMENTAL_PRIVATE_REG !== '1' || rawDeps.registry === undefined) {return;}
+  if (typeof rawDeps.registry !== 'string') {
+    throw new ConfigError(`${source}: "deps.registry" must be a string`);
+  }
+  parsePrivateRegistry(rawDeps.registry);
+  deps.registry = rawDeps.registry;
+}
+
+function applyEpssFile(deps: DepsConfig, rawDeps: Record<string, unknown>, source: string): void {
+  if (process.env.FULLSHIELD_EXPERIMENTAL_EPSS_LOCAL !== '1' || rawDeps.epssFile === undefined) {return;}
+  if (typeof rawDeps.epssFile !== 'string' || rawDeps.epssFile.length === 0) {
+    throw new ConfigError(`${source}: "deps.epssFile" must be a path (FULLSHIELD_EXPERIMENTAL_EPSS_LOCAL)`);
+  }
+  deps.epssFile = rawDeps.epssFile;
 }
 
 function parseAiField(value: unknown, source: string): AiConfig {

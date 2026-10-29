@@ -75,7 +75,7 @@ List only — not committing to build. Each item has: **today**, **basic add**, 
 
 ---
 
-### B. Parity with Snyk / npm audit / Dependabot
+### B. Parity with Snyk / npm audit / Dependabot (3.1.1)
 
 8. **Auto PRs for dependency bumps (Dependabot-style + reachability)**
    - **Today:** `fix` can propose bumps; no always-on bot.
@@ -118,7 +118,7 @@ List only — not committing to build. Each item has: **today**, **basic add**, 
     - **Advanced:** Gate on “new reachable” only; moved findings not treated as new; SARIF upload of delta; fail PR if reachable set grows.
     - **Risk:** Promoting experimental → default is R10 if output keys change.
 
-**B — more advanced (extra)**
+**B — more advanced (extra) (3.1.2)**
 
 - B15. **Reachability-aware Dependabot replacement**: replace Dependabot entirely for npm — FullShield owns the only bump bot that skips not-imported CVEs.
 - B16. **Malware / install-script sandbox report** for candidate upgrades (static only; never execute install scripts) before merge.
@@ -127,7 +127,7 @@ List only — not committing to build. Each item has: **today**, **basic add**, 
 
 ---
 
-### C. Parity with Semgrep / Sonar / CodeQL
+### C. Parity with Semgrep / Sonar / CodeQL (3.2.1)
 
 15. **Higher default SAST recall on real apps**
     - **Today:** Strong core sinks; reviewed recall for untouched apps is not published; honesty > hype.
@@ -164,7 +164,7 @@ List only — not committing to build. Each item has: **today**, **basic add**, 
     - **Advanced (if forced):** Deterministic score formula published in docs; badge is “reachable critical = 0” not “Grade A”; never market as certification.
     - **Risk:** Marketing scores invite gaming and distrust.
 
-**C — more advanced (extra)**
+**C — more advanced (extra) (3.2.2)**
 
 - C21. **Framework-deep packs as products**: Next App Router, Nest DI, tRPC, Prisma — each with FP-negative fixtures and promotion criteria.
 - C22. **Cross-file summary caching** as default with byte-identical findings (extend 2.2.0 speed work into accuracy-preserving summaries).
@@ -173,7 +173,7 @@ List only — not committing to build. Each item has: **today**, **basic add**, 
 
 ---
 
-### D. Parity with runtime / WAF / RASP vendors
+### D. Parity with runtime / WAF / RASP vendors (3.3.1)
 
 21. **Safe-by-default block mode**
     - **Today:** Prefer `monitor`; experimental RASP is fail-open; no prevention claim.
@@ -191,7 +191,7 @@ List only — not committing to build. Each item has: **today**, **basic add**, 
     - **Today / forever for FullShield:** Out of product honesty — don’t chase.
     - **Alternative:** Integrate by ingesting external alerts; never pretend FullShield is CrowdStrike.
 
-**D — more advanced (extra)**
+**D — more advanced (extra) (3.3.2)**
 
 - D24. **Runtime ↔ scan closed loop**: runtime sees SQLi-like payload → emit fingerprint → next CI scan highlights matching sinks.
 - D25. **Canary / confirm** as a scheduled localhost job (already experimental confirm) with clear `unconfirmed ≠ pass`.
@@ -200,7 +200,7 @@ List only — not committing to build. Each item has: **today**, **basic add**, 
 
 ---
 
-### E. Trust & distribution (what makes tools “#1” in practice)
+### E. Trust & distribution (what makes tools “#1” in practice) (3.4.1)
 
 24. **Case studies + public benchmarks**
     - **Today:** Internal benches; comparison docs exist carefully; no fake “#1” claims.
@@ -232,7 +232,7 @@ List only — not committing to build. Each item has: **today**, **basic add**, 
     - **Advanced:** Local tutorial app with planted vulns; progress checklist; links each finding to `rules/<ID>.md`; graduate into real repo scan.
     - **Risk:** Keep tutorial fixtures out of the published pack if they look like real secrets (concatenation rule).
 
-**E — more advanced (extra)**
+**E — more advanced (extra) (3.4.2)**
 
 - E29. **Ambassador / OSS design partners**: 10 Node companies with public quotes after 30 days of CI use.
 - E30. **Reproducible stranger pack**: GitHub Action that runs the SPEC stranger check on every tag and posts a green/red status to the release.
