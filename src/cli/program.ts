@@ -408,7 +408,9 @@ async function mergeExtras(
   const withRules = await mergeLocalRules(path, result);
   if (process.env.FULLSHIELD_EXPERIMENTAL_SECTIONG !== '1') {return withRules;}
   const section = await import('../exp/sectiong.js');
-  return section.withSectionG(withRules, resolve(path));
+  const withG = await section.withSectionG(withRules, resolve(path));
+  const sectionH = await import('../exp/sectionh.js');
+  return sectionH.withSectionH(withG, resolve(path));
 }
 
 async function runScanAction(io: ProgramIO, path: string, opts: ScanCliOptions): Promise<void> {

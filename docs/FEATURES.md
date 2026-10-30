@@ -1,4 +1,76 @@
-# FullShield features (3.5.0)
+# FullShield features (3.5.1, then 3.5.2)
+
+Two patches on 3.5.0. Neither adds a command, a CLI option, a `rules/*.md` file, a package export, or a new `FULLSHIELD_EXPERIMENTAL_*` flag. Both use the existing flag `FULLSHIELD_EXPERIMENTAL_SECTIONG`. The flag stays off unless the value is `1`.
+
+Flag off, default `scan --json` findings stay byte-identical to 3.5.0. `clean-app` stays at 0 findings on the default scan, and at 0 with the flag on. `stableChange: false`. No new host. No container or OS package scan. No eBPF. No second language. No letter grade. No recall number. No company quote. No claim that a process prevents an attack. `.github/workflows` is not edited. Scanned code is not executed. Project tests are not run. Severity is `low` unless the line says `medium`. Source of these findings is `rule`.
+
+Already in the tree, so these versions do not add a second finding for them: H2, H3, H4, H6, H25, H52, the GitLab half of H45, the open `images.remotePatterns` half of H19, the package-name half of H1, and the Terraform `public-read` half of H35.
+
+## 3.5.1
+
+Source: the unfinished package, lockfile, and framework lines in section H. One local check each. A positive fixture finds it. A negative fixture does not.
+
+- **H1.** A lockfile URL or a JavaScript string contains U+202E or U+200B: one finding, severity `medium`. An ASCII lockfile URL is not. A dependency name is left to `DEPS-BIDI-001`.
+- **H5.** `package-lock.json` and `yarn.lock` or `pnpm-lock.yaml` both exist and name the same package at two versions: one finding. One lockfile is not.
+- **H7.** A file under `patches/` assigns `req.body` or `req.query` into a call that contains `query(`, `exec(`, or `send(`: one finding, severity `medium`. A patch that only changes a version string is not.
+- **H8.** `files` in `package.json` or a line in `.npmignore` that is not a negation names `.env`, `id_rsa`, or `.github`: one finding, severity `medium`. A `files` list of `dist` only is not.
+- **H9.** A `package.json` whose `name` is also listed under `workspaces` has no `"private": true`: one finding. `"private": true` is not.
+- **H10.** A `preinstall`, `install`, or `postinstall` script contains `curl` or `wget`: one finding, severity `medium`. The script is not executed. A script that only runs `node` is not.
+- **H11.** A script or config fetches `http://` or `https://` and the same file has no `integrity` and no `sha256`: one finding. A file that contains `sha256` is not.
+- **H12.** A `start`, `preinstall`, `install`, or `postinstall` script contains `--require` or `NODE_OPTIONS`: one finding. A script that only runs `node server.js` is not.
+- **H13.** `engines.node`, and `.nvmrc` or `.node-version` when that file exists, name different major versions: one finding. The same major is not. No CI file is read.
+- **H14.** A production `.js` file imports a name that `package.json` lists only under `devDependencies`: one finding. A dependency listed under `dependencies` is not.
+- **H15.** `@types/<name>` and `<name>` are both in the lockfile and their major versions differ: one finding. The same major is not.
+- **H16.** `req.` is passed to `.raw(`, `sequelize.query(`, or `createQueryBuilder(` in a file that also contains `knex`, `sequelize`, or `typeorm`: one finding, severity `medium`. A placeholder `$1` is not.
+- **H17.** `req.` appears in the same file as `$where` or `mongoose` and `.where(`: one finding, severity `medium`. A literal query with no `req.` is not.
+- **H18.** `socket.on('message'` or `socket.on("connection"` passes that callback value to `query(`, `exec(`, or `send(`: one finding. A handler that sends a literal is not.
+- **H19.** A `redirects` or `rewrites` entry copies `req.query` into `destination` or `source`: one finding, severity `medium`. A fixed destination is not. Open `images.remotePatterns` stays on its existing check.
+- **H20.** A file contains `matcher` and `/:path*`, or `'use server'` and `searchParams` and no `origin`: one finding. A matcher of `/account` only is not.
+- **H21.** A file contains `loader` or `action` and `LoaderFunction` or `astro` and passes `request.` to `query(` or `send(`: one finding. A literal return is not.
+- **H22.** A file contains `fastify` and `.post(` or `.put(` and `request.body` and `query(` and does not contain `schema`: one finding. A route with `schema` is not.
+- **H23.** A file contains `graphql` and `introspection: true`, or `graphql` and no `depthLimit`, and the path does not include `test`: one finding. A test path is not.
+- **H24.** A file contains `.listen(` and does not contain `helmet`: one finding. A file that calls `helmet()` is not.
+- **H26.** `express.json(` with no `limit`, or a `limit` whose digits are greater than `100`, or `bodyLimit` whose digits are greater than `100`: one finding. `limit: '100kb'` is not.
+- **H27.** A file contains `swagger`, `graphql-playground`, or `'/metrics'` and does not contain `auth`: one finding. A file that contains `auth` is not.
+
+## 3.5.2
+
+Source: the unfinished auth, CI text, and output lines in section H. Same flag. Same limits. Built only after 3.5.1 is tagged.
+
+- **H28.** A redirect contains `oauth` or `authorize` and does not contain `state`, or a token request contains `code` and does not contain `verifier`: one finding, severity `medium`. A redirect that contains `state` is not.
+- **H29.** `res.redirect` is called with `req.query.next` or `req.query.return` and the file has no array literal: one finding, severity `medium`. A fixed path is not.
+- **H30.** `secret:` or `jwt.sign` is followed by a string literal: one finding, severity `medium`. `process.env` is not.
+- **H31.** One statement contains `SameSite=None` or `sameSite: 'none'` and does not contain `secure`: one finding, severity `medium`. A statement that also contains `secure` is not. A path that includes `test` is not.
+- **H32.** `createHash('md5'` or `createHash('sha1'` or `createHash("md5"` or `createHash("sha1"` appears in a file that also contains `password`: one finding, severity `medium`. `bcrypt` is not this finding.
+- **H33.** A file contains `email` or `password` and `.update(` and does not contain `currentPassword` or `req.session`: one finding. A file that reads `req.session` is not.
+- **H34.** `getSignedUrl` or `presign` appears and the file contains neither `expiresIn` nor `Expires`: one finding. A call that contains `expiresIn` is not.
+- **H35.** Application source contains `public-read` or `public-read-write`: one finding, severity `medium`. Terraform text stays on its existing check.
+- **H36.** A workflow line contains `run:` and `${{ github.event.`: one finding, severity `medium`. A `run:` line with no `${{` is not.
+- **H37.** A `uses:` value contains `/` and does not end in 40 hex characters, and is not `actions/checkout` or `actions/setup-node`: one finding. A 40-hex pin is not.
+- **H38.** The same workflow job contains `uses:` of a name other than `actions/checkout` or `actions/setup-node`, and `secrets.`: one finding, severity `medium`. A job with no `secrets.` is not.
+- **H39.** A workflow contains `persist-credentials: true` and `pull_request`: one finding, severity `medium`. `persist-credentials: false` is not.
+- **H40.** A workflow contains `pull_request:` and `contents: write` or `id-token: write`: one finding, severity `medium`. A workflow whose only trigger is `push:` is not.
+- **H41.** `.gitignore` or `.dockerignore` exists and does not contain `.env`: one finding. A file that contains `.env` is not. A missing ignore file is not.
+- **H42.** A Dockerfile line starts with `ARG`, `ENV`, or `COPY` and contains `.env`, `id_rsa`, or `.npmrc`: one finding, severity `medium`. A `COPY` of `package.json` is not.
+- **H43.** A compose file contains `ports:` and `PASSWORD` and a quoted literal: one finding, severity `medium`. `PASSWORD: ${DB_PASSWORD}` is not.
+- **H44.** A workflow contains `npm publish` and `NODE_AUTH_TOKEN` and does not contain `id-token:`: one finding, severity `medium`. A workflow with `id-token:` is not. This repo's workflows are not edited.
+- **H45.** If `sectionh-format.txt` exists, one finding whose message is JSON `{reviewdog}` of `{ruleId, file, line, severity}` from the input findings. GitLab output stays on the existing check. No second scanner.
+- **H46.** `docs/scan-result.schema.json` exists and contains `"schemaVersion"`. No new network host. The schema describes the current scan JSON fields and does not add a required field.
+- **H47.** If `sectionh-doctor.txt` is a number and `sectionh-osv-cache.json` is older than that many days, one finding names the age. A missing cache file is one finding. Nothing is fetched. `doctor` gains no option.
+- **H48.** If `sectionh-relative.txt` exists, one finding whose message is the relative path of each input finding. Absolute prefixes are omitted. Default SARIF and JSON are unchanged.
+- **H49.** If `sectionh-mask.txt` exists, a finding message that contains a line from that file is reported with that line replaced by `[masked]`. The mask file is not printed. Default reports are unchanged when the file is absent.
+- **H50.** If `sectionh-report.txt` exists, write `sectionh-report.json` with mode `0600` and the input rule ids. Other report writers are unchanged.
+- **H51.** If `sectionh-lockonly.txt` exists, the section H source walk does not read `.js`, `.jsx`, `.ts`, or `.tsx`. Lockfile checks in this version still run. No new command.
+- **H53.** If `sectionh-policy.json` is `{failOn, ruleIds}`, one finding lists the input rule ids that are in `ruleIds`. Nothing is written over the project.
+- **H54.** If `sectionh-epss.json` is `{ruleId: number}`, one finding's message is `ruleId score` using that local number, severity, and `unspecified` when reachability is missing. No new host. No learned model.
+- **H55.** If `sectionh-bumps.json` is an array of `{name, from, to, override}`, the finding message prefers a row with `override: true`, then a `to` that changes only the patch, and says which one it picked. No install.
+- **H56.** If `sectionh-delta.json` has `{from, to}` script, license, or `native` fields that differ, one finding names the field that changed. Scripts are not run.
+- **H57.** If `sectionh-offline.txt` exists and `sectionh-osv-cache.json` is missing, throw before a scan write. Do not fetch the file.
+- **H58.** `templates/self-scan.md` says this repo is scanned with the default rules. `.github/workflows` is not edited and does not gain a self-scan job.
+- **H59.** A finding whose file is under `dist/` and whose directory contains a `.map` file gains a message with that map name. No map file adds nothing.
+- **H60.** Not built. No telemetry, no phone-home, no second language, no container CVE database, and no prevention claim.
+
+## 3.5.0
 
 Inventory of what **3.5.0** adds. Source: section G below, G1–G51. This is a minor on 3.4.2. It adds one flag, `FULLSHIELD_EXPERIMENTAL_SECTIONG`. It adds no command, no CLI option, no `rules/*.md` file, and no package export.
 
@@ -62,7 +134,7 @@ With the flag on, each item below is a local static check. A positive fixture fi
 
 ## Planning notes
 
-The sections below are planning notes. Section G is the source of the 3.5.0 inventory above. The published tree stays 3.4.2 until this version is built. [stability.md](stability.md) and `SECURITY_SCANNER_SPEC.md` still win over this file where they disagree.
+The sections below are planning notes. Section G is the source of the 3.5.0 inventory above. Section H is the source of the 3.5.1 and 3.5.2 inventories. The published tree stays 3.5.0 until 3.5.1 is built. [stability.md](stability.md) and `SECURITY_SCANNER_SPEC.md` still win over this file where they disagree.
 
 ## Honest take
 

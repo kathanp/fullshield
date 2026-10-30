@@ -1,6 +1,6 @@
 # FullShield
 
-**v3.5.0.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself. Scan when you want with `npx fullshield scan`, or install an every-2-hours timer with `npx fullshield schedule install`.
+**v3.5.1.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself. Scan when you want with `npx fullshield scan`, or install an every-2-hours timer with `npx fullshield schedule install`.
 
 **Headline: dependency reachability.** A lockfile CVE is not the same as an unused package. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (lockfile path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), `not-imported` (−2, only when no such path exists), or `reachability-unknown` (severity kept) when the lockfile format has no parsed dependency edges. DevDependency-only vulns are `info` with a `dev-only` note unless production sources import the package. Pair it with `fullshield sbom --format cyclonedx`.
 
@@ -10,16 +10,16 @@ npx fullshield scan --json --fail-on high
 npx fullshield scan --sarif fullshield.sarif
 ```
 
-3.5.0 is the version of this tree. Python and other languages are out of scope. `schedule install` writes `fullShieldReport/fullShieldReport_YYYYMMDD_HHMM.md` every 2 hours and keeps 60 reports. `scan` does not create that folder. The stable contract is [docs/stability.md](docs/stability.md). The 1.0.1 release moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. `init --tour`, `init --stack`, and `digest --file` need `FULLSHIELD_EXPERIMENTAL_ADOPT=1`. The tour writes no file. The digest reads a local file and does not fetch. See [docs/security-page.md](docs/security-page.md), [docs/compare.md](docs/compare.md), [docs/compatibility.md](docs/compatibility.md), and [docs/vs-npm-audit.md](docs/vs-npm-audit.md). The compatibility page claims only the six existing CI jobs. `FULLSHIELD_EXPERIMENTAL_SECTIONG=1` adds the local section G checks and is off by default. Do not treat a scan as a penetration test. Reviewed recall for untouched apps is not published. From `bench/perf-v2.json` (`measured: true`, `label: unreviewed`), the stored Next.js cold p50 is 107.95 seconds — still above the 60-second target (target unmet). Default scans share one AST, run modules in parallel, and use lazy taint. Multi-workspace repos scan each workspace lockfile by default; single-package finding keys stay the same as 2.3.0.
+3.5.1 is the version of this tree. Python and other languages are out of scope. `schedule install` writes `fullShieldReport/fullShieldReport_YYYYMMDD_HHMM.md` every 2 hours and keeps 60 reports. `scan` does not create that folder. The stable contract is [docs/stability.md](docs/stability.md). The 1.0.1 release moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. `init --tour`, `init --stack`, and `digest --file` need `FULLSHIELD_EXPERIMENTAL_ADOPT=1`. The tour writes no file. The digest reads a local file and does not fetch. See [docs/security-page.md](docs/security-page.md), [docs/compare.md](docs/compare.md), [docs/compatibility.md](docs/compatibility.md), and [docs/vs-npm-audit.md](docs/vs-npm-audit.md). The compatibility page claims only the six existing CI jobs. `FULLSHIELD_EXPERIMENTAL_SECTIONG=1` adds the local section G and section H checks and is off by default. Do not treat a scan as a penetration test. Reviewed recall for untouched apps is not published. From `bench/perf-v2.json` (`measured: true`, `label: unreviewed`), the stored Next.js cold p50 is 107.95 seconds — still above the 60-second target (target unmet). Default scans share one AST, run modules in parallel, and use lazy taint. Multi-workspace repos scan each workspace lockfile by default; single-package finding keys stay the same as 2.3.0.
 
 ## Verify in 60 seconds
 
 ```bash
 # fresh temp / empty cache is enough — no install-guard phones home
-npx fullshield@3.5.0 --version
+npx fullshield@3.5.1 --version
 ```
 
-Package page: [npmjs.com/package/fullshield](https://www.npmjs.com/package/fullshield). Release tag: [v3.5.0](https://github.com/kathanp/fullshield/releases/tag/v3.5.0). Publish stages with npm provenance (OIDC). After install, the stranger checks in the build spec (scan / json / sarif / fail-on / fix / init / sbom) are the post-publish gate — no Rekor/sigstore SaaS dependency in the CLI.
+Package page: [npmjs.com/package/fullshield](https://www.npmjs.com/package/fullshield). Release tag: [v3.5.1](https://github.com/kathanp/fullshield/releases/tag/v3.5.1). Publish stages with npm provenance (OIDC). After install, the stranger checks in the build spec (scan / json / sarif / fail-on / fix / init / sbom) are the post-publish gate — no Rekor/sigstore SaaS dependency in the CLI.
 
 ## GitHub Action
 
@@ -28,7 +28,7 @@ Copy `templates/action/` into your repo (or use `kathanp/fullshield-action` once
 ```yaml
 - uses: your-org/your-repo/.github/actions/fullshield@<commit-sha>
   with:
-    version: '3.5.0'
+    version: '3.5.1'
 ```
 
 Or run `npx fullshield init --recommended` to write `profile: "recommended"` and a workflow that calls `./templates/action`. The Action runs `fullshield scan`, uploads SARIF, and may cache the baseline. It does not post a pull-request comment, open issues, or phone home.
