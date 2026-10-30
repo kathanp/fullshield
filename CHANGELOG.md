@@ -2,6 +2,12 @@
 
 All notable changes to FullShield are documented here.
 
+## 3.4.2 — 2026-10-29
+
+### Trust pages
+
+- Phase 570: the compatibility page claims only the six existing CI jobs. Package managers and frameworks are not claimed. The npm-audit page states no finding count. The stranger-check template is not a workflow. No company quote. No new command or flag.
+
 ## 3.4.1 — 2026-10-29
 
 ### Adoption
