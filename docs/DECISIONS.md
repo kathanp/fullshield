@@ -131,3 +131,5 @@ D-69 | phase-568 | Closed loop stays on the runtime guard flag | Fingerprint is 
 D-70 | phase-569 | Adoption helpers stay off without the flag | Tour writes nothing. Stack notes do not suppress findings. Digest reads a local file and does not fetch. No grade, no recall number, and no SOC2 claim. | APPROVED
 D-72 | phase-571 | Section G stays behind one flag and does not change the default scan | Each G item is a local check or an explicit non-goal. G36 and G37 stay not claimed. Workflows are not edited. No new host. | APPROVED
 D-73 | phase-572 | Section H package and framework checks stay on the section G flag | No new flag or command. H2, H3, H4, H6, H25, and H52 are not repeated. Scripts are not executed. Default scan findings stay the same. | APPROVED
+
+D-74 | phase-573 | Section H auth, CI text, and output stay on the section G flag | No new flag, command, or workflow. H52 and H60 are not built. The schema adds no required field. A missing cache throws only when the offline marker is present, and nothing is fetched. Default scan findings stay the same. | APPROVED

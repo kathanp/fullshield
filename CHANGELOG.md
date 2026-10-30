@@ -2,6 +2,12 @@
 
 All notable changes to FullShield are documented here.
 
+## 3.5.2 — 2026-10-30
+
+### Section H
+
+- Phase 573: the existing `FULLSHIELD_EXPERIMENTAL_SECTIONG` flag adds the local section H auth, CI text, and output checks. The flag is off by default. Default scan findings stay the same as 3.5.1. No new command, no new flag, no workflow edit, and no new host.
+
 ## 3.5.1 — 2026-10-30
 
 ### Section H
