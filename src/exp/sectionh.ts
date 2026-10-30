@@ -440,7 +440,7 @@ async function load(dir: string, cwd: string, out: Loaded[]): Promise<void> {
       continue;
     }
     const abs = join(dir, entry.name);
-    const rel = relative(cwd, abs);
+    const rel = relative(cwd, abs).split('\\').join('/');
     if (!keep(entry.name, rel)) {continue;}
     const text = await readFile(abs, 'utf8');
     if (text.length <= 200_000) {out.push({ rel, name: entry.name, text });}

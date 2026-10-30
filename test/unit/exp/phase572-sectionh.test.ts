@@ -80,7 +80,9 @@ describe('phase 572 section H', () => {
   it('reports a patch that sinks request data and ignores a version patch', async () => {
     const dir = await root();
     await put(dir, 'patches/left.js', 'db.query(req.body.name);\n');
-    expect(rule(await scan(dir), '007')?.severity).toBe('medium');
+    const hit = rule(await scan(dir), '007');
+    expect(hit?.severity).toBe('medium');
+    expect(hit?.file).toBe('patches/left.js');
     await put(dir, 'patches/left.js', 'version 1.2.3\n');
     expect(rule(await scan(dir), '007')).toBeUndefined();
   });
