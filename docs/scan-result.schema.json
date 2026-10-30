@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "title": "FullShield scan JSON",
+  "type": "object",
+  "properties": {
+    "findings": { "type": "array" },
+    "summary": { "type": "object" },
+    "metadata": { "type": "object" },
+    "config": { "type": "object" },
+    "policy": { "type": "object" },
+    "suppressionErrors": { "type": "array" },
+    "suppressed": { "type": "array" },
+    "typesNotice": { "type": "string" },
+    "paths": { "type": "array" }
+  }
+}

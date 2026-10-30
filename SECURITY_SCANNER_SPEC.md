@@ -7204,3 +7204,19 @@ The checks are H1 (lockfile URL or JavaScript text, not a dependency name), H5, 
 No new host. Scanned code is not executed. Project tests are not run. No container or OS package scan. No eBPF. No second language. No letter grade. No recall number. No company quote. No prevention claim.
 
 Acceptance: flag off leaves scan findings unchanged. Each positive fixture in the 3.5.1 list reports, and each negative fixture does not. `clean-app` stays at 0 with the flag on. Default scan findings unchanged.
+
+## 70. Version 3.5.2
+
+These phases are the approved `docs/FEATURES.md` for 3.5.2 (section H, the 3.5.2 list). A behavior that is not in that list is not in this section. This is a patch on 3.5.1. It adds no `.command()`, no `.option()`, no `rules/*.md` id, no package export, and no new `FULLSHIELD_EXPERIMENTAL_*` flag. It uses `FULLSHIELD_EXPERIMENTAL_SECTIONG`. Default `scan --json` findings stay byte-identical to 3.5.1. `stableChange: false`. `.github/workflows` is not edited.
+
+### [X] Phase 573 — Section H auth, CI text, and output [`FULLSHIELD_EXPERIMENTAL_SECTIONG`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_SECTIONG`. Off unless the value is `1`. `stableChange: false`.
+
+Flag off adds no finding and does not write a file. Flag on, `clean-app` stays at 0 findings. New findings from this phase use severity `low` unless the features file says `medium`. They are not default-scan findings. Rule ids are `SECT-H-` plus the item number. Source is `rule`.
+
+The checks are H28, H29, H30, H31, H32, H33, H34, H35, H36, H37, H38, H39, H40, H41, H42, H43, H44, H45, H46, H47, H48, H49, H50, H51, H53, H54, H55, H56, H57, H58, and H59 in `docs/FEATURES.md`. H52 and H60 are not built. H35 reads application source only. H45 is reviewdog JSON only. H46 is `docs/scan-result.schema.json` and adds no required field. H47 reads a local cache file and does not fetch. H51 skips `.js`, `.jsx`, `.ts`, and `.tsx` in the section H source walk when `sectionh-lockonly.txt` exists, and lockfile checks still run. H57 throws before a scan write when `sectionh-offline.txt` exists and the cache file is missing. H58 is `templates/self-scan.md` and does not add a workflow. Scanned paths use forward slashes. Scripts are not executed.
+
+No new host. Scanned code is not executed. Project tests are not run. No container or OS package scan. No eBPF. No second language. No letter grade. No recall number. No company quote. No prevention claim.
+
+Acceptance: flag off leaves scan findings unchanged. Each positive fixture in the 3.5.2 list reports, and each negative fixture does not. `clean-app` stays at 0 with the flag on. Default scan findings unchanged.

@@ -410,7 +410,9 @@ async function mergeExtras(
   const section = await import('../exp/sectiong.js');
   const withG = await section.withSectionG(withRules, resolve(path));
   const sectionH = await import('../exp/sectionh.js');
-  return sectionH.withSectionH(withG, resolve(path));
+  const withH = await sectionH.withSectionH(withG, resolve(path));
+  const sectionH2 = await import('../exp/sectionh2.js');
+  return sectionH2.withSectionH2(withH, resolve(path));
 }
 
 async function runScanAction(io: ProgramIO, path: string, opts: ScanCliOptions): Promise<void> {

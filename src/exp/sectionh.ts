@@ -13,6 +13,7 @@ import { withExtraFindings } from '../modules/sast/parity.js';
 const SECTIONG_FLAG = 'FULLSHIELD_EXPERIMENTAL_SECTIONG';
 const SKIP = new Set(['node_modules', '.git', 'dist', 'coverage', '.fullshield']);
 const SOURCE_EXT = new Set(['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs']);
+const LOCK_SKIP = new Set(['.js', '.jsx', '.ts', '.tsx']);
 const LOCKS = new Set(['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml']);
 const HIDDEN = ['\u202e', '\u200b'];
 
@@ -425,23 +426,33 @@ function typeSkew(files: readonly Loaded[], hits: Finding[]): void {
   }
 }
 
-function keep(fileName: string, rel: string): boolean {
+function keep(fileName: string, rel: string, skipSource: boolean): boolean {
+  if (skipSource && LOCK_SKIP.has(extname(fileName))) {return false;}
   if (SOURCE_EXT.has(extname(fileName)) || LOCKS.has(fileName)) {return true;}
   if (fileName === 'package.json' || fileName === '.npmignore' || fileName === '.nvmrc' || fileName === '.node-version') {return true;}
   return rel.includes('patches/') || fileName.includes('config');
 }
 
-async function load(dir: string, cwd: string, out: Loaded[]): Promise<void> {
+async function sourceLocked(cwd: string): Promise<boolean> {
+  try {
+    await readFile(join(cwd, 'sectionh-lockonly.txt'), 'utf8');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function load(dir: string, cwd: string, out: Loaded[], skipSource: boolean): Promise<void> {
   const entries = await readdir(dir, { withFileTypes: true });
   for (const entry of entries) {
     if (entry.isSymbolicLink()) {continue;}
     if (entry.isDirectory()) {
-      if (!SKIP.has(entry.name)) {await load(join(dir, entry.name), cwd, out);}
+      if (!SKIP.has(entry.name)) {await load(join(dir, entry.name), cwd, out, skipSource);}
       continue;
     }
     const abs = join(dir, entry.name);
     const rel = relative(cwd, abs).split('\\').join('/');
-    if (!keep(entry.name, rel)) {continue;}
+    if (!keep(entry.name, rel, skipSource)) {continue;}
     const text = await readFile(abs, 'utf8');
     if (text.length <= 200_000) {out.push({ rel, name: entry.name, text });}
   }
@@ -449,7 +460,7 @@ async function load(dir: string, cwd: string, out: Loaded[]): Promise<void> {
 
 async function collect(cwd: string): Promise<Finding[]> {
   const files: Loaded[] = [];
-  await load(cwd, cwd, files);
+  await load(cwd, cwd, files, await sourceLocked(cwd));
   const pkg = files.find((file) => file.rel === 'package.json');
   const doc = pkg === undefined ? undefined : parseDoc(pkg.text);
   const note = files.find((file) => file.name === '.nvmrc')?.text ?? files.find((file) => file.name === '.node-version')?.text;

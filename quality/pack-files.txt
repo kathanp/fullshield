@@ -279,6 +279,7 @@ templates/github-workflow.yml
 templates/gitlab-ci.yml
 templates/policy/fullshield.policy.json
 templates/pre-commit.sh
+templates/self-scan.md
 templates/stacks/express.md
 templates/stacks/fastify.md
 templates/stacks/hono.md
