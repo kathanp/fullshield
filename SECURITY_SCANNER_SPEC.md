@@ -6976,7 +6976,7 @@ Acceptance: unit tests assert files are written; `--no-pr` never invokes `gh`; s
 
 ## 60. Version 3.1.1
 
-These phases are the approved `docs/FEATURES.md` for 3.1.1 (features2.md section B, items 8–14, basic only). A behavior that is not in that file is not in this section. Default `scan --json` findings stay byte-identical to 3.0.0 on single-package trees. No stable rule id is removed. No stable finding field is removed. This version does not post a pull-request comment, auto-merge, scan containers or OS packages, or contact a host that is not already allowlisted. `clean-app` stays at 0 findings on the default scan. A `--repo` run does not park. No new hard dependency. `stableChange: false`.
+These phases are the approved `docs/FEATURES.md` for 3.1.1 (planning notes in FEATURES.md, section B, items 8–14, basic only). A behavior that is not in that file is not in this section. Default `scan --json` findings stay byte-identical to 3.0.0 on single-package trees. No stable rule id is removed. No stable finding field is removed. This version does not post a pull-request comment, auto-merge, scan containers or OS packages, or contact a host that is not already allowlisted. `clean-app` stays at 0 findings on the default scan. A `--repo` run does not park. No new hard dependency. `stableChange: false`.
 
 ### [X] Phase 557 — Reachability-ranked bump pull requests [`FULLSHIELD_EXPERIMENTAL_BUMP_PR`]
 
@@ -7056,7 +7056,7 @@ Acceptance: `init --recommended` writes the diff workflow; a plain `init` does n
 
 ## 61. Version 3.1.2
 
-These phases are the approved `docs/FEATURES.md` for 3.1.2 (features2.md section B, items B15–B18). A behavior that is not in that file is not in this section. This is a patch. It adds no `.command()`, no `.option()`, no `rules/*.md` id, no package export, and no new `FULLSHIELD_EXPERIMENTAL_*` flag. Default `scan --json` findings stay byte-identical to 3.1.1. `stableChange: false`.
+These phases are the approved `docs/FEATURES.md` for 3.1.2 (planning notes in FEATURES.md, section B, items B15–B18). A behavior that is not in that file is not in this section. This is a patch. It adds no `.command()`, no `.option()`, no `rules/*.md` id, no package export, and no new `FULLSHIELD_EXPERIMENTAL_*` flag. Default `scan --json` findings stay byte-identical to 3.1.1. `stableChange: false`.
 
 ### [X] Phase 564 — Bump plan extras on the existing commands [`FULLSHIELD_EXPERIMENTAL_BUMP_PR`]
 
@@ -7077,7 +7077,7 @@ Acceptance: a not-imported row increments `skippedNotImported` and is absent fro
 
 ## 62. Version 3.2.1
 
-These phases are the approved `docs/FEATURES.md` for 3.2.1 (features2.md section C, items 15–20, basic only). A behavior that is not in that file is not in this section. This is a minor. It adds `scan --counts` and `fix --finding`. It adds no `rules/*.md` id and no package export. Default `scan --json` findings stay byte-identical to 3.1.2. `stableChange: false`. FullShield stays a Node.js and TypeScript scanner. Reviewed recall for untouched apps is not published. No letter grade.
+These phases are the approved `docs/FEATURES.md` for 3.2.1 (planning notes in FEATURES.md, section C, items 15–20, basic only). A behavior that is not in that file is not in this section. This is a minor. It adds `scan --counts` and `fix --finding`. It adds no `rules/*.md` id and no package export. Default `scan --json` findings stay byte-identical to 3.1.2. `stableChange: false`. FullShield stays a Node.js and TypeScript scanner. Reviewed recall for untouched apps is not published. No letter grade.
 
 ### [X] Phase 565 — Local SAST parity [`FULLSHIELD_EXPERIMENTAL_SAST_PARITY`]
 
@@ -7095,7 +7095,7 @@ Acceptance: counts group two reachable high rows and label a missing reachabilit
 
 ## 63. Version 3.2.2
 
-These phases are the approved `docs/FEATURES.md` for 3.2.2 (features2.md section C, items C21–C24). A behavior that is not in that file is not in this section. This is a patch. It adds no `.command()`, no `.option()`, no `rules/*.md` id, no package export, and no new `FULLSHIELD_EXPERIMENTAL_*` flag. Default `scan --json` findings stay byte-identical to 3.2.1. `stableChange: false`.
+These phases are the approved `docs/FEATURES.md` for 3.2.2 (planning notes in FEATURES.md, section C, items C21–C24). A behavior that is not in that file is not in this section. This is a patch. It adds no `.command()`, no `.option()`, no `rules/*.md` id, no package export, and no new `FULLSHIELD_EXPERIMENTAL_*` flag. Default `scan --json` findings stay byte-identical to 3.2.1. `stableChange: false`.
 
 ### [X] Phase 566 — Stored response on the existing parity flag [`FULLSHIELD_EXPERIMENTAL_SAST_PARITY`]
 
@@ -7107,7 +7107,7 @@ Acceptance: the stored `res.send` is one medium finding; the encoded call, the f
 
 ## 64. Version 3.3.1
 
-These phases are the approved `docs/FEATURES.md` for 3.3.1 (features2.md section D, items 21–23). A behavior that is not in that file is not in this section. This is a minor. It adds no `.command()` and no `.option()`. It adds `FULLSHIELD_EXPERIMENTAL_RUNTIME_GUARD`. Default `scan --json` findings stay byte-identical to 3.2.2. `stableChange: false`.
+These phases are the approved `docs/FEATURES.md` for 3.3.1 (planning notes in FEATURES.md, section D, items 21–23). A behavior that is not in that file is not in this section. This is a minor. It adds no `.command()` and no `.option()`. It adds `FULLSHIELD_EXPERIMENTAL_RUNTIME_GUARD`. Default `scan --json` findings stay byte-identical to 3.2.2. `stableChange: false`.
 
 ### [X] Phase 567 — Monitor-first block allowlist [`FULLSHIELD_EXPERIMENTAL_RUNTIME_GUARD`]
 
@@ -7123,7 +7123,7 @@ Acceptance: flag off returns the requested mode and no webhook body. Flag on blo
 
 ## 65. Version 3.3.2
 
-These phases are the approved `docs/FEATURES.md` for 3.3.2 (features2.md section D, items D24–D27). A behavior that is not in that file is not in this section. This is a patch. It adds no `.command()`, no `.option()`, no `rules/*.md` id, no package export, and no new `FULLSHIELD_EXPERIMENTAL_*` flag. Default `scan --json` findings stay byte-identical to 3.3.1. `stableChange: false`.
+These phases are the approved `docs/FEATURES.md` for 3.3.2 (planning notes in FEATURES.md, section D, items D24–D27). A behavior that is not in that file is not in this section. This is a patch. It adds no `.command()`, no `.option()`, no `rules/*.md` id, no package export, and no new `FULLSHIELD_EXPERIMENTAL_*` flag. Default `scan --json` findings stay byte-identical to 3.3.1. `stableChange: false`.
 
 ### [X] Phase 568 — Fingerprint, confirm pass, and block-experimental [`FULLSHIELD_EXPERIMENTAL_RUNTIME_GUARD`]
 
@@ -7143,7 +7143,7 @@ Acceptance: the fingerprint ignores a quoted literal and a number. `webhookJson`
 
 ## 66. Version 3.4.1
 
-These phases are the approved `docs/FEATURES.md` for 3.4.1 (features2.md section E, items 24–28). A behavior that is not in that file is not in this section. This is a minor. It adds `init --tour`, `init --stack <name>`, and `digest --file <path>`. It adds `FULLSHIELD_EXPERIMENTAL_ADOPT`. Default `scan --json` findings stay byte-identical to 3.3.2. `stableChange: false`.
+These phases are the approved `docs/FEATURES.md` for 3.4.1 (planning notes in FEATURES.md, section E, items 24–28). A behavior that is not in that file is not in this section. This is a minor. It adds `init --tour`, `init --stack <name>`, and `digest --file <path>`. It adds `FULLSHIELD_EXPERIMENTAL_ADOPT`. Default `scan --json` findings stay byte-identical to 3.3.2. `stableChange: false`.
 
 ### [X] Phase 569 — Tour, stack notes, and a local digest [`FULLSHIELD_EXPERIMENTAL_ADOPT`]
 
@@ -7159,7 +7159,7 @@ Acceptance: the flag off throws before a read or a write. The tour writes nothin
 
 ## 67. Version 3.4.2
 
-These phases are the approved `docs/FEATURES.md` for 3.4.2 (features2.md section E, items E29–E32). A behavior that is not in that file is not in this section. This is a patch. It adds no `.command()`, no `.option()`, no `rules/*.md` id, no package export, and no new `FULLSHIELD_EXPERIMENTAL_*` flag. Default `scan --json` findings stay byte-identical to 3.4.1. `stableChange: false`. `.github/workflows` is not edited.
+These phases are the approved `docs/FEATURES.md` for 3.4.2 (planning notes in FEATURES.md, section E, items E29–E32). A behavior that is not in that file is not in this section. This is a patch. It adds no `.command()`, no `.option()`, no `rules/*.md` id, no package export, and no new `FULLSHIELD_EXPERIMENTAL_*` flag. Default `scan --json` findings stay byte-identical to 3.4.1. `stableChange: false`. `.github/workflows` is not edited.
 
 ### [X] Phase 570 — Compatibility matrix, npm-audit page, and stranger template
 
@@ -7172,3 +7172,19 @@ These phases are the approved `docs/FEATURES.md` for 3.4.2 (features2.md section
 `templates/stranger-check.md` lists the stranger-check steps. It is not a file under `.github/workflows`. No company quote is published. No new host.
 
 Acceptance: the local test accepts the six CI cells and rejects a claimed pass for bun. The npm-audit page has no finding count. The stranger template is outside `.github/workflows`. Default scan findings unchanged.
+
+## 68. Version 3.5.0
+
+These phases are the approved `docs/FEATURES.md` for 3.5.0 (section G, items G1–G51). A behavior that is not in that file is not in this section. This is a minor. It adds `FULLSHIELD_EXPERIMENTAL_SECTIONG`. It adds no `.command()`, no `.option()`, no `rules/*.md` id, and no package export. Default `scan --json` findings stay byte-identical to 3.4.2. `stableChange: false`. `.github/workflows` is not edited.
+
+### [X] Phase 571 — Section G local checks [`FULLSHIELD_EXPERIMENTAL_SECTIONG`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_SECTIONG`. Off unless the value is `1`. `stableChange: false`.
+
+Flag off adds no finding and does not write a file. Flag on, `clean-app` stays at 0 findings. New findings from this phase use severity `low` unless the features file says `medium`. They are not default-scan findings.
+
+The checks are the G1–G50 behaviors in `docs/FEATURES.md`, including the items that add no finding: G7 does not enable the classes flag, G14 adds no IDOR finding, G31 does not invent function reachability, G36 and G37 stay `not claimed`, G38 stays a template, and G51 is not built. G45 adds one sentence to `docs/vs-npm-audit.md`: a static scan cannot see a DNS answer that changes. No DNS lookup is performed.
+
+No new host. Scanned code is not executed. Project tests are not run. No container or OS package scan. No eBPF. No second language. No letter grade. No recall number. No company quote. No prevention claim.
+
+Acceptance: flag off leaves scan findings unchanged. Each positive fixture in the features file reports, and each negative fixture does not. `clean-app` stays at 0 with the flag on. The compatibility page still marks npm, pnpm, yarn, bun, Express, Fastify, Nest, and Next as not claimed. Default scan findings unchanged.

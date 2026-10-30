@@ -2,6 +2,12 @@
 
 All notable changes to FullShield are documented here.
 
+## 3.5.0 — 2026-10-29
+
+### Section G
+
+- Phase 571: `FULLSHIELD_EXPERIMENTAL_SECTIONG` adds the local section G checks. The flag is off by default. Default scan findings stay the same as 3.4.2. Package managers and frameworks stay not claimed. No new command, no workflow edit, and no new host.
+
 ## 3.4.2 — 2026-10-29
 
 ### Trust pages

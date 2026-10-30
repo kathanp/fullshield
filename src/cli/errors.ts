@@ -114,6 +114,11 @@ const KNOWN: Array<{ test: RegExp; code: string; hint: string }> = [
     code: 'FS-E025',
     hint: 'Set FULLSHIELD_EXPERIMENTAL_ADOPT=1. The tour writes nothing. Digest reads a local file and does not fetch.',
   },
+  {
+    test: /FULLSHIELD_EXPERIMENTAL_SECTIONG/,
+    code: 'FS-E026',
+    hint: 'Set FULLSHIELD_EXPERIMENTAL_SECTIONG=1. These checks are local and do not fetch.',
+  },
 ];
 
 const DOCS = 'https://github.com/kathanp/fullshield/blob/main/docs/errors.md';

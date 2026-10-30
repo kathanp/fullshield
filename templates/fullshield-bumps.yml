@@ -9,9 +9,9 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - run: npx fullshield@3.4.2 bumps plan --from .fullshield/last-scan.json
+      - run: npx fullshield@3.5.0 bumps plan --from .fullshield/last-scan.json
         env:
           FULLSHIELD_EXPERIMENTAL_BUMP_PR: '1'
-      - run: npx fullshield@3.4.2 bumps open --from .fullshield/last-scan.json
+      - run: npx fullshield@3.5.0 bumps open --from .fullshield/last-scan.json
         env:
           FULLSHIELD_EXPERIMENTAL_BUMP_PR: '1'

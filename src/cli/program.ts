@@ -401,6 +401,16 @@ async function mergeLocalRules(
   return parity.withExtraFindings(result, await parity.localRuleFindings(resolve(path)));
 }
 
+async function mergeExtras(
+  path: string,
+  result: Awaited<ReturnType<typeof scan>>,
+): Promise<Awaited<ReturnType<typeof scan>>> {
+  const withRules = await mergeLocalRules(path, result);
+  if (process.env.FULLSHIELD_EXPERIMENTAL_SECTIONG !== '1') {return withRules;}
+  const section = await import('../exp/sectiong.js');
+  return section.withSectionG(withRules, resolve(path));
+}
+
 async function runScanAction(io: ProgramIO, path: string, opts: ScanCliOptions): Promise<void> {
   try {
     if (opts.counts === true) {
@@ -410,7 +420,7 @@ async function runScanAction(io: ProgramIO, path: string, opts: ScanCliOptions):
     const failOnOverride = opts.failOn !== undefined ? parseFailOn(opts.failOn) : undefined;
     applyScanFlags(opts);
     const maxTimeSeconds = budgetEnabled() && opts.maxTime !== undefined ? parseMaxTime(opts.maxTime) : undefined;
-    const reported = await mergeLocalRules(path, await (io.scan ?? scan)(scanRequest(path, opts, maxTimeSeconds)));
+    const reported = await mergeExtras(path, await (io.scan ?? scan)(scanRequest(path, opts, maxTimeSeconds)));
     await writeScanReports(reported, opts);
     await writeLastScan(resolve(path), reported);
     await emitScanPatches(io, path, opts, reported);

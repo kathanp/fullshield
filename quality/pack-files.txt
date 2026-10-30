@@ -285,3 +285,4 @@ templates/stacks/hono.md
 templates/stacks/nest.md
 templates/stacks/next.md
 templates/stranger-check.md
+templates/tutorial/app.js
