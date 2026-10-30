@@ -284,3 +284,4 @@ templates/stacks/fastify.md
 templates/stacks/hono.md
 templates/stacks/nest.md
 templates/stacks/next.md
+templates/stranger-check.md

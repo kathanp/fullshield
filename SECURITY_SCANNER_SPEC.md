@@ -7156,3 +7156,19 @@ With the flag off, `init --tour`, `init --stack`, and `digest` throw `FS-E025` b
 No letter grade, no recall number, and no benchmark number is added. `docs/security-page.md` says a cloud-free scan sends no customer scan data and does not claim SOC2. No new host. No new `rules/*.md` file.
 
 Acceptance: the flag off throws before a read or a write. The tour writes nothing. The express stack file names monitor and has no suppression. An unknown stack writes nothing. A local array with one npm id and one other ecosystem prints only the npm id. Default scan findings unchanged.
+
+## 67. Version 3.4.2
+
+These phases are the approved `docs/FEATURES.md` for 3.4.2 (features2.md section E, items E29–E32). A behavior that is not in that file is not in this section. This is a patch. It adds no `.command()`, no `.option()`, no `rules/*.md` id, no package export, and no new `FULLSHIELD_EXPERIMENTAL_*` flag. Default `scan --json` findings stay byte-identical to 3.4.1. `stableChange: false`. `.github/workflows` is not edited.
+
+### [X] Phase 570 — Compatibility matrix, npm-audit page, and stranger template
+
+`stableChange: false`. No new flag.
+
+`docs/compatibility.md` lists six CI cells: `ubuntu-24.04`, `macos-latest`, and `windows-latest`, each with Node `22` and Node `24`, status `ci`. npm, pnpm, yarn, bun, Express, Fastify, Nest, and Next have status `not claimed`. A status of `pass` on a not-claimed row is a failure of the local test.
+
+`docs/vs-npm-audit.md` says the default scan classifies lockfile CVEs by reachability. It does not state a finding count.
+
+`templates/stranger-check.md` lists the stranger-check steps. It is not a file under `.github/workflows`. No company quote is published. No new host.
+
+Acceptance: the local test accepts the six CI cells and rejects a claimed pass for bun. The npm-audit page has no finding count. The stranger template is outside `.github/workflows`. Default scan findings unchanged.
