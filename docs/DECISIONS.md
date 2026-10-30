@@ -133,3 +133,4 @@ D-72 | phase-571 | Section G stays behind one flag and does not change the defau
 D-73 | phase-572 | Section H package and framework checks stay on the section G flag | No new flag or command. H2, H3, H4, H6, H25, and H52 are not repeated. Scripts are not executed. Default scan findings stay the same. | APPROVED
 
 D-74 | phase-573 | Section H auth, CI text, and output stay on the section G flag | No new flag, command, or workflow. H52 and H60 are not built. The schema adds no required field. A missing cache throws only when the offline marker is present, and nothing is fetched. Default scan findings stay the same. | APPROVED
+D-75 | phase-574 | The terminal and Markdown report share one opening | Counts match. Do this first is at most three items. A repeated rule is one group. JSON, SARIF, HTML, and the exit code stay. No new flag, command, or workflow. | APPROVED

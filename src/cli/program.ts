@@ -296,9 +296,22 @@ async function writeNamedReport(file: string | undefined, body: string): Promise
   await writeFile(resolve(file), body, 'utf8');
 }
 
-async function writeScanReports(result: Awaited<ReturnType<typeof scan>>, opts: ScanCliOptions): Promise<void> {
+function presentResult(
+  result: Awaited<ReturnType<typeof scan>>,
+  failOnOverride: Severity | undefined,
+): Awaited<ReturnType<typeof scan>> {
+  const failOn = failOnOverride ?? result.policy?.failOn ?? result.config.failOn;
+  if (failOn === result.config.failOn) {return result;}
+  return { ...result, config: { ...result.config, failOn } };
+}
+
+async function writeScanReports(
+  result: Awaited<ReturnType<typeof scan>>,
+  opts: ScanCliOptions,
+  failOnOverride: Severity | undefined,
+): Promise<void> {
   await writeNamedReport(opts.sarif, renderSarifReport(result));
-  await writeNamedReport(opts.markdown, renderMarkdownReport(result));
+  await writeNamedReport(opts.markdown, renderMarkdownReport(presentResult(result, failOnOverride)));
   await writeNamedReport(
     opts.html,
     renderHtmlReport(result, process.env.FULLSHIELD_EXPERIMENTAL_SAST_PARITY === '1'),
@@ -326,7 +339,12 @@ async function emitScanPatches(
   io.err(`wrote virtual patches ${out}`);
 }
 
-function writeScanBody(io: ProgramIO, opts: ScanCliOptions, result: Awaited<ReturnType<typeof scan>>): void {
+function writeScanBody(
+  io: ProgramIO,
+  opts: ScanCliOptions,
+  result: Awaited<ReturnType<typeof scan>>,
+  failOnOverride: Severity | undefined,
+): void {
   if (opts.prSummary === true) {
     io.out(renderPrSummary(result.findings));
     return;
@@ -335,7 +353,7 @@ function writeScanBody(io: ProgramIO, opts: ScanCliOptions, result: Awaited<Retu
     io.out(renderJsonReport(result));
     return;
   }
-  io.out(renderConsoleReport(result, { all: opts.all === true }));
+  io.out(renderConsoleReport(presentResult(result, failOnOverride), { all: opts.all === true }));
 }
 
 function noteScanProblems(io: ProgramIO, result: Awaited<ReturnType<typeof scan>>): void {
@@ -357,7 +375,7 @@ function setScanExit(result: Awaited<ReturnType<typeof scan>>, failOnOverride: S
 
 function reportScan(io: ProgramIO, opts: ScanCliOptions, result: Awaited<ReturnType<typeof scan>>, failOnOverride: Severity | undefined): void {
   for (const line of result.metadata.info ?? []) {io.err(line);}
-  writeScanBody(io, opts, result);
+  writeScanBody(io, opts, result, failOnOverride);
   noteScanProblems(io, result);
   setScanExit(result, failOnOverride);
 }
@@ -425,7 +443,7 @@ async function runScanAction(io: ProgramIO, path: string, opts: ScanCliOptions):
     applyScanFlags(opts);
     const maxTimeSeconds = budgetEnabled() && opts.maxTime !== undefined ? parseMaxTime(opts.maxTime) : undefined;
     const reported = await mergeExtras(path, await (io.scan ?? scan)(scanRequest(path, opts, maxTimeSeconds)));
-    await writeScanReports(reported, opts);
+    await writeScanReports(reported, opts, failOnOverride);
     await writeLastScan(resolve(path), reported);
     await emitScanPatches(io, path, opts, reported);
     if (opts.counts === true) {

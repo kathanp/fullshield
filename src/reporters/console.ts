@@ -4,6 +4,7 @@ import type { ScanResult } from '../core/engine.js';
 import { SEVERITIES, type Finding, type Severity } from '../core/finding.js';
 import { compareByPriority, priorityEnabled } from '../priority/score.js';
 import type { AttackPath } from '../paths/types.js';
+import { decisionText, docsTarget, firstBlock, terminalFix, totalsText } from './lead.js';
 import { redactScan } from './redact.js';
 
 const SEVERITY_COLOR: Record<Severity, (text: string) => string> = {
@@ -22,7 +23,7 @@ function renderFinding(finding: Finding): string[] {
   const lines = [
     `  ${pc.bold(`[${finding.ruleId}]`)} ${finding.title} ${pc.dim(`(${location})`)}`,
     `    ${finding.message}`,
-    `    ${pc.green('fix:')} ${finding.remediation}`,
+    `    ${pc.green('fix:')} ${terminalFix(finding)}`,
   ];
   if (finding.snippet !== undefined) {
     lines.splice(1, 0, `    ${pc.dim(finding.snippet)}`);
@@ -218,31 +219,39 @@ function dependencyRows(findings: readonly Finding[]): ConsoleRow[] {
       grouped: true,
     });
   }
-  rows.sort((a, b) => {
-    const probeA = a.findings[0];
-    const probeB = b.findings[0];
-    if (probeA === undefined || probeB === undefined) {return 0;}
-    if (priorityEnabled()) {
-      return (
-        rowPriority(b) - rowPriority(a) ||
-        SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] ||
-        (a.file ?? '').localeCompare(b.file ?? '') ||
-        (a.line ?? 0) - (b.line ?? 0) ||
-        a.ruleId.localeCompare(b.ruleId)
-      );
-    }
-    const maliciousA = a.ruleId === 'DEPS-MALICIOUS-001' ? 0 : 1;
-    const maliciousB = b.ruleId === 'DEPS-MALICIOUS-001' ? 0 : 1;
-    return (
-      maliciousA - maliciousB ||
-      SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] ||
-      reachRank({ ...probeA, reachability: a.reachability }) - reachRank({ ...probeB, reachability: b.reachability }) ||
-      (a.file ?? '').localeCompare(b.file ?? '') ||
-      (a.line ?? 0) - (b.line ?? 0) ||
-      a.ruleId.localeCompare(b.ruleId)
-    );
-  });
+  rows.sort(compareRows);
   return rows;
+}
+
+function comparePriorityRows(a: ConsoleRow, b: ConsoleRow): number {
+  return (
+    rowPriority(b) - rowPriority(a) ||
+    SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] ||
+    (a.file ?? '').localeCompare(b.file ?? '') ||
+    (a.line ?? 0) - (b.line ?? 0) ||
+    a.ruleId.localeCompare(b.ruleId)
+  );
+}
+
+function compareDefaultRows(a: ConsoleRow, b: ConsoleRow, probeA: Finding, probeB: Finding): number {
+  const maliciousA = a.ruleId === 'DEPS-MALICIOUS-001' ? 0 : 1;
+  const maliciousB = b.ruleId === 'DEPS-MALICIOUS-001' ? 0 : 1;
+  return (
+    maliciousA - maliciousB ||
+    SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] ||
+    reachRank({ ...probeA, reachability: a.reachability }) - reachRank({ ...probeB, reachability: b.reachability }) ||
+    (a.file ?? '').localeCompare(b.file ?? '') ||
+    (a.line ?? 0) - (b.line ?? 0) ||
+    a.ruleId.localeCompare(b.ruleId)
+  );
+}
+
+function compareRows(a: ConsoleRow, b: ConsoleRow): number {
+  const probeA = a.findings[0];
+  const probeB = b.findings[0];
+  if (probeA === undefined || probeB === undefined) {return 0;}
+  if (priorityEnabled()) {return comparePriorityRows(a, b);}
+  return compareDefaultRows(a, b, probeA, probeB);
 }
 
 function rowPriority(row: ConsoleRow): number {
@@ -254,11 +263,71 @@ function rowPriority(row: ConsoleRow): number {
   return best;
 }
 
+function groupSameRule(rows: ConsoleRow[]): ConsoleRow[] {
+  const out: ConsoleRow[] = [];
+  const index = new Map<string, number>();
+  for (const row of rows) {
+    if (row.packageName !== undefined || row.findings.length !== 1) {
+      out.push(row);
+      continue;
+    }
+    const key = `${row.severity}:${row.ruleId}`;
+    const at = index.get(key);
+    if (at === undefined) {
+      index.set(key, out.length);
+      out.push({ ...row, findings: [...row.findings] });
+      continue;
+    }
+    const existing = out[at];
+    if (existing !== undefined) {existing.findings.push(...row.findings);}
+  }
+  return out;
+}
+
+function findingWhere(finding: Finding): string {
+  if (finding.file === undefined) {return '(project)';}
+  return finding.line !== undefined ? `${finding.file}:${finding.line}` : finding.file;
+}
+
+function detailLines(finding: Finding): string[] {
+  const lines = [`    ${findingWhere(finding)}`];
+  if (finding.snippet !== undefined) {lines.push(`    ${pc.dim(finding.snippet)}`);}
+  if (finding.reachability !== undefined) {lines.push(`    reachability: ${finding.reachability}`);}
+  if (finding.dependencyPath !== undefined && finding.dependencyPath.length > 0) {
+    lines.push(`    path: ${finding.dependencyPath.join(' > ')}`);
+  }
+  if (finding.trace !== undefined && finding.trace.length > 0) {
+    lines.push(`    trace: ${finding.trace.map((step) => `${step.file}:${step.line ?? ''}`).join(' -> ')}`);
+  }
+  if (finding.explanation !== undefined) {lines.push(`    explain: ${finding.explanation}`);}
+  return lines;
+}
+
+function renderRuleGroup(row: ConsoleRow): string[] {
+  const first = row.findings[0];
+  if (first === undefined) {return [];}
+  const lines = [`  ${pc.bold(`[${row.ruleId}]`)} × ${row.findings.length}`];
+  for (const finding of row.findings) {lines.push(...detailLines(finding));}
+  lines.push(`    ${pc.green('fix:')} ${terminalFix(first)}`);
+  lines.push(`    docs: ${docsTarget(first)}`);
+  return lines;
+}
+
+function shownOf(rows: readonly ConsoleRow[], severity: Severity): number {
+  let count = 0;
+  for (const row of rows) {
+    if (row.severity !== severity) {continue;}
+    count += row.findings.filter((finding) => finding.severity === severity).length;
+  }
+  return count;
+}
+
 function renderRow(row: ConsoleRow): string[] {
+  if (row.packageName === undefined && row.findings.length > 1) {return renderRuleGroup(row);}
   if (!row.grouped) {
     const only = row.findings[0];
     if (only === undefined) {return [];}
-    return [...renderFinding(only), `    docs: rules/${only.ruleId}.md`];
+    return [...renderFinding(only), `    docs: ${docsTarget(only)}`];
   }
   const reach = row.reachability ?? 'unspecified';
   const lines = [
@@ -271,11 +340,12 @@ function renderRow(row: ConsoleRow): string[] {
   if (row.file !== undefined) {
     lines.push(`    ${row.file}${row.line !== undefined ? `:${row.line}` : ''}`);
   }
-  const evidenceImport = row.findings[0]?.reachabilityEvidence?.imports[0];
+  const first = row.findings[0];
+  const evidenceImport = first?.reachabilityEvidence?.imports[0];
   if (evidenceImport !== undefined) {
     lines.push(`    import: ${evidenceImport.file}:${evidenceImport.line} ${evidenceImport.specifier}`);
   }
-  lines.push(`    docs: rules/${row.ruleId}.md`);
+  if (first !== undefined) {lines.push(`    docs: ${docsTarget(first)}`);}
   return lines;
 }
 
@@ -284,82 +354,81 @@ export interface ConsoleReportOptions {
   all?: boolean;
 }
 
-/** Human-readable report. Default view is the actionable rows. JSON is unchanged. */
-export function renderConsoleReport(input: ScanResult, options: ConsoleReportOptions = {}): string {
-  const result = redactScan(input);
+function reportPreamble(result: ScanResult): string[] {
   const { findings, summary, metadata } = result;
-  const lines: string[] = [];
-
-  lines.push(
+  const lines = [
     pc.bold(`FullShield v${metadata.version}`) +
       pc.dim(
-        ` — scanned ${metadata.filesScanned} files in ${metadata.durationMs}ms` +
-          ` (modules: ${metadata.modulesRun.length > 0 ? metadata.modulesRun.join(', ') : 'none'})`,
+        ` — scanned ${metadata.filesScanned} files in ${metadata.durationMs}ms — ${decisionText(findings, result.config.failOn)}`,
       ),
-  );
+  ];
+  if (summary.total > 0) {lines.push(totalsText(summary));}
   if (metadata.history !== undefined) {lines.push(metadata.history);}
   if (metadata.skipped !== undefined && metadata.skipped.total > 0) {
     lines.push(
       `Skipped ${metadata.skipped.total} files that are not source (oversize ${metadata.skipped.oversize}, minified ${metadata.skipped.minified}, declarations ${metadata.skipped.declaration}, maps ${metadata.skipped.sourceMap}, generated ${metadata.skipped.generated}).`,
     );
   }
-  if (metadata.upgradePlan !== undefined && metadata.upgradePlan.sentence.length > 0) {
-    lines.push(metadata.upgradePlan.sentence);
+  const lead = firstBlock(result);
+  if (lead.length > 0) {
+    lines.push('');
+    lines.push(...lead);
   }
-  if (metadata.unusedDirect !== undefined) {
-    const count = metadata.unusedDirect.packages.length;
-    const advisories = metadata.unusedDirect.advisories;
-    const packageWord = count === 1 ? 'package is' : 'packages are';
-    const advisoryWord = advisories === 1 ? 'advisory' : 'advisories';
-    lines.push(
-      `${count} ${packageWord} never imported; removing them clears ${advisories} ${advisoryWord}.`,
-    );
-  }
-
   if (metadata.modulesRun.length < metadata.modulesRequested.length) {
-    const pending = metadata.modulesRequested.filter((m) => !metadata.modulesRun.includes(m));
-    lines.push(
-      pc.dim(`note: requested modules not implemented yet: ${pending.join(', ')}`),
-    );
+    const pending = metadata.modulesRequested.filter((name) => !metadata.modulesRun.includes(name));
+    lines.push(pc.dim(`note: requested modules not implemented yet: ${pending.join(', ')}`));
   }
+  return lines;
+}
 
-  const showAll = options.all === true;
-  const folded = findings.filter((finding) => !isActionable(finding));
-  const rows = showAll
-    ? [...findings].sort(priorityEnabled() ? compareByPriority : compareActionable).map((finding) => ({
-        findings: [finding],
-        severity: finding.severity,
-        reachability: finding.reachability,
-        ruleId: finding.ruleId,
-        file: finding.file,
-        line: finding.line,
-        versions: [] as string[],
-        grouped: false,
-      }))
-    : shownConsoleRows(findings);
-  const printed = showAll ? rows : rows.slice(0, 20);
-  const hiddenActionable = showAll ? 0 : rows.length - printed.length;
+function allRows(findings: readonly Finding[]): ConsoleRow[] {
+  const order = priorityEnabled() ? compareByPriority : compareActionable;
+  return [...findings].sort(order).map((finding) => ({
+    findings: [finding],
+    severity: finding.severity,
+    reachability: finding.reachability,
+    ruleId: finding.ruleId,
+    file: finding.file,
+    line: finding.line,
+    versions: [] as string[],
+    grouped: false,
+  }));
+}
+
+function appendSeverity(lines: string[], printed: readonly ConsoleRow[], severity: Severity, summary: ScanResult['summary']): void {
+  const real = summary.bySeverity[severity];
+  const shown = shownOf(printed, severity);
+  lines.push('');
+  lines.push(SEVERITY_COLOR[severity](`${severity.toUpperCase()} (${real})`));
+  if (shown < real) {lines.push(`showing ${shown}`);}
+}
+
+function appendRows(lines: string[], printed: readonly ConsoleRow[], summary: ScanResult['summary']): void {
   let previous: Severity | undefined;
   for (const row of printed) {
     if (row.severity !== previous) {
-      const count = printed.filter((item) => item.severity === row.severity).length;
-      lines.push('');
-      lines.push(SEVERITY_COLOR[row.severity](`${row.severity.toUpperCase()} (${count})`));
+      appendSeverity(lines, printed, row.severity, summary);
       previous = row.severity;
     }
     lines.push(...renderRow(row));
   }
-  if (hiddenActionable > 0) {
+}
+
+function appendOverflow(lines: string[], hidden: number, showAll: boolean, folded: readonly Finding[]): void {
+  if (hidden > 0) {
     lines.push('');
-    lines.push(`${hiddenActionable} more actionable — use --json`);
+    lines.push(`${hidden} more: --all and --markdown report.md`);
   }
   if (!showAll && folded.length > 0) {
     lines.push('');
     lines.push(
-      `${folded.length} more (not directly reachable, or below high confidence) — --all or see JSON`,
+      `${folded.length} more (not directly reachable, or below high confidence) — --all or --markdown report.md`,
     );
   }
+}
 
+function appendClosing(lines: string[], result: ScanResult): void {
+  const { summary, metadata } = result;
   lines.push('');
   if (result.paths !== undefined && result.paths.length > 0) {
     lines.push(pc.bold('Attack paths'));
@@ -368,22 +437,31 @@ export function renderConsoleReport(input: ScanResult, options: ConsoleReportOpt
     lines.push('');
   }
   if (metadata.incomplete === true) {
-    lines.push(
-      pc.yellow(
-        `Scan stopped at budget. ${metadata.filesNotTaintChecked ?? 0} files not taint-checked.`,
-      ),
-    );
+    lines.push(pc.yellow(`Scan stopped at budget. ${metadata.filesNotTaintChecked ?? 0} files not taint-checked.`));
   }
   if (summary.total === 0 && metadata.incomplete !== true) {
     lines.push(pc.green('✔ No findings.'));
-  } else if (summary.total > 0) {
-    const bySeverityDesc = [...SEVERITIES].reverse();
-    const counts = bySeverityDesc
-      .filter((s) => summary.bySeverity[s] > 0)
-      .map((s) => `${summary.bySeverity[s]} ${s}`)
-      .join(', ');
-    lines.push(pc.red(`✖ ${summary.total} finding(s): ${counts}`));
+    return;
   }
+  if (summary.total === 0) {return;}
+  const counts = [...SEVERITIES].reverse()
+    .filter((severity) => summary.bySeverity[severity] > 0)
+    .map((severity) => `${summary.bySeverity[severity]} ${severity}`)
+    .join(', ');
+  lines.push(pc.red(`✖ ${summary.total} finding(s): ${counts}`));
+}
 
+/** Human-readable report. Default view is the actionable rows. JSON is unchanged. */
+export function renderConsoleReport(input: ScanResult, options: ConsoleReportOptions = {}): string {
+  const result = redactScan(input);
+  const { findings, summary } = result;
+  const lines = reportPreamble(result);
+  const showAll = options.all === true;
+  const folded = findings.filter((finding) => !isActionable(finding));
+  const rows = showAll ? allRows(findings) : groupSameRule(shownConsoleRows(findings));
+  const printed = showAll ? rows : rows.slice(0, 20);
+  appendRows(lines, printed, summary);
+  appendOverflow(lines, showAll ? 0 : rows.length - printed.length, showAll, folded);
+  appendClosing(lines, result);
   return lines.join('\n');
 }

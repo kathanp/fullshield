@@ -60,7 +60,7 @@ describe('Phase 44 developer experience', () => {
     expect(formatCliError(error, true)).toContain('at hidden');
   });
 
-  it('shows at most 20 actionable findings and points at --json', () => {
+  it('groups one repeated rule and lists every location', () => {
     const findings = Array.from({ length: 21 }, (_, i) => ({
       id: `id-${i}`,
       ruleId: 'SAST-SQLI-001',
@@ -88,9 +88,11 @@ describe('Phase 44 developer experience', () => {
       config: structuredClone(DEFAULT_CONFIG),
     };
     const text = renderConsoleReport(result);
-    expect(text).toContain('1 more actionable — use --json');
+    expect(text).toContain('HIGH (21)');
+    expect(text).toContain('× 21');
     expect(text).toContain('docs: rules/SAST-SQLI-001.md');
     expect(text).toContain('a00.js:1');
-    expect(text).not.toContain('a20.js');
+    expect(text).toContain('a20.js:1');
+    expect(text).not.toContain('more:');
   });
 });

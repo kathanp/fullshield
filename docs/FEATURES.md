@@ -1,4 +1,21 @@
-# FullShield features (3.5.1, then 3.5.2)
+# FullShield features (3.5.3)
+
+## 3.5.3
+
+Source: the terminal and the Markdown report describe the same scan and disagree once the list is longer than the screen. This is a patch on 3.5.2. It adds no command, no CLI option, no `rules/*.md` file, no package export, and no new `FULLSHIELD_EXPERIMENTAL_*` flag. `--all`, `--markdown`, and `--fail-on` already exist. JSON, SARIF, the exit code, finding fields, severity, and reachability stay as they are. `stableChange: false` for `scan --json`. HTML is unchanged. `.github/workflows` is not edited.
+
+`docs/demo.md` is replaced from a real `scan` of `test/fixtures/vulnerable-app` after the printer exists. It is not written by hand to match a wish.
+
+The continuation of this chat approves the assertion edits in these existing tests, because they pin the old console sentences: `test/unit/reporters/reporters.test.ts`, `test/unit/reporters/phase47-console.test.ts`, `test/unit/cli/phase44-doctor.test.ts`, and `test/unit/modules/secrets/phase82-secret-check.test.ts`. No other existing test, fixture, or `expected-findings.json` is edited.
+
+- **Counts.** The first summary line and the footer use the same totals. A severity header uses the real total, such as `HIGH (21)`, and then says how many of those rows are on screen. The printed slice is not the header count.
+- **Decision.** When a finding is at or above the effective `failOn`, the first screen says `fail` and names that severity and how many findings are at or above it. Otherwise it says `pass`. The process exit code is unchanged.
+- **Do this first.** At most three lines, in this order: a malicious package, then one reachable critical or high dependency that has a version bump, then one committed secret. A missing kind is skipped. The upgrade sentence and the unused-package sentence are inside this block. They are not printed above the list.
+- **Terminal grouping.** The same rule id prints once, with the count and each location under it. An existing dependency group stays one package line. The terminal fix is one short action. A secret says to rotate it and load it from the environment. A SAST hit says the action, and the CWE link stays on the docs line. The long remediation stays in the rule doc and in the report.
+- **More.** The overflow line points at `--all` and `--markdown report.md`. `--json` stays the machine format.
+- **Markdown.** `renderMarkdownReport` uses that same opening, including the fail line and the three-item list. A scheduled `fullShieldReport/*.md` uses this function, so it gets the same opening. Inside a severity, a rule that fires more than once has one heading and every location. Each finding keeps where, reachability, snippet, issue, fix, trace, and the docs link.
+
+## 3.5.1 and 3.5.2
 
 Two patches on 3.5.0. Neither adds a command, a CLI option, a `rules/*.md` file, a package export, or a new `FULLSHIELD_EXPERIMENTAL_*` flag. Both use the existing flag `FULLSHIELD_EXPERIMENTAL_SECTIONG`. The flag stays off unless the value is `1`.
 

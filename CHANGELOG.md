@@ -2,6 +2,12 @@
 
 All notable changes to FullShield are documented here.
 
+## 3.5.3 — 2026-10-30
+
+### Report
+
+- Phase 574: the terminal and the Markdown report use the same totals, a fail or pass line, and at most three “Do this first” items. A repeated rule is one group. JSON, SARIF, HTML, and the exit code stay the same.
+
 ## 3.5.2 — 2026-10-30
 
 ### Section H
