@@ -143,7 +143,7 @@ describe('Phase 47 console (human decision 2026-10-18)', () => {
     expect(text).not.toContain('mocha');
     expect(text).not.toContain('expresss');
     expect(text).not.toContain('a.js:8');
-    expect(text).toContain('4 more (not directly reachable, or below high confidence) — --all or see JSON');
+    expect(text).toContain('4 more (not directly reachable, or below high confidence) — --all or --markdown report.md');
     expect(text.indexOf('evil-pack')).toBeLessThan(text.indexOf('lodash'));
     expect(text.indexOf('lodash')).toBeLessThan(text.indexOf('a.js:4'));
     expect(text.match(/lodash/g)?.length).toBeGreaterThan(0);
@@ -195,7 +195,7 @@ describe('Phase 47 console (human decision 2026-10-18)', () => {
     const text = renderConsoleReport(result(many));
     expect(text).toContain('pkg00');
     expect(text).not.toContain('pkg20');
-    expect(text).toContain('1 more actionable — use --json');
+    expect(text).toContain('1 more: --all and --markdown report.md');
     const all = renderConsoleReport(result(many), { all: true });
     expect(all).toContain('pkg20');
     expect(all).not.toContain('more actionable');

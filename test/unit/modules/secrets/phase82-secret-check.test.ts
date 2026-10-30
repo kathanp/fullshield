@@ -278,7 +278,7 @@ describe('Phase 82 secret precision', () => {
     const json = JSON.parse(renderJsonReport(result([jwt!, github!]))) as { findings: Finding[] };
     expect(text).toContain('src/live.js:1');
     expect(text).not.toContain('src/jwt.js:1');
-    expect(text).toContain('1 more (not directly reachable, or below high confidence) — --all or see JSON');
+    expect(text).toContain('1 more (not directly reachable, or below high confidence) — --all or --markdown report.md');
     expect(json.findings).toHaveLength(2);
     expect(json.findings.find((f) => f.ruleId === 'SECRET-JWT-001')?.confidence).toBe('low');
     expect(json.findings.find((f) => f.ruleId === 'SECRET-JWT-001')?.secretCheck).toBe('placeholder');

@@ -7220,3 +7220,23 @@ The checks are H28, H29, H30, H31, H32, H33, H34, H35, H36, H37, H38, H39, H40, 
 No new host. Scanned code is not executed. Project tests are not run. No container or OS package scan. No eBPF. No second language. No letter grade. No recall number. No company quote. No prevention claim.
 
 Acceptance: flag off leaves scan findings unchanged. Each positive fixture in the 3.5.2 list reports, and each negative fixture does not. `clean-app` stays at 0 with the flag on. Default scan findings unchanged.
+
+## 71. Version 3.5.3
+
+These phases are the approved `docs/FEATURES.md` for 3.5.3. A behavior that is not in that list is not in this section. This is a patch on 3.5.2. It adds no `.command()`, no `.option()`, no `rules/*.md` id, no package export, and no new `FULLSHIELD_EXPERIMENTAL_*` flag. Default `scan --json` findings stay byte-identical to 3.5.2. SARIF and the exit code stay as they are. `stableChange: false`. HTML is unchanged. `.github/workflows` is not edited.
+
+### [X] Phase 574 — Terminal and Markdown report [`Flag: none`]
+
+Flag: none. `stableChange: false`. The human approved this presentation as the default terminal and Markdown report.
+
+The first screen says `fail` or `pass` for the effective `failOn`, and the summary line uses the same totals as the footer. A severity header uses the real total and says how many of those findings are on screen when the slice is shorter. `--all` still prints one line per finding. The default screen groups a repeated rule id and keeps an existing dependency group as one package line. The terminal fix is one short action. A secret says to rotate it and load it from the environment. A remediation that is only the rule title plus a CWE URL keeps the URL on the docs line. `Do this first` has at most three items: a malicious package, one reachable critical or high dependency bump, and one committed secret. The upgrade sentence and the unused-package sentence are inside that block.
+
+The overflow line points at `--all` and `--markdown report.md`. `--json` stays the machine format.
+
+`renderMarkdownReport` uses that opening. A scheduled `fullShieldReport/*.md` calls this function. Inside a severity, a rule that fires more than once has one heading and every location. Each finding keeps where, reachability, snippet, issue, fix, trace, and the docs link. `docs/demo.md` is replaced from a real scan of `test/fixtures/vulnerable-app` after the printer exists.
+
+The approved assertion edits are only `test/unit/reporters/reporters.test.ts`, `test/unit/reporters/phase47-console.test.ts`, `test/unit/cli/phase44-doctor.test.ts`, and `test/unit/modules/secrets/phase82-secret-check.test.ts`.
+
+No new host. Scanned code is not executed. No letter grade. No recall number. No company quote. No prevention claim.
+
+Acceptance: `scan --json` findings are unchanged. The new printer tests pass. `clean-app` stays at 0 high/critical. Default scan finding keys are unchanged.

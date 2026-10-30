@@ -92,6 +92,6 @@ describe('renderConsoleReport', () => {
     expect(output).toContain('src/index.js:14');
     expect(output).toContain('Use a parameterized query.');
     expect(output).toContain('2 finding(s)');
-    expect(output).toContain('1 more (not directly reachable, or below high confidence) — --all or see JSON');
+    expect(output).toContain('1 more (not directly reachable, or below high confidence) — --all or --markdown report.md');
   });
 });
