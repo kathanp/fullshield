@@ -2,6 +2,25 @@
 
 All notable changes to FullShield are documented here.
 
+## Unreleased
+
+### Docs
+
+- 3.6.0 stays here until a maintainer labels `bench/review/*.csv`. No precision number is published in this release.
+
+## 3.5.5 — 2026-11-01
+
+### Fixed
+
+- SARIF `informationUri` points at `github.com/kathanp/fullshield`.
+- AI and secret-verify hosts are allowlisted only while the flag that fetches them is on.
+
+### Docs
+
+- Correct network claim, pin CI example actions.
+- Add the 3.6.0–5.0.0 roadmap (docs/ROADMAP.md).
+- The Q8 recorded count matches `quality/baseline.json`.
+
 ## 3.5.4 — 2026-10-31
 
 ### Report
