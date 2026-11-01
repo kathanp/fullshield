@@ -134,3 +134,4 @@ D-73 | phase-572 | Section H package and framework checks stay on the section G 
 
 D-74 | phase-573 | Section H auth, CI text, and output stay on the section G flag | No new flag, command, or workflow. H52 and H60 are not built. The schema adds no required field. A missing cache throws only when the offline marker is present, and nothing is fetched. Default scan findings stay the same. | APPROVED
 D-75 | phase-574 | The terminal and Markdown report share one opening | Counts match. Do this first is at most three items. A repeated rule is one group. JSON, SARIF, HTML, and the exit code stay. No new flag, command, or workflow. | APPROVED
+D-76 | phase-575 | The HTML report uses the same opening | Counts, the fail line, and Do this first match the terminal. A repeated rule is one heading inside its severity. JSON, SARIF, the terminal, Markdown, and the exit code stay. No new flag, command, or workflow. | APPROVED
