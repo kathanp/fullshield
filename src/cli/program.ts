@@ -314,7 +314,7 @@ async function writeScanReports(
   await writeNamedReport(opts.markdown, renderMarkdownReport(presentResult(result, failOnOverride)));
   await writeNamedReport(
     opts.html,
-    renderHtmlReport(result, process.env.FULLSHIELD_EXPERIMENTAL_SAST_PARITY === '1'),
+    renderHtmlReport(presentResult(result, failOnOverride), process.env.FULLSHIELD_EXPERIMENTAL_SAST_PARITY === '1'),
   );
   await writeNamedReport(opts.githubAnnotations, renderGithubAnnotations(result));
   await writeNamedReport(opts.junit, renderJunitReport(result));

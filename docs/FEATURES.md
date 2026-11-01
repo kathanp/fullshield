@@ -1,4 +1,15 @@
-# FullShield features (3.5.3)
+# FullShield features (3.5.4)
+
+## 3.5.4
+
+Source: the HTML report was left unchanged in 3.5.3. It still lists one heading per finding and does not show the decision line, the totals line, or “Do this first.” This is a patch on 3.5.3. It adds no command, no CLI option, no `rules/*.md` file, no package export, and no new `FULLSHIELD_EXPERIMENTAL_*` flag. `--html` already exists. JSON, SARIF, the terminal, the Markdown report, the exit code, finding fields, severity, and reachability stay as they are. `stableChange: false` for `scan --json`. `.github/workflows` is not edited. No existing test, fixture, or `expected-findings.json` is edited.
+
+`renderHtmlReport` uses the same opening as the terminal and `renderMarkdownReport`.
+
+- **Counts.** The opening states the same totals as the terminal summary, such as `38 findings: 1 critical, 21 high, 11 medium, 3 low, 2 info`. A severity heading uses the real total, such as `high (21)`.
+- **Decision.** When a finding is at or above the effective `failOn`, the opening says fail and names that severity and how many findings are at or above it. Otherwise it says pass. The process exit code is unchanged. `--fail-on` is copied into the rendered result the same way the terminal already does.
+- **Do this first.** At most three items, in this order: a malicious package, then one reachable critical or high dependency that has a version bump, then one committed secret. A missing kind is skipped. The upgrade sentence and the unused-package sentence are inside this block.
+- **Grouping.** Inside a severity, the same rule id is one heading, with the count when it fires more than once, and every location under it. A finding in another severity stays its own heading. Each finding keeps where, reachability, snippet, issue, the full fix, trace, and the docs link. Finding text stays escaped. A secret stays masked. The attack-path section stays. An empty report still says `No findings.` The taint edge line stays only when the existing edges argument is on.
 
 ## 3.5.3
 

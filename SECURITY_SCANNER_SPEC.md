@@ -7240,3 +7240,23 @@ The approved assertion edits are only `test/unit/reporters/reporters.test.ts`, `
 No new host. Scanned code is not executed. No letter grade. No recall number. No company quote. No prevention claim.
 
 Acceptance: `scan --json` findings are unchanged. The new printer tests pass. `clean-app` stays at 0 high/critical. Default scan finding keys are unchanged.
+
+## 72. Version 3.5.4
+
+These phases are the approved `docs/FEATURES.md` for 3.5.4. A behavior that is not in that list is not in this section. This is a patch on 3.5.3. It adds no `.command()`, no `.option()`, no `rules/*.md` id, no package export, and no new `FULLSHIELD_EXPERIMENTAL_*` flag. Default `scan --json` findings stay byte-identical to 3.5.3. SARIF, the terminal, the Markdown report, and the exit code stay as they are. `stableChange: false`. `.github/workflows` is not edited.
+
+### [X] Phase 575 — HTML report opening [`Flag: none`]
+
+Flag: none. `stableChange: false`. The human approved this presentation as the default HTML report.
+
+`renderHtmlReport` uses the same opening as the terminal and `renderMarkdownReport`. The opening states the same totals. A severity heading uses the real total. The opening says fail or pass for the effective `failOn`, including how many findings are at or above it. The process exit code is unchanged. `--fail-on` is copied into the rendered result the same way the terminal already does.
+
+`Do this first` has at most three items: a malicious package, one reachable critical or high dependency bump, and one committed secret. A missing kind is skipped. The upgrade sentence and the unused-package sentence are inside that block.
+
+Inside a severity, the same rule id is one heading, with the count when it fires more than once, and every location under it. A finding in another severity stays its own heading. Each finding keeps where, reachability, snippet, issue, the full fix, trace, and the docs link. Finding text stays escaped. A secret stays masked. The attack-path section stays. An empty report still says `No findings.` The taint edge line stays only when the existing edges argument is on.
+
+No existing test, fixture, or `expected-findings.json` is edited.
+
+No new host. Scanned code is not executed. No letter grade. No recall number. No company quote. No prevention claim.
+
+Acceptance: `scan --json` findings are unchanged. The new HTML tests pass. `clean-app` stays at 0 high/critical. Default scan finding keys are unchanged.

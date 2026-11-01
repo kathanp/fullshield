@@ -2,6 +2,12 @@
 
 All notable changes to FullShield are documented here.
 
+## 3.5.4 — 2026-10-31
+
+### Report
+
+- Phase 575: the HTML report uses the same totals, fail or pass line, and “Do this first” list as the terminal. A repeated rule is one heading inside its severity. JSON, SARIF, the terminal, Markdown, and the exit code stay the same.
+
 ## 3.5.3 — 2026-10-30
 
 ### Report
