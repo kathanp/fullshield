@@ -113,6 +113,8 @@ npx fullshield scan --json --markdown report.md > .fullshield/last-scheduled.jso
 
 `init` installs a **daily** deps `watch` workflow (`templates/github-watch.yml`: `0 6 * * *`). A workflow can still call one shot:
 
+Pin every action to a commit SHA. FullShield flags unpinned actions.
+
 ```yaml
 name: FullShield scheduled report
 on:
@@ -121,13 +123,13 @@ jobs:
   report:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: '22'
       - run: npm ci
       - run: npx fullshield schedule run
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: fullshield-report

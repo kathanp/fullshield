@@ -12,5 +12,4 @@ Trust boundary: the repo is untrusted and is not executed. The network is the R1
 - Anything that auto-merges: not covered
 - A VS Code extension: not covered
 - A pull-request comment bot: not covered
-- Marketing words: not covered
 - ML-based scoring: not covered

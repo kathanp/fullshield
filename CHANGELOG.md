@@ -2,6 +2,13 @@
 
 All notable changes to FullShield are documented here.
 
+## Unreleased
+
+### Docs
+
+- Correct network claim, pin CI example actions.
+- Add the 3.6.0–5.0.0 roadmap (docs/ROADMAP.md).
+
 ## 3.5.4 — 2026-10-31
 
 ### Report
