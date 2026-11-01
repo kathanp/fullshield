@@ -41,6 +41,62 @@ function relatedLocations(finding: Finding): unknown[] | undefined {
 }
 
 /** SARIF 2.1.0 report for GitHub Code Scanning and other consumers. */
+const INFORMATION_URI = 'https://github.com/kathanp/fullshield';
+
+function sarifResult(finding: Finding, v2: boolean): Record<string, unknown> {
+  const region: { startLine?: number; startColumn?: number } = {};
+  if (finding.line !== undefined) {region.startLine = finding.line;}
+  if (finding.column !== undefined) {region.startColumn = finding.column + 1;}
+  const location =
+    finding.file !== undefined
+      ? [
+          {
+            physicalLocation: {
+              artifactLocation: { uri: uri(finding.file) },
+              ...(Object.keys(region).length > 0 ? { region } : {}),
+            },
+          },
+        ]
+      : [];
+  const related = v2 ? relatedLocations(finding) : undefined;
+  const codeFlows =
+    finding.trace !== undefined && finding.trace.length > 0
+      ? [
+          {
+            threadFlows: [
+              {
+                locations: finding.trace.map((step) => ({
+                  location: {
+                    message: { text: step.note },
+                    physicalLocation: {
+                      artifactLocation: { uri: uri(step.file) },
+                      ...(step.line !== undefined ? { region: { startLine: step.line } } : {}),
+                    },
+                  },
+                })),
+              },
+            ],
+          },
+        ]
+      : undefined;
+  return {
+    ruleId: finding.ruleId,
+    level: sarifLevel(finding.severity),
+    message: { text: finding.message },
+    locations: location,
+    ...(codeFlows !== undefined ? { codeFlows } : {}),
+    ...(v2
+      ? {
+          partialFingerprints: { 'fullshield/v1': lineIndependentFingerprint(finding) },
+          ...(related !== undefined ? { relatedLocations: related } : {}),
+          ...(finding.module === 'deps' && finding.reachability !== undefined
+            ? { properties: { reachability: finding.reachability } }
+            : {}),
+        }
+      : {}),
+  };
+}
+
 export function renderSarifReport(input: ScanResult): string {
   const result = redactScan(input);
   const v2 = sarifV2();
@@ -67,67 +123,47 @@ export function renderSarifReport(input: ScanResult): string {
           driver: {
             name: 'FullShield',
             version: result.metadata.version,
-            informationUri: 'https://github.com/kathanp/fullshield',
+            informationUri: INFORMATION_URI,
             rules: [...rules.values()],
           },
         },
-        results: result.findings.map((finding: Finding) => {
-          const region: { startLine?: number; startColumn?: number } = {};
-          if (finding.line !== undefined) {region.startLine = finding.line;}
-          if (finding.column !== undefined) {region.startColumn = finding.column + 1;}
-          const location =
-            finding.file !== undefined
-              ? [
-                  {
-                    physicalLocation: {
-                      artifactLocation: { uri: uri(finding.file) },
-                      ...(Object.keys(region).length > 0 ? { region } : {}),
-                    },
-                  },
-                ]
-              : [];
-          const related = v2 ? relatedLocations(finding) : undefined;
-          const codeFlows =
-            finding.trace !== undefined && finding.trace.length > 0
-              ? [
-                  {
-                    threadFlows: [
-                      {
-                        locations: finding.trace.map((step) => ({
-                          location: {
-                            message: { text: step.note },
-                            physicalLocation: {
-                              artifactLocation: { uri: uri(step.file) },
-                              ...(step.line !== undefined ? { region: { startLine: step.line } } : {}),
-                            },
-                          },
-                        })),
-                      },
-                    ],
-                  },
-                ]
-              : undefined;
-          return {
-            ruleId: finding.ruleId,
-            level: sarifLevel(finding.severity),
-            message: { text: finding.message },
-            locations: location,
-            ...(codeFlows !== undefined ? { codeFlows } : {}),
-            ...(v2
-              ? {
-                  partialFingerprints: { 'fullshield/v1': lineIndependentFingerprint(finding) },
-                  ...(related !== undefined ? { relatedLocations: related } : {}),
-                  ...(finding.module === 'deps' && finding.reachability !== undefined
-                    ? { properties: { reachability: finding.reachability } }
-                    : {}),
-                }
-              : {}),
-          };
-        }),
+        results: result.findings.map((finding: Finding) => sarifResult(finding, v2)),
       },
     ],
   };
   return JSON.stringify(doc, null, 2);
+}
+
+function validateResult(prefix: string, result: unknown, errors: string[]): void {
+  if (typeof result !== 'object' || result === null) {
+    errors.push(`${prefix} must be an object`);
+    return;
+  }
+  const res = result as Record<string, unknown>;
+  const message = res.message as Record<string, unknown> | undefined;
+  if (typeof message?.text !== 'string' && typeof message?.id !== 'string') {
+    errors.push(`${prefix}.message.text or message.id is required`);
+  }
+}
+
+function validateRun(index: number, run: unknown, errors: string[]): void {
+  if (typeof run !== 'object' || run === null) {
+    errors.push(`runs[${index}] must be an object`);
+    return;
+  }
+  const record = run as Record<string, unknown>;
+  const tool = record.tool as Record<string, unknown> | undefined;
+  const driver = tool?.driver as Record<string, unknown> | undefined;
+  if (typeof driver?.name !== 'string' || driver.name.length === 0) {
+    errors.push(`runs[${index}].tool.driver.name is required`);
+  }
+  if (!Array.isArray(record.results)) {
+    errors.push(`runs[${index}].results must be an array`);
+    return;
+  }
+  for (const [j, result] of record.results.entries()) {
+    validateResult(`runs[${index}].results[${j}]`, result, errors);
+  }
 }
 
 /**
@@ -146,31 +182,7 @@ export function validateSarif21(doc: unknown): string[] {
     return errors;
   }
   for (const [i, run] of root.runs.entries()) {
-    if (typeof run !== 'object' || run === null) {
-      errors.push(`runs[${i}] must be an object`);
-      continue;
-    }
-    const r = run as Record<string, unknown>;
-    const tool = r.tool as Record<string, unknown> | undefined;
-    const driver = tool?.driver as Record<string, unknown> | undefined;
-    if (typeof driver?.name !== 'string' || driver.name.length === 0) {
-      errors.push(`runs[${i}].tool.driver.name is required`);
-    }
-    if (!Array.isArray(r.results)) {
-      errors.push(`runs[${i}].results must be an array`);
-      continue;
-    }
-    for (const [j, result] of r.results.entries()) {
-      if (typeof result !== 'object' || result === null) {
-        errors.push(`runs[${i}].results[${j}] must be an object`);
-        continue;
-      }
-      const res = result as Record<string, unknown>;
-      const message = res.message as Record<string, unknown> | undefined;
-      if (typeof message?.text !== 'string' && typeof message?.id !== 'string') {
-        errors.push(`runs[${i}].results[${j}].message.text or message.id is required`);
-      }
-    }
+    validateRun(i, run, errors);
   }
   return errors;
 }
