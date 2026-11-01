@@ -1,6 +1,6 @@
 # Demo
 
-Captured from this checkout on 2026-10-31. Commands:
+Captured from this checkout on 2026-11-01. Commands:
 
 ```bash
 npm run build
@@ -13,7 +13,7 @@ NO_COLOR=1 node dist/cli/index.js doctor . --offline | sed "s#$HOME#~#g"
 ## scan test/fixtures/vulnerable-app
 
 ```text
-FullShield v3.5.4 — scanned 12 files in 359.15ms — fail (failOn high, 22 at or above)
+FullShield v3.5.5 — scanned 12 files in 134.01ms — fail (failOn high, 22 at or above)
 38 findings: 1 critical, 21 high, 11 medium, 3 low, 2 info
 
 Do this first
@@ -144,7 +144,7 @@ showing 2
 ## doctor . --offline
 
 ```text
-node: 24.22.0 ok
+node: 22.23.3 ok
 lockfile: package-lock.json
 cache: ~/.cache/fullshield/osv (1801 files)
 flags: none

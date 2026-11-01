@@ -67,7 +67,7 @@ export function renderSarifReport(input: ScanResult): string {
           driver: {
             name: 'FullShield',
             version: result.metadata.version,
-            informationUri: 'https://github.com/fullshield/fullshield',
+            informationUri: 'https://github.com/kathanp/fullshield',
             rules: [...rules.values()],
           },
         },
