@@ -2,7 +2,7 @@
 export const ALLOWED_HOSTS = ['api.osv.dev', 'registry.npmjs.org', 'localhost', '127.0.0.1', '::1'] as const;
 
 /** Contacted only when the named flag is `1`. They are not default-scan hosts. */
-export const OPT_IN_HOSTS = [
+const OPT_IN_HOSTS = [
   { host: 'api.anthropic.com', flag: 'FULLSHIELD_AI_LIVE' },
   { host: 'api.openai.com', flag: 'FULLSHIELD_AI_LIVE' },
   { host: 'sts.amazonaws.com', flag: 'FULLSHIELD_EXPERIMENTAL_SECRETS_ADV' },
