@@ -11,6 +11,7 @@ import { secretsModule } from '../modules/secrets/index.js';
 import { secretsAdvEnabled } from '../modules/secrets/experimental.js';
 import type { SecretHit } from '../modules/secrets/types.js';
 import { applyExplain, applyTriage } from '../ai/triage.js';
+import { applyFlagGroups } from './flag-groups.js';
 import { runLogicHunt } from '../ai/logic.js';
 import { createAiClient, isInternalAi, isLiveAi } from '../ai/provider.js';
 import { applyBaseline, applySuppressions, readBaseline, writeBaseline } from './baseline.js';
@@ -674,6 +675,7 @@ export async function runScan(
   options: ScanOptions = {},
   modules: readonly ScanModule[] = builtinModules,
 ): Promise<ScanResult> {
+  applyFlagGroups();
   const startedAt = new Date().toISOString();
   const t0 = performance.now();
   depsModule.unusedDirect = undefined;
