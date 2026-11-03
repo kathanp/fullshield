@@ -11,6 +11,12 @@ export function requiredBump(signals: {
   stableChanged?: boolean;
 }): 'minor' | 'patch';
 export function bumpSatisfies(actual: string, required: string): boolean;
+export function allowsMergedPatch(
+  fromVersion: string,
+  toVersion: string,
+  actual: string,
+  required: string,
+): boolean;
 export function baselineTag(tags: string[], headSha: string, tagSha: (tag: string) => string): string;
 export function parseLeadingJson(text: string): unknown;
 export function packReportEntry(report: unknown): {
