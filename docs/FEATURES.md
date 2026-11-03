@@ -1,28 +1,22 @@
-# FullShield features (3.5.5)
+# FullShield features (3.6.0)
+
+## 3.6.0
+
+Minor on 3.5.5. No new command, rule id, or default-scan finding. `FULLSHIELD_EXPERIMENTAL_SAST_EXTRA`, `FULLSHIELD_EXPERIMENTAL_RUNTIME`, `FULLSHIELD_EXPERIMENTAL_REPORTS`, and `FULLSHIELD_EXPERIMENTAL_AI` turn on the existing checks in that group when those checks are still unset. The old flag names still work. `FULLSHIELD_EXPERIMENTAL_SUPPLY` stays one check. Precision is not published. H45 and H47–H57 stay. `--help` still lists every experimental option.
+
+## Unreleased
+
+Still open from the trust baseline:
+
+- BENCHMARK.md: maintainer-reviewed precision per module and per rule. Labels come from bench/review/*.csv (human only).
+- Remove section G/H checks with < 50% reviewed precision (n >= 5).
+- Remove H45, H47–H57 (magic-filename "findings").
+- Cut experimental flag names in --help by >= 30%. Old names stay accepted.
+- FULLSHIELD_EXPERIMENTAL_SUPPLY is not a group switch.
 
 ## 3.5.5
 
 Patch on 3.5.4. No new command, flag, rule id, or default-scan finding. SARIF `informationUri` is `https://github.com/kathanp/fullshield`. Opt-in hosts in `src/net/hosts.ts` are allowlisted only while their existing flag is `1`. The Q8 count in `docs/QUALITY.md` matches `quality/baseline.json`. 3.6.0 is not this release.
-
-## Unreleased
-
-## 3.6.0: Trust baseline (minor)
-Goal: first reviewed precision number; cut the noise we already know about.
-Ships:
-- BENCHMARK.md: maintainer-reviewed precision per module and per rule
-  (n, repos, date, "one reviewer"). Labels come from bench/review/*.csv (human only).
-- Remove section G/H checks with < 50% reviewed precision (n >= 5).
-- Remove H45, H47–H57 (magic-filename "findings").
-- Merge experimental flags into groups: FULLSHIELD_EXPERIMENTAL_SAST_EXTRA,
-  _SUPPLY, _RUNTIME, _REPORTS, _AI. Old names stay accepted as aliases for one major.
-- Fix src/reporters/sarif.ts informationUri → github.com/kathanp/fullshield.
-- Add opt-in hosts (AI providers, secret-verify endpoints) to src/net/hosts.ts with
-  the flag that enables each; security-page.md says "all fetched hosts allowlisted".
-- QUALITY.md Q8 number generated from quality/baseline.json, not hand-written.
-Exit criteria:
-- Experimental flag names in --help down >= 30%.
-- Precision published for deps, sast, secrets, config.
-- URL audit: 0 NEEDS-HUMAN rows.
 
 ## 3.5.4
 
