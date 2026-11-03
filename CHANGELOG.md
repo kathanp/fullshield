@@ -4,9 +4,19 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
-### Docs
+### Still open
 
-- 3.6.0 stays here until a maintainer labels `bench/review/*.csv`. No precision number is published in this release.
+- Maintainer-reviewed precision in BENCHMARK.md. Labels come from `bench/review/*.csv`. No precision number is published until those rows are labeled.
+- Remove section G/H checks below 50% reviewed precision (n >= 5).
+- Remove H45, H47–H57.
+- Cut experimental flag names in `--help` by at least 30%. Old names stay accepted.
+- `FULLSHIELD_EXPERIMENTAL_SUPPLY` is still one check, not a group switch.
+
+## 3.6.0 — 2026-11-02
+
+### Experimental
+
+- `FULLSHIELD_EXPERIMENTAL_SAST_EXTRA`, `FULLSHIELD_EXPERIMENTAL_RUNTIME`, `FULLSHIELD_EXPERIMENTAL_REPORTS`, and `FULLSHIELD_EXPERIMENTAL_AI` turn on the existing checks in that group when those checks are still unset. The old flag names still work. A default scan is unchanged.
 
 ## 3.5.5 — 2026-11-01
 

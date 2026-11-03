@@ -11,6 +11,7 @@ Rules for every version:
 ---
 
 ## 3.6.0: Trust baseline (minor)
+Shipped 2026-11-02 as the four group env flags only (`SAST_EXTRA`, `RUNTIME`, `REPORTS`, `AI`). Precision, the G/H removals, H45 and H47–H57, the supply group, and the --help cut did not ship. Those stay open.
 Goal: first reviewed precision number; cut the noise we already know about.
 Ships:
 - BENCHMARK.md: maintainer-reviewed precision per module and per rule
