@@ -1,0 +1,73 @@
+name: 'FullShield Scan'
+description: >-
+  Run fullshield scan, upload SARIF to code scanning, and optionally cache the
+  baseline. Does not post a pull-request comment, open issues, or phone home.
+branding:
+  icon: shield
+  color: blue
+inputs:
+  version:
+    description: 'Pinned fullshield npm version'
+    required: false
+    default: '3.6.1'
+  fail-on:
+    description: 'Minimum severity that fails the job'
+    required: false
+    default: 'high'
+  working-directory:
+    description: 'Directory to scan'
+    required: false
+    default: '.'
+  sarif-file:
+    description: 'SARIF output path'
+    required: false
+    default: 'fullshield.sarif'
+  baseline-path:
+    description: 'Baseline file path to cache'
+    required: false
+    default: '.fullshield-baseline.json'
+  cache-baseline:
+    description: 'Cache the baseline file between runs'
+    required: false
+    default: 'true'
+  upload-sarif:
+    description: 'Upload SARIF to GitHub code scanning when permissions allow'
+    required: false
+    default: 'true'
+  args:
+    description: 'Extra arguments appended to fullshield scan'
+    required: false
+    default: ''
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+      with:
+        node-version: '22'
+    - name: Install fullshield
+      shell: bash
+      env:
+        FULLSHIELD_VERSION: ${{ inputs.version }}
+      run: npm install --global "fullshield@${FULLSHIELD_VERSION}"
+    - name: Cache FullShield baseline
+      if: inputs.cache-baseline == 'true'
+      uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      with:
+        path: ${{ inputs.working-directory }}/${{ inputs.baseline-path }}
+        key: fullshield-baseline-${{ runner.os }}-${{ hashFiles(format('{0}/package-lock.json', inputs.working-directory), format('{0}/pnpm-lock.yaml', inputs.working-directory), format('{0}/yarn.lock', inputs.working-directory)) }}
+        restore-keys: |
+          fullshield-baseline-${{ runner.os }}-
+    - name: Scan
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        FULLSHIELD_SARIF: ${{ inputs.sarif-file }}
+        FULLSHIELD_FAIL_ON: ${{ inputs.fail-on }}
+        FULLSHIELD_ARGS: ${{ inputs.args }}
+      run: fullshield scan --sarif "$FULLSHIELD_SARIF" --fail-on "$FULLSHIELD_FAIL_ON" $FULLSHIELD_ARGS
+    - name: Upload SARIF
+      if: always() && inputs.upload-sarif == 'true'
+      uses: github/codeql-action/upload-sarif@ce5e7eeac396d720fe2d802714996c8ce561e311 # v3
+      with:
+        sarif_file: ${{ inputs.working-directory }}/${{ inputs.sarif-file }}

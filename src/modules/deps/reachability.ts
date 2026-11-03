@@ -420,12 +420,15 @@ export function applyReachability(
       severity = 'info';
       message = `${message} (dev-only)`;
     }
+    const quiet = devOnly || classified.reachability === 'not-imported';
+    if (classified.reachability === 'not-imported') {severity = 'info';}
     return {
       ...finding,
       reachability: classified.reachability,
       ...pathFields(classified),
       severity,
       message,
+      ...(quiet ? { gate: false as const } : {}),
     };
   });
   return groupPackageAdvisories(mapped);

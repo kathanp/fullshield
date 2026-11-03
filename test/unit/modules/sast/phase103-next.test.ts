@@ -80,7 +80,7 @@ describe('FULLSHIELD_EXPERIMENTAL_NEXT', () => {
     expect(result.findings.filter((f) => f.ruleId === 'CONFIG-NEXT-001' || f.ruleId === 'CONFIG-NEXT-002')).toEqual([]);
   });
 
-  it('stays off the default scan, including vulnerable-app and clean-app', async () => {
+  it('reports a server action without the flag, and leaves vulnerable-app and clean-app unchanged', async () => {
     const cwd = await fixtureDir();
     await writeFile(join(cwd, 'action.js'), "'use server';\nasync function save(data) { await db.update(data); }\n");
     delete process.env[FLAG];
@@ -90,7 +90,7 @@ describe('FULLSHIELD_EXPERIMENTAL_NEXT', () => {
     process.env[FLAG] = '1';
     const onApp = await scan({ cwd: vulnerableApp, modules: ['sast'], offline: true });
     const onClean = await scan({ cwd: cleanApp, modules: ['sast'], offline: true });
-    expect(offFixture.findings.map((f) => f.ruleId)).not.toContain('SAST-NEXT-001');
+    expect(offFixture.findings.map((f) => f.ruleId)).toContain('SAST-NEXT-001');
     expect(sig(onApp.findings)).toEqual(sig(offApp.findings));
     expect(sig(onClean.findings)).toEqual(sig(offClean.findings));
   });

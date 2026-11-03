@@ -17,7 +17,6 @@ import { createAiClient, isInternalAi, isLiveAi } from '../ai/provider.js';
 import { applyBaseline, applySuppressions, readBaseline, writeBaseline } from './baseline.js';
 import { loadConfig, type ResolvedConfig } from './config.js';
 import { walkFiles } from './fileWalker.js';
-import { raise } from './raise.js';
 import { partitionPerf2, perf2Enabled } from './perf2.js';
 import { beginSharedAst, endSharedAst, preparseProject } from './shared-ast.js';
 import { listStagedFiles } from './git.js';
@@ -97,8 +96,10 @@ export interface ScanOptions {
   ai?: boolean | 'triage' | 'explain' | 'logic';
   /** Phase 22 incremental (requires experimentalIncremental or FULLSHIELD_EXPERIMENTAL_PLATFORM=1). */
   changed?: boolean;
-  /** Phase 501. Requires FULLSHIELD_EXPERIMENTAL_DIFFSCAN=1. */
+  /** Scan the git-changed import frontier. A git failure does not scan the rest of the tree. */
   diff?: boolean;
+  /** Fail the gate only for lines in the working git diff. */
+  agentDiff?: boolean;
   since?: string;
   experimentalIncremental?: boolean;
   changedFiles?: string[];
@@ -327,9 +328,6 @@ async function selectScanFiles(cwd: string, options: ScanOptions, config: Resolv
     files = files.filter((file) => staged.has(file));
   }
   if (options.diff === true) {
-    if (process.env.FULLSHIELD_EXPERIMENTAL_DIFFSCAN !== '1') {
-      raise('scan --diff requires FULLSHIELD_EXPERIMENTAL_DIFFSCAN=1');
-    }
     const { limitToFrontier } = await import('../diffscan/frontier.js');
     files = await limitToFrontier(cwd, files);
   }
@@ -403,7 +401,7 @@ async function gatherFindings(
 ): Promise<Gathered> {
   const read = await readModuleFindings(cwd, files, loaded, modules);
   const collected = read.findings;
-  if (options.diff === true && process.env.FULLSHIELD_EXPERIMENTAL_DIFFSCAN === '1') {
+  if (options.diff === true) {
     const { carrierFindings } = await import('../diffscan/carrier.js');
     collected.push(...(await carrierFindings(cwd, files)));
   }
@@ -594,6 +592,18 @@ async function decorateFindings(findingsIn: Finding[], input: DecorateInput): Pr
     const { buildAttackPathsFromFiles } = await import('../paths/index.js');
     attackPaths = await buildAttackPathsFromFiles(findings, input.cwd, input.files);
   }
+  const { applyRecordedEvidence, readEvidence } = await import('../evidence/record.js');
+  const recorded = await readEvidence(input.cwd);
+  if (recorded !== undefined) {
+    findings = applyRecordedEvidence(findings, recorded.files, recorded.confirmed);
+  }
+  if (input.options.agentDiff === true) {
+    const { gateFindingsToDiff } = await import('../agent/diff-gate.js');
+    findings = await gateFindingsToDiff(input.cwd, findings);
+  }
+  const { applyReviewedPrecision, readReviewedPrecision } = await import('./reviewed-gate.js');
+  const reviewed = await readReviewedPrecision(input.cwd);
+  if (reviewed.length > 0) {findings = applyReviewedPrecision(findings, reviewed);}
   return {
     findings,
     policyResult,

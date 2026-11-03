@@ -29,10 +29,13 @@ describe('experimental flag groups', () => {
     expect(env.FULLSHIELD_EXPERIMENTAL_RASP).toBeUndefined();
   });
 
-  it('does not fan out the existing supply flag', () => {
-    const env: NodeJS.ProcessEnv = { FULLSHIELD_EXPERIMENTAL_SUPPLY: '1' };
+  it('fans out the supply group and leaves an explicit member value', () => {
+    const env: NodeJS.ProcessEnv = {
+      FULLSHIELD_EXPERIMENTAL_SUPPLY: '1',
+      FULLSHIELD_EXPERIMENTAL_NPM_FLOAT: '0',
+    };
     applyFlagGroups(env);
-    expect(env.FULLSHIELD_EXPERIMENTAL_PROVENANCE).toBeUndefined();
-    expect(env.FULLSHIELD_EXPERIMENTAL_NPM_FLOAT).toBeUndefined();
+    expect(env.FULLSHIELD_EXPERIMENTAL_PROVENANCE).toBe('1');
+    expect(env.FULLSHIELD_EXPERIMENTAL_NPM_FLOAT).toBe('0');
   });
 });

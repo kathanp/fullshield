@@ -4,13 +4,31 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
-### Still open
+## 3.6.1 — 2026-11-03
 
-- Maintainer-reviewed precision in BENCHMARK.md. Labels come from `bench/review/*.csv`. No precision number is published until those rows are labeled.
-- Remove section G/H checks below 50% reviewed precision (n >= 5).
-- Remove H45, H47–H57.
-- Cut experimental flag names in `--help` by at least 30%. Old names stay accepted.
-- `FULLSHIELD_EXPERIMENTAL_SUPPLY` is still one check, not a group switch.
+### Release
+
+- The next release is 3.6.1 in `docs/ROADMAP.md`. It includes the unfinished trust baseline, the one-verify release path, and the work that used to be 4.0.0–4.7.0 and 5.0.0. `v3.6.0` stays the tag for the four group flags. D-77 accepts this patch for that scope. See `RELEASING.md`.
+- `FULLSHIELD_EXPERIMENTAL_SUPPLY=1` turns on the unset supply checks. An explicit member value stays.
+- `scan --help` lists at most 70% of the `--experimental-*` flags. The hidden flags still parse.
+- Section H magic-filename checks H45 and H47–H57 no longer report. H46, H58, and H59 stay. The checks stay off unless `FULLSHIELD_EXPERIMENTAL_SECTIONG=1`.
+- `DEPS-VULN-001` with reachability `not-imported` or a dev-only package is severity `info` and `gate: false`. It stays in the report and does not fail `--fail-on`.
+- `scan --diff` no longer requires `FULLSHIELD_EXPERIMENTAL_DIFFSCAN`. `init --recommended` writes that workflow without the flag. A git failure still does not scan the rest of the tree.
+- The content-hash parse cache is on unless `FULLSHIELD_PARSE_CACHE=0`. A corrupt cache file is discarded. Test runs leave it off unless `FULLSHIELD_PARSE_CACHE_DIR` is set.
+- `fix --verify` re-scans a temp copy and does not write the working tree. Statuses are `fixed`, `fixed-tests-fail`, and `not-fixed`.
+- `fullshield install` runs the static checks without `FULLSHIELD_EXPERIMENTAL_SUPPLY`. `install.block` and `install.warn` in `fullshield.config.json` choose which rule ids fail. `templates/preinstall-guard.mjs` is opt-in and does not execute the package.
+- `confirm` and `mcp` no longer require their experimental flags. MCP tools include `check_diff`, `get_findings`, and `verified_fix`. `verified_fix` writes a temp copy only. `init --agent cursor|claude` writes the rule file and MCP config.
+- `fullshield record` writes `.fullshield/evidence.json`. A scan that finds that file marks findings in other files `info` with `gate: false`.
+- `models/vuln-functions.json` ships with no reviewed rows. Uncited rows are ignored. A reviewed row is used only when the finding names that advisory. Precision numbers are still unpublished.
+- Next.js route handlers, NestJS body and query parameters, and Fastify routes are first-class checks. A guard, pipe, auth call, or schema keeps the finding off. `SAST-NEXT-001` reports without `FULLSHIELD_EXPERIMENTAL_NEXT`. The six-job matrix runs `scripts/framework-ci.mjs` on those fixture apps. `docs/compatibility.md` marks Next, Nest, and Fastify `ci`. Framework precision is unpublished.
+- `fullshield install --facts` checks a local JSON file for an OSV `MAL-` id, a typosquat, a changed install script, missing provenance, a publisher change, and a release younger than policy. The package is not executed.
+- `fix --verify` runs `npm test` in the temp copy when `package.json` has a test script. `fix --upgrade` reports `upgrade-safe` or `upgrade-breaks-tests` from a temp install. `fix --pr` runs `gh pr create` and does not merge or comment.
+- `scan --agent-diff` leaves `gate: false` on findings outside the working diff. A reviewed `.fullshield/precision.json` row below 80% with n >= 5 does the same. An unlabeled row is ignored.
+- `fullshield record --run` loads a local recorder. It writes routes and the script path to `.fullshield/evidence.json` and does not open a network connection of its own.
+- `confirm` prints `confirmed-exploitable`. An `unconfirmed` row is not a pass.
+- `confirm --app <entry> --routes <file>` starts that file on `127.0.0.1` and sends the canaries in the routes file. An SSRF canary is a `127.0.0.1` URL. The process is stopped when the probes finish.
+- A `.fullshield/evidence.json` file can list `confirmed` paths. A finding in both `files` and `confirmed` is marked `evidence: prioritized`. A file that was not executed stays severity `info` with `gate: false`.
+- `templates/action/action.yml` installs `fullshield@3.6.1` when `version` is omitted. `setup-node`, `cache`, and `upload-sarif` are pinned to commit SHAs. Extra scan arguments are passed through an environment variable.
 
 ## 3.6.0 — 2026-11-02
 

@@ -16,6 +16,7 @@ import { perf2Enabled } from '../../core/perf2.js';
 import { chooseUpgradePlan, type UpgradeAdvisory } from './upgrade-plan.js';
 import { campaignFindings, securityPlaceholderFinding } from '../../supply/campaign.js';
 import { affectedFunctionNames } from './symbol-reachability.js';
+import { mergeReviewedSymbols } from './vuln-functions.js';
 import { minFixedVersion, osvSeverity, sameMajor } from './semver.js';
 import { findTyposquats, type TyposquatHit } from './typosquat.js';
 import { experimentalVex } from '../../supply/experimental.js';
@@ -262,7 +263,7 @@ async function scanDepsWithoutLock(ctx: ModuleContext, prepared: PreparedDeps): 
         );
         findings.push(...(await unfixedFindings(osvHits, prod, noLockCtx, cacheDir)));
       }
-      const noLockReached = applyReachability(findings, noLockCtx, symbols);
+      const noLockReached = applyReachability(findings, noLockCtx, await mergeReviewedSymbols(findings, symbols));
       noLockReached.push(...(await npmDepthFindings(npmInput)));
       noLockReached.push(...(await parityFindings(ctx.cwd, ctx.config.deps)));
     return withWorkspaceAdvisories(ctx.cwd, manifestRaw, osvOpts, noLockReached);
@@ -310,7 +311,7 @@ async function scanDepsWithLock(ctx: ModuleContext, prepared: PreparedDeps, lock
       packages,
       osvHits,
       reachCtx,
-      reached: applyReachability(findings, reachCtx, symbols),
+      reached: applyReachability(findings, reachCtx, await mergeReviewedSymbols(findings, symbols)),
     });
 }
 

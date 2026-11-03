@@ -38,6 +38,24 @@ export function bumpSatisfies(actual, required) {
 }
 
 /**
+ * D-77, 2026-11-03. 3.6.1 is the one release that holds the former 4.0.0–5.0.0
+ * scope. A patch from 3.6.0 to 3.6.1 is accepted when the signals want a
+ * minor or a major. The next number after 3.6.1 has no exception.
+ * @param {string} fromVersion
+ * @param {string} toVersion
+ * @param {string} actual
+ * @param {string} required
+ */
+export function allowsMergedPatch(fromVersion, toVersion, actual, required) {
+  const from = parseVersion(fromVersion);
+  const to = parseVersion(toVersion);
+  const merged =
+    from.major === 3 && from.minor === 6 && from.patch === 0 && to.major === 3 && to.minor === 6 && to.patch === 1;
+  if (!merged) return false;
+  return actual === 'patch' && (required === 'minor' || required === 'major');
+}
+
+/**
  * Newest tag that is not the commit being published.
  * A tag push checks out that tag, so the newest tag is HEAD and is not a baseline.
  * @param {string[]} tags newest first

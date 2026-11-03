@@ -9,7 +9,14 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { baselineTag, bumpKind, bumpSatisfies, parseVersion, requiredBump } from './release-checks.mjs';
+import {
+  allowsMergedPatch,
+  baselineTag,
+  bumpKind,
+  bumpSatisfies,
+  parseVersion,
+  requiredBump,
+} from './release-checks.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -112,7 +119,11 @@ function main() {
     }
     if (values.length > 0) console.log(`${name}: ${values.join(', ')}`);
   }
-  if (!bumpSatisfies(actual, required)) {
+  const merged = allowsMergedPatch(fromPkg.version, toPkg.version, actual, required);
+  if (merged) {
+    console.log('exception: R16a-3.6.1 merged release, patch accepted');
+  }
+  if (!bumpSatisfies(actual, required) && !merged) {
     console.error(`package.json bump ${actual} is smaller than required ${required}`);
     process.exit(1);
   }

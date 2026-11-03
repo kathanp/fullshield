@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { parsePoolEnabled, parseWithPool } from './parse-pool.js';
+import { parseCacheEnabled, parsePoolEnabled, parseWithPool, readCachedAst, writeCachedAst } from './parse-pool.js';
 import type { AstNode } from '../modules/sast/types.js';
 
 const SOURCE_EXT = /\.[cm]?[jt]sx?$/;
@@ -49,6 +49,16 @@ function cloneAst(ast: AstNode | undefined): AstNode | undefined {
 }
 
 async function parseFresh(source: string): Promise<AstNode | undefined> {
+  if (parseCacheEnabled()) {
+    const cached = await readCachedAst(source);
+    if (cached !== undefined && cached !== null && typeof cached === 'object') {return cached as AstNode;}
+  }
+  const ast = await parseFreshUncached(source);
+  if (ast !== undefined && parseCacheEnabled()) {await writeCachedAst(source, ast);}
+  return ast;
+}
+
+async function parseFreshUncached(source: string): Promise<AstNode | undefined> {
   if (parsePoolEnabled()) {
     try {
       const ast = (await parseWithPool([source]))[0];

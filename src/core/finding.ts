@@ -122,6 +122,10 @@ export interface Finding {
    * Absent on findings that are still reported.
    */
   suppressedBy?: SuppressedBy;
+  /** When false, the finding is reported and does not fail `--fail-on`. */
+  gate?: boolean;
+  /** Set when a local evidence file says this file ran and was confirmed. */
+  evidence?: 'prioritized';
   /** Why the reachability class was chosen. Present only with FULLSHIELD_EXPERIMENTAL_REACH_EVIDENCE=1. */
   reachabilityEvidence?: {
     imports: Array<{ file: string; line: number; specifier: string }>;
@@ -155,6 +159,7 @@ export function meetsThreshold(severity: Severity, threshold: Severity): boolean
 
 /** CI gate: deterministic findings only. `source: 'ai'` never fails a build. */
 export function failsCi(finding: Finding, threshold: Severity): boolean {
+  if (finding.gate === false) {return false;}
   if (finding.source === 'ai' || finding.source === 'rule') {return false;}
   return meetsThreshold(finding.severity, threshold);
 }

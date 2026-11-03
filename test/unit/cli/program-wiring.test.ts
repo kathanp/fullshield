@@ -232,13 +232,13 @@ describe('CLI wiring (in-process)', () => {
     expect(out).toMatch(/reviewable diff|AI patch/i);
   });
 
-  it('install refuses without FULLSHIELD_EXPERIMENTAL_SUPPLY', async () => {
+  it('install runs without FULLSHIELD_EXPERIMENTAL_SUPPLY', async () => {
     const prev = process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY;
     delete process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY;
     try {
-      const { err } = await runCli(['install', 'lodash']);
-      expect(err).toMatch(/FULLSHIELD_EXPERIMENTAL_SUPPLY/);
-      expect(process.exitCode).toBe(2);
+      const { out, err } = await runCli(['install', 'lodash']);
+      expect(err).toBe('');
+      expect(out).toMatch(/ignore-scripts/);
     } finally {
       if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY;
       else process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY = prev;
@@ -278,13 +278,14 @@ describe('CLI wiring (in-process)', () => {
     }
   });
 
-  it('mcp refuses without FULLSHIELD_EXPERIMENTAL_MCP', async () => {
+  it('mcp --list-tools works without FULLSHIELD_EXPERIMENTAL_MCP', async () => {
     const prev = process.env.FULLSHIELD_EXPERIMENTAL_MCP;
     delete process.env.FULLSHIELD_EXPERIMENTAL_MCP;
     try {
-      const { err } = await runCli(['mcp', '--list-tools']);
-      expect(err).toMatch(/FULLSHIELD_EXPERIMENTAL_MCP/);
-      expect(process.exitCode).toBe(2);
+      const { out, err } = await runCli(['mcp', '--list-tools']);
+      expect(err).toBe('');
+      expect(out).toMatch(/check_diff/);
+      expect(out).toMatch(/verified_fix/);
     } finally {
       if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_MCP;
       else process.env.FULLSHIELD_EXPERIMENTAL_MCP = prev;
@@ -369,13 +370,14 @@ describe('CLI wiring (in-process)', () => {
     }
   });
 
-  it('confirm refuses without FULLSHIELD_EXPERIMENTAL_CONFIRM', async () => {
+  it('confirm on 127.0.0.1 works without FULLSHIELD_EXPERIMENTAL_CONFIRM', async () => {
     const prev = process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM;
     delete process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM;
     try {
-      const { err } = await runCli(['confirm', 'http://127.0.0.1:1/']);
-      expect(err).toMatch(/FULLSHIELD_EXPERIMENTAL_CONFIRM/);
-      expect(process.exitCode).toBe(2);
+      const { out, err } = await runCli(['confirm', 'http://127.0.0.1:1/']);
+      expect(err).toBe('');
+      const parsed = JSON.parse(out) as { ok: boolean };
+      expect(parsed.ok).toBe(true);
     } finally {
       if (prev === undefined) delete process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM;
       else process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM = prev;

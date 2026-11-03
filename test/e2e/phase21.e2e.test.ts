@@ -7,14 +7,14 @@ const root = process.cwd();
 const cli = join(root, 'dist', 'cli', 'index.js');
 
 describe('Phase 21 CLI MCP (built)', () => {
-  it('refuses mcp without FULLSHIELD_EXPERIMENTAL_MCP', () => {
+  it('lists tools without FULLSHIELD_EXPERIMENTAL_MCP', () => {
     const result = spawnSync(process.execPath, [cli, 'mcp', '--list-tools'], {
       cwd: root,
       encoding: 'utf8',
       env: { ...process.env, FULLSHIELD_EXPERIMENTAL_MCP: '' },
     });
-    expect(result.status).toBe(2);
-    expect(result.stderr).toMatch(/FULLSHIELD_EXPERIMENTAL_MCP/);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toMatch(/check_diff/);
   });
 
   it('lists read-only tools and answers tools/list JSON-RPC', () => {

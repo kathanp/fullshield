@@ -18,7 +18,7 @@ describe('harden-6 official MCP SDK client', () => {
     try {
       const listed = await client.listTools();
       const names = listed.tools.map((t) => t.name).sort();
-      expect(names).toEqual(['explain_finding', 'get_findings', 'propose_fix', 'scan', 'verify_fix']);
+      expect(names).toEqual(['check_diff', 'explain_finding', 'get_findings', 'propose_fix', 'scan', 'verified_fix', 'verify_fix']);
 
       const scan = await client.callTool({
         name: 'scan',

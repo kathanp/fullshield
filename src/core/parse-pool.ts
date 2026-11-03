@@ -16,6 +16,14 @@ export function parsePoolEnabled(): boolean {
   return perf2Enabled() || process.env.FULLSHIELD_PARSE_POOL === '1';
 }
 
+/** On unless FULLSHIELD_PARSE_CACHE=0. Test runs stay off unless a cache dir is set. */
+export function parseCacheEnabled(): boolean {
+  if (process.env.FULLSHIELD_PARSE_CACHE === '0') {return false;}
+  if (process.env.FULLSHIELD_PARSE_CACHE === '1') {return true;}
+  if (process.env.VITEST === 'true' && process.env.FULLSHIELD_PARSE_CACHE_DIR === undefined) {return false;}
+  return true;
+}
+
 /** Default `max(1, CPUs − 1)`. `FULLSHIELD_PARSE_WORKERS` is a positive integer cap. */
 export function parsePoolSize(): number {
   const cores = Math.max(1, availableParallelism() - 1);
@@ -48,7 +56,7 @@ function diskPath(key: string): string {
 }
 
 async function readDisk(key: string): Promise<{ ast: unknown } | undefined> {
-  if (!perf2Enabled()) {return undefined;}
+  if (!parseCacheEnabled()) {return undefined;}
   try {
     const text = await readFile(diskPath(key), 'utf8');
     return { ast: JSON.parse(text) as unknown };
@@ -57,12 +65,30 @@ async function readDisk(key: string): Promise<{ ast: unknown } | undefined> {
   }
 }
 
+function cacheBody(ast: unknown): string | undefined {
+  const seen = new WeakSet<object>();
+  try {
+    return JSON.stringify(ast, (key, value: unknown) => {
+      if (key === 'parent') {return undefined;}
+      if (typeof value === 'object' && value !== null) {
+        if (seen.has(value)) {return undefined;}
+        seen.add(value);
+      }
+      return value;
+    });
+  } catch {
+    return undefined;
+  }
+}
+
 async function writeDisk(key: string, ast: unknown): Promise<void> {
-  if (!perf2Enabled() || ast === undefined || ast === null) {return;}
+  if (!parseCacheEnabled() || ast === undefined || ast === null) {return;}
+  const body = cacheBody(ast);
+  if (body === undefined) {return;}
   try {
     const path = diskPath(key);
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, JSON.stringify(ast), 'utf8');
+    await writeFile(path, body, 'utf8');
   } catch {
     // Cache write is best-effort.
   }
@@ -101,6 +127,15 @@ function parseOnWorker(code: string): Promise<unknown> {
       fail(new Error(`parse worker exited ${code ?? 'null'}`));
     });
   });
+}
+
+export async function readCachedAst(code: string): Promise<unknown> {
+  const hit = await readDisk(parseCacheKey(code));
+  return hit?.ast;
+}
+
+export async function writeCachedAst(code: string, ast: unknown): Promise<void> {
+  await writeDisk(parseCacheKey(code), ast);
 }
 
 async function parseOne(code: string): Promise<unknown> {

@@ -18,6 +18,7 @@ import {
   packReportEntry,
   parseLeadingJson,
   requiredBump,
+  allowsMergedPatch,
 } from '../../../scripts/release-checks.mjs';
 
 describe('Phase 36 release checks', () => {
@@ -41,6 +42,17 @@ describe('Phase 36 release checks', () => {
     expect(baselineTag(['v0.2.0', 'v0.1.3', 'v0.1.1'], 'head', sha)).toBe('v0.1.3');
     expect(baselineTag(['v0.1.3', 'v0.1.1'], 'other', sha)).toBe('v0.1.3');
     expect(() => baselineTag(['v0.2.0'], 'head', sha)).toThrow(/previous/);
+  });
+
+  it('accepts one patch, 3.6.0 to 3.6.1, for a merged minor or major release', () => {
+    expect(allowsMergedPatch('3.6.0', '3.6.1', 'patch', 'minor')).toBe(true);
+    expect(allowsMergedPatch('3.6.0', '3.6.1', 'patch', 'major')).toBe(true);
+    expect(allowsMergedPatch('3.6.0', '3.6.1', 'patch', 'patch')).toBe(false);
+    expect(allowsMergedPatch('3.6.1', '3.6.2', 'patch', 'minor')).toBe(false);
+    expect(allowsMergedPatch('3.6.0', '3.7.0', 'minor', 'minor')).toBe(false);
+    expect(allowsMergedPatch('3.6.0', '4.0.0', 'major', 'major')).toBe(false);
+    const checker = readFileSync(join(process.cwd(), 'scripts', 'semver-check.mjs'), 'utf8');
+    expect(checker).toContain('allowsMergedPatch');
   });
 
   it('rejects a patch when a minor bump is required and rejects a decrease', () => {

@@ -24,7 +24,7 @@ describe('phase 563 recommended diff workflow', () => {
     expect(wrote.written).toContain('.github/workflows/fullshield-diff.yml');
     const yaml = await readFile(join(recommended, '.github/workflows/fullshield-diff.yml'), 'utf8');
     expect(yaml).toContain('scan --diff');
-    expect(yaml).toContain('FULLSHIELD_EXPERIMENTAL_DIFFSCAN');
+    expect(yaml).not.toContain('FULLSHIELD_EXPERIMENTAL_DIFFSCAN');
     expect(yaml).not.toMatch(/createComment|pr merge/);
     expect(yaml).not.toMatch(/^\t/m);
     const plainResult = await runInit({ cwd: plain });

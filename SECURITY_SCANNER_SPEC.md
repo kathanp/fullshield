@@ -30,7 +30,7 @@ Breaking any rule below = stop work and report to the human. Do not "fix forward
 
 ### 0.3 Stable behavior
 - [ X ] **R9.** "Stable output" = default `fullshield scan --json` findings `(ruleId, file, line, severity)` on `test/fixtures/vulnerable-app`, `test/fixtures/clean-app`, and every app in `bench/`. `scripts/default-scan-diff.mjs` compares against the snapshot of the last published version.
-- [ X ] **R10.** Any stable-output change requires: (a) human approval before merge, (b) a CHANGELOG entry under **"New/changed stable findings — may change CI results; use --update-baseline"**, (c) a **minor** version bump (R16).
+- [ X ] **R10.** Any stable-output change requires: (a) human approval before merge, (b) a CHANGELOG entry under **"New/changed stable findings — may change CI results; use --update-baseline"**, (c) a **minor** version bump (R16). The approved 3.6.1 merged release (D-77) may carry that change on a patch from 3.6.0.
 - [ X ] **R11.** Every new feature ships behind `FULLSHIELD_EXPERIMENTAL_<NAME>=1` and/or `--experimental-<name>`, off by default. Promotion to stable follows Phase 43 only.
 - [ X ] **R12.** clean-app produces 0 findings of any severity in default scan, always.
 
@@ -42,7 +42,7 @@ Breaking any rule below = stop work and report to the human. Do not "fix forward
 ### 0.5 Versioning
 - [ X ] **R16.** 0.x semver: **patch** = bug fixes only, no new features, no stable-output change. **minor** = any new feature (even experimental), new rule ID, new command/flag/export, or stable-output change. Enforced by `scripts/semver-check.mjs` (Phase 36).
 - [ X ] **R17.** Never reuse, decrease, or delete a version. Published versions are permanent. Fix forward only.
-- [ X ] **R16a.** 1.x semver: **patch** = bug fixes and documentation corrections, including a correction to `docs/stability.md` that moves a row out of Stable when that row was only ever produced by an experimental flag. No new feature, rule ID, command, flag, or export, and no default-scan output change. **minor** = new feature, rule ID, command, flag, or export, or a default-scan output change that adds findings. **major** = removing or changing anything that is Stable in `docs/stability.md` and was produced without a flag. `scripts/semver-check.mjs` applies R16 below 1.0.0 and R16a from 1.0.0 on.
+- [ X ] **R16a.** 1.x semver: **patch** = bug fixes and documentation corrections, including a correction to `docs/stability.md` that moves a row out of Stable when that row was only ever produced by an experimental flag. No new feature, rule ID, command, flag, or export, and no default-scan output change. **minor** = new feature, rule ID, command, flag, or export, or a default-scan output change that adds findings. **major** = removing or changing anything that is Stable in `docs/stability.md` and was produced without a flag. `scripts/semver-check.mjs` applies R16 below 1.0.0 and R16a from 1.0.0 on. Exception, approved 2026-11-03 (D-77): **3.6.1** is one release that holds the unfinished trust baseline and the work that used to be 4.0.0–4.7.0 and 5.0.0. The checker accepts a patch from 3.6.0 to 3.6.1 when the signals would otherwise require a minor or a major. The release after 3.6.1 has no exception.
 
 ### 0.6 Workflow
 - [ X ] **R18.** All work on `next` (or `phase-N` worktrees off `next`). `main` only via PR from `next`, full CI matrix green, human approval.

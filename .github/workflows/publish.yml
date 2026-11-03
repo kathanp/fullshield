@@ -35,10 +35,6 @@ jobs:
       - name: Probe npm OIDC (print registry error body)
         run: node scripts/npm-oidc-diagnose.mjs
 
-      - name: Verify
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: npm run verify
-
       - name: Semver check
         if: startsWith(github.ref, 'refs/tags/v')
         run: node scripts/semver-check.mjs

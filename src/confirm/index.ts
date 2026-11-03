@@ -68,17 +68,18 @@ export function assertLocalTarget(raw: string, opts: AssertLocalOptions = {}): v
   throw new Error(`confirm: refused target ${raw} (host ${host} is not localhost/127.0.0.1/FullShield container)`);
 }
 
-export function buildCanary(kind: 'sql' | 'shell' | 'path' | 'idor', token: string): string {
+export function buildCanary(kind: ConfirmKind, token: string): string {
   if (DESTRUCTIVE.test(token)) {
     throw new Error('confirm: canary must be harmless (no DROP/DELETE/rm/dd)');
   }
   if (kind === 'sql') {return `1 UNION SELECT 0,'${token}'`;}
   if (kind === 'shell') {return `; echo ${token}`;}
   if (kind === 'path') {return '../canary.txt';}
+  if (kind === 'ssrf') {return `http://127.0.0.1/fullshield-canary-${encodeURIComponent(token)}`;}
   return token;
 }
 
-export type ConfirmKind = 'sql' | 'shell' | 'path' | 'idor';
+export type ConfirmKind = 'sql' | 'shell' | 'path' | 'idor' | 'ssrf';
 
 export interface ConfirmRoute {
   kind: ConfirmKind;
@@ -102,6 +103,16 @@ export interface Confirmation {
   status: 'confirmed' | 'unconfirmed';
   proof?: string;
   detail?: string;
+}
+
+/** An unconfirmed row is not a pass. An empty list has nothing unconfirmed. */
+export function confirmIsPass(rows: readonly { status: string }[]): boolean {
+  return rows.every((row) => row.status !== 'unconfirmed');
+}
+
+export function confirmLabel(status: string): string {
+  if (status === 'confirmed') {return 'confirmed-exploitable';}
+  return status;
 }
 
 function curlProof(method: string, url: string, extra = ''): string {
@@ -129,6 +140,36 @@ async function probe(
   } catch (err) {
     return { ok: false, text: err instanceof Error ? err.message : String(err) };
   }
+}
+
+const CONFIRM_KINDS = new Set<ConfirmKind>(['sql', 'shell', 'path', 'idor', 'ssrf']);
+
+/** A routes file is a JSON array of { kind, method, path, param? }. Bad rows throw. */
+export function parseConfirmRoutes(raw: unknown): ConfirmRoute[] {
+  if (!Array.isArray(raw)) {throw new Error('confirm: routes file must be an array');}
+  return raw.map((item, index) => {
+    if (typeof item !== 'object' || item === null) {
+      throw new Error(`confirm: routes[${index}] must be an object`);
+    }
+    const row = item as Record<string, unknown>;
+    if (typeof row.kind !== 'string' || !CONFIRM_KINDS.has(row.kind as ConfirmKind)) {
+      throw new Error(`confirm: routes[${index}].kind is not a canary kind`);
+    }
+    if (row.method !== 'GET' && row.method !== 'POST') {
+      throw new Error(`confirm: routes[${index}].method must be GET or POST`);
+    }
+    if (typeof row.path !== 'string' || !row.path.startsWith('/')) {
+      throw new Error(`confirm: routes[${index}].path must start with /`);
+    }
+    return {
+      kind: row.kind as ConfirmKind,
+      method: row.method,
+      path: row.path,
+      ...(typeof row.param === 'string' ? { param: row.param } : {}),
+      ...(typeof row.asUser === 'string' ? { asUser: row.asUser } : {}),
+      ...(typeof row.expectOwner === 'string' ? { expectOwner: row.expectOwner } : {}),
+    };
+  });
 }
 
 export async function confirmTarget(

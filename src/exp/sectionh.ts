@@ -433,15 +433,6 @@ function keep(fileName: string, rel: string, skipSource: boolean): boolean {
   return rel.includes('patches/') || fileName.includes('config');
 }
 
-async function sourceLocked(cwd: string): Promise<boolean> {
-  try {
-    await readFile(join(cwd, 'sectionh-lockonly.txt'), 'utf8');
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 async function load(dir: string, cwd: string, out: Loaded[], skipSource: boolean): Promise<void> {
   const entries = await readdir(dir, { withFileTypes: true });
   for (const entry of entries) {
@@ -460,7 +451,7 @@ async function load(dir: string, cwd: string, out: Loaded[], skipSource: boolean
 
 async function collect(cwd: string): Promise<Finding[]> {
   const files: Loaded[] = [];
-  await load(cwd, cwd, files, await sourceLocked(cwd));
+  await load(cwd, cwd, files, false);
   const pkg = files.find((file) => file.rel === 'package.json');
   const doc = pkg === undefined ? undefined : parseDoc(pkg.text);
   const note = files.find((file) => file.name === '.nvmrc')?.text ?? files.find((file) => file.name === '.node-version')?.text;

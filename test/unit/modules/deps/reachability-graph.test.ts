@@ -38,8 +38,7 @@ describe('transitive reachability (harden-3)', () => {
     );
     expect(lodash.length).toBeGreaterThan(0);
     expect(lodash.every((f) => f.reachability === 'not-imported')).toBe(true);
-    // critical − 2 = medium; must not stay critical/high
-    expect(lodash.every((f) => f.severity === 'medium')).toBe(true);
+    expect(lodash.every((f) => f.severity === 'info' && f.gate === false)).toBe(true);
     expect(lodash.every((f) => !/\bdev-only\b/.test(f.message))).toBe(true);
   });
 
@@ -72,7 +71,7 @@ describe('yarn and pnpm lockfile reachability (harden-4)', () => {
       (f) => f.ruleId === 'DEPS-VULN-001' && (f.snippet ?? '').startsWith('lodash@'),
     );
     expect(lodash.every((f) => f.reachability === 'not-imported')).toBe(true);
-    expect(lodash.every((f) => f.severity === 'medium')).toBe(true);
+    expect(lodash.every((f) => f.severity === 'info' && f.gate === false)).toBe(true);
   });
 
   it('classifies pnpm transitives via real lockfile edges', async () => {
@@ -89,7 +88,7 @@ describe('yarn and pnpm lockfile reachability (harden-4)', () => {
       (f) => f.ruleId === 'DEPS-VULN-001' && (f.snippet ?? '').startsWith('lodash@'),
     );
     expect(lodash.every((f) => f.reachability === 'not-imported')).toBe(true);
-    expect(lodash.every((f) => f.severity === 'medium')).toBe(true);
+    expect(lodash.every((f) => f.severity === 'info' && f.gate === false)).toBe(true);
   });
 });
 
