@@ -1,0 +1,1138 @@
+{
+  "rows": [
+    {
+      "osvId": "GHSA-2cf5-4w76-r9qv",
+      "package": "handlebars",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-2cf5-4w76-r9qv",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-2qvq-rjwj-gvw9",
+      "package": "handlebars",
+      "symbol": "resolvePartial,invokePartial",
+      "source": "https://github.com/advisories/GHSA-2qvq-rjwj-gvw9",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-2w6w-674q-4c4q",
+      "package": "handlebars",
+      "symbol": "compile",
+      "source": "https://github.com/advisories/GHSA-2w6w-674q-4c4q",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-3cqr-58rm-57f8",
+      "package": "handlebars",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-3cqr-58rm-57f8",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-3mfm-83xf-c92r",
+      "package": "handlebars",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-3mfm-83xf-c92r",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-442j-39wm-28r2",
+      "package": "handlebars",
+      "symbol": "resultIsAllowed",
+      "source": "https://github.com/advisories/GHSA-442j-39wm-28r2",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-62gr-4qp9-h98f",
+      "package": "handlebars",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-62gr-4qp9-h98f",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-765h-qjxv-5f44",
+      "package": "handlebars",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-765h-qjxv-5f44",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-8r5x-fm3f-whwj",
+      "package": "handlebars",
+      "symbol": "compile,precompile,parseWithoutProcessing",
+      "source": "https://github.com/advisories/GHSA-8r5x-fm3f-whwj",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-9cx6-37pm-9jff",
+      "package": "handlebars",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-9cx6-37pm-9jff",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-f2jv-r9rf-7988",
+      "package": "handlebars",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-f2jv-r9rf-7988",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-f52g-6jhx-586p",
+      "package": "handlebars",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-f52g-6jhx-586p",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-g9r4-xpmj-mj65",
+      "package": "handlebars",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-g9r4-xpmj-mj65",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-p8wg-vrv2-v86f",
+      "package": "handlebars",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-p8wg-vrv2-v86f",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-q2c6-c6pm-g3gh",
+      "package": "handlebars",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-q2c6-c6pm-g3gh",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-q42p-pg8m-cqh6",
+      "package": "handlebars",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-q42p-pg8m-cqh6",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-w457-6q6x-cgp9",
+      "package": "handlebars",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-w457-6q6x-cgp9",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-xhpv-hc6g-r9c6",
+      "package": "handlebars",
+      "symbol": "resolvePartial,invokePartial",
+      "source": "https://github.com/advisories/GHSA-xhpv-hc6g-r9c6",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-xjpj-3mr7-gcpf",
+      "package": "handlebars",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-xjpj-3mr7-gcpf",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-xw65-4hp5-5hc7",
+      "package": "handlebars",
+      "symbol": "quotedString",
+      "source": "https://github.com/advisories/GHSA-xw65-4hp5-5hc7",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-3jxr-9vmj-r5cp",
+      "package": "brace-expansion",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-3jxr-9vmj-r5cp",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-6j4f-fj2g-mc7p",
+      "package": "brace-expansion",
+      "symbol": "parseCommaParts",
+      "source": "https://github.com/advisories/GHSA-6j4f-fj2g-mc7p",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-832h-xg76-4gv6",
+      "package": "brace-expansion",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-832h-xg76-4gv6",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-f886-m6hf-6m8v",
+      "package": "brace-expansion",
+      "symbol": "expand",
+      "source": "https://github.com/advisories/GHSA-f886-m6hf-6m8v",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-mh99-v99m-4gvg",
+      "package": "brace-expansion",
+      "symbol": "expand",
+      "source": "https://github.com/advisories/GHSA-mh99-v99m-4gvg",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-q2hr-2g5m-vwhr",
+      "package": "brace-expansion",
+      "symbol": "expand",
+      "source": "https://github.com/advisories/GHSA-q2hr-2g5m-vwhr",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-qhr7-859c-m2p7",
+      "package": "brace-expansion",
+      "symbol": "parseCommaParts,expand",
+      "source": "https://github.com/advisories/GHSA-qhr7-859c-m2p7",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-rgw5-rvv9-x895",
+      "package": "brace-expansion",
+      "symbol": "expand,combine,expandSequence",
+      "source": "https://github.com/advisories/GHSA-rgw5-rvv9-x895",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-v6h2-p8h4-qcjw",
+      "package": "brace-expansion",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-v6h2-p8h4-qcjw",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-29mw-wpgm-hmr9",
+      "package": "lodash",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-29mw-wpgm-hmr9",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-35jh-r3h4-6jhm",
+      "package": "lodash",
+      "symbol": "template",
+      "source": "https://github.com/advisories/GHSA-35jh-r3h4-6jhm",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-4xc9-xhrj-v574",
+      "package": "lodash",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-4xc9-xhrj-v574",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-f23m-r3pf-42rh",
+      "package": "lodash",
+      "symbol": "_.unset,_.omit",
+      "source": "https://github.com/advisories/GHSA-f23m-r3pf-42rh",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-fvqr-27wr-82fm",
+      "package": "lodash",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-fvqr-27wr-82fm",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-jf85-cpcp-j695",
+      "package": "lodash",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-jf85-cpcp-j695",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-p6mc-m468-83gw",
+      "package": "lodash",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-p6mc-m468-83gw",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-r5fr-rjxr-66jc",
+      "package": "lodash",
+      "symbol": "_.template",
+      "source": "https://github.com/advisories/GHSA-r5fr-rjxr-66jc",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-x5rq-j2xg-h7qm",
+      "package": "lodash",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-x5rq-j2xg-h7qm",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-xxjr-mmjv-4gpg",
+      "package": "lodash",
+      "symbol": "_.unset,_.omit",
+      "source": "https://github.com/advisories/GHSA-xxjr-mmjv-4gpg",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-23hp-3jrh-7fpw",
+      "package": "tar",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-23hp-3jrh-7fpw",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-34x7-hfp2-rc4v",
+      "package": "tar",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-34x7-hfp2-rc4v",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-3jfq-g458-7qm9",
+      "package": "tar",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-3jfq-g458-7qm9",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-5955-9wpr-37jh",
+      "package": "tar",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-5955-9wpr-37jh",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-83g3-92jg-28cx",
+      "package": "tar",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-83g3-92jg-28cx",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-8qq5-rm4j-mr97",
+      "package": "tar",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-8qq5-rm4j-mr97",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-8x88-c5mf-7j5w",
+      "package": "tar",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-8x88-c5mf-7j5w",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-9ppj-qmqm-q256",
+      "package": "tar",
+      "symbol": "stripAbsolutePath",
+      "source": "https://github.com/advisories/GHSA-9ppj-qmqm-q256",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-9r2w-394v-53qc",
+      "package": "tar",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-9r2w-394v-53qc",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-f5x3-32g6-xq36",
+      "package": "tar",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-f5x3-32g6-xq36",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-gvwx-54wh-qm9j",
+      "package": "tar",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-gvwx-54wh-qm9j",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-j44m-qm6p-hp7m",
+      "package": "tar",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-j44m-qm6p-hp7m",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-qffp-2rhf-9h96",
+      "package": "tar",
+      "symbol": "stripAbsolutePath",
+      "source": "https://github.com/advisories/GHSA-qffp-2rhf-9h96",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-qq89-hq3f-393p",
+      "package": "tar",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-qq89-hq3f-393p",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-r292-9mhp-454m",
+      "package": "tar",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-r292-9mhp-454m",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-r628-mhmh-qjhw",
+      "package": "tar",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-r628-mhmh-qjhw",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-r6q2-hw4h-h46w",
+      "package": "tar",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-r6q2-hw4h-h46w",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-vmf3-w455-68vh",
+      "package": "tar",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-vmf3-w455-68vh",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-w8wr-v893-vjvp",
+      "package": "tar",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-w8wr-v893-vjvp",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-3v6h-hqm4-2rg6",
+      "package": "adm-zip",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-3v6h-hqm4-2rg6",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-7q85-xj36-vmfc",
+      "package": "adm-zip",
+      "symbol": "getData",
+      "source": "https://github.com/advisories/GHSA-7q85-xj36-vmfc",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-8238-w5pm-2374",
+      "package": "adm-zip",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-8238-w5pm-2374",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-c6fg-446q-cg94",
+      "package": "adm-zip",
+      "symbol": "getData,getDataAsync",
+      "source": "https://github.com/advisories/GHSA-c6fg-446q-cg94",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-j5f4-cc29-5x44",
+      "package": "adm-zip",
+      "symbol": "extractAllTo,extractEntryTo",
+      "source": "https://github.com/advisories/GHSA-j5f4-cc29-5x44",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-p634-w6r4-rjp2",
+      "package": "adm-zip",
+      "symbol": "extractAllTo,getEntry",
+      "source": "https://github.com/advisories/GHSA-p634-w6r4-rjp2",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-rcw4-f5rp-g42v",
+      "package": "adm-zip",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-rcw4-f5rp-g42v",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-xcpc-8h2w-3j85",
+      "package": "adm-zip",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-xcpc-8h2w-3j85",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-2883-xcg3-v3hh",
+      "package": "js-yaml",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-2883-xcg3-v3hh",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-2pr6-76vf-7546",
+      "package": "js-yaml",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-2pr6-76vf-7546",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-52cp-r559-cp3m",
+      "package": "js-yaml",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-52cp-r559-cp3m",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-5p4m-2wfm-xmqj",
+      "package": "js-yaml",
+      "symbol": "resolveYamlOmap",
+      "source": "https://github.com/advisories/GHSA-5p4m-2wfm-xmqj",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-8j8c-7jfh-h6hx",
+      "package": "js-yaml",
+      "symbol": "load,safeLoad",
+      "source": "https://github.com/advisories/GHSA-8j8c-7jfh-h6hx",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-h67p-54hq-rp68",
+      "package": "js-yaml",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-h67p-54hq-rp68",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-mh29-5h37-fv8m",
+      "package": "js-yaml",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-mh29-5h37-fv8m",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-5v2h-r2cx-5xgj",
+      "package": "marked",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-5v2h-r2cx-5xgj",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-7px7-7xjx-hxm8",
+      "package": "marked",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-7px7-7xjx-hxm8",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-p9wx-2529-fp83",
+      "package": "marked",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-p9wx-2529-fp83",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-rrrm-qjm4-v8hf",
+      "package": "marked",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-rrrm-qjm4-v8hf",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-vfvf-mqq8-rwqc",
+      "package": "marked",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-vfvf-mqq8-rwqc",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-x5pg-88wf-qq4p",
+      "package": "marked",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-x5pg-88wf-qq4p",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-4mjr-xmp4-gh2g",
+      "package": "qs",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-4mjr-xmp4-gh2g",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-6rw7-vpxm-498p",
+      "package": "qs",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-6rw7-vpxm-498p",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-f9cm-p3w6-xvr3",
+      "package": "qs",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-f9cm-p3w6-xvr3",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-gqgv-6jq5-jjj9",
+      "package": "qs",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-gqgv-6jq5-jjj9",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-hrpp-h998-j3pp",
+      "package": "qs",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-hrpp-h998-j3pp",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-jjv7-qpx3-h62q",
+      "package": "qs",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-jjv7-qpx3-h62q",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-434g-2637-qmqr",
+      "package": "elliptic",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-434g-2637-qmqr",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-49q7-c7j4-3p7m",
+      "package": "elliptic",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-49q7-c7j4-3p7m",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-848j-6mx2-7j84",
+      "package": "elliptic",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-848j-6mx2-7j84",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-977x-g7h5-7qgw",
+      "package": "elliptic",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-977x-g7h5-7qgw",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-f7q4-pwc6-w24p",
+      "package": "elliptic",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-f7q4-pwc6-w24p",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-fc9h-whq2-v747",
+      "package": "elliptic",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-fc9h-whq2-v747",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-r9p9-mrjm-926w",
+      "package": "elliptic",
+      "symbol": "derive",
+      "source": "https://github.com/advisories/GHSA-r9p9-mrjm-926w",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-vh7m-p724-62c2",
+      "package": "elliptic",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-vh7m-p724-62c2",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-vjh7-7g9h-fjfh",
+      "package": "elliptic",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-vjh7-7g9h-fjfh",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-23c5-xmqv-rm74",
+      "package": "minimatch",
+      "symbol": "minimatch,matchOne",
+      "source": "https://github.com/advisories/GHSA-23c5-xmqv-rm74",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-3ppc-4f35-3m26",
+      "package": "minimatch",
+      "symbol": "minimatch",
+      "source": "https://github.com/advisories/GHSA-3ppc-4f35-3m26",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-7r86-cg39-jmmj",
+      "package": "minimatch",
+      "symbol": "matchOne,minimatch",
+      "source": "https://github.com/advisories/GHSA-7r86-cg39-jmmj",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-f8q6-p94x-37v3",
+      "package": "minimatch",
+      "symbol": "braceExpand",
+      "source": "https://github.com/advisories/GHSA-f8q6-p94x-37v3",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-hxm2-r34f-qmc5",
+      "package": "minimatch",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-hxm2-r34f-qmc5",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-664h-wqgq-64gw",
+      "package": "mongoose",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-664h-wqgq-64gw",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-8687-vv9j-hgph",
+      "package": "mongoose",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-8687-vv9j-hgph",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-9m93-w8w6-76hh",
+      "package": "mongoose",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-9m93-w8w6-76hh",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-f825-f98c-gj3g",
+      "package": "mongoose",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-f825-f98c-gj3g",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-h8hf-x3f4-xwgp",
+      "package": "mongoose",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-h8hf-x3f4-xwgp",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-m7xq-9374-9rvx",
+      "package": "mongoose",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-m7xq-9374-9rvx",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-r5xw-q988-826m",
+      "package": "mongoose",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-r5xw-q988-826m",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-vg7j-7cwx-8wgw",
+      "package": "mongoose",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-vg7j-7cwx-8wgw",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-wpg9-53fq-2r8h",
+      "package": "mongoose",
+      "symbol": "hasDollarKeys",
+      "source": "https://github.com/advisories/GHSA-wpg9-53fq-2r8h",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-3j7m-hmh3-9jmp",
+      "package": "sanitize-html",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-3j7m-hmh3-9jmp",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-cgfm-xwp7-2cvr",
+      "package": "sanitize-html",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-cgfm-xwp7-2cvr",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-jxwj-j7wr-gfrw",
+      "package": "sanitize-html",
+      "symbol": "sanitizeHtml",
+      "source": "https://github.com/advisories/GHSA-jxwj-j7wr-gfrw",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-mjxr-4v3x-q3m4",
+      "package": "sanitize-html",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-mjxr-4v3x-q3m4",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-qhxp-v273-g94h",
+      "package": "sanitize-html",
+      "symbol": "sanitizeHtml",
+      "source": "https://github.com/advisories/GHSA-qhxp-v273-g94h",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-rjqq-98f6-6j3r",
+      "package": "sanitize-html",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-rjqq-98f6-6j3r",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-rm97-x556-q36h",
+      "package": "sanitize-html",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-rm97-x556-q36h",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-xc6g-ggrc-qq4r",
+      "package": "sanitize-html",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-xc6g-ggrc-qq4r",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-4p35-cfcx-8653",
+      "package": "parse-url",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-4p35-cfcx-8653",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-7f3x-x4pr-wqhj",
+      "package": "parse-url",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-7f3x-x4pr-wqhj",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-j9fq-vwqv-2fm2",
+      "package": "parse-url",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-j9fq-vwqv-2fm2",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-jpp7-7chh-cf67",
+      "package": "parse-url",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-jpp7-7chh-cf67",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-pqw5-jmp5-px4v",
+      "package": "parse-url",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-pqw5-jmp5-px4v",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-q6wq-5p59-983w",
+      "package": "parse-url",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-q6wq-5p59-983w",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-37ch-88jc-xwx2",
+      "package": "path-to-regexp",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-37ch-88jc-xwx2",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-9wv6-86v2-598j",
+      "package": "path-to-regexp",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-9wv6-86v2-598j",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-rhx6-c78j-4q9w",
+      "package": "path-to-regexp",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-rhx6-c78j-4q9w",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-3w5v-p54c-f74x",
+      "package": "ejs",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-3w5v-p54c-f74x",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-6x77-rpqf-j6mw",
+      "package": "ejs",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-6x77-rpqf-j6mw",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-ghr5-ch3p-vcr6",
+      "package": "ejs",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-ghr5-ch3p-vcr6",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-hwcf-pp87-7x6p",
+      "package": "ejs",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-hwcf-pp87-7x6p",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-phwq-j96m-2c2q",
+      "package": "ejs",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-phwq-j96m-2c2q",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-4328-8hgf-7wjr",
+      "package": "npm",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-4328-8hgf-7wjr",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-93f3-23rq-pjfp",
+      "package": "npm",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-93f3-23rq-pjfp",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-m6cx-g6qm-p2cx",
+      "package": "npm",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-m6cx-g6qm-p2cx",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-ph34-pc88-72gc",
+      "package": "npm",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-ph34-pc88-72gc",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-x8qc-rrcw-4r46",
+      "package": "npm",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-x8qc-rrcw-4r46",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-2rp8-mm9q-fp49",
+      "package": "typeorm",
+      "symbol": "escapeComment",
+      "source": "https://github.com/advisories/GHSA-2rp8-mm9q-fp49",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-9ggv-8w38-r7pm",
+      "package": "typeorm",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-9ggv-8w38-r7pm",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-fx4w-v43j-vc45",
+      "package": "typeorm",
+      "symbol": "findOne",
+      "source": "https://github.com/advisories/GHSA-fx4w-v43j-vc45",
+      "reviewed": false
+    },
+    {
+      "osvId": "GHSA-pf2j-9qmp-jqr2",
+      "package": "typeorm",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-pf2j-9qmp-jqr2",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-q2pj-6v73-8rgj",
+      "package": "typeorm",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-q2pj-6v73-8rgj",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-2g4f-4pwh-qvx6",
+      "package": "ajv",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-2g4f-4pwh-qvx6",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-v88g-cgmw-v5xw",
+      "package": "ajv",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-v88g-cgmw-v5xw",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-qwcr-r2fm-qrc7",
+      "package": "body-parser",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-qwcr-r2fm-qrc7",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-v422-hmwv-36x6",
+      "package": "body-parser",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-v422-hmwv-36x6",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-grv7-fg5c-xmjg",
+      "package": "braces",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-grv7-fg5c-xmjg",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    },
+    {
+      "osvId": "GHSA-vfj7-8cjw-p6xm",
+      "package": "braces",
+      "symbol": "",
+      "source": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+      "reviewed": false,
+      "note": "advisory text does not name a function"
+    }
+  ]
+}
