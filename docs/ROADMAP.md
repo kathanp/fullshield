@@ -159,12 +159,23 @@ Not part of 3.6.1. Nothing here is measured, and nothing here is marked done.
 - Live Cursor and Claude Code demo: a vulnerability is introduced, the guardrail blocks it, and a verified fix is applied.
 - On one real app, recorded evidence drops default findings at least another 30%, with zero loss of confirmed-exploitable findings. Record overhead under 5% p95.
 - Default `--fail-on` counts only rules with reviewed precision of at least 80%. Section G/H checks under 50% reviewed precision (n >= 5) can be removed only after that number exists.
-- `bench/*/ground-truth.json` stays `"reviewed": false` until a human flips it. Review labels stay blank until a human writes them.
+- `bench/*/ground-truth.json` stays `"reviewed": false`. Review labels in `bench/review` are AI-suggested (`reviewer: ai-cursor`). A human has not reviewed them.
 - Five missed bugs, maintainer decision, not part of 3.6.1:
   - Juice Shop redirect `lib/insecurity.ts:136`: the `url.includes(allowedUrl)` silence in `test/unit/modules/sast/bench-misses.test.ts` (113–119) and `test/unit/modules/sast/phase502-flow2.test.ts` (72–74) is wrong. Replace it with a narrow rule for `includes()` used as a redirect allowlist check. Add new tests for that bad pattern and for a safe `startsWith` / URL-parse pattern.
   - Juice Shop xss `routes/trackOrder.ts:17`: keep the `res.json` silence. Record it as a known limit in the docs.
-  - DVNA `core/appHandler.js:197`: the ground-truth class `config` looks mislabeled. The line is `mathjs.eval` code injection. A 2026-11-04 `scan --json --offline-safe` already reports `SAST-EVAL-001` on that line. A ground-truth change waits for review.
+  - DVNA `core/appHandler.js:197`: the ground-truth class was `config`. The line is `mathjs.eval` code injection. A 2026-11-04 `scan --json --offline-safe` already reports `SAST-EVAL-001` on that line. Cursor changed that row's class to `eval`. `reviewed` stays false.
   - vulnerable-node `views/error.ejs:4`: add a template rule for `error.stack` / `err.stack` printed in EJS, escaped or not, as an info leak.
   - NodeGoat `app/views/layout.html:75`: propagate tainted locals from child views to their `{% extends %}` parent in Swig.
 - `not-imported` does not read `package.json` `scripts` or a dependency `bin`. `scriptReach` in `src/modules/deps/npm/lane-g.ts` is never called, and with its flag off it returns the current class. A direct dependency used only as a script or a bin stays `not-imported`. NodeGoat's `start` script is `node server.js`, not `forever`. Goof's `test` script is `snyk test`, not `tap`.
 - Skip `test/`, `__tests__/`, `*.test.*`, `examples/`, `example/`, and `fixtures/` for the app-config rules `CONFIG-HELMET-001`, `CONFIG-ERRSTACK-001`, `CONFIG-RATELIMIT-001`, `CONFIG-BODYLIMIT-001`, and `CONFIG-DOCKER-ROOT-001`. Those rules currently run on every walked file. The default walk excludes generated trees, not tests or examples.
+
+## Not planned
+
+These need human review that the maintainer is not doing at this time:
+
+- Maintainer-reviewed precision numbers
+- --fail-on precision gate
+- Removing Section G/H checks by precision
+- Ground-truth reviewed flags and README recall numbers
+- vuln-functions.json (100 packages)
+- Promoting experimental checks (CSRF, XXE, deserialization) to default

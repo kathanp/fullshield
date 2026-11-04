@@ -3,39 +3,39 @@ id,ruleId,severity,file,line,code snippet (5 lines),message,label,reviewer,note
 
     const msg = err.stack || err.toString()
     console.error(`\n${msg.replace(/^/gm, '  ')}\n`)
-  }",err.stack is sent in a response and can leak internals.,,,
+  }",err.stack is sent in a response and can leak internals.,FP,ai-cursor,"The stack is printed to a server log or a CI annotation, not sent back to a browser."
 872d3aec3d54b701,CONFIG-ERRSTACK-001,medium,__tests__/application/onerror.test.js,56,"
     const err = new Error()
     err.stack = 'Foo'
 
-    const spy = mock.method(console, 'error', () => {})",err.stack is sent in a response and can leak internals.,,,
+    const spy = mock.method(console, 'error', () => {})",err.stack is sent in a response and can leak internals.,FP,ai-cursor,"The snippet reads error.stack in a test assertion or a log spy, and it does not write the stack to an HTTP response."
 81be883028afdba5,DEPS-DEPRECATED-001,info,package-lock.json,,"{
   ""name"": ""koa"",
   ""version"": ""3.2.1"",
   ""lockfileVersion"": 3,
-  ""requires"": true,",@humanwhocodes/object-schema@2.0.3 is marked deprecated in the lockfile: Use @eslint/object-schema instead,,,
+  ""requires"": true,",@humanwhocodes/object-schema@2.0.3 is marked deprecated in the lockfile: Use @eslint/object-schema instead,TP,ai-cursor,"The lockfile text says this package version is deprecated, which is what the rule reports."
 383a50df2e8e0bdf,DEPS-DEPRECATED-001,info,package-lock.json,,"{
   ""name"": ""koa"",
   ""version"": ""3.2.1"",
   ""lockfileVersion"": 3,
-  ""requires"": true,",eslint@8.57.1 is marked deprecated in the lockfile: This version is no longer supported. Please see https://eslint.org/version-support for other options.,,,
+  ""requires"": true,",eslint@8.57.1 is marked deprecated in the lockfile: This version is no longer supported. Please see https://eslint.org/version-support for other options.,TP,ai-cursor,"The lockfile text says this package version is deprecated, which is what the rule reports."
 df2e49e91c7a90cf,DEPS-DEPRECATED-001,info,package-lock.json,,"{
   ""name"": ""koa"",
   ""version"": ""3.2.1"",
   ""lockfileVersion"": 3,
-  ""requires"": true,",rimraf@3.0.2 is marked deprecated in the lockfile: Rimraf versions prior to v4 are no longer supported,,,
+  ""requires"": true,",rimraf@3.0.2 is marked deprecated in the lockfile: Rimraf versions prior to v4 are no longer supported,TP,ai-cursor,"The lockfile text says this package version is deprecated, which is what the rule reports."
 b018af70e0b1f158,DEPS-DEPRECATED-001,info,package-lock.json,,"{
   ""name"": ""koa"",
   ""version"": ""3.2.1"",
   ""lockfileVersion"": 3,
-  ""requires"": true,","inflight@1.0.6 is marked deprecated in the lockfile: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.",,,
+  ""requires"": true,","inflight@1.0.6 is marked deprecated in the lockfile: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.",TP,ai-cursor,"The lockfile text says this package version is deprecated, which is what the rule reports."
 d81463a173ca63bd,DEPS-DEPRECATED-001,info,package-lock.json,,"{
   ""name"": ""koa"",
   ""version"": ""3.2.1"",
   ""lockfileVersion"": 3,
-  ""requires"": true,",@humanwhocodes/config-array@0.13.0 is marked deprecated in the lockfile: Use @eslint/config-array instead,,,
+  ""requires"": true,",@humanwhocodes/config-array@0.13.0 is marked deprecated in the lockfile: Use @eslint/config-array instead,TP,ai-cursor,"The lockfile text says this package version is deprecated, which is what the rule reports."
 cb3ca5188cfb2e8b,DEPS-DEPRECATED-001,info,package-lock.json,,"{
   ""name"": ""koa"",
   ""version"": ""3.2.1"",
   ""lockfileVersion"": 3,
-  ""requires"": true,",glob@7.2.3 is marked deprecated in the lockfile: Glob versions prior to v9 are no longer supported,,,
+  ""requires"": true,",glob@7.2.3 is marked deprecated in the lockfile: Glob versions prior to v9 are no longer supported,TP,ai-cursor,"The lockfile text says this package version is deprecated, which is what the rule reports."

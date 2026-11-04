@@ -30,6 +30,15 @@ All notable changes to FullShield are documented here.
 - A `.fullshield/evidence.json` file can list `confirmed` paths. A finding in both `files` and `confirmed` is marked `evidence: prioritized`. A file that was not executed stays severity `info` with `gate: false`.
 - `templates/action/action.yml` installs `fullshield@3.6.1` when `version` is omitted. `setup-node`, `cache`, and `upload-sarif` are pinned to commit SHAs. Extra scan arguments are passed through an environment variable.
 
+### Changed
+
+- Dependency findings for packages not reachable from production code are now severity info. --fail-on low or medium no longer fails on them.
+
+### Notes
+
+- Review labels in bench/review are AI-suggested, not human-reviewed.
+- 13 ground-truth line and class fixes in bench apps.
+
 ### Default scan counts
 
 Unreviewed. Measured 2026-11-04 with `scan --json --offline-safe` on Node 22.23.3. The v3.6.0 column is tag `v3.6.0`. The 3.6.1 column is this branch. No rule added or removed a finding.
