@@ -1,8 +1,18 @@
 [
   {
+    "path": "src/agent/diff-gate.ts",
+    "api": "child_process",
+    "reason": "3.6.1 agent diff gate reads the working tree diff with git."
+  },
+  {
     "path": "src/agent/index.ts",
     "api": "child_process",
     "reason": "Existing call recorded in Phase 94. It is not a new execution path."
+  },
+  {
+    "path": "src/confirm/launch.ts",
+    "api": "child_process",
+    "reason": "3.6.1 confirm --app starts a local Node process on 127.0.0.1."
   },
   {
     "path": "src/ai/fixLoop.ts",
@@ -23,6 +33,21 @@
     "path": "src/fixer/git.ts",
     "api": "child_process",
     "reason": "Existing call recorded in Phase 94. It is not a new execution path."
+  },
+  {
+    "path": "src/fixer/pull-request.ts",
+    "api": "child_process",
+    "reason": "3.6.1 fix --pr opens one pull request with gh and does not merge."
+  },
+  {
+    "path": "src/fixer/temp-verify.ts",
+    "api": "child_process",
+    "reason": "3.6.1 fix --verify runs npm test in a temp copy."
+  },
+  {
+    "path": "src/fixer/upgrade-proof.ts",
+    "api": "child_process",
+    "reason": "3.6.1 fix --upgrade installs and tests in a temp directory."
   },
   {
     "path": "src/fixer/index.ts",

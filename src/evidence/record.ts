@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 import type { Finding } from '../core/finding.js';
 
-export const EVIDENCE_FILE = '.fullshield/evidence.json';
+const EVIDENCE_FILE = '.fullshield/evidence.json';
 
 export interface EvidenceFile {
   files: string[];

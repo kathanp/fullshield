@@ -28,7 +28,7 @@ export function reviewedVulnFunctions(raw: unknown): VulnFunctionRow[] {
   return rows;
 }
 
-export function scannerRoot(): string {
+function scannerRoot(): string {
   return fileURLToPath(new URL('../../../', import.meta.url));
 }
 
@@ -63,7 +63,7 @@ export async function mergeReviewedSymbols(
   return merged;
 }
 
-export async function loadVulnFunctions(root: string): Promise<VulnFunctionRow[]> {
+async function loadVulnFunctions(root: string): Promise<VulnFunctionRow[]> {
   try {
     const text = await readFile(join(root, 'models', 'vuln-functions.json'), 'utf8');
     return reviewedVulnFunctions(JSON.parse(text));

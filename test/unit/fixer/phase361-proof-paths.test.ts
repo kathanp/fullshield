@@ -11,9 +11,21 @@ import { proveUpgrade } from '../../../src/fixer/upgrade-proof.js';
 
 const dirs: string[] = [];
 const savedPath = process.env.PATH;
+const savedWinPath = process.env.Path;
+
+function usePath(value: string | undefined): void {
+  if (value === undefined) {
+    delete process.env.PATH;
+    delete process.env.Path;
+    return;
+  }
+  process.env.PATH = value;
+  process.env.Path = value;
+}
 
 afterEach(async () => {
-  process.env.PATH = savedPath;
+  usePath(savedPath);
+  if (savedWinPath !== undefined) {process.env.Path = savedWinPath;}
   for (const dir of dirs.splice(0)) {
     await rm(dir, { recursive: true, force: true });
   }
@@ -29,13 +41,14 @@ async function commandOnPath(dir: string, name: string, body: string): Promise<v
   const bin = join(dir, 'bin');
   await mkdir(bin, { recursive: true });
   if (process.platform === 'win32') {
-    await writeFile(join(bin, `${name}.cmd`), `@echo off\r\n${body}\r\n`, 'utf8');
+    const script = body.replace(/\bexit\s+(\d+)/g, 'exit /b $1');
+    await writeFile(join(bin, `${name}.cmd`), `@echo off\r\n${script}\r\n`, 'utf8');
   } else {
     const file = join(bin, name);
     await writeFile(file, `#!/bin/sh\n${body}\n`, 'utf8');
     await chmod(file, 0o755);
   }
-  process.env.PATH = `${bin}${process.platform === 'win32' ? ';' : ':'}${savedPath ?? ''}`;
+  usePath(`${bin}${process.platform === 'win32' ? ';' : ':'}${savedPath ?? ''}`);
 }
 
 describe('fix proof paths', () => {
@@ -61,7 +74,7 @@ describe('fix proof paths', () => {
 
   it('reports a missing npm as an upgrade that breaks tests', async () => {
     const dir = await scratch();
-    process.env.PATH = dir;
+    usePath(dir);
     const status = await proveUpgrade({ spec: 'left-pad@1.0.0' });
     expect(status).toBe('upgrade-breaks-tests');
   });
@@ -73,7 +86,7 @@ describe('fix proof paths', () => {
     expect(opened.status).toBe(0);
     expect(opened.stdout).toContain('fake-pr');
 
-    process.env.PATH = dir;
+    usePath(dir);
     const missing = await openVerifiedFixPr({ title: 'fix one finding', body: 'temp copy' });
     expect(missing.status).toBe(127);
     expect(missing.stdout).toBe('');

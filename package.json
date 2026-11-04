@@ -121,6 +121,7 @@
   "knip": {
     "entry": [
       "scripts/*.{mjs,js}",
+      "templates/preinstall-guard.mjs",
       "src/phases/p467.ts",
       "src/phases/p474.ts",
       "src/phases/p477.ts",
