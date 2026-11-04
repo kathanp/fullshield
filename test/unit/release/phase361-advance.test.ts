@@ -1,6 +1,7 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { spawn } from 'node:child_process';
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -175,7 +176,9 @@ describe('3.6.1 scanner advances', () => {
     dirs.push(cwd);
     const preload = join(process.cwd(), 'src', 'record', 'preload.mjs');
     const runner = join(cwd, 'run.mjs');
-    await writeFile(runner, `import ${JSON.stringify(preload)};\nawait import(${JSON.stringify(join(cwd, 'app.mjs'))});\n`, 'utf8');
+    const preloadUrl = pathToFileURL(preload).href;
+    const appUrl = pathToFileURL(join(cwd, 'app.mjs')).href;
+    await writeFile(runner, `import ${JSON.stringify(preloadUrl)};\nawait import(${JSON.stringify(appUrl)});\n`, 'utf8');
     await writeFile(join(cwd, 'app.mjs'), [
       "import http from 'node:http';",
       "const server = http.createServer((req, res) => { res.end('ok'); });",

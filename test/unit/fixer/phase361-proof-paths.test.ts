@@ -14,11 +14,9 @@ const savedPath = process.env.PATH;
 const savedWinPath = process.env.Path;
 
 function usePath(value: string | undefined): void {
-  if (value === undefined) {
-    delete process.env.PATH;
-    delete process.env.Path;
-    return;
-  }
+  delete process.env.PATH;
+  delete process.env.Path;
+  if (value === undefined) {return;}
   process.env.PATH = value;
   process.env.Path = value;
 }

@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import { delimiter, join } from 'node:path';
 import { spawn } from 'node:child_process';
 
 export interface PrRun {
@@ -7,9 +9,27 @@ export interface PrRun {
 
 export type PrRunner = (args: readonly string[]) => Promise<PrRun>;
 
+function commandPath(name: string): string {
+  const pathValue = process.env.Path ?? process.env.PATH ?? '';
+  const exts = process.platform === 'win32'
+    ? (process.env.PATHEXT ?? '.COM;.EXE;.BAT;.CMD').split(';')
+    : [''];
+  for (const dir of pathValue.split(delimiter)) {
+    if (dir.length === 0) {continue;}
+    for (const ext of exts) {
+      const candidate = join(dir, `${name}${ext}`);
+      if (existsSync(candidate)) {return candidate;}
+    }
+  }
+  return name;
+}
+
 async function gh(args: readonly string[]): Promise<PrRun> {
   return await new Promise((resolve) => {
-    const child = spawn('gh', [...args], { stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(commandPath('gh'), [...args], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: process.platform === 'win32',
+    });
     let stdout = '';
     child.stdout.on('data', (chunk: Buffer) => {
       stdout += chunk.toString('utf8');
