@@ -26,9 +26,10 @@ function commandPath(name: string): string {
 
 async function gh(args: readonly string[]): Promise<PrRun> {
   return await new Promise((resolve) => {
-    const child = spawn(commandPath('gh'), [...args], {
+    const command = commandPath('gh');
+    const child = spawn(command, [...args], {
       stdio: ['ignore', 'pipe', 'pipe'],
-      shell: process.platform === 'win32',
+      shell: process.platform === 'win32' && /\.(cmd|bat)$/i.test(command),
     });
     let stdout = '';
     child.stdout.on('data', (chunk: Buffer) => {

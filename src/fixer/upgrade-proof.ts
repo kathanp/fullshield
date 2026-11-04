@@ -29,10 +29,11 @@ function commandPath(name: string): string {
 
 async function npm(dir: string, args: string[]): Promise<boolean> {
   return await new Promise((resolve) => {
-    const child = spawn(commandPath('npm'), args, {
+    const command = commandPath('npm');
+    const child = spawn(command, args, {
       cwd: dir,
       stdio: 'ignore',
-      shell: process.platform === 'win32',
+      shell: process.platform === 'win32' && /\.(cmd|bat)$/i.test(command),
     });
     const timer = setTimeout(() => {
       child.kill();
