@@ -160,3 +160,9 @@ Not part of 3.6.1. Nothing here is measured, and nothing here is marked done.
 - On one real app, recorded evidence drops default findings at least another 30%, with zero loss of confirmed-exploitable findings. Record overhead under 5% p95.
 - Default `--fail-on` counts only rules with reviewed precision of at least 80%. Section G/H checks under 50% reviewed precision (n >= 5) can be removed only after that number exists.
 - `bench/*/ground-truth.json` stays `"reviewed": false` until a human flips it. Review labels stay blank until a human writes them.
+- Five missed bugs, maintainer decision, not part of 3.6.1:
+  - Juice Shop redirect `lib/insecurity.ts:136`: the `url.includes(allowedUrl)` silence in `test/unit/modules/sast/bench-misses.test.ts` (113–119) and `test/unit/modules/sast/phase502-flow2.test.ts` (72–74) is wrong. Replace it with a narrow rule for `includes()` used as a redirect allowlist check. Add new tests for that bad pattern and for a safe `startsWith` / URL-parse pattern.
+  - Juice Shop xss `routes/trackOrder.ts:17`: keep the `res.json` silence. Record it as a known limit in the docs.
+  - DVNA `core/appHandler.js:197`: the ground-truth class `config` looks mislabeled. The line is `mathjs.eval` code injection. A 2026-11-04 `scan --json --offline-safe` already reports `SAST-EVAL-001` on that line. A ground-truth change waits for review.
+  - vulnerable-node `views/error.ejs:4`: add a template rule for `error.stack` / `err.stack` printed in EJS, escaped or not, as an info leak.
+  - NodeGoat `app/views/layout.html:75`: propagate tainted locals from child views to their `{% extends %}` parent in Swig.

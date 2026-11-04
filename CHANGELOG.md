@@ -30,6 +30,139 @@ All notable changes to FullShield are documented here.
 - A `.fullshield/evidence.json` file can list `confirmed` paths. A finding in both `files` and `confirmed` is marked `evidence: prioritized`. A file that was not executed stays severity `info` with `gate: false`.
 - `templates/action/action.yml` installs `fullshield@3.6.1` when `version` is omitted. `setup-node`, `cache`, and `upload-sarif` are pinned to commit SHAs. Extra scan arguments are passed through an environment variable.
 
+### Default scan counts
+
+Unreviewed. Measured 2026-11-04 with `scan --json --offline-safe` on Node 22.23.3. The v3.6.0 column is tag `v3.6.0`. The 3.6.1 column is this branch. No rule added or removed a finding.
+
+The roadmap's NodeGoat 256 is `bench/snapshots/HEAD.json` from 0.4.0, not the v3.6.0 tag. The tag already reports 273. See the note under the NodeGoat table.
+
+| app | v3.6.0 | 3.6.1 |
+|---|---:|---:|
+| NodeGoat | 273 | 273 |
+| juice-shop | 105 | 105 |
+| dvna | 23 | 23 |
+| goof | 274 | 274 |
+| vulnerable-node | 65 | 65 |
+
+NodeGoat, same count per rule. 37 `DEPS-VULN-001` findings with reachability `not-imported` moved to `info` (33 from `low`, 4 from `medium`). That is the 3.6.1 severity change, not a new finding.
+
+| rule | v3.6.0 | 3.6.1 | change |
+|---|---:|---:|---:|
+| CONFIG-ERRSTACK-001 | 1 | 1 | 0 |
+| CONFIG-HELMET-001 | 4 | 4 | 0 |
+| CONFIG-INSTALLSCRIPT-001 | 1 | 1 | 0 |
+| CONFIG-RATELIMIT-001 | 4 | 4 | 0 |
+| DEPS-DEPRECATED-001 | 39 | 39 | 0 |
+| DEPS-LOCKMISMATCH-001 | 2 | 2 | 0 |
+| DEPS-MALICIOUS-001 | 1 | 1 | 0 |
+| DEPS-PHANTOM-001 | 1 | 1 | 0 |
+| DEPS-VULN-001 | 196 | 196 | 0 |
+| SAST-EVAL-001 | 3 | 3 | 0 |
+| SAST-NOSQLI-001 | 1 | 1 | 0 |
+| SAST-REDIRECT-001 | 1 | 1 | 0 |
+| SAST-SSRF-001 | 1 | 1 | 0 |
+| SAST-XSS-001 | 15 | 15 | 0 |
+| SECRET-PRIVKEY-001 | 1 | 1 | 0 |
+| SECRET-SESSION-001 | 2 | 2 | 0 |
+
+The 17 findings in the tag that are not in the 0.4.0 snapshot:
+
+| rule | file:line | judgment |
+|---|---|---|
+| SAST-XSS-001 | app/views/login.html:110 | Real. The submitted user name is rendered with Swig autoescape off. |
+| SAST-XSS-001 | app/views/profile.html:41, 45, 49, 53, 57, 61, 66, 70, 78 | Real. Profile fields from the request body are rendered unescaped. `firstNameSafeString` is the raw first name. |
+| SAST-XSS-001 | app/views/contributions.html:65, 73, 81 | Noise. `preTax`, `roth`, and `afterTax` are numbers after `eval` and an `isNaN` check. The `eval` is already `SAST-EVAL-001`. |
+| SAST-XSS-001 | app/views/allocations.html:15 | Noise. `userId` in the form action comes from the session id. |
+| DEPS-LOCKMISMATCH-001 | package.json:19, 56 | Real drift, not an exploit. `needle` 2.2.4 vs lock 2.3.0, and `jshint` 2.12.0 vs lock 2.13.6. |
+| DEPS-PHANTOM-001 | test/security/profile-test.js:6 | Noise. A test imports `chromedriver`, which is not in package.json. |
+
+Juice Shop, same count per rule and the same severities.
+
+| rule | v3.6.0 | 3.6.1 | change |
+|---|---:|---:|---:|
+| CONFIG-DIRLIST-001 | 33 | 33 | 0 |
+| CONFIG-DOCKER-ROOT-001 | 1 | 1 | 0 |
+| CONFIG-HELMET-001 | 2 | 2 | 0 |
+| CONFIG-INSTALLSCRIPT-001 | 1 | 1 | 0 |
+| CONFIG-RATELIMIT-001 | 3 | 3 | 0 |
+| DEPS-NOLOCK-001 | 1 | 1 | 0 |
+| DEPS-VULN-001 | 13 | 13 | 0 |
+| SAST-AUTH-001 | 2 | 2 | 0 |
+| SAST-EVAL-001 | 3 | 3 | 0 |
+| SAST-JWT-001 | 3 | 3 | 0 |
+| SAST-NOSQLI-001 | 19 | 19 | 0 |
+| SAST-PATH-001 | 8 | 8 | 0 |
+| SAST-REDIRECT-001 | 1 | 1 | 0 |
+| SAST-SQLI-001 | 6 | 6 | 0 |
+| SAST-SSRF-001 | 1 | 1 | 0 |
+| SECRET-ENTROPY-001 | 5 | 5 | 0 |
+| SECRET-PRIVKEY-001 | 3 | 3 | 0 |
+
+DVNA, same count per rule and the same severities. `SAST-EVAL-001` already flags `core/appHandler.js:197`.
+
+| rule | v3.6.0 | 3.6.1 | change |
+|---|---:|---:|---:|
+| CONFIG-DOCKER-ROOT-001 | 1 | 1 | 0 |
+| CONFIG-HELMET-001 | 1 | 1 | 0 |
+| CONFIG-RATELIMIT-001 | 2 | 2 | 0 |
+| DEPS-NOLOCK-001 | 1 | 1 | 0 |
+| DEPS-VULN-001 | 4 | 4 | 0 |
+| SAST-CMDI-001 | 1 | 1 | 0 |
+| SAST-CRYPTO-001 | 2 | 2 | 0 |
+| SAST-EVAL-001 | 1 | 1 | 0 |
+| SAST-REDIRECT-001 | 1 | 1 | 0 |
+| SAST-SQLI-001 | 1 | 1 | 0 |
+| SAST-XSS-001 | 6 | 6 | 0 |
+| SECRET-SESSION-001 | 2 | 2 | 0 |
+
+Goof, same count per rule. 12 `DEPS-VULN-001` findings with reachability `not-imported` moved to `info` (7 from `low`, 5 from `medium`).
+
+| rule | v3.6.0 | 3.6.1 | change |
+|---|---:|---:|---:|
+| CONFIG-DOCKER-ROOT-001 | 1 | 1 | 0 |
+| CONFIG-HELMET-001 | 1 | 1 | 0 |
+| CONFIG-INSTALLSCRIPT-001 | 1 | 1 | 0 |
+| CONFIG-RATELIMIT-001 | 2 | 2 | 0 |
+| DEPS-DEPRECATED-001 | 21 | 21 | 0 |
+| DEPS-LOCKMISMATCH-001 | 2 | 2 | 0 |
+| DEPS-PHANTOM-001 | 1 | 1 | 0 |
+| DEPS-VULN-001 | 232 | 232 | 0 |
+| SAST-AUTH-001 | 2 | 2 | 0 |
+| SAST-CMDI-001 | 1 | 1 | 0 |
+| SAST-NOSQLI-001 | 1 | 1 | 0 |
+| SAST-PATH-001 | 1 | 1 | 0 |
+| SAST-PROTO-001 | 1 | 1 | 0 |
+| SAST-REDIRECT-001 | 1 | 1 | 0 |
+| SAST-XSS-001 | 4 | 4 | 0 |
+| SECRET-SESSION-001 | 2 | 2 | 0 |
+
+vulnerable-node, same count per rule and the same severities.
+
+| rule | v3.6.0 | 3.6.1 | change |
+|---|---:|---:|---:|
+| CONFIG-BODYLIMIT-001 | 3 | 3 | 0 |
+| CONFIG-DOCKER-ROOT-001 | 2 | 2 | 0 |
+| CONFIG-HELMET-001 | 7 | 7 | 0 |
+| CONFIG-RATELIMIT-001 | 4 | 4 | 0 |
+| DEPS-PHANTOM-001 | 2 | 2 | 0 |
+| DEPS-VULN-001 | 5 | 5 | 0 |
+| SAST-AUTH-001 | 5 | 5 | 0 |
+| SAST-CMDI-001 | 2 | 2 | 0 |
+| SAST-CRYPTO-001 | 1 | 1 | 0 |
+| SAST-EVAL-001 | 1 | 1 | 0 |
+| SAST-JWT-001 | 1 | 1 | 0 |
+| SAST-NOSQLI-001 | 2 | 2 | 0 |
+| SAST-PATH-001 | 3 | 3 | 0 |
+| SAST-PROTO-001 | 3 | 3 | 0 |
+| SAST-REDIRECT-001 | 4 | 4 | 0 |
+| SAST-SQLI-001 | 3 | 3 | 0 |
+| SAST-SSRF-001 | 2 | 2 | 0 |
+| SAST-XSS-001 | 5 | 5 | 0 |
+| SECRET-AWS-001 | 2 | 2 | 0 |
+| SECRET-DBURL-001 | 4 | 4 | 0 |
+| SECRET-ENTROPY-001 | 2 | 2 | 0 |
+| SECRET-JWT-001 | 2 | 2 | 0 |
+
 ## 3.6.0 — 2026-11-02
 
 ### Experimental
