@@ -30,7 +30,7 @@ Goal: first reviewed precision number; cut the noise we already know about.
 Ships:
 - BENCHMARK.md: maintainer-reviewed precision per module and per rule
   (n, repos, date, "one reviewer"). Labels come from bench/review/*.csv (human only).
-- Remove section G/H checks with < 50% reviewed precision (n >= 5).
+- Section G/H removal for reviewed precision under 50% (n >= 5) waits in 3.7.0.
 - [ X ] Remove H45, H47–H57 (magic-filename "findings").
 - [ X ] Merge `FULLSHIELD_EXPERIMENTAL_SUPPLY` into the group switch. Old names stay accepted as aliases for one major.
 - [ X ] Experimental flag names in `--help` cut by >= 30%.
@@ -49,17 +49,15 @@ Exit criteria:
 ### Default scan
 Goal: the default CI gate fails only on findings people trust.
 Ships:
-- Default --fail-on counts only rules with reviewed precision >= 80%.
-  Other rules still report, with `gate: false` in JSON.
+- Default --fail-on limited to rules with reviewed precision >= 80% waits in 3.7.0.
+  Other rules still report. `gate: false` is already used for not-imported and dev-only deps.
 - [ X ] DEPS-VULN-001 with reachability `not-imported` or dev-only → severity info,
   never fails the gate.
-- All pending experimental→default promotions land here, together.
+- Experimental→default promotions wait in 3.7.0. Their evidence files stay unmet.
 - CHANGELOG "Default scan changes": every rule ID added/removed/re-severitied,
   before/after counts per bench app.
 Exit criteria:
-- NodeGoat default findings 256 → < 60.
-- Zero loss of in-scope ground-truth matches on NodeGoat, Juice Shop, DVNA, goof,
-  vulnerable-node.
+- NodeGoat default findings under 60, and zero in-scope ground-truth loss, wait in 3.7.0.
 - [ X ] clean-app stays 0.
 
 ### CI that doesn't annoy
@@ -94,20 +92,16 @@ Ships:
   below policy. Never executes the package.
 - [ X ] Policy in fullshield.config.json: `install.block`, `install.warn`.
 Exit criteria:
-- Replayed set of past malicious-package incidents (fixture tarballs): >= 90% blocked.
-- Top 500 npm packages: 0 false blocks.
+- The malicious-package replay and the top 500 false-block bar wait in 3.7.0.
 
 ### Function-level reachability
 Goal: "you call the vulnerable function", not "you import the package".
 Ships:
-- models/vuln-functions.json: advisory → vulnerable export/function for the top 100
-  vulnerable npm packages (human-reviewed, cited source per row).
+- The 100-package `models/vuln-functions.json` map waits in 3.7.0. The file stays `{ "rows": [] }`.
 - [ X ] Call graph from app code to those functions → `symbol-reachable` /
   `symbol-not-called`.
 Exit criteria:
-- Map covers 100 packages, every row cited.
-- >= 40% of dependency findings on bench apps downgraded with evidence.
-- 0 true reachable vulns downgraded (checked on ground truth).
+- The 100 cited packages, the 40% downgrade bar, and zero true reachable downgrades wait in 3.7.0.
 
 ### Proof of exploit
 Goal: turn "reachable" into "confirmed exploitable".
@@ -138,8 +132,7 @@ Ships:
 - [ X ] `init --agent cursor|claude` writes the rule file and MCP config.
 - [ X ] Agent mode gates only lines changed in the working diff.
 Exit criteria:
-- End-to-end demo in Cursor and Claude Code on this repo: agent introduces a
-  vuln → guardrail blocks → verified fix applied.
+- The live Cursor and Claude Code demo waits in 3.7.0.
 - [ X ] MCP tools remain read-only except `verified_fix` writing a temp copy.
 
 ### Runtime evidence
@@ -151,8 +144,19 @@ Ships:
   executed + confirmed → `evidence: prioritized`.
 - [ X ] Default severities can change with evidence.
 Exit criteria:
-- On one real app, default findings drop a further >= 30% with 0 loss of
-  confirmed-exploitable findings.
-- Record overhead < 5% p95 latency in bench.
+- The further 30% drop and the record-overhead bar wait in 3.7.0.
 
 This release also adds commands, flags, and default-scan findings. The earlier patch rule "no new command, flag, rule id, or default-scan finding" does not apply to 3.6.1.
+
+## 3.7.0: waiting bars
+
+Not part of 3.6.1. Nothing here is measured, and nothing here is marked done.
+
+- NodeGoat default findings under 60, with zero loss of in-scope ground-truth matches on NodeGoat, Juice Shop, DVNA, goof, and vulnerable-node. Do not hide dependency reports to hit the count.
+- Malicious-package replay: at least 90% of the fixture tarballs blocked. Top 500 npm packages: 0 false blocks.
+- `models/vuln-functions.json`: 100 packages, every row cited and human-reviewed. At least 40% of dependency findings on the bench apps downgraded, and zero true reachable vulnerabilities downgraded.
+- Promotion files stay unmet until a stored scan meets each file. No flag moves to stable from an empty evidence cell.
+- Live Cursor and Claude Code demo: a vulnerability is introduced, the guardrail blocks it, and a verified fix is applied.
+- On one real app, recorded evidence drops default findings at least another 30%, with zero loss of confirmed-exploitable findings. Record overhead under 5% p95.
+- Default `--fail-on` counts only rules with reviewed precision of at least 80%. Section G/H checks under 50% reviewed precision (n >= 5) can be removed only after that number exists.
+- `bench/*/ground-truth.json` stays `"reviewed": false` until a human flips it. Review labels stay blank until a human writes them.
