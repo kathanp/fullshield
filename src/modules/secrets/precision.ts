@@ -8,7 +8,8 @@ function zlibCrc32(data: string): number {
   const zlib = require('node:zlib') as { crc32?: (value: string) => number };
   const crc32 = zlib.crc32;
   if (typeof crc32 !== 'function') {
-    throw new Error('fullshield requires Node 22.13 or newer');
+    const err = new Error('fullshield requires Node 22.13 or newer');
+    throw err;
   }
   return crc32(data);
 }
