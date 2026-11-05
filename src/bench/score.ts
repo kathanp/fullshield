@@ -70,6 +70,7 @@ const RULE_CLASS: Record<string, BenchClass> = {
   'SAST-XSS-001': 'xss',
   'SAST-SSRF-001': 'ssrf',
   'SAST-REDIRECT-001': 'redirect',
+  'SAST-REDIRECT-002': 'redirect',
   'SAST-EVAL-001': 'eval',
   'SAST-JWT-001': 'jwt',
   'SAST-CRYPTO-001': 'crypto',

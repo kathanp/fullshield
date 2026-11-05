@@ -46,6 +46,45 @@ export function mergeSwigViews(into: Map<string, SwigViewTaint>, extra: Map<stri
   }
 }
 
+const EXTENDS_TAG = /\{%-?\s*extends\s+['"]([^'"]+)['"]/;
+
+function swigExtendsParent(source: string): string | undefined {
+  const raw = EXTENDS_TAG.exec(source)?.[1];
+  if (raw === undefined) {return undefined;}
+  return raw.replace(/^\.\//, '').replace(/\.(html|swig)$/i, '');
+}
+
+function copySwigTaint(into: SwigViewTaint, from: SwigViewTaint): void {
+  for (const name of from.tainted) {
+    into.tainted.add(name);
+    into.safe.delete(name);
+  }
+  for (const name of from.safe) {
+    if (!into.tainted.has(name)) {into.safe.add(name);}
+  }
+  into.spread = into.spread || from.spread;
+}
+
+/** Locals passed to a child view are also locals of the `{% extends %}` parent. */
+export function propagateSwigExtends(
+  views: Map<string, SwigViewTaint>,
+  templates: readonly { rel: string; source: string }[],
+): void {
+  const edges: { parent: string; info: SwigViewTaint }[] = [];
+  for (const template of templates) {
+    const parent = swigExtendsParent(template.source);
+    if (parent === undefined) {continue;}
+    for (const [view, info] of views) {
+      if (templateMatchesView(template.rel, view)) {edges.push({ parent, info });}
+    }
+  }
+  for (const edge of edges) {
+    const dest = views.get(edge.parent) ?? { tainted: new Set<string>(), safe: new Set<string>(), spread: false };
+    copySwigTaint(dest, edge.info);
+    views.set(edge.parent, dest);
+  }
+}
+
 export function swigNamesForFile(file: string, views: ReadonlyMap<string, SwigViewTaint>): SwigViewTaint | undefined {
   let merged: SwigViewTaint | undefined;
   for (const [view, info] of views) {

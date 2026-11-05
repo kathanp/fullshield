@@ -226,6 +226,7 @@ rules/SAST-POSTMSG-001.md
 rules/SAST-PROTO-001.md
 rules/SAST-REACT-001.md
 rules/SAST-REDIRECT-001.md
+rules/SAST-REDIRECT-002.md
 rules/SAST-REDOS-001.md
 rules/SAST-RSA-001.md
 rules/SAST-SESSION-002.md

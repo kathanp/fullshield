@@ -9,7 +9,7 @@ Rules for every version:
 - Node/TS only. Offline-first. No telemetry, no hosted service, no PR-comment bot,
   no new language, no new string-match H/G-style checks.
 
-The next release is 3.6.1. It holds the unfinished trust baseline and everything that used to be 4.0.0–4.7.0 and 5.0.0. There is no separate 4.x or 5.0.0 tag.
+The next release is 3.6.1. It holds the unfinished trust baseline and everything that used to be 4.0.0–4.7.0 and 5.0.0. Those old numbers were never tagged. D-77 moved that scope into 3.6.1. After 3.7.0, the next plan is three minors, 3.8.0, 3.9.0, and 3.10.0. Each one adds a module. None of them is a 4.0.0 major. A major has to remove or change something already listed as Stable in `docs/stability.md`. A new module does not.
 
 `v3.6.0` is already on `main` (2026-11-02) for the four group flags only. The rest of this section is still open. On 2026-11-03 the maintainer chose one release, numbered 3.6.1, for this whole section (D-77). The version check accepts that patch. The release after 3.6.1 follows R16a again.
 
@@ -150,7 +150,7 @@ This release also adds commands, flags, and default-scan findings. The earlier p
 
 ## 3.7.0: waiting bars
 
-Not part of 3.6.1. Nothing here is measured, and nothing here is marked done.
+Not part of 3.6.1. The code items below are in the tree. The measured bars are still open, so this version is not tagged.
 
 - NodeGoat default findings under 60, with zero loss of in-scope ground-truth matches on NodeGoat, Juice Shop, DVNA, goof, and vulnerable-node. Do not hide dependency reports to hit the count.
 - Malicious-package replay: at least 90% of the fixture tarballs blocked. Top 500 npm packages: 0 false blocks.
@@ -161,14 +161,72 @@ Not part of 3.6.1. Nothing here is measured, and nothing here is marked done.
 - Default `--fail-on` counts only rules with reviewed precision of at least 80%. Section G/H checks under 50% reviewed precision (n >= 5) can be removed only after that number exists.
 - `bench/*/ground-truth.json` stays `"reviewed": false`. Review labels in `bench/review` are AI-suggested (`reviewer: ai-cursor`). A human has not reviewed them.
 - Five missed bugs, maintainer decision, not part of 3.6.1:
-  - Juice Shop redirect `lib/insecurity.ts:136`: the `url.includes(allowedUrl)` silence in `test/unit/modules/sast/bench-misses.test.ts` (113–119) and `test/unit/modules/sast/phase502-flow2.test.ts` (72–74) is wrong. Replace it with a narrow rule for `includes()` used as a redirect allowlist check. Add new tests for that bad pattern and for a safe `startsWith` / URL-parse pattern.
-  - Juice Shop xss `routes/trackOrder.ts:17`: keep the `res.json` silence. Record it as a known limit in the docs.
-  - DVNA `core/appHandler.js:197`: the ground-truth class was `config`. The line is `mathjs.eval` code injection. A 2026-11-04 `scan --json --offline-safe` already reports `SAST-EVAL-001` on that line. Cursor changed that row's class to `eval`. `reviewed` stays false.
-  - vulnerable-node `views/error.ejs:4`: add a template rule for `error.stack` / `err.stack` printed in EJS, escaped or not, as an info leak.
-  - NodeGoat `app/views/layout.html:75`: propagate tainted locals from child views to their `{% extends %}` parent in Swig.
-- `not-imported` does not read `package.json` `scripts` or a dependency `bin`. `scriptReach` in `src/modules/deps/npm/lane-g.ts` is never called, and with its flag off it returns the current class. A direct dependency used only as a script or a bin stays `not-imported`. NodeGoat's `start` script is `node server.js`, not `forever`. Goof's `test` script is `snyk test`, not `tap`.
-- Skip `test/`, `__tests__/`, `*.test.*`, `examples/`, `example/`, and `fixtures/` for the app-config rules `CONFIG-HELMET-001`, `CONFIG-ERRSTACK-001`, `CONFIG-RATELIMIT-001`, `CONFIG-BODYLIMIT-001`, and `CONFIG-DOCKER-ROOT-001`. Those rules currently run on every walked file. The default walk excludes generated trees, not tests or examples.
-- On Node below 22.13, the CLI crashes with a zlib crc32 SyntaxError before the version check runs. Print a clear 'requires Node 22.13 or newer' message instead.
+  - [X] Juice Shop redirect `lib/insecurity.ts:136`: `SAST-REDIRECT-002` reports `url.includes(allowedUrl)`. `SAST-REDIRECT-001` stays quiet on that helper. `startsWith` and a parsed URL compare stay quiet.
+  - [X] Juice Shop xss `routes/trackOrder.ts`: `res.json` stays quiet. Recorded in the README known limits.
+  - [X] DVNA `core/appHandler.js:197`: already `SAST-EVAL-001`. `reviewed` stays false. Ground truth was not edited.
+  - [X] vulnerable-node `views/error.ejs`: `CONFIG-ERRSTACK-001` reports printed `error.stack` and `err.stack` in EJS.
+  - [X] NodeGoat `app/views/layout.html`: tainted locals on a Swig child propagate to the `{% extends %}` parent.
+- [X] `FULLSHIELD_EXPERIMENTAL_NPM_REACH_BIN` calls `scriptReach`. Flag off stays `not-imported`. `node server.js` does not mark `forever`. `snyk test` does not mark `tap`.
+- [X] Skip `test/`, `__tests__/`, `*.test.*`, `examples/`, `example/`, and `fixtures/` for `CONFIG-HELMET-001`, `CONFIG-ERRSTACK-001`, `CONFIG-RATELIMIT-001`, `CONFIG-BODYLIMIT-001`, and `CONFIG-DOCKER-ROOT-001`.
+- [X] On Node below 22.13, the CLI prints `fullshield requires Node 22.13 or newer` instead of crashing on a named `zlib.crc32` import.
+
+## Three modules: 3.8.0, 3.9.0, 3.10.0
+
+Not part of 3.6.1 or 3.7.0. Nothing here is started, measured, or marked done. Naming one version in a later message is the go for that version's tests. It is not a go for the next version, for a tag, or for npm publish.
+
+The default modules today are `deps`, `secrets`, `sast`, and `config` (`src/core/finding.ts`). These three versions each add one module beside those four. They do not retune baselines, reprints, chains, lockfile install, extra canaries, agent citation, fix statuses, Hono and Koa promotion, or script reachability.
+
+A regex pass already exists and is not these modules. `src/llm/index.ts` flags `LLM-001` through `LLM-005` only when `FULLSHIELD_EXPERIMENTAL_LLM=1`, by matching text in one file. `src/exp/sectiong.ts` flags a file that contains both `bull` and `exec`. `src/exp/sectiong.ts` also flags an OpenAPI file that contains the literal path `/admin`. Those checks stay out of the verdict.
+
+Same rules as every other version. One headline. The exit test is measured, or the version waits. At least 14 days after the previous minor. The new module stays behind one flag until the human promotes it. The tag adds that one flag and removes one existing `FULLSHIELD_EXPERIMENTAL_*` flag, so `--help` does not grow. No new string-match H/G-style check. Node.js and TypeScript only. Offline. No telemetry, no hosted service, no pull-request comment bot, no new language. The five agent skills stay out. Business-logic and IDOR findings, container scanning, and the "Not planned" list stay out.
+
+### 3.8.0: `agents` module
+
+Goal: `scan --modules agents` reads the Node app's own model calls. Untrusted input that becomes a system message or a tool argument is a finding. A tool the app registers, whose handler passes that argument to a shell, a file write, or SQL, is a finding.
+
+Ships:
+- [ ] New module `agents`. Sources are request body, query, params, headers, and cookies. Sinks are a system-role message, a tool or function argument, and a tool handler that forwards that argument to `child_process`, `fs`, or a SQL call.
+- [ ] The trace crosses a helper in another file, same depth as SAST (5).
+- [ ] One positive fixture and one negative fixture for each sink. The negative cases are a literal system prompt, user text kept in the user role, and a shell tool whose allowlist rejects the argument.
+- [ ] The tag removes `FULLSHIELD_EXPERIMENTAL_LLM`. `LLM-001` through `LLM-005` are not reported.
+Exit criteria:
+- Each positive fixture reports. Each negative fixture does not.
+- clean-app stays 0 with the flag on and with it off.
+- Flag off: default `scan --json` is unchanged.
+- A file that only contains the word "prompt" or "system" produces no finding.
+- Skill files, `~/.cursor`, and any directory outside the project are not read.
+
+### 3.9.0: `workers` module
+
+Goal: `scan --modules workers` treats a background message as a source. A job body or a socket message that reaches SQL, a shell, a path, or a URL is a finding. HTTP `req.body` rules do not see these handlers today.
+
+Ships:
+- [ ] New module `workers`. Sources are a BullMQ `Worker` job payload, a bee-queue job payload, an SQS record body, and a WebSocket or Socket.IO `message` argument.
+- [ ] Those values use the existing SQL, command, path, and SSRF sinks. This version adds no new sink.
+- [ ] One positive fixture and one negative fixture per source. The negative case parses the payload and passes a checked field, or uses a constant.
+Exit criteria:
+- Each positive fixture reports the sink and names the worker source.
+- Each negative fixture reports nothing.
+- clean-app stays 0 with the flag on and with it off.
+- Flag off: default `scan --json` is unchanged.
+- The section G text check that looks for `bull` and `exec` in the same file is not this module and is not the verdict.
+- No package is installed and no worker is started.
+
+### 3.10.0: `contract` module
+
+Goal: `scan --modules contract` compares a local OpenAPI file with the routes the app actually registers. A path that exists on only one side is a finding.
+
+Ships:
+- [ ] New module `contract`. Reads `openapi.yaml` or `openapi.json` in the project. Parses paths and methods.
+- [ ] Compares that set with the route inventory for Express, Fastify, Nest, and Next. Two rule ids: a spec path with no route, and a route with no spec path.
+- [ ] Matched method and path produce no finding. A project with no OpenAPI file produces no finding.
+Exit criteria:
+- A fixture with one extra spec path and one extra route reports those two and stays silent on the paths that match.
+- A fixture with no OpenAPI file reports nothing.
+- clean-app stays 0 with the flag on and with it off.
+- Flag off: default `scan --json` is unchanged.
+- The check does not look for the literal string `/admin`. It does not fetch a URL.
+- Query parameters and response bodies are out of this version. Path and method only.
 
 ## Not planned
 

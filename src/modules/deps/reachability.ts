@@ -1,5 +1,7 @@
 import { makeFindingId, severityRank, SEVERITIES, type Finding, type Severity } from '../../core/finding.js';
 import type { LockfileGraph } from './lockfile.js';
+import { scriptReach } from './npm/lane-g.js';
+import { npmFlag } from './npm/types.js';
 import { classifySymbolUse } from './symbol-reachability.js';
 
 export type Reachability = NonNullable<Finding['reachability']>;
@@ -15,6 +17,10 @@ export interface ReachabilityContext {
   graph: LockfileGraph;
   /** Production sources, used only when an advisory names affected functions. */
   sources?: ReadonlyMap<string, string>;
+  /** Root package.json scripts. Read when NPM_REACH_BIN is on. */
+  scripts?: Readonly<Record<string, string>>;
+  /** Installed bin fields for direct dependencies. Missing entries stay not-imported. */
+  bins?: ReadonlyMap<string, string | Readonly<Record<string, string>>>;
 }
 
 /** `name@version` or `@scope/name@version` from a DEPS-VULN-001 snippet. */
@@ -200,6 +206,12 @@ export function classifyReachability(
   return { reachability: 'not-imported' };
 }
 
+function withScriptReach(pkg: string, current: Reachability, ctx: ReachabilityContext): Reachability {
+  if (!npmFlag('NPM_REACH_BIN') || current !== 'not-imported') {return current;}
+  const next = scriptReach(true, ctx.scripts, ctx.bins?.get(pkg), pkg, 'not-imported');
+  return next === 'reachable-via-script' ? next : current;
+}
+
 /**
  * Direct production dependencies that no project file imports and that no
  * imported package requires. Imported and imported-not-called names stay out.
@@ -241,6 +253,7 @@ export function reachabilitySteps(reachability: Reachability): number {
   if (
     reachability === 'reachable' ||
     reachability === 'reachable-via-dependency' ||
+    reachability === 'reachable-via-script' ||
     reachability === 'reachability-unknown' ||
     reachability === 'symbol-reachable'
   ) {
@@ -274,6 +287,7 @@ const REACH_RANK: Record<Reachability, number> = {
   'symbol-not-called': 4,
   'reachability-unknown': 5,
   'not-imported': 6,
+  'reachable-via-script': 2,
   vendored: 0,
 };
 
@@ -391,10 +405,11 @@ export function applyReachability(
       const pkg = packageNameFromSnippet(finding.snippet);
       if (pkg === undefined || pkg.length === 0) {return finding;}
       const classified = classifyReachability(pkg, ctx.productionUsage, ctx.graph);
+      const reachability = withScriptReach(pkg, classified.reachability, ctx);
       return {
         ...finding,
         severity: 'critical',
-        reachability: classified.reachability,
+        reachability,
         ...pathFields(classified),
       };
     }
@@ -402,6 +417,7 @@ export function applyReachability(
     const pkg = packageNameFromSnippet(finding.snippet);
     if (pkg === undefined || pkg.length === 0) {return finding;}
     let classified = classifyReachability(pkg, ctx.productionUsage, ctx.graph);
+    classified = { ...classified, reachability: withScriptReach(pkg, classified.reachability, ctx) };
     const named = symbols.get(finding.id) ?? [];
     if (named.length > 0 && ctx.sources !== undefined) {
       const symbolClass = classifySymbolUse(named, ctx.sources);

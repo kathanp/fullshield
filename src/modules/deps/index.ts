@@ -12,6 +12,7 @@ import { collectImportSites, evidenceForFinding } from './evidence.js';
 import { dependencyShapeFindings } from './phantom.js';
 import { callGraphConfigHash, indexPackageUsageCached } from './call-graph-cache.js';
 import { applyReachability, indexPackageUsage, isProductionSource, unusedDirectPlan } from './reachability.js';
+import { scriptReachContext } from './script-context.js';
 import { perf2Enabled } from '../../core/perf2.js';
 import { chooseUpgradePlan, type UpgradeAdvisory } from './upgrade-plan.js';
 import { campaignFindings, securityPlaceholderFinding } from '../../supply/campaign.js';
@@ -559,6 +560,8 @@ async function reachabilityCtx(
   productionUsage: Map<string, { imported: boolean; called: boolean }>;
   graph: LockfileGraph;
   sources: Map<string, string>;
+  scripts?: Readonly<Record<string, string>>;
+  bins?: ReadonlyMap<string, string | Readonly<Record<string, string>>>;
 }> {
   const prodSources = new Map<string, string>();
   for (const rel of files) {
@@ -573,5 +576,6 @@ async function reachabilityCtx(
   const productionUsage = perf2Enabled()
     ? indexPackageUsageCached(prodSources, callGraphConfigHash(maxFileBytes))
     : indexPackageUsage(prodSources);
-  return { productionUsage, graph, sources: prodSources };
+  const scripts = await scriptReachContext(cwd, graph);
+  return { productionUsage, graph, sources: prodSources, ...scripts };
 }

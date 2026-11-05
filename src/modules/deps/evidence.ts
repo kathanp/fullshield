@@ -99,6 +99,9 @@ export function evidenceForFinding(
     case 'symbol-not-called':
       reason = `A named vulnerable export is not called.`;
       return { imports, reason };
+    case 'reachable-via-script':
+      reason = `A root script runs the ${pkg} bin.`;
+      return { imports, reason };
     default:
       reason = first !== undefined ? `Imported from ${first.file}:${first.line}.` : `Imported by production code.`;
       return { imports, ...(path !== undefined ? { dependencyPath: path } : {}), reason };

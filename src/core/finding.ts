@@ -70,6 +70,7 @@ export interface Finding {
     | 'reachability-unknown'
     | 'symbol-reachable'
     | 'symbol-not-called'
+    | 'reachable-via-script'
     | 'vendored';
   /** Lockfile path from an imported direct dependency, e.g. express > body-parser > qs. */
   dependencyPath?: string[];

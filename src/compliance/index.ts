@@ -28,6 +28,7 @@ export const RULE_MAP: readonly RuleMapping[] = [
   ROW('SAST-EVAL-001', 'A03:2021 Injection', 'CWE-95', 'V5.3.3', 'PCI DSS 6.2.4'),
   ROW('SAST-SSRF-001', 'A10:2021 SSRF', 'CWE-918', 'V12.6.1', 'PCI DSS 6.2.4'),
   ROW('SAST-REDIRECT-001', 'A01:2021 Broken Access Control', 'CWE-601', 'V5.1.1', 'PCI DSS 6.4.2'),
+  ROW('SAST-REDIRECT-002', 'A01:2021 Broken Access Control', 'CWE-601', 'V5.1.1', 'PCI DSS 6.4.2'),
   ROW('SAST-PROTO-001', 'A03:2021 Injection', 'CWE-1321', 'V5.3.3', 'PCI DSS 6.2.4'),
   ROW('SAST-XSS-001', 'A03:2021 Injection', 'CWE-79', 'V5.3.3', 'PCI DSS 6.2.4'),
   ROW('SAST-LDAP-001', 'A03:2021 Injection', 'CWE-90', 'V5.3.4', 'PCI DSS 6.4.2'),

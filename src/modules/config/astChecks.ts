@@ -3,6 +3,7 @@ import { calleeName, literalString, walk } from '../sast/ast.js';
 import { classesEnabled } from '../sast/experimental.js';
 import type { AstNode } from '../sast/types.js';
 import { configFinding } from './finding.js';
+import { omitSampleConfigFindings } from './sample-path.js';
 import type { Finding } from '../../core/finding.js';
 
 export const configAstRuleIds = [
@@ -261,5 +262,5 @@ export async function runConfigAstChecks(file: string, source: string): Promise<
     }
   }
 
-  return findings;
+  return omitSampleConfigFindings(file, findings);
 }

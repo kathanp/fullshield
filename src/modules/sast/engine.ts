@@ -31,11 +31,11 @@ import { jwtRule } from './rules/jwt.js';
 import { nosqliRule } from './rules/nosqli.js';
 import { pathRule } from './rules/path.js';
 import { protoRule } from './rules/proto.js';
-import { redirectRule } from './rules/redirect.js';
+import { redirectAllowlistRule, redirectRule } from './rules/redirect.js';
 import { sqliRule } from './rules/sqli.js';
 import { ssrfRule } from './rules/ssrf.js';
 import { TEMPLATE_EXT, xssRule } from './rules/xss.js';
-import { lineHasTracedSwig, mergeSwigViews, swigNamesForFile, taintedSwigViews, type SwigViewTaint } from './swig-render.js';
+import { lineHasTracedSwig, mergeSwigViews, propagateSwigExtends, swigNamesForFile, taintedSwigViews, type SwigViewTaint } from './swig-render.js';
 import { phase29Rules, sourceHasCsrfGuard } from './rules/phase29.js';
 import { crypto2Rules } from './rules/crypto2.js';
 import { fastifySchemaRule, nestBodyRule, nextRouteRule } from './rules/frameworks.js';
@@ -78,6 +78,7 @@ export const sastRules: readonly SastRule[] = [
   nosqliRule,
   ssrfRule,
   redirectRule,
+  redirectAllowlistRule,
   protoRule,
   xssRule,
   authRule,
@@ -548,6 +549,7 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
   if (!taintStopped) {
     await appendStreamingInterproc(ctx, load.parseable, walked, load.findings);
   }
+  if (load.viewEngine === 'swig') {propagateSwigExtends(load.swigViews, load.templates);}
   for (const template of load.templates) {
     load.findings.push(...findingsFromTemplate(template.rel, template.source, load.viewEngine, load.swigViews));
   }
@@ -734,6 +736,7 @@ async function runSastBatch(
     findings.push(...crossFileReturnFindings(interprocInput));
   }
   const swigViews = viewEngine === 'swig' ? taintedSwigViews(parsed) : undefined;
+  if (swigViews !== undefined) {propagateSwigExtends(swigViews, templates);}
   for (const template of templates) {
     findings.push(...findingsFromTemplate(template.rel, template.source, viewEngine, swigViews));
   }

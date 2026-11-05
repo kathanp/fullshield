@@ -1,6 +1,17 @@
-import { crc32 } from 'node:zlib';
+import { createRequire } from 'node:module';
 
 import type { Confidence, Finding } from '../../core/finding.js';
+
+const require = createRequire(import.meta.url);
+
+function zlibCrc32(data: string): number {
+  const zlib = require('node:zlib') as { crc32?: (value: string) => number };
+  const crc32 = zlib.crc32;
+  if (typeof crc32 !== 'function') {
+    throw new Error('fullshield requires Node 22.13 or newer');
+  }
+  return crc32(data);
+}
 
 /** Phase 82. Off unless FULLSHIELD_EXPERIMENTAL_SECRET_CHECK=1. */
 export function secretCheckEnabled(): boolean {
@@ -21,7 +32,7 @@ const PLACEHOLDER_WORDS = ['example', 'sample', 'dummy', 'changeme', 'your_', 'x
 const TEST_DIRS = new Set(['test', '__tests__', 'fixtures']);
 
 function base62Crc(data: string): string {
-  let n = crc32(data) >>> 0;
+  let n = zlibCrc32(data) >>> 0;
   let out = '';
   for (let i = 0; i < 6; i += 1) {
     out = ALPHABET.charAt(n % 62) + out;

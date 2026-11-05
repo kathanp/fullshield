@@ -52,6 +52,7 @@ negative counterpart in `test/fixtures/clean-app`.
 | [SAST-EVAL-001](SAST-EVAL-001.md) | `eval` / `new Function` / `vm` / `*.eval` |
 | [SAST-SSRF-001](SAST-SSRF-001.md) | Tainted URL to HTTP client |
 | [SAST-REDIRECT-001](SAST-REDIRECT-001.md) | Tainted `res.redirect` |
+| [SAST-REDIRECT-002](SAST-REDIRECT-002.md) | Redirect allowlist uses `includes()` |
 | [SAST-JWT-001](SAST-JWT-001.md) | `jwt.decode` / `algorithms: none` |
 | [SAST-CRYPTO-001](SAST-CRYPTO-001.md) | `Math.random` tokens / md5 passwords |
 | [SAST-CIPHER-001](SAST-CIPHER-001.md) | ECB, deprecated cipher, literal IV (experimental) |

@@ -141,9 +141,9 @@ These fixtures are self-authored. Numeric SQL (`WHERE id = ` + input), ORM raw-q
 
 In-scope public-bench patterns we still do not claim (one line each):
 
-- Swig `{{ name }}` is `SAST-XSS-001` only when the view engine is Swig and that name is tainted from `req` or a database read. `{{csrftoken}}` and unrendered templates are not findings. Handlebars `{{ }}` stays unflagged. `autoescape: false` is still a finding.
-- Juice Shop track-order XSS — server returns `res.json`; we do not treat JSON fields as HTML sinks.
-- Juice Shop `url.includes(allowedUrl)` — weak allowlist helper is not a redirect sink; we flag `res.redirect(tainted)`.
+- Swig `{{ name }}` is `SAST-XSS-001` only when the view engine is Swig and that name is tainted from `req` or a database read. A child `{% extends %}` parent receives those locals. `{{csrftoken}}` and unrendered templates are not findings. Handlebars `{{ }}` stays unflagged. `autoescape: false` is still a finding.
+- Juice Shop track-order XSS (`routes/trackOrder.ts`) — server returns `res.json`; we do not treat JSON fields as HTML sinks.
+- Juice Shop `url.includes(allowedUrl)` (`lib/insecurity.ts`) — `SAST-REDIRECT-002`. `startsWith` and a parsed URL compare are not findings. `res.redirect(tainted)` stays `SAST-REDIRECT-001`.
 - Juice Shop `{ _id: req.body.id }` — flagged as `SAST-NOSQLI-001` (medium) unless coerced (`String()`/`Number()`/`Boolean()`), schema-validated, or mongo-sanitize is applied. Same for goof `User.find({ password: req.body.password })`.
 - Juice Shop `data/static/codefixes/*` — six `SAST-NOSQLI-001` hits are copies of the challenge fixes. They stay. There is no special-case exclusion for that directory.
 - `DEPS-VULN-001` — when an OSV hit exists, the finding is attributed to the `package.json` name line; `--offline-safe` on a cache-less clone still emits no OSV hits (`package.json:N` will not match).
@@ -280,7 +280,7 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | Private registry | **Experimental** (`FULLSHIELD_EXPERIMENTAL_PRIVATE_REG=1`). `deps.registry` must be https with no userinfo. The host is not contacted and is not added to the allowlist. Org advisories are read from `<cacheDir>/org-advisories.json` (`DEPS-ORG-ADV-001`), at most 1000000 bytes. |
 | Local EPSS / KEV | **Experimental** (`FULLSHIELD_EXPERIMENTAL_EPSS_LOCAL=1`). `deps.epssFile` is local JSON. `epss` is from 0 to 1. Sets `epss`, `kev`, and `epssPriority` = `(kev ? 1000 : 0) + round(epss * 100) + (reachable ? 10 : 0) + severity points` (critical 4, high 3, medium 2, low 1, info 0). No download. EPSS and CISA hosts stay blocked. |
 | Exceptions file | **Experimental** (`FULLSHIELD_EXPERIMENTAL_EXCEPTIONS=1`). `fullshield.exceptions.json` rows need `owner`, `reason`, and ISO `expires` within 365 days. Expired rows fail CI and do not suppress. There is no forever exception. |
-| `scan --experimental-flow2` | **Stable.** One object field (`obj.a`) and one nested function are part of the default scan. `FULLSHIELD_EXPERIMENTAL_FLOW2` and this flag stay accepted and do not turn that off. `obj.b` stays clean. `JSON.parse` does not clear taint. Handlebars `{{ }}`, `res.json`, and a `url.includes` allowlist helper stay unflagged. |
+| `scan --experimental-flow2` | **Stable.** One object field (`obj.a`) and one nested function are part of the default scan. `FULLSHIELD_EXPERIMENTAL_FLOW2` and this flag stay accepted and do not turn that off. `obj.b` stays clean. `JSON.parse` does not clear taint. Handlebars `{{ }}` and `res.json` stay unflagged. `url.includes(allowedUrl)` is `SAST-REDIRECT-002`, not `SAST-REDIRECT-001`. |
 | `dev` | **Experimental** save loop (`FULLSHIELD_EXPERIMENTAL_DEV=1`). Watches the project and prints only new and resolved findings. |
 | `scan --experimental-sast-gaps` | **Stable.** ORM raw SQL, `spawn('sh', ['-c'])`, execa `shell: true`, and zx `$.raw` are part of the default scan. `FULLSHIELD_EXPERIMENTAL_SAST_GAPS` and this flag stay accepted and do not turn that off. |
 | `scan --experimental-ldap` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_LDAP=1`). `SAST-LDAP-001`: `search`, `compare`, `modify`, or `bind` on an LDAP client when the filter or DN is request data. A string-literal filter does not fire. Off by default. |
