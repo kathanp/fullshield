@@ -2,7 +2,6 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { LockfileGraph } from './lockfile.js';
-import { npmFlag } from './npm/types.js';
 
 export interface ScriptReachInput {
   scripts?: Readonly<Record<string, string>>;
@@ -38,9 +37,8 @@ async function readDepBin(cwd: string, name: string): Promise<string | Record<st
   }
 }
 
-/** Flag off leaves scripts unread. A missing installed bin stays `not-imported`. */
+/** A root script and an installed bin are read on every scan. A missing bin stays `not-imported`. */
 export async function scriptReachContext(cwd: string, graph: LockfileGraph): Promise<ScriptReachInput> {
-  if (!npmFlag('NPM_REACH_BIN')) {return {};}
   let scripts: Record<string, string> | undefined;
   try {
     const raw = await readFile(join(cwd, 'package.json'), 'utf8');

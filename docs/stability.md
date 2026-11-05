@@ -57,7 +57,7 @@ Phase 56 (EPSS / CISA) is not in this release. Default scan does not contact
 - `Finding.suppressedBy` (`types`, `model:<package>`) and `suppressed[]`.
 - `Finding.priority`, `priorityFactors`, `reachabilityEvidence`, `paths[]`,
   `metadata.incomplete`, `metadata.incompleteModules`, `metadata.skipped`.
-- Reachability `reachable-via-script`, only when `FULLSHIELD_EXPERIMENTAL_NPM_REACH_BIN=1`.
+- Reachability `reachable-via-script` is set on the default scan when a root script runs the package bin.
 - Config keys `ai`, `types`, `semgrepRules`, `sast.sources`, `sast.sanitizers`,
   `deps.capabilityPolicy`.
 

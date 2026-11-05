@@ -18,13 +18,15 @@ export function taintedSwigViews(parsed: readonly { ast: AstNode }[]): Map<strin
   for (const entry of parsed) {
     const facts = analyzeFile(entry.ast);
     const dbNames = dbResultNames(entry.ast);
+    const numeric = numericCheckedNames(entry.ast);
+    const sessionIds = sessionUserIdNames(entry.ast);
     walk(entry.ast, (node) => {
       if (node.type !== 'CallExpression' || calleeName(node) !== 'render') {return;}
       const view = viewName(node.arguments?.[0]);
       const data = node.arguments?.[1];
       if (view === undefined || data === undefined) {return;}
       const info = views.get(view) ?? { tainted: new Set<string>(), safe: new Set<string>(), spread: false };
-      absorbLocals(data, info, facts, dbNames);
+      absorbLocals(data, info, facts, dbNames, numeric, sessionIds);
       views.set(view, info);
     });
   }
@@ -129,6 +131,8 @@ function absorbLocals(
   info: SwigViewTaint,
   facts: WeakMap<AstNode, ScopeFacts>,
   dbNames: ReadonlySet<string>,
+  numeric: ReadonlySet<string>,
+  sessionIds: ReadonlySet<string>,
 ): void {
   if (data.type !== 'ObjectExpression') {return;}
   for (const prop of data.properties ?? []) {
@@ -139,13 +143,72 @@ function absorbLocals(
     if (prop.type !== 'Property') {continue;}
     const key = propertyName(prop);
     if (key === undefined) {continue;}
-    if (flowsFromReqOrDb(prop.value, facts, dbNames)) {
+    if (isSafeSwigValue(prop.value, key, numeric, sessionIds)) {
+      info.tainted.delete(key);
+      info.safe.add(key);
+    } else if (flowsFromReqOrDb(prop.value, facts, dbNames)) {
       info.tainted.add(key);
       info.safe.delete(key);
     } else if (!info.tainted.has(key)) {
       info.safe.add(key);
     }
   }
+  for (const name of numeric) {
+    info.safe.add(name);
+    info.tainted.delete(name);
+  }
+}
+
+function isSafeSwigValue(
+  node: AstNode | undefined,
+  key: string,
+  numeric: ReadonlySet<string>,
+  sessionIds: ReadonlySet<string>,
+): boolean {
+  if (numeric.has(key)) {return true;}
+  if (node?.type === 'Identifier' && (numeric.has(node.name) || sessionIds.has(node.name))) {return true;}
+  return isSessionUserIdNode(node);
+}
+
+function numericCheckedNames(ast: AstNode): Set<string> {
+  const names = new Set<string>();
+  walk(ast, (node) => {
+    if (node.type !== 'CallExpression' || calleeName(node) !== 'isNaN') {return;}
+    const arg = node.arguments?.[0];
+    if (arg?.type === 'Identifier' && arg.name.length > 0) {names.add(arg.name);}
+  });
+  return names;
+}
+
+function sessionUserIdNames(ast: AstNode): Set<string> {
+  const names = new Set<string>();
+  walk(ast, (node) => {
+    if (node.type !== 'VariableDeclarator') {return;}
+    const init = node.init ?? undefined;
+    if (node.id.type === 'Identifier' && isSessionUserIdNode(init)) {
+      names.add(node.id.name);
+      return;
+    }
+    if (node.id.type !== 'ObjectPattern' || !isReqSession(init)) {return;}
+    for (const prop of node.id.properties) {
+      if (prop.type !== 'Property' || prop.key.type !== 'Identifier' || prop.key.name !== 'userId') {continue;}
+      if (prop.value.type === 'Identifier') {names.add(prop.value.name);}
+    }
+  });
+  return names;
+}
+
+function isReqSession(node: AstNode | undefined): boolean {
+  if (node?.type !== 'MemberExpression' || node.computed === true) {return false;}
+  const prop = node.property;
+  const obj = node.object;
+  return prop?.type === 'Identifier' && prop.name === 'session' && obj?.type === 'Identifier' && obj.name === 'req';
+}
+
+function isSessionUserIdNode(node: AstNode | undefined): boolean {
+  if (node?.type !== 'MemberExpression' || node.computed === true) {return false;}
+  const prop = node.property;
+  return prop?.type === 'Identifier' && prop.name === 'userId' && isReqSession(node.object);
 }
 
 function propertyName(prop: AstNode): string | undefined {

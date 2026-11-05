@@ -1,4 +1,8 @@
-# FullShield features (3.6.1)
+# FullShield features (3.7.0)
+
+## 3.7.0
+
+Minor on 3.6.1. The package number is 3.7.0. It is not tagged. `SAST-REDIRECT-002` reports a redirect allowlist that uses `includes()`. Printed EJS `error.stack` and `err.stack` report as `CONFIG-ERRSTACK-001`. A Swig child that `{% extends %}` a parent passes tainted locals to that parent. Five config rules stay quiet under `test/`, `__tests__/`, `*.test.*`, `examples/`, `example/`, and `fixtures/`. The CLI prints `fullshield requires Node 22.13 or newer` on an older Node. A dependency used only from a root `package.json` script is `reachable-via-script` on the default scan. A Swig local checked with `isNaN`, and `userId` taken from `req.session`, are not `SAST-XSS-001`. `DEPS-PHANTOM-001` skips an import found only under `test/`. The release gate is tests, six green CI jobs, clean-app at 0, and no in-scope ground-truth loss. There is no numeric benchmark target.
 
 ## 3.6.0
 

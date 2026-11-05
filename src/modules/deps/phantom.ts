@@ -20,6 +20,7 @@ export function dependencyShapeFindings(
     for (const imported of importedSpecs(source.text)) {
       const name = packageName(imported.spec);
       if (name === undefined || declared.has(name)) {continue;}
+      if (testDirImport(source.file)) {continue;}
       if (devSatisfiedPath(source.file) && devDeclared.has(name)) {continue;}
       const key = `${name}\t${source.file}\t${imported.line}`;
       if (seenPhantom.has(key)) {continue;}
@@ -66,6 +67,10 @@ export function dependencyShapeFindings(
     });
   }
   return findings;
+}
+
+function testDirImport(file: string): boolean {
+  return file.split('\\').join('/').split('/').includes('test');
 }
 
 function devSatisfiedPath(file: string): boolean {

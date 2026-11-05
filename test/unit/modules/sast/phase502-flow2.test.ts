@@ -64,14 +64,14 @@ describe('phase 502 field and closure taint', () => {
     expect(await ids('function go(req) {\n  const obj = {};\n  obj.a = req.body.name;\n  res.send("<p>" + obj.a + "</p>");\n}\n')).toContain('SAST-XSS-001');
   });
 
-  it('does not flag Handlebars braces, res.json, or a url.includes helper', async () => {
+  it('does not flag Handlebars braces or res.json, and flags a url.includes helper', async () => {
     process.env.FULLSHIELD_EXPERIMENTAL_FLOW2 = '1';
     const hbs = await runSastOnText('view.hbs', '<p>{{ name }}</p>\n');
     expect(hbs.some((finding) => finding.ruleId === 'SAST-XSS-001')).toBe(false);
     expect(await ids('function go(req, res) {\n  res.json({ data: req.params.id });\n}\n')).not.toContain('SAST-XSS-001');
     expect(
       await ids('function isRedirectAllowed(url) {\n  let allowed = false;\n  for (const allowedUrl of redirectAllowlist) {\n    allowed = allowed || url.includes(allowedUrl);\n  }\n  return allowed;\n}\n'),
-    ).not.toContain('SAST-REDIRECT-001');
+    ).toContain('SAST-REDIRECT-002');
   });
 
   it('keeps clean-app at zero findings with the flag on', async () => {

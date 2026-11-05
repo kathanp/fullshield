@@ -4,24 +4,30 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+## 3.7.0 — 2026-11-05
+
+### Release
+
+- 14-day wait waived by maintainer.
+
 ### New/changed stable findings — may change CI results; use --update-baseline
 
 - `SAST-REDIRECT-002` reports a redirect allowlist that uses `includes()`, such as `url.includes(allowedUrl)`. `startsWith` and a parsed URL compare stay quiet. `SAST-REDIRECT-001` still does not report that helper.
 - A Swig child that `{% extends %}` a parent passes its tainted locals to that parent. A static local in the parent stays quiet.
 - `CONFIG-ERRSTACK-001` reports `<%= error.stack %>` and `<%- err.stack %>` in an EJS file. A template comment and `error.message` stay quiet.
 - `CONFIG-HELMET-001`, `CONFIG-ERRSTACK-001`, `CONFIG-RATELIMIT-001`, `CONFIG-BODYLIMIT-001`, and `CONFIG-DOCKER-ROOT-001` stay quiet under `test/`, `__tests__/`, `*.test.*`, `examples/`, `example/`, and `fixtures/`. Other config rules still report on those paths.
+- A Swig local checked with `isNaN` is not `SAST-XSS-001`. `userId` taken from `req.session` is not `SAST-XSS-001`. `userId` from `req.params` still is.
+- `DEPS-PHANTOM-001` skips an undeclared import whose path is only under a `test` directory. An import under `src/` or `scripts/` still reports.
+- A dependency used only from a root `package.json` script is `reachable-via-script` on the default scan. `FULLSHIELD_EXPERIMENTAL_NPM_REACH_BIN` is not required. `node server.js` does not mark `forever`. `snyk test` does not mark `tap`.
 
 ### CLI
 
 - On Node older than 22.13 the CLI prints `fullshield requires Node 22.13 or newer` instead of crashing while linking `zlib.crc32`.
 
-### Experimental
-
-- `FULLSHIELD_EXPERIMENTAL_NPM_REACH_BIN` applies script and bin reach. `node server.js` does not mark `forever`. `snyk test` does not mark `tap`. With the flag off, a script-only dependency stays `not-imported`.
-
 ### Known limit
 
 - Juice Shop `routes/trackOrder.ts` returns `res.json`. That is not an HTML XSS sink.
+- `templates/action/action.yml` installs `fullshield@3.7.0` when `version` is omitted.
 
 ## 3.6.1 — 2026-11-03
 

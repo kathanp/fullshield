@@ -33,7 +33,7 @@ describe('Phase 550 GitHub Action template', () => {
     expect(yaml).toMatch(/runs:\s*\n\s*using:\s*['"]?composite['"]?/m);
     expect(yaml).toMatch(/upload-sarif|codeql-action\/upload-sarif/);
     expect(yaml).toMatch(/actions\/cache@|cache:/);
-    expect(yaml).toMatch(/default:\s*'3\.6\.1'/);
+    expect(yaml).toMatch(/default:\s*'3\.7\.0'/);
     expect(yaml).toContain('fullshield@${FULLSHIELD_VERSION}');
     expect(yaml).not.toMatch(/uses: actions\/setup-node@v\d/);
     expect(yaml).not.toMatch(/uses: actions\/cache@v\d/);

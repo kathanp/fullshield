@@ -1,7 +1,6 @@
 import { makeFindingId, severityRank, SEVERITIES, type Finding, type Severity } from '../../core/finding.js';
 import type { LockfileGraph } from './lockfile.js';
 import { scriptReach } from './npm/lane-g.js';
-import { npmFlag } from './npm/types.js';
 import { classifySymbolUse } from './symbol-reachability.js';
 
 export type Reachability = NonNullable<Finding['reachability']>;
@@ -17,7 +16,7 @@ export interface ReachabilityContext {
   graph: LockfileGraph;
   /** Production sources, used only when an advisory names affected functions. */
   sources?: ReadonlyMap<string, string>;
-  /** Root package.json scripts. Read when NPM_REACH_BIN is on. */
+  /** Root package.json scripts. Read on the default scan. */
   scripts?: Readonly<Record<string, string>>;
   /** Installed bin fields for direct dependencies. Missing entries stay not-imported. */
   bins?: ReadonlyMap<string, string | Readonly<Record<string, string>>>;
@@ -207,7 +206,7 @@ export function classifyReachability(
 }
 
 function withScriptReach(pkg: string, current: Reachability, ctx: ReachabilityContext): Reachability {
-  if (!npmFlag('NPM_REACH_BIN') || current !== 'not-imported') {return current;}
+  if (current !== 'not-imported') {return current;}
   const next = scriptReach(true, ctx.scripts, ctx.bins?.get(pkg), pkg, 'not-imported');
   return next === 'reachable-via-script' ? next : current;
 }

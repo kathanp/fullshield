@@ -61,6 +61,21 @@ describe('bench score matching', () => {
     ).toBe(true);
   });
 
+  it('matches a finding with no line only to a ground-truth row with no line', () => {
+    const truth = {
+      class: 'config' as const,
+      file: 'server.js',
+      line: 4,
+      description: 'helmet',
+      source: 'https://example.test',
+      inScope: true,
+    };
+    expect(isTruePositive({ ruleId: 'CONFIG-HELMET-001', file: 'server.js' }, truth)).toBe(false);
+    expect(isTruePositive({ ruleId: 'CONFIG-HELMET-001', file: 'server.js', line: 0 }, truth)).toBe(false);
+    expect(isTruePositive({ ruleId: 'CONFIG-HELMET-001', file: 'server.js' }, { ...truth, line: 0 })).toBe(true);
+    expect(isTruePositive({ ruleId: 'CONFIG-HELMET-001', file: 'server.js', line: 4 }, truth)).toBe(true);
+  });
+
   it('counts recall only on inScope entries; unmatched findings are not auto-FP', () => {
     const scored = scoreFindings(
       [

@@ -64,6 +64,10 @@ That retry is gone. A provenance failure now fails the publish job. After a succ
 
 **Staged approval and README:** Approving a staged package can leave the registry packument `readme` empty even when the tarball contains `package/README.md` (`npm view fullshield@<version> readme` is blank; npmjs.com may keep showing the previous version). This is an npm registry/website issue, not a missing file in the pack. See [npm/cli#9405](https://github.com/npm/cli/issues/9405). Keep 2FA approval on. Do not inject README text into the staged manifest (Cloudflare WAF blocked that). Do not change the publish command to work around it.
 
+## Today (3.7.0)
+
+`package.json` is `3.7.0`. That number is not tagged and not on npm. `v3.6.1` stays the published release. Pushing `v3.7.0` is a separate step. The tag workflow stages the package. The maintainer clicks the staged version on npmjs.com. Do not run `npm publish` or `npm login`.
+
 ## Today (3.6.1)
 
 A pull request to `main` runs `npm run verify` six times: Ubuntu, macOS, and Windows, on Node 22 and Node 24 (`.github/workflows/ci.yml`). `fail-fast` is false, so one slow or failed job holds the merge. Merging creates a new commit, and those six jobs start again on `main`. Pushing `vX.Y.Z` runs `.github/workflows/publish.yml`. That workflow does not run `npm run verify`. It runs the semver check, the pack budget, the build, the SBOM, and the stage. The maintainer clicks the staged version on npmjs.com. Do not run `npm publish` or `npm login`.

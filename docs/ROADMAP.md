@@ -1,15 +1,20 @@
-# FullShield roadmap: 3.6.1
+# FullShield roadmap: 3.7.0
 
 Rules for every version:
 - One headline capability a user notices on first run.
   3.6.1 is the exception: the items below ship in that one release.
 - Removes or merges at least as many FULLSHIELD_EXPERIMENTAL_* flags as it adds.
-- Ships only when its exit criteria are MEASURED and pass. A miss = the version waits.
-- At least 14 days after the previous minor (docs/VERSIONING.md P3).
+- The only release gate is: every code change has a test, all six CI jobs are green,
+  clean-app stays at 0 findings, and no in-scope ground-truth match is lost on
+  NodeGoat, Juice Shop, DVNA, goof, and vulnerable-node. There is no numeric benchmark target.
+- Default: at least 14 days between minor versions (x.Y.0). The maintainer can
+  override one release by saying "waive the 14-day wait" in the instruction.
+  That version's CHANGELOG section then records "14-day wait waived by maintainer."
+  Patch versions (x.y.Z) have no wait.
 - Node/TS only. Offline-first. No telemetry, no hosted service, no PR-comment bot,
   no new language, no new string-match H/G-style checks.
 
-The next release is 3.6.1. It holds the unfinished trust baseline and everything that used to be 4.0.0–4.7.0 and 5.0.0. Those old numbers were never tagged. D-77 moved that scope into 3.6.1. After 3.7.0, the next plan is three minors, 3.8.0, 3.9.0, and 3.10.0. Each one adds a module. None of them is a 4.0.0 major. A major has to remove or change something already listed as Stable in `docs/stability.md`. A new module does not.
+3.6.1 is published. It holds the unfinished trust baseline and everything that used to be 4.0.0–4.7.0 and 5.0.0. Those old numbers were never tagged. D-77 moved that scope into 3.6.1. This tree is 3.7.0. After 3.7.0, the next plan is three minors, 3.8.0, 3.9.0, and 3.10.0. Each one adds a module. None of them is a 4.0.0 major. A major has to remove or change something already listed as Stable in `docs/stability.md`. A new module does not.
 
 `v3.6.0` is already on `main` (2026-11-02) for the four group flags only. The rest of this section is still open. On 2026-11-03 the maintainer chose one release, numbered 3.6.1, for this whole section (D-77). The version check accepts that patch. The release after 3.6.1 follows R16a again.
 
@@ -30,7 +35,7 @@ Goal: first reviewed precision number; cut the noise we already know about.
 Ships:
 - BENCHMARK.md: maintainer-reviewed precision per module and per rule
   (n, repos, date, "one reviewer"). Labels come from bench/review/*.csv (human only).
-- Section G/H removal for reviewed precision under 50% (n >= 5) waits in 3.7.0.
+- Section G/H removal for reviewed precision under 50% (n >= 5) is under Not planned.
 - [ X ] Remove H45, H47–H57 (magic-filename "findings").
 - [ X ] Merge `FULLSHIELD_EXPERIMENTAL_SUPPLY` into the group switch. Old names stay accepted as aliases for one major.
 - [ X ] Experimental flag names in `--help` cut by >= 30%.
@@ -49,15 +54,15 @@ Exit criteria:
 ### Default scan
 Goal: the default CI gate fails only on findings people trust.
 Ships:
-- Default --fail-on limited to rules with reviewed precision >= 80% waits in 3.7.0.
+- Default --fail-on limited to rules with reviewed precision >= 80% is under Not planned.
   Other rules still report. `gate: false` is already used for not-imported and dev-only deps.
 - [ X ] DEPS-VULN-001 with reachability `not-imported` or dev-only → severity info,
   never fails the gate.
-- Experimental→default promotions wait in 3.7.0. Their evidence files stay unmet.
+- Experimental→default promotions are under Not planned. Their evidence files stay unmet.
 - CHANGELOG "Default scan changes": every rule ID added/removed/re-severitied,
   before/after counts per bench app.
 Exit criteria:
-- NodeGoat default findings under 60, and zero in-scope ground-truth loss, wait in 3.7.0.
+- NodeGoat default findings under 60 is under Not planned. Zero in-scope ground-truth loss on the five apps is a 3.7.0 bar.
 - [ X ] clean-app stays 0.
 
 ### CI that doesn't annoy
@@ -92,16 +97,16 @@ Ships:
   below policy. Never executes the package.
 - [ X ] Policy in fullshield.config.json: `install.block`, `install.warn`.
 Exit criteria:
-- The malicious-package replay and the top 500 false-block bar wait in 3.7.0.
+- The malicious-package replay and the top 500 false-block bar are under Not planned.
 
 ### Function-level reachability
 Goal: "you call the vulnerable function", not "you import the package".
 Ships:
-- The 100-package `models/vuln-functions.json` map waits in 3.7.0. The file stays `{ "rows": [] }`.
+- The 100 human-reviewed rows in `models/vuln-functions.json` are under Not planned. The file stays `{ "rows": [] }`.
 - [ X ] Call graph from app code to those functions → `symbol-reachable` /
   `symbol-not-called`.
 Exit criteria:
-- The 100 cited packages, the 40% downgrade bar, and zero true reachable downgrades wait in 3.7.0.
+- The 100 cited packages, the 40% downgrade bar, and zero true reachable downgrades are under Not planned.
 
 ### Proof of exploit
 Goal: turn "reachable" into "confirmed exploitable".
@@ -132,7 +137,7 @@ Ships:
 - [ X ] `init --agent cursor|claude` writes the rule file and MCP config.
 - [ X ] Agent mode gates only lines changed in the working diff.
 Exit criteria:
-- The live Cursor and Claude Code demo waits in 3.7.0.
+- [ X ] No live Cursor or Claude Code demo in this release. On 2026-11-05 the maintainer said the first run is the developer's, after the package is on npm. Code and tests are the gate.
 - [ X ] MCP tools remain read-only except `verified_fix` writing a temp copy.
 
 ### Runtime evidence
@@ -144,31 +149,24 @@ Ships:
   executed + confirmed → `evidence: prioritized`.
 - [ X ] Default severities can change with evidence.
 Exit criteria:
-- The further 30% drop and the record-overhead bar wait in 3.7.0.
+- The further 30% drop and the record-overhead bar are under Not planned.
 
 This release also adds commands, flags, and default-scan findings. The earlier patch rule "no new command, flag, rule id, or default-scan finding" does not apply to 3.6.1.
 
-## 3.7.0: waiting bars
+## 3.7.0
 
-Not part of 3.6.1. The code items below are in the tree. The measured bars are still open, so this version is not tagged.
+Code and tests only. No live demo. No numeric benchmark target. 14-day wait waived by maintainer on 2026-11-05. Each bar below has a test. The release gate is those tests, six green CI jobs, clean-app at 0 findings, and no in-scope ground-truth match lost on the five bench apps. The tag stages the package. The maintainer clicks the staged version on npmjs.com.
 
-- NodeGoat default findings under 60, with zero loss of in-scope ground-truth matches on NodeGoat, Juice Shop, DVNA, goof, and vulnerable-node. Do not hide dependency reports to hit the count.
-- Malicious-package replay: at least 90% of the fixture tarballs blocked. Top 500 npm packages: 0 false blocks.
-- `models/vuln-functions.json`: 100 packages, every row cited and human-reviewed. At least 40% of dependency findings on the bench apps downgraded, and zero true reachable vulnerabilities downgraded.
-- Promotion files stay unmet until a stored scan meets each file. No flag moves to stable from an empty evidence cell.
-- Live Cursor and Claude Code demo: a vulnerability is introduced, the guardrail blocks it, and a verified fix is applied.
-- On one real app, recorded evidence drops default findings at least another 30%, with zero loss of confirmed-exploitable findings. Record overhead under 5% p95.
-- Default `--fail-on` counts only rules with reviewed precision of at least 80%. Section G/H checks under 50% reviewed precision (n >= 5) can be removed only after that number exists.
-- `bench/*/ground-truth.json` stays `"reviewed": false`. Review labels in `bench/review` are AI-suggested (`reviewer: ai-cursor`). A human has not reviewed them.
-- Five missed bugs, maintainer decision, not part of 3.6.1:
-  - [X] Juice Shop redirect `lib/insecurity.ts:136`: `SAST-REDIRECT-002` reports `url.includes(allowedUrl)`. `SAST-REDIRECT-001` stays quiet on that helper. `startsWith` and a parsed URL compare stay quiet.
-  - [X] Juice Shop xss `routes/trackOrder.ts`: `res.json` stays quiet. Recorded in the README known limits.
-  - [X] DVNA `core/appHandler.js:197`: already `SAST-EVAL-001`. `reviewed` stays false. Ground truth was not edited.
-  - [X] vulnerable-node `views/error.ejs`: `CONFIG-ERRSTACK-001` reports printed `error.stack` and `err.stack` in EJS.
-  - [X] NodeGoat `app/views/layout.html`: tainted locals on a Swig child propagate to the `{% extends %}` parent.
-- [X] `FULLSHIELD_EXPERIMENTAL_NPM_REACH_BIN` calls `scriptReach`. Flag off stays `not-imported`. `node server.js` does not mark `forever`. `snyk test` does not mark `tap`.
-- [X] Skip `test/`, `__tests__/`, `*.test.*`, `examples/`, `example/`, and `fixtures/` for `CONFIG-HELMET-001`, `CONFIG-ERRSTACK-001`, `CONFIG-RATELIMIT-001`, `CONFIG-BODYLIMIT-001`, and `CONFIG-DOCKER-ROOT-001`.
-- [X] On Node below 22.13, the CLI prints `fullshield requires Node 22.13 or newer` instead of crashing on a named `zlib.crc32` import.
+- [X] Juice Shop redirect `lib/insecurity.ts:136`: flag `includes()` used as a redirect allowlist. Maintainer decision: `test/unit/modules/sast/bench-misses.test.ts` and `test/unit/modules/sast/phase502-flow2.test.ts` expect `SAST-REDIRECT-002`. Tests cover the bad pattern and a safe `startsWith` / URL-parse pattern.
+- [X] Juice Shop `routes/trackOrder.ts`: keep `res.json` silence. Recorded as a known limit in the docs.
+- [X] vulnerable-node `views/error.ejs:4`: a template rule for `error.stack` / `err.stack` printed in EJS.
+- [X] NodeGoat `app/views/layout.html:75`: carry tainted locals from child views to their `{% extends %}` parent.
+- [X] Scorer: a finding with no line only matches a ground-truth row with no line.
+- [X] App-config rules `CONFIG-HELMET-001`, `CONFIG-ERRSTACK-001`, `CONFIG-RATELIMIT-001`, `CONFIG-BODYLIMIT-001`, and `CONFIG-DOCKER-ROOT-001` skip `test/`, `__tests__/`, `*.test.*`, `examples/`, `example/`, and `fixtures/`.
+- [X] Not-imported check reads `package.json` scripts and dependency bins (`scriptReach`) on the default scan. The experimental flag is not required.
+- [X] Clear `requires Node 22.13 or newer` message instead of the `zlib` `crc32` crash.
+- [X] NodeGoat noise: a Swig value checked with `isNaN` is not flagged (`contributions.html` 65, 73, 81). `userId` from `req.session` is not flagged. `allocations.html:15` stays, because that `userId` comes from `req.params`. `DEPS-PHANTOM-001` skips an import found only under `test/`.
+- [ ] All six CI jobs green on the pull request before merge. Local verify passed. `clean-app` stays at 0 findings. No in-scope ground-truth match lost on NodeGoat, Juice Shop, DVNA, goof, and vulnerable-node.
 
 ## Three modules: 3.8.0, 3.9.0, 3.10.0
 
@@ -178,7 +176,7 @@ The default modules today are `deps`, `secrets`, `sast`, and `config` (`src/core
 
 A regex pass already exists and is not these modules. `src/llm/index.ts` flags `LLM-001` through `LLM-005` only when `FULLSHIELD_EXPERIMENTAL_LLM=1`, by matching text in one file. `src/exp/sectiong.ts` flags a file that contains both `bull` and `exec`. `src/exp/sectiong.ts` also flags an OpenAPI file that contains the literal path `/admin`. Those checks stay out of the verdict.
 
-Same rules as every other version. One headline. The exit test is measured, or the version waits. At least 14 days after the previous minor. The new module stays behind one flag until the human promotes it. The tag adds that one flag and removes one existing `FULLSHIELD_EXPERIMENTAL_*` flag, so `--help` does not grow. No new string-match H/G-style check. Node.js and TypeScript only. Offline. No telemetry, no hosted service, no pull-request comment bot, no new language. The five agent skills stay out. Business-logic and IDOR findings, container scanning, and the "Not planned" list stay out.
+Same rules as every other version. One headline. The release gate is a test for each code change, six green CI jobs, clean-app at 0 findings, and no in-scope ground-truth match lost on the five bench apps. There is no numeric benchmark target. At least 14 days between minor versions, unless the maintainer says "waive the 14-day wait" and that version's CHANGELOG records "14-day wait waived by maintainer." Patch versions have no wait. The new module stays behind one flag until the human promotes it. The tag adds that one flag and removes one existing `FULLSHIELD_EXPERIMENTAL_*` flag, so `--help` does not grow. No new string-match H/G-style check. Node.js and TypeScript only. Offline. No telemetry, no hosted service, no pull-request comment bot, no new language. The five agent skills stay out. Business-logic and IDOR findings, container scanning, and the "Not planned" list stay out.
 
 ### 3.8.0: `agents` module
 
@@ -230,11 +228,14 @@ Exit criteria:
 
 ## Not planned
 
-These need human review that the maintainer is not doing at this time:
+These need human review or datasets the maintainer is not providing:
 
 - Maintainer-reviewed precision numbers
-- --fail-on precision gate
+- `--fail-on` limited to rules with reviewed precision >= 80%
 - Removing Section G/H checks by precision
 - Ground-truth reviewed flags and README recall numbers
-- vuln-functions.json (100 packages)
+- 100 human-reviewed rows in `models/vuln-functions.json`, including the 40% downgrade bar and zero true reachable downgrades
 - Promoting experimental checks (CSRF, XXE, deserialization) to default
+- NodeGoat default findings under 60
+- Malicious-package replay and the top-500 false-block check
+- 30% drop from recorded evidence, and record overhead under 5% p95

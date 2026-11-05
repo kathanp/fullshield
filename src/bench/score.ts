@@ -107,8 +107,8 @@ export function isFileLevelFinding(finding: FindingLike): boolean {
 export function isTruePositive(finding: FindingLike, truth: GroundTruthEntry): boolean {
   if (classForRule(finding.ruleId) !== truth.class) {return false;}
   if (!filesMatch(finding, truth)) {return false;}
-  const line = finding.line ?? 0;
-  return Math.abs(line - truth.line) <= 3;
+  if (isFileLevelFinding(finding)) {return truth.line === 0;}
+  return Math.abs((finding.line ?? 0) - truth.line) <= 3;
 }
 
 /** Lined hit plus a no-line finding of the same rule+file — detection already existed. */

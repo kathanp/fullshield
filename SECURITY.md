@@ -18,7 +18,8 @@ Out of scope: findings in `test/fixtures/**` (intentionally vulnerable), third-p
 
 | Version | Status |
 |---|---|
-| 3.6.1 | This tree. |
+| 3.7.0 | This tree. Not tagged. |
+| 3.6.1 | Published. |
 | 3.6.0 | Tagged for the four group flags. |
 | 3.5.5 | Previous. |
 | 3.5.4 | Previous. |

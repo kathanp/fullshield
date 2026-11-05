@@ -110,13 +110,13 @@ describe('phase 26b — in-scope bench misses (stable)', () => {
       ).resolves.toBe(false);
     });
 
-    it('does not flag url.includes(allowedUrl) allowlist helpers', async () => {
+    it('flags url.includes(allowedUrl) allowlist helpers as SAST-REDIRECT-002', async () => {
       await expect(
         has(
           `export const isRedirectAllowed = (url) => {\n  let allowed = false;\n  for (const allowedUrl of redirectAllowlist) {\n    allowed = allowed || url.includes(allowedUrl);\n  }\n  return allowed;\n};`,
-          'SAST-REDIRECT-001',
+          'SAST-REDIRECT-002',
         ),
-      ).resolves.toBe(false);
+      ).resolves.toBe(true);
     });
 
     it('does not flag res.json of a tainted id as HTML XSS', async () => {
