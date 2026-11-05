@@ -168,6 +168,7 @@ Not part of 3.6.1. Nothing here is measured, and nothing here is marked done.
   - NodeGoat `app/views/layout.html:75`: propagate tainted locals from child views to their `{% extends %}` parent in Swig.
 - `not-imported` does not read `package.json` `scripts` or a dependency `bin`. `scriptReach` in `src/modules/deps/npm/lane-g.ts` is never called, and with its flag off it returns the current class. A direct dependency used only as a script or a bin stays `not-imported`. NodeGoat's `start` script is `node server.js`, not `forever`. Goof's `test` script is `snyk test`, not `tap`.
 - Skip `test/`, `__tests__/`, `*.test.*`, `examples/`, `example/`, and `fixtures/` for the app-config rules `CONFIG-HELMET-001`, `CONFIG-ERRSTACK-001`, `CONFIG-RATELIMIT-001`, `CONFIG-BODYLIMIT-001`, and `CONFIG-DOCKER-ROOT-001`. Those rules currently run on every walked file. The default walk excludes generated trees, not tests or examples.
+- On Node below 22.13, the CLI crashes with a zlib crc32 SyntaxError before the version check runs. Print a clear 'requires Node 22.13 or newer' message instead.
 
 ## Not planned
 

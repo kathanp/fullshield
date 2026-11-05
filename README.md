@@ -20,6 +20,7 @@ Works offline. Tested on Ubuntu, macOS, and Windows with Node 22 and 24.
 - Findings are leads to check, not proof. Some will be false alarms.
 - No scanner finds every bug. A clean scan does not mean your app is safe.
 - Accuracy has not been independently measured.
+- Speed: on a large Next.js app, a cold scan took 107.95 seconds (bench/perf-v2.json), above the 60-second target.
 
 **Headline: dependency reachability.** A lockfile CVE is not the same as an unused package. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (lockfile path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), `not-imported` (−2, only when no such path exists), or `reachability-unknown` (severity kept) when the lockfile format has no parsed dependency edges. DevDependency-only vulns are `info` with a `dev-only` note unless production sources import the package. Pair it with `fullshield sbom --format cyclonedx`.
 
