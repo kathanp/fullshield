@@ -7,6 +7,7 @@ import { runConfigAstChecks } from './astChecks.js';
 import { electronEnabled } from '../sast/experimental.js';
 import { lockUsesElectron, packageUsesElectron, scanElectronSource } from './electron.js';
 import { scanDockerfile } from './dockerfile.js';
+import { ejsStackFindings } from './ejs-stack.js';
 import { scanPackageScripts } from './packageJson.js';
 
 interface ConfigBag {
@@ -91,6 +92,12 @@ async function readSource(cwd: string, rel: string, bag: ConfigBag): Promise<voi
   }
 }
 
+async function readEjs(cwd: string, rel: string, bag: ConfigBag): Promise<void> {
+  if (!rel.endsWith('.ejs')) {return;}
+  const text = await readText(cwd, rel);
+  if (text !== undefined) {bag.findings.push(...ejsStackFindings(rel, text));}
+}
+
 async function scanConfigFiles(cwd: string, files: readonly string[]): Promise<ConfigBag> {
   const bag: ConfigBag = { findings: [], sources: [], usesElectron: false };
   for (const rel of files) {
@@ -98,6 +105,7 @@ async function scanConfigFiles(cwd: string, files: readonly string[]): Promise<C
     if (await readDockerfile(cwd, rel, base, bag)) {continue;}
     await readPackage(cwd, rel, base, bag);
     await readSource(cwd, rel, bag);
+    await readEjs(cwd, rel, bag);
   }
   return bag;
 }

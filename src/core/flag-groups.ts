@@ -356,12 +356,8 @@ function membersOf(group: GroupFlag): readonly string[] {
   return KNOWN_FLAGS.filter((flag) => groupForFlag(flag) === group && flag !== group);
 }
 
-/**
- * FULLSHIELD_EXPERIMENTAL_SUPPLY already enables one supply check. Using it as
- * a group switch would turn on every supply flag and change existing scans.
- * The other four group names are new, so they fan out.
- */
-const FAN_OUT: readonly GroupFlag[] = GROUP_FLAGS.filter((group) => group !== 'FULLSHIELD_EXPERIMENTAL_SUPPLY');
+/** 3.6.1: every group flag, including SUPPLY, turns on its unset members. */
+const FAN_OUT: readonly GroupFlag[] = GROUP_FLAGS;
 
 /** Turn on unset members. Does not overwrite a value that is already set. */
 export function applyFlagGroups(env: NodeJS.ProcessEnv = process.env): void {

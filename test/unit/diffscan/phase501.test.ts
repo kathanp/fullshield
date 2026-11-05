@@ -40,13 +40,12 @@ afterEach(() => {
 });
 
 describe('phase 501 diff scan', () => {
-  it('rejects scan --diff when the flag is off and maps the error to FS-E018', async () => {
+  it('runs scan --diff without the experimental flag', async () => {
     const cwd = repo();
     writeFileSync(join(cwd, 'a.js'), 'function id(req) { return req.body.id; }\n');
     commitAll(cwd);
-    await expect(scan({ cwd, diff: true, offline: true, modules: ['sast'] })).rejects.toThrow(
-      /FULLSHIELD_EXPERIMENTAL_DIFFSCAN/,
-    );
+    const result = await scan({ cwd, diff: true, offline: true, modules: ['sast'] });
+    expect(result.findings).toEqual([]);
     const line = formatCliError(new Error('scan --diff requires FULLSHIELD_EXPERIMENTAL_DIFFSCAN=1'));
     expect(line).toContain('FS-E018');
     const older = formatCliError(new Error('FULLSHIELD_EXPERIMENTAL_DIFF scan JSON'));

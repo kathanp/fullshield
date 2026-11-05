@@ -19,7 +19,7 @@ const clean = join(root, 'test', 'fixtures', 'clean-app');
 describe('Phase 21 MCP server (read-only, experimental)', () => {
   it('lists scan, get_findings, explain_finding, propose_fix, verify_fix', () => {
     const names = listMcpTools().map((t) => t.name);
-    expect(names).toEqual(['scan', 'get_findings', 'explain_finding', 'propose_fix', 'verify_fix']);
+    expect(names).toEqual(['scan', 'check_diff', 'get_findings', 'explain_finding', 'propose_fix', 'verify_fix', 'verified_fix']);
   });
 
   it('is a no-op without experimental', async () => {

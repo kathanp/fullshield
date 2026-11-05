@@ -162,7 +162,9 @@
       "description": "Secret still in git history: PIPELINE_TOKEN was committed then deleted from HEAD.",
       "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/12-secrets-in-git.md",
       "inScope": false,
-      "reason": "history-only secrets are not in the current tree the scanner walks"
+      "reason": "history-only secrets are not in the current tree the scanner walks",
+      "ai": "cursor",
+      "aiNote": "AI-adjusted by Cursor. Not human-reviewed."
     },
     {
       "class": "other",
@@ -174,13 +176,15 @@
       "reason": "ReDoS is SAST-REDOS (Phase 29)"
     },
     {
-      "class": "config",
+      "class": "other",
       "file": "Dockerfile",
       "line": 21,
       "description": "Docker hardening lab: historical root USER; this SHA already has USER node.",
       "source": "https://github.com/cr0hn/vulnerable-node/blob/d68f2a3c9277ece2c2feb9976052033bdecd7fbe/docs/labs/17-docker-hardening.md",
       "inScope": false,
-      "reason": "this pinned SHA already runs as USER node; not a current in-tree vuln"
+      "reason": "AI draft: the proposed class was none. Stored as other because the bench class list has no none. The line is USER node, not a root container.",
+      "ai": "cursor",
+      "aiNote": "AI-adjusted by Cursor. Not human-reviewed."
     }
   ]
 }

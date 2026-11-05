@@ -85,6 +85,8 @@ export interface ResolvedConfig {
   semgrepRules?: string;
   /** Phase 553. Documented bundle of existing defaults; does not enable experimental SAST. */
   profile?: ProfileName;
+  /** Install firewall. A rule in `warn` is printed and does not fail the command. */
+  install?: { block: string[]; warn: string[] };
 }
 
 const PROFILE_NAMES = [
@@ -129,6 +131,7 @@ const KNOWN_KEYS = new Set([
   'types',
   'semgrepRules',
   'profile',
+  'install',
 ]);
 
 const SAST_CLASSES = new Set([
@@ -447,6 +450,26 @@ function applyExtraFields(
     out.semgrepRules = record.semgrepRules;
   }
   if (record.profile !== undefined) {out.profile = parseProfileField(record.profile, source);}
+  if (record.install !== undefined) {out.install = parseInstallField(record.install, source);}
+}
+
+function parseInstallList(value: unknown, source: string, name: string): string[] {
+  if (value === undefined) {return [];}
+  if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) {
+    throw new ConfigError(`${source}: "install.${name}" must be an array of rule ids`);
+  }
+  return value.filter((item): item is string => typeof item === 'string');
+}
+
+function parseInstallField(value: unknown, source: string): { block: string[]; warn: string[] } {
+  if (typeof value !== 'object' || value === null) {
+    throw new ConfigError(`${source}: "install" must be an object`);
+  }
+  const record = value as Record<string, unknown>;
+  return {
+    block: parseInstallList(record.block, source, 'block'),
+    warn: parseInstallList(record.warn, source, 'warn'),
+  };
 }
 
 function validate(raw: unknown, source: string): Partial<ResolvedConfig> {

@@ -15,8 +15,8 @@ Status `ci` means the existing GitHub Actions verify matrix runs that cell. Stat
 | yarn | not claimed |
 | bun | not claimed |
 | Express | not claimed |
-| Fastify | not claimed |
-| Nest | not claimed |
-| Next | not claimed |
+| Fastify | ci |
+| Nest | ci |
+| Next | ci |
 
 The workflow file is not changed by this page.

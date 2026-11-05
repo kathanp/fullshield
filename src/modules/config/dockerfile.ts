@@ -1,5 +1,6 @@
 import type { Finding } from '../../core/finding.js';
 import { configFinding } from './finding.js';
+import { omitSampleConfigFindings } from './sample-path.js';
 
 export function scanDockerfile(file: string, text: string): Finding[] {
   const findings: Finding[] = [];
@@ -65,5 +66,5 @@ export function scanDockerfile(file: string, text: string): Finding[] {
       ),
     );
   }
-  return findings;
+  return omitSampleConfigFindings(file, findings);
 }

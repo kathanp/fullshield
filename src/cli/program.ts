@@ -5,7 +5,6 @@ import { Command } from 'commander';
 
 import { budgetEnabled } from '../core/budget.js';
 import { scan } from '../core/engine.js';
-import { raise } from '../core/raise.js';
 import { readLastScanIds, writeLastScan } from '../core/lastScan.js';
 import { diffNewFindings } from '../core/watch.js';
 import { runFix } from '../fixer/index.js';
@@ -109,6 +108,7 @@ interface ScanCliOptions {
   since?: string;
   experimentalDiffscan?: boolean;
   diff?: boolean;
+  agentDiff?: boolean;
   experimentalFlow2?: boolean;
   experimentalSastGaps?: boolean;
   experimentalLdap?: boolean;
@@ -272,9 +272,6 @@ function applyScanFlags(opts: ScanCliOptions): void {
   for (const [key, flag] of SCAN_ENV) {
     if (opts[key] === true) {process.env[flag] = '1';}
   }
-  if (opts.diff === true && process.env.FULLSHIELD_EXPERIMENTAL_DIFFSCAN !== '1') {
-    raise('scan --diff requires FULLSHIELD_EXPERIMENTAL_DIFFSCAN=1');
-  }
   if (opts.paths === true && process.env.FULLSHIELD_EXPERIMENTAL_PATHS !== '1') {
     throw new Error('--paths requires FULLSHIELD_EXPERIMENTAL_PATHS=1');
   }
@@ -397,6 +394,7 @@ function scanRequest(
     ai: parseAiMode(opts.ai),
     changed: opts.changed === true,
     diff: opts.diff === true,
+    agentDiff: opts.agentDiff === true,
     since: opts.since,
     experimentalIncremental: process.env.FULLSHIELD_EXPERIMENTAL_PLATFORM === '1',
     history: opts.history === true,
@@ -503,7 +501,8 @@ function addEarlyScanOptions(scan: Command): Command {
       '--experimental-diffscan',
       'experimental: git diff frontier (FULLSHIELD_EXPERIMENTAL_DIFFSCAN=1)',
     )
-    .option('--diff', 'experimental: scan the git-changed import frontier (requires FULLSHIELD_EXPERIMENTAL_DIFFSCAN=1)')
+    .option('--diff', 'scan the git-changed import frontier')
+    .option('--agent-diff', 'fail the gate only for lines in the working git diff')
     .option(
       '--experimental-flow2',
       'experimental: one-field and one-closure taint (FULLSHIELD_EXPERIMENTAL_FLOW2=1)',
@@ -660,7 +659,17 @@ function registerScan(program: Command, io: ProgramIO): void {
   addEarlyScanOptions(scan);
   addLateScanOptions(scan);
   addPackageScanOptions(scan);
+  hideExtraExperimentalHelp(scan);
   scan.action((path: string, opts: ScanCliOptions) => runScanAction(io, path, opts));
+}
+
+/** 3.6.1: --help lists at most 70% of the experimental scan flags. The hidden flags still parse. */
+function hideExtraExperimentalHelp(command: Command): void {
+  const experimental = command.options.filter((option) => (option.long ?? '').startsWith('--experimental-'));
+  const visible = Math.floor(experimental.length * 0.7);
+  for (const option of experimental.slice(visible)) {
+    option.hidden = true;
+  }
 }
 
 function reportFixResult(
@@ -705,6 +714,9 @@ function registerFix(program: Command, io: ProgramIO): void {
     .option('--unsafe', 'include major-version bumps and code patches marked unsafe')
     .option('--no-branch', 'do not create a fullshield/fixes-* branch')
     .option('--modules <modules>', 'comma-separated subset of modules to scan')
+    .option('--verify', 're-scan each patch in a temp copy and run project tests; the working tree is not written')
+    .option('--pr', 'open one pull request per verified fix; never merges or comments')
+    .option('--upgrade <spec>', 'install a version in a temp copy and run its tests')
     .option('--experimental-fix-verify', 're-scan each patch in memory (FULLSHIELD_EXPERIMENTAL_FIX_VERIFY=1)')
     .option('--force-unverified', 'write a patch that does not remove its finding')
     .option('--yes', 'does not write a patch that introduces a finding')
@@ -716,12 +728,38 @@ function registerFix(program: Command, io: ProgramIO): void {
       branch?: boolean;
       modules?: string;
       ai?: boolean;
+      verify?: boolean;
+      pr?: boolean;
+      upgrade?: string;
       experimentalFixVerify?: boolean;
       forceUnverified?: boolean;
       yes?: boolean;
       finding?: string;
     }) => {
       try {
+        if (opts.upgrade !== undefined) {
+          const { proveUpgrade } = await import('../fixer/upgrade-proof.js');
+          io.out(await proveUpgrade({ spec: opts.upgrade }));
+          return;
+        }
+        if (opts.verify === true || opts.pr === true) {
+          const { proveFixes } = await import('../fixer/temp-verify.js');
+          const rows = await proveFixes(resolve(path));
+          if (rows.length === 0) {io.out('no verified patch');}
+          for (const row of rows) {io.out(`${row.ruleId} ${row.status}`);}
+          if (opts.pr === true) {
+            const { openVerifiedFixPr } = await import('../fixer/pull-request.js');
+            for (const row of rows) {
+              if (row.status !== 'fixed') {continue;}
+              const opened = await openVerifiedFixPr({
+                title: `fix: ${row.ruleId}`,
+                body: 'Verified in a temp copy. FullShield does not merge and does not comment.',
+              });
+              io.out(opened.stdout.trim());
+            }
+          }
+          return;
+        }
         if (opts.finding !== undefined) {
           const { applyOneSafeFix } = await import('../fixer/one-finding.js');
           const wrote = await applyOneSafeFix({
@@ -774,12 +812,27 @@ function registerInit(program: Command, io: ProgramIO): void {
     .option('--no-pr', 'with --ci, never open a pull request via gh')
     .option('--tour', 'print the five-step tour and write nothing')
     .option('--stack <name>', 'write fullshield.stack.md for express, nest, next, fastify, or hono')
+    .option('--agent <name>', 'write Cursor or Claude Code rules and MCP config')
     .action(
       async (
         path: string,
-        opts: { force?: boolean; recommended?: boolean; ci?: boolean; noPr?: boolean; tour?: boolean; stack?: string },
+        opts: {
+          force?: boolean;
+          recommended?: boolean;
+          ci?: boolean;
+          noPr?: boolean;
+          tour?: boolean;
+          stack?: string;
+          agent?: string;
+        },
       ) => {
         try {
+          if (opts.agent !== undefined) {
+            const { writeAgentConfig } = await import('./agent-init.js');
+            const written = await writeAgentConfig(resolve(path), opts.agent);
+            io.out(`Wrote ${written.join(', ')}`);
+            return;
+          }
           if (opts.tour === true || opts.stack !== undefined) {
             const { adoptOutput } = await import('./adopt.js');
             for (const line of adoptOutput(resolve(path), {
@@ -1066,14 +1119,11 @@ function registerIac(program: Command, io: ProgramIO): void {
 function registerMcp(program: Command, io: ProgramIO): void {
   program
     .command('mcp')
-    .description('Experimental MCP server (read-only; requires FULLSHIELD_EXPERIMENTAL_MCP=1)')
+    .description('MCP server (read-only except verified_fix, which writes a temp copy)')
     .option('--list-tools', 'print tool names and exit')
     .option('--stdio', 'official MCP SDK stdio transport (initialize handshake)')
     .action(async (opts: { listTools?: boolean; stdio?: boolean }) => {
       try {
-        if (process.env.FULLSHIELD_EXPERIMENTAL_MCP !== '1') {
-          throw new Error('mcp requires FULLSHIELD_EXPERIMENTAL_MCP=1');
-        }
         const { createMcpSession, handleMcpRequest, listMcpTools, startMcpStdio } = await import('../mcp/index.js');
         if (opts.listTools) {
           io.out(listMcpTools().map((t) => t.name).join('\n'));
@@ -1254,20 +1304,35 @@ function registerDeps(program: Command, io: ProgramIO): void {
 function registerConfirm(program: Command, io: ProgramIO): void {
   program
     .command('confirm')
-    .description('Experimental exploit confirm (localhost/127.0.0.1/FullShield container only)')
-    .argument('<url>', 'target base URL')
-    .action(async (url: string) => {
+    .description('Exploit confirm (localhost/127.0.0.1/FullShield container only)')
+    .argument('[url]', 'target base URL')
+    .option('--app <entry>', 'Node file to start on 127.0.0.1')
+    .option('--routes <file>', 'JSON routes to probe')
+    .action(async (url: string | undefined, opts: { app?: string; routes?: string }) => {
       try {
-        if (process.env.FULLSHIELD_EXPERIMENTAL_CONFIRM !== '1') {
-          throw new Error('confirm requires FULLSHIELD_EXPERIMENTAL_CONFIRM=1');
+        const { assertLocalTarget, confirmIsPass, confirmLabel, confirmTarget, parseConfirmRoutes } = await import('../confirm/index.js');
+        let confirmations: import('../confirm/index.js').Confirmation[];
+        if (opts.app !== undefined) {
+          const { readFile } = await import('node:fs/promises');
+          const { confirmStartedApp } = await import('../confirm/launch.js');
+          const routes = opts.routes === undefined
+            ? []
+            : parseConfirmRoutes(JSON.parse(await readFile(resolve(opts.routes), 'utf8')));
+          const started = await confirmStartedApp({ entry: opts.app, cwd: process.cwd(), routes });
+          confirmations = started.confirmations;
+        } else if (url !== undefined) {
+          assertLocalTarget(url);
+          const result = await confirmTarget(url, { experimental: true, routes: [] });
+          confirmations = result.confirmations;
+        } else {
+          throw new Error('confirm: pass a localhost URL or --app <entry>');
         }
-        const { assertLocalTarget, confirmTarget } = await import('../confirm/index.js');
-        const { confirmAllowsPass } = await import('../runtime/exp/p568.js');
-        assertLocalTarget(url);
-        const result = await confirmTarget(url, { experimental: true, routes: [] });
-        const passed = confirmAllowsPass(result.confirmations);
+        const passed = confirmIsPass(confirmations);
         if (!passed) {process.exitCode = 1;}
-        io.out(JSON.stringify({ ok: passed, confirmations: result.confirmations }));
+        io.out(JSON.stringify({
+          ok: passed,
+          confirmations: confirmations.map((row) => ({ ...row, status: confirmLabel(row.status) })),
+        }));
       } catch (error) {
         io.err(formatCliError(error));
         process.exitCode = 2;
@@ -1278,27 +1343,42 @@ function registerConfirm(program: Command, io: ProgramIO): void {
 function registerInstall(program: Command, io: ProgramIO): void {
   program
     .command('install')
-    .description('Experimental install-guard (requires FULLSHIELD_EXPERIMENTAL_SUPPLY=1)')
+    .description('Check a package before install. Never executes it.')
     .argument('<pkg>', 'package spec (never executed; analyzed statically)')
     .option('--dir <path>', 'local extracted package directory (tests / offline)')
-    .action(async (pkg: string, opts: { dir?: string }) => {
+    .option('--facts <file>', 'local JSON install facts (advisories, scripts, publisher, age)')
+    .action(async (pkg: string, opts: { dir?: string; facts?: string }) => {
       try {
-        if (process.env.FULLSHIELD_EXPERIMENTAL_SUPPLY !== '1') {
-          throw new Error('install requires FULLSHIELD_EXPERIMENTAL_SUPPLY=1');
-        }
         const { installGuard } = await import('../supply/index.js');
+        const { loadConfig } = await import('../core/config.js');
+        const config = await loadConfig(process.cwd());
+        let facts: import('../supply/install-firewall.js').InstallFacts | undefined;
+        if (opts.facts !== undefined) {
+          const { readFile } = await import('node:fs/promises');
+          facts = JSON.parse(await readFile(resolve(opts.facts), 'utf8')) as import('../supply/install-firewall.js').InstallFacts;
+        }
         const result = await installGuard(pkg, {
           experimental: true,
           extractDir: opts.dir ? resolve(opts.dir) : undefined,
+          ...(facts !== undefined ? { facts } : {}),
         });
-        if (result.findings.length > 0) {
-          for (const f of result.findings) {
-            io.out(`${f.ruleId} ${f.severity} ${f.message}`);
-          }
+        const block = new Set(config.install?.block ?? []);
+        const warn = new Set(config.install?.warn ?? []);
+        for (const finding of result.findings) {
+          io.out(`${finding.ruleId} ${finding.severity} ${finding.message}`);
+        }
+        const fails = result.findings.filter((finding) => {
+          if (warn.has(finding.ruleId)) {return false;}
+          if (block.size > 0) {return block.has(finding.ruleId);}
+          return true;
+        });
+        if (fails.length > 0) {
           process.exitCode = 1;
           return;
         }
-        io.out(`static checks passed for ${pkg}; next step would be npm install --ignore-scripts`);
+        if (result.findings.length === 0) {
+          io.out(`static checks passed for ${pkg}; next step would be npm install --ignore-scripts`);
+        }
       } catch (error) {
         io.err(formatCliError(error));
         process.exitCode = 2;
@@ -1327,6 +1407,45 @@ function registerAgent(program: Command, io: ProgramIO): void {
           token: process.env.FULLSHIELD_AGENT_TOKEN,
         });
         io.out(JSON.stringify({ prs: result.prs, stoppedOnTestFailure: result.stoppedOnTestFailure, merged: result.merged }));
+      } catch (error) {
+        io.err(formatCliError(error));
+        process.exitCode = 2;
+      }
+    });
+}
+
+function registerRecord(program: Command, io: ProgramIO): void {
+  program
+    .command('record')
+    .description('Write .fullshield/evidence.json for files that ran in staging. No network.')
+    .argument('[files...]', 'repo-relative files that ran')
+    .option('--dir <path>', 'project directory', '.')
+    .option('--run <script>', 'run a node script and record its local routes')
+    .action(async (files: string[], opts: { dir?: string; run?: string }) => {
+      try {
+        const cwd = resolve(opts.dir ?? '.');
+        if (opts.run !== undefined) {
+          const { spawn } = await import('node:child_process');
+          const { mkdtemp, writeFile } = await import('node:fs/promises');
+          const { tmpdir } = await import('node:os');
+          const { fileURLToPath, pathToFileURL } = await import('node:url');
+          const preload = fileURLToPath(new URL('../record/preload.mjs', import.meta.url));
+          const script = pathToFileURL(resolve(cwd, opts.run)).href;
+          const runnerDir = await mkdtemp(join(tmpdir(), 'fs-record-'));
+          const runner = join(runnerDir, 'run.mjs');
+          await writeFile(runner, `import ${JSON.stringify(preload)};\nawait import(${JSON.stringify(script)});\n`, 'utf8');
+          const code = await new Promise<number>((done) => {
+            const child = spawn(process.execPath, [runner], { cwd, stdio: 'inherit' });
+            child.once('exit', (status) => done(status ?? 1));
+            child.once('error', () => done(1));
+          });
+          if (code !== 0) {process.exitCode = code;}
+          io.out('Wrote .fullshield/evidence.json');
+          return;
+        }
+        const { writeEvidenceFile } = await import('./record.js');
+        const rel = await writeEvidenceFile(cwd, files);
+        io.out(`Wrote ${rel}`);
       } catch (error) {
         io.err(formatCliError(error));
         process.exitCode = 2;
@@ -1781,6 +1900,7 @@ export function createProgram(io: ProgramIO = defaultIO): Command {
   registerConfirm(program, io);
   registerInstall(program, io);
   registerAgent(program, io);
+  registerRecord(program, io);
   registerHost(program, io);
   registerHoney(program, io);
   registerVex(program, io);

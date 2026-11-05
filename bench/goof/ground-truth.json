@@ -72,10 +72,12 @@
     {
       "class": "deps",
       "file": "package.json",
-      "line": 46,
+      "line": 45,
       "description": "st@0.2.4 is listed as an exploitable directory-traversal static server.",
       "source": "https://github.com/snyk-labs/nodejs-goof/blob/add14ba59e98240d9e00a235dd7d42cd61ae9912/README.md",
-      "inScope": true
+      "inScope": true,
+      "ai": "cursor",
+      "aiNote": "AI-adjusted by Cursor. Not human-reviewed."
     },
     {
       "class": "config",
@@ -132,11 +134,13 @@
     {
       "class": "other",
       "file": "app.js",
-      "line": 12,
+      "line": 86,
       "description": "Insecure protocol (HTTP) communication listed in README code vulns.",
       "source": "https://github.com/snyk-labs/nodejs-goof/blob/add14ba59e98240d9e00a235dd7d42cd61ae9912/README.md",
       "inScope": false,
-      "reason": "cleartext HTTP is not a shipped SAST class"
+      "reason": "cleartext HTTP is not a shipped SAST class",
+      "ai": "cursor",
+      "aiNote": "AI-adjusted by Cursor. Not human-reviewed."
     },
     {
       "class": "crypto",

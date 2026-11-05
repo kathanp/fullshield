@@ -3,8 +3,8 @@
  * Off unless FULLSHIELD_EXPERIMENTAL_SECTIONG=1.
  * Flag off does not read the project and does not add a finding.
  */
-import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
-import { extname, isAbsolute, join, relative } from 'node:path';
+import { readdir, readFile } from 'node:fs/promises';
+import { extname, join, relative } from 'node:path';
 
 import type { ScanResult } from '../core/engine.js';
 import { makeFindingId, type Finding, type Severity } from '../core/finding.js';
@@ -15,8 +15,6 @@ const SKIP = new Set(['node_modules', '.git', 'dist', 'coverage', '.fullshield']
 const SOURCE_EXT = new Set(['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs']);
 const LOCK_SKIP = new Set(['.js', '.jsx', '.ts', '.tsx']);
 const HASHES = ["createHash('md5'", "createHash('sha1'", 'createHash("md5"', 'createHash("sha1"'];
-const FIELDS = ['script', 'license', 'native'] as const;
-const DAY_MS = 86_400_000;
 
 interface Loaded {
   rel: string;
@@ -30,38 +28,6 @@ interface Hit {
   title: string;
   message: string;
   needle: string;
-}
-
-interface Bump {
-  name?: string;
-  from?: string;
-  to?: string;
-  override?: boolean;
-}
-
-interface Delta {
-  from: Record<string, string>;
-  to: Record<string, string>;
-}
-
-interface Markers {
-  format: boolean;
-  doctor: number | undefined;
-  cacheMs: number | undefined;
-  relative: boolean;
-  mask: string[];
-  report: boolean;
-  lockOnly: boolean;
-  policy: { ruleIds: string[] } | undefined;
-  epss: Record<string, number> | undefined;
-  bumps: Bump[] | undefined;
-  delta: Delta | undefined;
-  offline: boolean;
-}
-
-function fail(message: string): never {
-  const err = new Error(message);
-  throw err;
 }
 
 function on(): boolean {
@@ -103,111 +69,6 @@ function row(file: string, text: string, hit: Hit): Finding {
 function add(hits: Finding[], file: Loaded, ok: boolean, hit: Omit<Hit, 'needle'>): void {
   if (!ok) {return;}
   hits.push(row(file.rel, file.text, { ...hit, needle: file.text.slice(0, 20) || hit.title }));
-}
-
-function note(file: string, n: string, title: string, message: string): Finding {
-  return row(file, message, { n, severity: 'low', title, message, needle: message.slice(0, 40) || title });
-}
-
-async function text(cwd: string, name: string): Promise<string | undefined> {
-  try {
-    return await readFile(join(cwd, name), 'utf8');
-  } catch {
-    return undefined;
-  }
-}
-
-function jsonOf(body: string | undefined): unknown {
-  if (body === undefined) {return undefined;}
-  try {
-    return JSON.parse(body) as unknown;
-  } catch {
-    return undefined;
-  }
-}
-
-function daysOf(body: string | undefined): number | undefined {
-  if (body === undefined || !/^\d+$/.test(body.trim())) {return undefined;}
-  return Number(body.trim());
-}
-
-function entries(value: unknown): Record<string, unknown> | undefined {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) {return undefined;}
-  return value as Record<string, unknown>;
-}
-
-function policyOf(value: unknown): { ruleIds: string[] } | undefined {
-  const row = entries(value);
-  if (row === undefined || !Array.isArray(row.ruleIds)) {return undefined;}
-  return { ruleIds: row.ruleIds.filter((id): id is string => typeof id === 'string') };
-}
-
-function epssOf(value: unknown): Record<string, number> | undefined {
-  const row = entries(value);
-  if (row === undefined) {return undefined;}
-  const out: Record<string, number> = {};
-  for (const [key, score] of Object.entries(row)) {
-    if (typeof score === 'number') {out[key] = score;}
-  }
-  return out;
-}
-
-function bumpsOf(value: unknown): Bump[] | undefined {
-  if (!Array.isArray(value)) {return undefined;}
-  const rows: Bump[] = [];
-  for (const item of value) {
-    const row = entries(item);
-    if (row === undefined) {continue;}
-    rows.push({
-      name: typeof row.name === 'string' ? row.name : undefined,
-      from: typeof row.from === 'string' ? row.from : undefined,
-      to: typeof row.to === 'string' ? row.to : undefined,
-      override: row.override === true,
-    });
-  }
-  return rows;
-}
-
-function recordOf(value: unknown): Record<string, string> {
-  const row = entries(value);
-  const out: Record<string, string> = {};
-  if (row === undefined) {return out;}
-  for (const [key, item] of Object.entries(row)) {
-    if (typeof item === 'string') {out[key] = item;}
-  }
-  return out;
-}
-
-function deltaOf(value: unknown): Delta | undefined {
-  const row = entries(value);
-  if (row === undefined) {return undefined;}
-  return { from: recordOf(row.from), to: recordOf(row.to) };
-}
-
-async function cacheMs(cwd: string): Promise<number | undefined> {
-  try {
-    return (await stat(join(cwd, 'sectionh-osv-cache.json'))).mtimeMs;
-  } catch {
-    return undefined;
-  }
-}
-
-async function readMarkers(cwd: string): Promise<Markers> {
-  const mask = await text(cwd, 'sectionh-mask.txt');
-  return {
-    format: (await text(cwd, 'sectionh-format.txt')) !== undefined,
-    doctor: daysOf(await text(cwd, 'sectionh-doctor.txt')),
-    cacheMs: await cacheMs(cwd),
-    relative: (await text(cwd, 'sectionh-relative.txt')) !== undefined,
-    mask: (mask ?? '').split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0),
-    report: (await text(cwd, 'sectionh-report.txt')) !== undefined,
-    lockOnly: (await text(cwd, 'sectionh-lockonly.txt')) !== undefined,
-    policy: policyOf(jsonOf(await text(cwd, 'sectionh-policy.json'))),
-    epss: epssOf(jsonOf(await text(cwd, 'sectionh-epss.json'))),
-    bumps: bumpsOf(jsonOf(await text(cwd, 'sectionh-bumps.json'))),
-    delta: deltaOf(jsonOf(await text(cwd, 'sectionh-delta.json'))),
-    offline: (await text(cwd, 'sectionh-offline.txt')) !== undefined,
-  };
 }
 
 function keep(name: string, lockOnly: boolean): boolean {
@@ -382,97 +243,6 @@ function fileHits(file: Loaded, hits: Finding[]): void {
   packHits(file, hits);
 }
 
-function reviewdog(findings: Finding[]): string {
-  const rows = findings.map((item) => ({
-    ruleId: item.ruleId,
-    file: item.file ?? '',
-    line: item.line ?? 1,
-    severity: item.severity,
-  }));
-  return JSON.stringify({ reviewdog: rows });
-}
-
-function relOf(file: string, cwd: string): string {
-  if (isAbsolute(file)) {return relative(cwd, file).split('\\').join('/');}
-  return file.split('\\').join('/');
-}
-
-function cacheHit(markers: Markers, hits: Finding[]): void {
-  if (markers.doctor === undefined) {return;}
-  if (markers.cacheMs === undefined) {
-    hits.push(note('sectionh-doctor.txt', '047', 'Cache missing', 'cache is missing'));
-    return;
-  }
-  const days = Math.floor((Date.now() - markers.cacheMs) / DAY_MS);
-  if (days > markers.doctor) {hits.push(note('sectionh-doctor.txt', '047', 'Cache age', `cache is ${days} days old`));}
-}
-
-function policyMessage(findings: Finding[], ruleIds: string[]): string {
-  const ids = new Set(ruleIds);
-  return findings.map((item) => item.ruleId).filter((id) => ids.has(id)).join(' ');
-}
-
-function epssMessage(findings: Finding[], epss: Record<string, number>): string {
-  const lines: string[] = [];
-  for (const item of findings) {
-    const score = epss[item.ruleId];
-    if (typeof score !== 'number') {continue;}
-    lines.push(`${item.ruleId} ${score} ${item.severity} unspecified`);
-  }
-  return lines.join('\n');
-}
-
-function patchOnly(from: string, to: string): boolean {
-  const left = from.split('.');
-  const right = to.split('.');
-  if (left.length !== 3 || right.length !== 3) {return false;}
-  return left[0] === right[0] && left[1] === right[1] && left[2] !== right[2];
-}
-
-function pickBump(rows: Bump[]): string | undefined {
-  const over = rows.find((item) => item.override === true && typeof item.name === 'string');
-  if (over?.name) {return `${over.name} override`;}
-  const patch = rows.find((item) => typeof item.name === 'string' && patchOnly(item.from ?? '', item.to ?? ''));
-  if (patch?.name) {return `${patch.name} patch`;}
-  return undefined;
-}
-
-function changedField(delta: Delta): string | undefined {
-  return FIELDS.find((field) => {
-    const left = delta.from[field];
-    const right = delta.to[field];
-    return left !== right && (left !== undefined || right !== undefined);
-  });
-}
-
-function outputHits(markers: Markers, findings: Finding[], cwd: string, hits: Finding[]): void {
-  if (markers.format) {hits.push(note('sectionh-format.txt', '045', 'Reviewdog JSON', reviewdog(findings)));}
-  cacheHit(markers, hits);
-  if (markers.relative) {
-    hits.push(note('sectionh-relative.txt', '048', 'Relative paths', findings.map((item) => relOf(item.file ?? '', cwd)).join('\n')));
-  }
-  if (markers.policy) {hits.push(note('sectionh-policy.json', '053', 'Policy rule ids', policyMessage(findings, markers.policy.ruleIds)));}
-  const epss = markers.epss === undefined ? '' : epssMessage(findings, markers.epss);
-  if (epss.length > 0) {hits.push(note('sectionh-epss.json', '054', 'Local EPSS', epss));}
-  const bump = markers.bumps === undefined ? undefined : pickBump(markers.bumps);
-  if (bump !== undefined) {hits.push(note('sectionh-bumps.json', '055', 'Bump choice', bump));}
-  const field = markers.delta === undefined ? undefined : changedField(markers.delta);
-  if (field !== undefined) {hits.push(note('sectionh-delta.json', '056', 'Delta field', field));}
-}
-
-function maskOne(item: Finding, lines: string[]): Finding {
-  let message = item.message;
-  for (const line of lines) {
-    if (line.length > 0 && message.includes(line)) {message = message.split(line).join('[masked]');}
-  }
-  return message === item.message ? item : { ...item, message };
-}
-
-function maskFindings(findings: Finding[], lines: string[]): Finding[] {
-  if (lines.length === 0) {return findings;}
-  return findings.map((item) => maskOne(item, lines));
-}
-
 async function mapName(cwd: string, dir: string): Promise<string | undefined> {
   try {
     const names = await readdir(join(cwd, dir));
@@ -497,12 +267,6 @@ async function mapFindings(findings: Finding[], cwd: string): Promise<Finding[]>
   return out;
 }
 
-async function writeReport(cwd: string, markers: Markers, findings: Finding[]): Promise<void> {
-  if (!markers.report) {return;}
-  const body = JSON.stringify({ ruleIds: findings.map((item) => item.ruleId) });
-  await writeFile(join(cwd, 'sectionh-report.json'), body, { mode: 0o600 });
-}
-
 function same(left: Finding[], right: Finding[]): boolean {
   return left.length === right.length && left.every((item, index) => item === right[index]);
 }
@@ -514,16 +278,10 @@ function finish(result: ScanResult, mapped: Finding[], hits: Finding[]): ScanRes
 
 export async function withSectionH2(result: ScanResult, cwd: string): Promise<ScanResult> {
   if (!on()) {return result;}
-  const markers = await readMarkers(cwd);
-  if (markers.offline && markers.cacheMs === undefined) {
-    fail(`${SECTIONG_FLAG} refuses to scan without the local cache`);
-  }
   const files: Loaded[] = [];
-  await load(cwd, cwd, files, markers.lockOnly);
+  await load(cwd, cwd, files, false);
   const hits: Finding[] = [];
   for (const file of files) {fileHits(file, hits);}
-  outputHits(markers, result.findings, cwd, hits);
-  const mapped = await mapFindings(maskFindings(result.findings, markers.mask), cwd);
-  await writeReport(cwd, markers, result.findings);
+  const mapped = await mapFindings(result.findings, cwd);
   return finish(result, mapped, hits);
 }

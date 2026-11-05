@@ -57,19 +57,23 @@
     {
       "class": "other",
       "file": "routes/app.js",
-      "line": 1,
+      "line": 42,
       "description": "A5: /admin/api/users is authenticated but not admin-authorized (hidden UI only).",
       "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a5-broken-access-control.md",
       "inScope": false,
-      "reason": "missing authorization is auth/IDOR"
+      "reason": "missing authorization is auth/IDOR",
+      "ai": "cursor",
+      "aiNote": "AI-adjusted by Cursor. Not human-reviewed."
     },
     {
-      "class": "config",
+      "class": "eval",
       "file": "core/appHandler.js",
       "line": 197,
       "description": "A6: calculator error path leaks a stack trace; mathjs.eval of attacker input.",
       "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/a6-securty-misconfig.md",
-      "inScope": true
+      "inScope": true,
+      "ai": "cursor",
+      "aiNote": "AI-adjusted by Cursor. Not human-reviewed."
     },
     {
       "class": "eval",
@@ -133,11 +137,13 @@
     {
       "class": "other",
       "file": "routes/app.js",
-      "line": 1,
+      "line": 56,
       "description": "CSRF on modify product / user edit — no anti-CSRF token.",
       "source": "https://github.com/appsecco/dvna/blob/9ba473add536f66ac9007966acb2a775dd31277a/docs/solution/ax-csrf.md",
       "inScope": false,
-      "reason": "CSRF is SAST-CSRF (Phase 29)"
+      "reason": "CSRF is SAST-CSRF (Phase 29)",
+      "ai": "cursor",
+      "aiNote": "AI-adjusted by Cursor. Not human-reviewed."
     },
     {
       "class": "redirect",

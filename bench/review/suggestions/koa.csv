@@ -1,0 +1,9 @@
+id,ruleId,file,line,suggested_label,reason,what_to_check
+6d2fff2695af0ed7,CONFIG-ERRSTACK-001,lib/application.js,265,FP,"The stack is printed to a server log or a CI annotation, not sent back to a browser.",Confirm this path never copies the stack into an HTTP body.
+872d3aec3d54b701,CONFIG-ERRSTACK-001,__tests__/application/onerror.test.js,56,FP,"The snippet reads error.stack in a test assertion or a log spy, and it does not write the stack to an HTTP response.",Confirm the stack is only compared or logged inside the test.
+81be883028afdba5,DEPS-DEPRECATED-001,package-lock.json,,TP,"The lockfile text says this package version is deprecated, which is what the rule reports.",Check whether the deprecated package is only a dev tool or is loaded by production code.
+383a50df2e8e0bdf,DEPS-DEPRECATED-001,package-lock.json,,TP,"The lockfile text says this package version is deprecated, which is what the rule reports.",Check whether the deprecated package is only a dev tool or is loaded by production code.
+df2e49e91c7a90cf,DEPS-DEPRECATED-001,package-lock.json,,TP,"The lockfile text says this package version is deprecated, which is what the rule reports.",Check whether the deprecated package is only a dev tool or is loaded by production code.
+b018af70e0b1f158,DEPS-DEPRECATED-001,package-lock.json,,TP,"The lockfile text says this package version is deprecated, which is what the rule reports.",Check whether the deprecated package is only a dev tool or is loaded by production code.
+d81463a173ca63bd,DEPS-DEPRECATED-001,package-lock.json,,TP,"The lockfile text says this package version is deprecated, which is what the rule reports.",Check whether the deprecated package is only a dev tool or is loaded by production code.
+cb3ca5188cfb2e8b,DEPS-DEPRECATED-001,package-lock.json,,TP,"The lockfile text says this package version is deprecated, which is what the rule reports.",Check whether the deprecated package is only a dev tool or is loaded by production code.

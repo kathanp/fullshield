@@ -71,10 +71,12 @@
     {
       "class": "xss",
       "file": "routes/trackOrder.ts",
-      "line": 17,
+      "line": 24,
       "description": "Reflected XSS in track-order id (iframe javascript:alert).",
       "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/xss.html",
-      "inScope": true
+      "inScope": true,
+      "ai": "cursor",
+      "aiNote": "AI-adjusted by Cursor. Not human-reviewed."
     },
     {
       "class": "config",
@@ -95,10 +97,22 @@
     {
       "class": "deps",
       "file": "package.json",
-      "line": 1,
-      "description": "Vulnerable Components challenges (known-vulnerable third-party libs).",
+      "line": 112,
+      "description": "Vulnerable component: express-jwt@0.1.3.",
       "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/vulnerable-components.html",
-      "inScope": true
+      "inScope": true,
+      "ai": "cursor",
+      "aiNote": "AI-adjusted by Cursor. Not human-reviewed."
+    },
+    {
+      "class": "deps",
+      "file": "package.json",
+      "line": 146,
+      "description": "Vulnerable component: sanitize-html@1.4.2.",
+      "source": "https://pwning.owasp-juice.shop/companion-guide/latest/part2/vulnerable-components.html",
+      "inScope": true,
+      "ai": "cursor",
+      "aiNote": "AI-adjusted by Cursor. Not human-reviewed."
     },
     {
       "class": "secrets",

@@ -86,6 +86,7 @@ function reachPoints(value: Finding['reachability'] | undefined): { points: numb
     case 'symbol-reachable':
       return { points: 10, detail: value };
     case 'reachable-via-dependency':
+    case 'reachable-via-script':
       return { points: 5, detail: value };
     case 'imported-not-called':
     case 'symbol-not-called':

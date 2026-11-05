@@ -12,10 +12,12 @@ import { collectImportSites, evidenceForFinding } from './evidence.js';
 import { dependencyShapeFindings } from './phantom.js';
 import { callGraphConfigHash, indexPackageUsageCached } from './call-graph-cache.js';
 import { applyReachability, indexPackageUsage, isProductionSource, unusedDirectPlan } from './reachability.js';
+import { scriptReachContext } from './script-context.js';
 import { perf2Enabled } from '../../core/perf2.js';
 import { chooseUpgradePlan, type UpgradeAdvisory } from './upgrade-plan.js';
 import { campaignFindings, securityPlaceholderFinding } from '../../supply/campaign.js';
 import { affectedFunctionNames } from './symbol-reachability.js';
+import { mergeReviewedSymbols } from './vuln-functions.js';
 import { minFixedVersion, osvSeverity, sameMajor } from './semver.js';
 import { findTyposquats, type TyposquatHit } from './typosquat.js';
 import { experimentalVex } from '../../supply/experimental.js';
@@ -262,7 +264,7 @@ async function scanDepsWithoutLock(ctx: ModuleContext, prepared: PreparedDeps): 
         );
         findings.push(...(await unfixedFindings(osvHits, prod, noLockCtx, cacheDir)));
       }
-      const noLockReached = applyReachability(findings, noLockCtx, symbols);
+      const noLockReached = applyReachability(findings, noLockCtx, await mergeReviewedSymbols(findings, symbols));
       noLockReached.push(...(await npmDepthFindings(npmInput)));
       noLockReached.push(...(await parityFindings(ctx.cwd, ctx.config.deps)));
     return withWorkspaceAdvisories(ctx.cwd, manifestRaw, osvOpts, noLockReached);
@@ -310,7 +312,7 @@ async function scanDepsWithLock(ctx: ModuleContext, prepared: PreparedDeps, lock
       packages,
       osvHits,
       reachCtx,
-      reached: applyReachability(findings, reachCtx, symbols),
+      reached: applyReachability(findings, reachCtx, await mergeReviewedSymbols(findings, symbols)),
     });
 }
 
@@ -558,6 +560,8 @@ async function reachabilityCtx(
   productionUsage: Map<string, { imported: boolean; called: boolean }>;
   graph: LockfileGraph;
   sources: Map<string, string>;
+  scripts?: Readonly<Record<string, string>>;
+  bins?: ReadonlyMap<string, string | Readonly<Record<string, string>>>;
 }> {
   const prodSources = new Map<string, string>();
   for (const rel of files) {
@@ -572,5 +576,6 @@ async function reachabilityCtx(
   const productionUsage = perf2Enabled()
     ? indexPackageUsageCached(prodSources, callGraphConfigHash(maxFileBytes))
     : indexPackageUsage(prodSources);
-  return { productionUsage, graph, sources: prodSources };
+  const scripts = await scriptReachContext(cwd, graph);
+  return { productionUsage, graph, sources: prodSources, ...scripts };
 }

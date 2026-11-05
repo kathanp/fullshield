@@ -36,6 +36,8 @@ git push origin v0.1.0
 ```
 
    Watch the Actions **Publish** job until it is green (OIDC probe, `npm run build`, then `npm publish --provenance --access public`). CI on `main` is the test gate; Publish does not re-run `verify`.
+
+   That sentence describes the 0.1.0 launch. The workflow on this tree does not re-run `verify`. See [Today (3.6.1)](#today-361).
 7. Deprecate placeholders and confirm `latest`:
 
 ```bash
@@ -62,8 +64,23 @@ That retry is gone. A provenance failure now fails the publish job. After a succ
 
 **Staged approval and README:** Approving a staged package can leave the registry packument `readme` empty even when the tarball contains `package/README.md` (`npm view fullshield@<version> readme` is blank; npmjs.com may keep showing the previous version). This is an npm registry/website issue, not a missing file in the pack. See [npm/cli#9405](https://github.com/npm/cli/issues/9405). Keep 2FA approval on. Do not inject README text into the staged manifest (Cloudflare WAF blocked that). Do not change the publish command to work around it.
 
-## Later releases
+## Today (3.6.1)
 
-1. Bump `package.json` version and finalize `CHANGELOG.md`.
-2. Commit on `main`.
-3. Tag and push `vX.Y.Z`.
+A pull request to `main` runs `npm run verify` six times: Ubuntu, macOS, and Windows, on Node 22 and Node 24 (`.github/workflows/ci.yml`). `fail-fast` is false, so one slow or failed job holds the merge. Merging creates a new commit, and those six jobs start again on `main`. Pushing `vX.Y.Z` runs `.github/workflows/publish.yml`. That workflow does not run `npm run verify`. It runs the semver check, the pack budget, the build, the SBOM, and the stage. The maintainer clicks the staged version on npmjs.com. Do not run `npm publish` or `npm login`.
+
+## Next release: 3.6.1
+
+`docs/ROADMAP.md` puts the unfinished trust baseline, this release path, and the old 4.0.0–4.7.0 work in one release named 3.6.1. `v3.6.0` is already tagged for the four group flags. A tag that includes the default CI gate change cannot reuse that tag. The release path below is part of 3.6.1. The rest of the release does add commands, flags, and default-scan findings.
+
+1. Six verify jobs stay on the pull request and on `main`: Ubuntu, macOS, and Windows, on Node 22 and Node 24. `npm run verify` runs in each.
+2. Those six jobs are the merge gate. They are not moved to a schedule. The Windows Node 22 timeout on 3.6.0 was a 15-second test limit in `test/unit/deps/phase557-bump-pr.test.ts`, not a failed release.
+3. Fast-forward `main` to the commit those six jobs tested. A merge commit is a new SHA, and GitHub would test it again.
+4. Push the tag only after that job is green. Do not push the branch and the tag in one step. The tag does not wait for checks that have not finished.
+5. The tag workflow stages the package. It keeps the semver check, the pack budget, the build, the SBOM, and the provenance gate. It does not run `npm run verify` again.
+6. `main` is the tree. Do not update a `next` branch for this release.
+7. The maintainer clicks the staged version on npmjs.com. The workflow does not put the version live.
+
+Workflow edits for this tag, and no others:
+
+- `.github/workflows/ci.yml`: keep `os: [ubuntu-24.04, macos-latest, windows-latest]` and `node: [22, 24]` on `pull_request` to `main` and on `push` to `main`.
+- `.github/workflows/publish.yml`: delete the `Verify` step that runs `npm run verify`. Leave the semver check, pack budget, build, SBOM, sign, stage, and provenance gate.

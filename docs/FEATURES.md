@@ -1,18 +1,12 @@
-# FullShield features (3.6.0)
+# FullShield features (3.6.1)
 
 ## 3.6.0
 
 Minor on 3.5.5. No new command, rule id, or default-scan finding. `FULLSHIELD_EXPERIMENTAL_SAST_EXTRA`, `FULLSHIELD_EXPERIMENTAL_RUNTIME`, `FULLSHIELD_EXPERIMENTAL_REPORTS`, and `FULLSHIELD_EXPERIMENTAL_AI` turn on the existing checks in that group when those checks are still unset. The old flag names still work. `FULLSHIELD_EXPERIMENTAL_SUPPLY` stays one check. Precision is not published. H45 and H47–H57 stay. `--help` still lists every experimental option.
 
-## Unreleased
+## 3.6.1
 
-Still open from the trust baseline:
-
-- BENCHMARK.md: maintainer-reviewed precision per module and per rule. Labels come from bench/review/*.csv (human only).
-- Remove section G/H checks with < 50% reviewed precision (n >= 5).
-- Remove H45, H47–H57 (magic-filename "findings").
-- Cut experimental flag names in --help by >= 30%. Old names stay accepted.
-- FULLSHIELD_EXPERIMENTAL_SUPPLY is not a group switch.
+The release is 3.6.1 in `docs/ROADMAP.md`. It holds the unfinished trust baseline, the one-verify release path, and the work that used to be 4.0.0–4.7.0 and 5.0.0. There is no separate 4.x or 5.0.0 tag. `v3.6.0` stays the tag for the four group flags. D-77 lets this patch carry that scope. `FULLSHIELD_EXPERIMENTAL_SUPPLY=1` turns on the unset supply checks. `scan --help` lists at most 70% of the `--experimental-*` flags. H45 and H47–H57 no longer report. `scan --diff`, `confirm`, `mcp`, and `install` run without their old experimental flags. `not-imported` and dev-only `DEPS-VULN-001` stay in the report at severity info and do not fail the gate. `fix --verify`, `record`, and `init --agent` are in. Reviewed precision is still unpublished. `models/vuln-functions.json` has no reviewed rows. A reviewed row is used only when a finding names that advisory. Next route handlers, Nest body and query parameters, and Fastify routes are checked in the default scan. `fix --verify` runs project tests in a temp copy. `fix --upgrade` and `fix --pr` exist. `scan --agent-diff` and `record --run` exist. Next, Nest, and Fastify fixture apps are `ci` in `docs/compatibility.md`. The six-job matrix runs `scripts/framework-ci.mjs` on them. Framework precision is still unpublished. `confirm --app` starts a local file on `127.0.0.1` and sends canaries from a routes file. A finding listed in both `files` and `confirmed` in `.fullshield/evidence.json` is marked `evidence: prioritized`.
 
 ## 3.5.5
 

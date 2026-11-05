@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import type { ScanModule } from '../../core/engine.js';
 import { makeFindingId, type Finding } from '../../core/finding.js';
 import { assignedNameOf, attachParents, walk } from './ast.js';
-import { crypto2Enabled, modelsEnabled, tlsEnabled, sstiEnabled, webhookEnabled, session2Enabled, logLeakEnabled, nextEnabled, browserEnabled, idorEnabled } from './experimental.js';
+import { crypto2Enabled, modelsEnabled, tlsEnabled, sstiEnabled, webhookEnabled, session2Enabled, logLeakEnabled, browserEnabled, idorEnabled } from './experimental.js';
 import { modelSinkFindings, resolveModelPacks, setActiveModels } from './models.js';
 import { collectRequires, runInterproc, type ParsedSource } from './interproc.js';
 import { crossFileReturnFindings } from './returns.js';
@@ -31,13 +31,14 @@ import { jwtRule } from './rules/jwt.js';
 import { nosqliRule } from './rules/nosqli.js';
 import { pathRule } from './rules/path.js';
 import { protoRule } from './rules/proto.js';
-import { redirectRule } from './rules/redirect.js';
+import { redirectAllowlistRule, redirectRule } from './rules/redirect.js';
 import { sqliRule } from './rules/sqli.js';
 import { ssrfRule } from './rules/ssrf.js';
 import { TEMPLATE_EXT, xssRule } from './rules/xss.js';
-import { lineHasTracedSwig, mergeSwigViews, swigNamesForFile, taintedSwigViews, type SwigViewTaint } from './swig-render.js';
+import { lineHasTracedSwig, mergeSwigViews, propagateSwigExtends, swigNamesForFile, taintedSwigViews, type SwigViewTaint } from './swig-render.js';
 import { phase29Rules, sourceHasCsrfGuard } from './rules/phase29.js';
 import { crypto2Rules } from './rules/crypto2.js';
+import { fastifySchemaRule, nestBodyRule, nextRouteRule } from './rules/frameworks.js';
 import {
   clearBreadthProject,
   domRule,
@@ -61,7 +62,7 @@ import { scanTlsConfigText, tlsRules } from './rules/tls.js';
 import type { AstNode, RuleContext, SastRule } from './types.js';
 import { scanPromptInjection } from '../../ai/injection.js';
 import { budgetArmed, budgetExpired, markTaintStopped } from '../../core/budget.js';
-import { parsePoolEnabled, parseWithPool } from '../../core/parse-pool.js';
+import { parseCacheEnabled, parsePoolEnabled, parseWithPool, readCachedAst, writeCachedAst } from '../../core/parse-pool.js';
 import { sharedAstActive, sharedParse } from '../../core/shared-ast.js';
 import { clearTaintWalk, lazyTaintFiles } from './lazy-taint.js';
 import { semgrepRulesEnabled } from './semgrep/flag.js';
@@ -77,9 +78,13 @@ export const sastRules: readonly SastRule[] = [
   nosqliRule,
   ssrfRule,
   redirectRule,
+  redirectAllowlistRule,
   protoRule,
   xssRule,
   authRule,
+  nextRouteRule,
+  nestBodyRule,
+  fastifySchemaRule,
   ...phase29Rules,
 ];
 
@@ -139,7 +144,7 @@ function rulesForFile(filename: string, source: string): SastRule[] {
   if (webhookEnabled()) {rules.push(webhookRule);}
   if (session2Enabled()) {rules.push(sessionRule);}
   if (idorEnabled()) {rules.push(idorRule);}
-  if (nextEnabled()) {rules.push(nextServerRule);}
+  rules.push(nextServerRule);
   return rules;
 }
 
@@ -392,7 +397,13 @@ function cloneAst(value: unknown): AstNode | undefined {
 
 async function parseInProcess(source: string): Promise<AstNode | undefined> {
   try {
-    return await parseSource(source);
+    if (parseCacheEnabled()) {
+      const cached = cloneAst(await readCachedAst(source));
+      if (cached !== undefined) {return cached;}
+    }
+    const ast = await parseSource(source);
+    if (parseCacheEnabled()) {await writeCachedAst(source, ast);}
+    return ast;
   } catch {
     return undefined;
   }
@@ -538,6 +549,7 @@ async function runSastStreaming(ctx: Parameters<ScanModule['run']>[0]): Promise<
   if (!taintStopped) {
     await appendStreamingInterproc(ctx, load.parseable, walked, load.findings);
   }
+  if (load.viewEngine === 'swig') {propagateSwigExtends(load.swigViews, load.templates);}
   for (const template of load.templates) {
     load.findings.push(...findingsFromTemplate(template.rel, template.source, load.viewEngine, load.swigViews));
   }
@@ -594,14 +606,12 @@ async function withUserSemgrep(ctx: Parameters<ScanModule['run']>[0], findings: 
       out = [...out, ...scanBrowserMarkup(rel, source)];
     }
   }
-  if (nextEnabled()) {
-    const texts: Array<{ file: string; source: string }> = [];
-    for (const rel of ctx.files) {
-      const source = await readScanSource(ctx.cwd, rel);
-      if (source !== undefined) {texts.push({ file: rel, source });}
-    }
-    out = [...out, ...nextProjectFindings(texts)];
+  const texts: Array<{ file: string; source: string }> = [];
+  for (const rel of ctx.files) {
+    const source = await readScanSource(ctx.cwd, rel);
+    if (source !== undefined) {texts.push({ file: rel, source });}
   }
+  out = [...out, ...nextProjectFindings(texts)];
   return out;
 }
 
@@ -726,6 +736,7 @@ async function runSastBatch(
     findings.push(...crossFileReturnFindings(interprocInput));
   }
   const swigViews = viewEngine === 'swig' ? taintedSwigViews(parsed) : undefined;
+  if (swigViews !== undefined) {propagateSwigExtends(swigViews, templates);}
   for (const template of templates) {
     findings.push(...findingsFromTemplate(template.rel, template.source, viewEngine, swigViews));
   }

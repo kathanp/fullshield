@@ -3,6 +3,7 @@ import { join, relative } from 'node:path';
 
 import { makeFindingId, type Finding } from '../core/finding.js';
 import { experimentalVex } from './experimental.js';
+import { installFirewallFindings, type InstallFacts } from './install-firewall.js';
 
 
 const REGISTRY_HOST = 'registry.npmjs.org';
@@ -260,6 +261,7 @@ export interface InstallGuardOptions {
   extractDir?: string;
   fetchPackument?: (url: string) => Promise<unknown>;
   runNpm?: (args: string[]) => Promise<void>;
+  facts?: InstallFacts;
 }
 
 export async function installGuard(
@@ -274,6 +276,7 @@ export async function installGuard(
   assertRegistryUrl(url);
   if (opts.fetchPackument) {await opts.fetchPackument(url);}
   const findings = opts.extractDir !== undefined ? analyzePackageDir(opts.extractDir) : [];
+  if (opts.facts !== undefined) {findings.push(...installFirewallFindings(opts.facts));}
   if (findings.length === 0 && opts.runNpm) {
     await opts.runNpm(['install', spec, '--ignore-scripts']);
   }

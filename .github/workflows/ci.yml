@@ -36,6 +36,9 @@ jobs:
 
       - run: npm run verify
 
+      - name: Framework fixtures
+        run: node scripts/framework-ci.mjs
+
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

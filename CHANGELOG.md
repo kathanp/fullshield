@@ -4,13 +4,192 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
-### Still open
+### New/changed stable findings — may change CI results; use --update-baseline
 
-- Maintainer-reviewed precision in BENCHMARK.md. Labels come from `bench/review/*.csv`. No precision number is published until those rows are labeled.
-- Remove section G/H checks below 50% reviewed precision (n >= 5).
-- Remove H45, H47–H57.
-- Cut experimental flag names in `--help` by at least 30%. Old names stay accepted.
-- `FULLSHIELD_EXPERIMENTAL_SUPPLY` is still one check, not a group switch.
+- `SAST-REDIRECT-002` reports a redirect allowlist that uses `includes()`, such as `url.includes(allowedUrl)`. `startsWith` and a parsed URL compare stay quiet. `SAST-REDIRECT-001` still does not report that helper.
+- A Swig child that `{% extends %}` a parent passes its tainted locals to that parent. A static local in the parent stays quiet.
+- `CONFIG-ERRSTACK-001` reports `<%= error.stack %>` and `<%- err.stack %>` in an EJS file. A template comment and `error.message` stay quiet.
+- `CONFIG-HELMET-001`, `CONFIG-ERRSTACK-001`, `CONFIG-RATELIMIT-001`, `CONFIG-BODYLIMIT-001`, and `CONFIG-DOCKER-ROOT-001` stay quiet under `test/`, `__tests__/`, `*.test.*`, `examples/`, `example/`, and `fixtures/`. Other config rules still report on those paths.
+
+### CLI
+
+- On Node older than 22.13 the CLI prints `fullshield requires Node 22.13 or newer` instead of crashing while linking `zlib.crc32`.
+
+### Experimental
+
+- `FULLSHIELD_EXPERIMENTAL_NPM_REACH_BIN` applies script and bin reach. `node server.js` does not mark `forever`. `snyk test` does not mark `tap`. With the flag off, a script-only dependency stays `not-imported`.
+
+### Known limit
+
+- Juice Shop `routes/trackOrder.ts` returns `res.json`. That is not an HTML XSS sink.
+
+## 3.6.1 — 2026-11-03
+
+### Release
+
+- The next release is 3.6.1 in `docs/ROADMAP.md`. It includes the unfinished trust baseline, the one-verify release path, and the work that used to be 4.0.0–4.7.0 and 5.0.0. `v3.6.0` stays the tag for the four group flags. D-77 accepts this patch for that scope. See `RELEASING.md`.
+- `FULLSHIELD_EXPERIMENTAL_SUPPLY=1` turns on the unset supply checks. An explicit member value stays.
+- `scan --help` lists at most 70% of the `--experimental-*` flags. The hidden flags still parse.
+- Section H magic-filename checks H45 and H47–H57 no longer report. H46, H58, and H59 stay. The checks stay off unless `FULLSHIELD_EXPERIMENTAL_SECTIONG=1`.
+- `DEPS-VULN-001` with reachability `not-imported` or a dev-only package is severity `info` and `gate: false`. It stays in the report and does not fail `--fail-on`.
+- `scan --diff` no longer requires `FULLSHIELD_EXPERIMENTAL_DIFFSCAN`. `init --recommended` writes that workflow without the flag. A git failure still does not scan the rest of the tree.
+- The content-hash parse cache is on unless `FULLSHIELD_PARSE_CACHE=0`. A corrupt cache file is discarded. Test runs leave it off unless `FULLSHIELD_PARSE_CACHE_DIR` is set.
+- `fix --verify` re-scans a temp copy and does not write the working tree. Statuses are `fixed`, `fixed-tests-fail`, and `not-fixed`.
+- `fullshield install` runs the static checks without `FULLSHIELD_EXPERIMENTAL_SUPPLY`. `install.block` and `install.warn` in `fullshield.config.json` choose which rule ids fail. `templates/preinstall-guard.mjs` is opt-in and does not execute the package.
+- `confirm` and `mcp` no longer require their experimental flags. MCP tools include `check_diff`, `get_findings`, and `verified_fix`. `verified_fix` writes a temp copy only. `init --agent cursor|claude` writes the rule file and MCP config.
+- `fullshield record` writes `.fullshield/evidence.json`. A scan that finds that file marks findings in other files `info` with `gate: false`.
+- `models/vuln-functions.json` ships with no reviewed rows. Uncited rows are ignored. A reviewed row is used only when the finding names that advisory. Precision numbers are still unpublished.
+- Next.js route handlers, NestJS body and query parameters, and Fastify routes are first-class checks. A guard, pipe, auth call, or schema keeps the finding off. `SAST-NEXT-001` reports without `FULLSHIELD_EXPERIMENTAL_NEXT`. The six-job matrix runs `scripts/framework-ci.mjs` on those fixture apps. `docs/compatibility.md` marks Next, Nest, and Fastify `ci`. Framework precision is unpublished.
+- `fullshield install --facts` checks a local JSON file for an OSV `MAL-` id, a typosquat, a changed install script, missing provenance, a publisher change, and a release younger than policy. The package is not executed.
+- `fix --verify` runs `npm test` in the temp copy when `package.json` has a test script. `fix --upgrade` reports `upgrade-safe` or `upgrade-breaks-tests` from a temp install. `fix --pr` runs `gh pr create` and does not merge or comment.
+- `scan --agent-diff` leaves `gate: false` on findings outside the working diff. A reviewed `.fullshield/precision.json` row below 80% with n >= 5 does the same. An unlabeled row is ignored.
+- `fullshield record --run` loads a local recorder. It writes routes and the script path to `.fullshield/evidence.json` and does not open a network connection of its own.
+- `confirm` prints `confirmed-exploitable`. An `unconfirmed` row is not a pass.
+- `confirm --app <entry> --routes <file>` starts that file on `127.0.0.1` and sends the canaries in the routes file. An SSRF canary is a `127.0.0.1` URL. The process is stopped when the probes finish.
+- A `.fullshield/evidence.json` file can list `confirmed` paths. A finding in both `files` and `confirmed` is marked `evidence: prioritized`. A file that was not executed stays severity `info` with `gate: false`.
+- `templates/action/action.yml` installs `fullshield@3.6.1` when `version` is omitted. `setup-node`, `cache`, and `upload-sarif` are pinned to commit SHAs. Extra scan arguments are passed through an environment variable.
+
+### Changed
+
+- Dependency findings for packages not reachable from production code are now severity info. --fail-on low or medium no longer fails on them.
+
+### Notes
+
+- Review labels in bench/review are AI-suggested, not human-reviewed.
+- 13 ground-truth line and class fixes in bench apps.
+
+### Default scan counts
+
+Unreviewed. Measured 2026-11-04 with `scan --json --offline-safe` on Node 22.23.3. The v3.6.0 column is tag `v3.6.0`. The 3.6.1 column is this branch. No rule added or removed a finding.
+
+The roadmap's NodeGoat 256 is `bench/snapshots/HEAD.json` from 0.4.0, not the v3.6.0 tag. The tag already reports 273. See the note under the NodeGoat table.
+
+| app | v3.6.0 | 3.6.1 |
+|---|---:|---:|
+| NodeGoat | 273 | 273 |
+| juice-shop | 105 | 105 |
+| dvna | 23 | 23 |
+| goof | 274 | 274 |
+| vulnerable-node | 65 | 65 |
+
+NodeGoat, same count per rule. 37 `DEPS-VULN-001` findings with reachability `not-imported` moved to `info` (33 from `low`, 4 from `medium`). That is the 3.6.1 severity change, not a new finding.
+
+| rule | v3.6.0 | 3.6.1 | change |
+|---|---:|---:|---:|
+| CONFIG-ERRSTACK-001 | 1 | 1 | 0 |
+| CONFIG-HELMET-001 | 4 | 4 | 0 |
+| CONFIG-INSTALLSCRIPT-001 | 1 | 1 | 0 |
+| CONFIG-RATELIMIT-001 | 4 | 4 | 0 |
+| DEPS-DEPRECATED-001 | 39 | 39 | 0 |
+| DEPS-LOCKMISMATCH-001 | 2 | 2 | 0 |
+| DEPS-MALICIOUS-001 | 1 | 1 | 0 |
+| DEPS-PHANTOM-001 | 1 | 1 | 0 |
+| DEPS-VULN-001 | 196 | 196 | 0 |
+| SAST-EVAL-001 | 3 | 3 | 0 |
+| SAST-NOSQLI-001 | 1 | 1 | 0 |
+| SAST-REDIRECT-001 | 1 | 1 | 0 |
+| SAST-SSRF-001 | 1 | 1 | 0 |
+| SAST-XSS-001 | 15 | 15 | 0 |
+| SECRET-PRIVKEY-001 | 1 | 1 | 0 |
+| SECRET-SESSION-001 | 2 | 2 | 0 |
+
+The 17 findings in the tag that are not in the 0.4.0 snapshot:
+
+| rule | file:line | judgment |
+|---|---|---|
+| SAST-XSS-001 | app/views/login.html:110 | Real. The submitted user name is rendered with Swig autoescape off. |
+| SAST-XSS-001 | app/views/profile.html:41, 45, 49, 53, 57, 61, 66, 70, 78 | Real. Profile fields from the request body are rendered unescaped. `firstNameSafeString` is the raw first name. |
+| SAST-XSS-001 | app/views/contributions.html:65, 73, 81 | Noise. `preTax`, `roth`, and `afterTax` are numbers after `eval` and an `isNaN` check. The `eval` is already `SAST-EVAL-001`. |
+| SAST-XSS-001 | app/views/allocations.html:15 | Noise. `userId` in the form action comes from the session id. |
+| DEPS-LOCKMISMATCH-001 | package.json:19, 56 | Real drift, not an exploit. `needle` 2.2.4 vs lock 2.3.0, and `jshint` 2.12.0 vs lock 2.13.6. |
+| DEPS-PHANTOM-001 | test/security/profile-test.js:6 | Noise. A test imports `chromedriver`, which is not in package.json. |
+
+Juice Shop, same count per rule and the same severities.
+
+| rule | v3.6.0 | 3.6.1 | change |
+|---|---:|---:|---:|
+| CONFIG-DIRLIST-001 | 33 | 33 | 0 |
+| CONFIG-DOCKER-ROOT-001 | 1 | 1 | 0 |
+| CONFIG-HELMET-001 | 2 | 2 | 0 |
+| CONFIG-INSTALLSCRIPT-001 | 1 | 1 | 0 |
+| CONFIG-RATELIMIT-001 | 3 | 3 | 0 |
+| DEPS-NOLOCK-001 | 1 | 1 | 0 |
+| DEPS-VULN-001 | 13 | 13 | 0 |
+| SAST-AUTH-001 | 2 | 2 | 0 |
+| SAST-EVAL-001 | 3 | 3 | 0 |
+| SAST-JWT-001 | 3 | 3 | 0 |
+| SAST-NOSQLI-001 | 19 | 19 | 0 |
+| SAST-PATH-001 | 8 | 8 | 0 |
+| SAST-REDIRECT-001 | 1 | 1 | 0 |
+| SAST-SQLI-001 | 6 | 6 | 0 |
+| SAST-SSRF-001 | 1 | 1 | 0 |
+| SECRET-ENTROPY-001 | 5 | 5 | 0 |
+| SECRET-PRIVKEY-001 | 3 | 3 | 0 |
+
+DVNA, same count per rule and the same severities. `SAST-EVAL-001` already flags `core/appHandler.js:197`.
+
+| rule | v3.6.0 | 3.6.1 | change |
+|---|---:|---:|---:|
+| CONFIG-DOCKER-ROOT-001 | 1 | 1 | 0 |
+| CONFIG-HELMET-001 | 1 | 1 | 0 |
+| CONFIG-RATELIMIT-001 | 2 | 2 | 0 |
+| DEPS-NOLOCK-001 | 1 | 1 | 0 |
+| DEPS-VULN-001 | 4 | 4 | 0 |
+| SAST-CMDI-001 | 1 | 1 | 0 |
+| SAST-CRYPTO-001 | 2 | 2 | 0 |
+| SAST-EVAL-001 | 1 | 1 | 0 |
+| SAST-REDIRECT-001 | 1 | 1 | 0 |
+| SAST-SQLI-001 | 1 | 1 | 0 |
+| SAST-XSS-001 | 6 | 6 | 0 |
+| SECRET-SESSION-001 | 2 | 2 | 0 |
+
+Goof, same count per rule. 12 `DEPS-VULN-001` findings with reachability `not-imported` moved to `info` (7 from `low`, 5 from `medium`).
+
+| rule | v3.6.0 | 3.6.1 | change |
+|---|---:|---:|---:|
+| CONFIG-DOCKER-ROOT-001 | 1 | 1 | 0 |
+| CONFIG-HELMET-001 | 1 | 1 | 0 |
+| CONFIG-INSTALLSCRIPT-001 | 1 | 1 | 0 |
+| CONFIG-RATELIMIT-001 | 2 | 2 | 0 |
+| DEPS-DEPRECATED-001 | 21 | 21 | 0 |
+| DEPS-LOCKMISMATCH-001 | 2 | 2 | 0 |
+| DEPS-PHANTOM-001 | 1 | 1 | 0 |
+| DEPS-VULN-001 | 232 | 232 | 0 |
+| SAST-AUTH-001 | 2 | 2 | 0 |
+| SAST-CMDI-001 | 1 | 1 | 0 |
+| SAST-NOSQLI-001 | 1 | 1 | 0 |
+| SAST-PATH-001 | 1 | 1 | 0 |
+| SAST-PROTO-001 | 1 | 1 | 0 |
+| SAST-REDIRECT-001 | 1 | 1 | 0 |
+| SAST-XSS-001 | 4 | 4 | 0 |
+| SECRET-SESSION-001 | 2 | 2 | 0 |
+
+vulnerable-node, same count per rule and the same severities.
+
+| rule | v3.6.0 | 3.6.1 | change |
+|---|---:|---:|---:|
+| CONFIG-BODYLIMIT-001 | 3 | 3 | 0 |
+| CONFIG-DOCKER-ROOT-001 | 2 | 2 | 0 |
+| CONFIG-HELMET-001 | 7 | 7 | 0 |
+| CONFIG-RATELIMIT-001 | 4 | 4 | 0 |
+| DEPS-PHANTOM-001 | 2 | 2 | 0 |
+| DEPS-VULN-001 | 5 | 5 | 0 |
+| SAST-AUTH-001 | 5 | 5 | 0 |
+| SAST-CMDI-001 | 2 | 2 | 0 |
+| SAST-CRYPTO-001 | 1 | 1 | 0 |
+| SAST-EVAL-001 | 1 | 1 | 0 |
+| SAST-JWT-001 | 1 | 1 | 0 |
+| SAST-NOSQLI-001 | 2 | 2 | 0 |
+| SAST-PATH-001 | 3 | 3 | 0 |
+| SAST-PROTO-001 | 3 | 3 | 0 |
+| SAST-REDIRECT-001 | 4 | 4 | 0 |
+| SAST-SQLI-001 | 3 | 3 | 0 |
+| SAST-SSRF-001 | 2 | 2 | 0 |
+| SAST-XSS-001 | 5 | 5 | 0 |
+| SECRET-AWS-001 | 2 | 2 | 0 |
+| SECRET-DBURL-001 | 4 | 4 | 0 |
+| SECRET-ENTROPY-001 | 2 | 2 | 0 |
+| SECRET-JWT-001 | 2 | 2 | 0 |
 
 ## 3.6.0 — 2026-11-02
 

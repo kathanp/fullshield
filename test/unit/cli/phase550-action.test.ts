@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 const root = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 const actionDir = join(root, 'templates', 'action');
 const actionYml = join(actionDir, 'action.yml');
+const rootActionYml = join(root, 'action.yml');
 const workflowViaAction = join(root, 'templates', 'github-workflow-action.yml');
 
 const FORBIDDEN = [
@@ -27,11 +28,18 @@ function assertNoPrBot(yaml: string): void {
 describe('Phase 550 GitHub Action template', () => {
   it('ships a composite Action with SARIF upload, baseline cache, and a pinned fullshield version', async () => {
     const yaml = await readFile(actionYml, 'utf8');
+    expect(await readFile(rootActionYml, 'utf8')).toBe(yaml);
     expect(yaml).not.toMatch(/^\t/m);
     expect(yaml).toMatch(/runs:\s*\n\s*using:\s*['"]?composite['"]?/m);
     expect(yaml).toMatch(/upload-sarif|codeql-action\/upload-sarif/);
     expect(yaml).toMatch(/actions\/cache@|cache:/);
-    expect(yaml).toMatch(/fullshield@\d+\.\d+\.\d+/);
+    expect(yaml).toMatch(/default:\s*'3\.6\.1'/);
+    expect(yaml).toContain('fullshield@${FULLSHIELD_VERSION}');
+    expect(yaml).not.toMatch(/uses: actions\/setup-node@v\d/);
+    expect(yaml).not.toMatch(/uses: actions\/cache@v\d/);
+    expect(yaml).not.toMatch(/upload-sarif@v\d/);
+    expect(yaml).toContain('FULLSHIELD_ARGS: ${{ inputs.args }}');
+    expect(yaml).not.toMatch(/run:.*\$\{\{ inputs\.args \}\}/);
     expect(yaml).toContain('baseline');
     assertNoPrBot(yaml);
   });

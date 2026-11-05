@@ -20,7 +20,7 @@ function rows(markdown: string): Array<{ cell: string; status: string }> {
 }
 
 describe('phase 570 trust pages', () => {
-  it('claims only the six existing CI jobs', () => {
+  it('claims the six CI jobs and the framework fixtures those jobs scan', () => {
     const claimed = rows(text('docs/compatibility.md')).filter((row) => row.status === 'ci');
     expect(claimed.map((row) => row.cell)).toEqual([
       'ubuntu-24.04 / node 22',
@@ -29,10 +29,16 @@ describe('phase 570 trust pages', () => {
       'macos-latest / node 24',
       'windows-latest / node 22',
       'windows-latest / node 24',
+      'Fastify',
+      'Nest',
+      'Next',
     ]);
-    const open = rows(text('docs/compatibility.md')).filter((row) => row.cell === 'bun' || row.cell === 'pnpm' || row.cell === 'yarn' || row.cell === 'npm' || row.cell === 'Express' || row.cell === 'Fastify' || row.cell === 'Nest' || row.cell === 'Next');
+    const open = rows(text('docs/compatibility.md')).filter((row) => row.cell === 'bun' || row.cell === 'pnpm' || row.cell === 'yarn' || row.cell === 'npm' || row.cell === 'Express');
     expect(open.every((row) => row.status === 'not claimed')).toBe(true);
+    const frameworks = rows(text('docs/compatibility.md')).filter((row) => row.cell === 'Fastify' || row.cell === 'Nest' || row.cell === 'Next');
+    expect(frameworks.map((row) => `${row.cell}:${row.status}`).sort()).toEqual(['Fastify:ci', 'Nest:ci', 'Next:ci']);
     expect(text('.github/workflows/ci.yml')).toContain('node: [22, 24]');
+    expect(text('.github/workflows/ci.yml')).toContain('node scripts/framework-ci.mjs');
   });
 
   it('does not put a finding count on the npm audit page', () => {

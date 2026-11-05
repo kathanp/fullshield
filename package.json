@@ -1,6 +1,6 @@
 {
   "name": "fullshield",
-  "version": "3.6.0",
+  "version": "3.6.1",
   "description": "Full-cycle security scanner for Node.js/TypeScript backends: detect, classify, report, notify, fix, prevent.",
   "license": "MIT",
   "type": "module",
@@ -121,6 +121,7 @@
   "knip": {
     "entry": [
       "scripts/*.{mjs,js}",
+      "templates/preinstall-guard.mjs",
       "src/phases/p467.ts",
       "src/phases/p474.ts",
       "src/phases/p477.ts",

@@ -1,6 +1,26 @@
 # FullShield
 
-**v3.6.0.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself. Scan when you want with `npx fullshield scan`, or install an every-2-hours timer with `npx fullshield schedule install`.
+**v3.6.1.** One install for Node.js/TypeScript backends: detect → classify → report → notify → fix → gate (CI `--fail-on` + runtime monitor). It does not stop attacks by itself. Scan when you want with `npx fullshield scan`, or install an every-2-hours timer with `npx fullshield schedule install`.
+
+## What FullShield does
+
+FullShield scans Node.js projects for:
+
+- Vulnerable dependencies
+- Code security bugs (XSS, injection, path traversal, open redirect, eval)
+- Leaked secrets (keys, tokens, database URLs)
+- Risky configuration
+
+It also has framework rules for Next.js, NestJS, and Fastify, a preinstall guard, fix suggestions, and a guardrail for AI coding agents.
+
+Works offline. Tested on Ubuntu, macOS, and Windows with Node 22 and 24.
+
+## Limits
+
+- Findings are leads to check, not proof. Some will be false alarms.
+- No scanner finds every bug. A clean scan does not mean your app is safe.
+- Accuracy has not been independently measured.
+- Speed: on a large Next.js app, a cold scan took 107.95 seconds (bench/perf-v2.json), above the 60-second target.
 
 **Headline: dependency reachability.** A lockfile CVE is not the same as an unused package. FullShield classifies each OSV hit as `reachable` (imported and called), `imported-not-called` (−1), `reachable-via-dependency` (lockfile path from an imported direct dep — **severity kept**, path shown, e.g. `express > body-parser > qs`), `not-imported` (−2, only when no such path exists), or `reachability-unknown` (severity kept) when the lockfile format has no parsed dependency edges. DevDependency-only vulns are `info` with a `dev-only` note unless production sources import the package. Pair it with `fullshield sbom --format cyclonedx`.
 
@@ -10,16 +30,16 @@ npx fullshield scan --json --fail-on high
 npx fullshield scan --sarif fullshield.sarif
 ```
 
-3.6.0 is the version of this tree. Python and other languages are out of scope. `schedule install` writes `fullShieldReport/fullShieldReport_YYYYMMDD_HHMM.md` every 2 hours and keeps 60 reports. `scan` does not create that folder. The stable contract is [docs/stability.md](docs/stability.md). The 1.0.1 release moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. `init --tour`, `init --stack`, and `digest --file` need `FULLSHIELD_EXPERIMENTAL_ADOPT=1`. The tour writes no file. The digest reads a local file and does not fetch. See [docs/security-page.md](docs/security-page.md), [docs/compare.md](docs/compare.md), [docs/compatibility.md](docs/compatibility.md), and [docs/vs-npm-audit.md](docs/vs-npm-audit.md). The compatibility page claims only the six existing CI jobs. `FULLSHIELD_EXPERIMENTAL_SECTIONG=1` adds the local section G and section H checks, including the auth, CI, and output checks, and is off by default. Do not treat a scan as a penetration test. Reviewed recall for untouched apps is not published. From `bench/perf-v2.json` (`measured: true`, `label: unreviewed`), the stored Next.js cold p50 is 107.95 seconds — still above the 60-second target (target unmet). Default scans share one AST, run modules in parallel, and use lazy taint. Multi-workspace repos scan each workspace lockfile by default; single-package finding keys stay the same as 2.3.0.
+3.6.1 is the version of this tree. Python and other languages are out of scope. `schedule install` writes `fullShieldReport/fullShieldReport_YYYYMMDD_HHMM.md` every 2 hours and keeps 60 reports. `scan` does not create that folder. The stable contract is [docs/stability.md](docs/stability.md). The 1.0.1 release moved values that only experimental flags produce out of Stable. Experimental flags stay off unless you set them. `init --tour`, `init --stack`, and `digest --file` need `FULLSHIELD_EXPERIMENTAL_ADOPT=1`. The tour writes no file. The digest reads a local file and does not fetch. See [docs/security-page.md](docs/security-page.md), [docs/compare.md](docs/compare.md), [docs/compatibility.md](docs/compatibility.md), and [docs/vs-npm-audit.md](docs/vs-npm-audit.md). The compatibility page claims only the six existing CI jobs. `FULLSHIELD_EXPERIMENTAL_SECTIONG=1` adds the local section G and section H checks, including the auth, CI, and output checks, and is off by default. Do not treat a scan as a penetration test. Default scans share one AST, run modules in parallel, and use lazy taint. Multi-workspace repos scan each workspace lockfile by default; single-package finding keys stay the same as 2.3.0.
 
 ## Verify in 60 seconds
 
 ```bash
 # fresh temp / empty cache is enough — no install-guard phones home
-npx fullshield@3.6.0 --version
+npx fullshield@3.6.1 --version
 ```
 
-Package page: [npmjs.com/package/fullshield](https://www.npmjs.com/package/fullshield). Release tag: [v3.6.0](https://github.com/kathanp/fullshield/releases/tag/v3.6.0). Publish stages with npm provenance (OIDC). After install, the stranger checks in the build spec (scan / json / sarif / fail-on / fix / init / sbom) are the post-publish gate — no Rekor/sigstore SaaS dependency in the CLI.
+Package page: [npmjs.com/package/fullshield](https://www.npmjs.com/package/fullshield). Release tag: [v3.6.1](https://github.com/kathanp/fullshield/releases/tag/v3.6.1). Publish stages with npm provenance (OIDC). After install, the stranger checks in the build spec (scan / json / sarif / fail-on / fix / init / sbom) are the post-publish gate — no Rekor/sigstore SaaS dependency in the CLI.
 
 ## GitHub Action
 
@@ -28,7 +48,7 @@ Copy `templates/action/` into your repo (or use `kathanp/fullshield-action` once
 ```yaml
 - uses: your-org/your-repo/.github/actions/fullshield@<commit-sha>
   with:
-    version: '3.6.0'
+    version: '3.6.1'
 ```
 
 Or run `npx fullshield init --recommended` to write `profile: "recommended"` and a workflow that calls `./templates/action`. The Action runs `fullshield scan`, uploads SARIF, and may cache the baseline. It does not post a pull-request comment, open issues, or phone home.
@@ -110,35 +130,26 @@ Contributor quality gate: [docs/QUALITY.md](docs/QUALITY.md) (`npm run quality`)
 - Dependency capability profiles (`FULLSHIELD_EXPERIMENTAL_CAPABILITIES=1`) read installed files only. They do not run install scripts. `deps-diff` reports a new capability only when the previous package integrity is already cached. Source files over 1 MB are skipped. A comment or string that names an API can count as that capability.
 - Fix verification (`FULLSHIELD_EXPERIMENTAL_FIX_VERIFY=1`) re-scans the patched file and its direct importers. A line shift of an unchanged finding is not a new finding. A comment-only patch stays `does-not-remove`. A missing OSV cache entry for the planned version stays `does-not-remove` and is not treated as a cleared advisory. The check does not run project tests or `npm install`.
 
-Experimental RASP structure-change scoring on the vendored PayloadsAllTheThings corpus (not a claim that live attacks are blocked):
+Experimental RASP structure-change checks on the vendored PayloadsAllTheThings corpus (not a claim that live attacks are blocked):
 
-- **SQL 42/42.** Quote-breakouts inside `'…'` (`' OR 1=1 --`, `'; DROP TABLE x; --`) are detected. Payloads `"-"`, `" "`, `"&"`, `"^"` were moved to the benign set: they stay inside one single-quoted string token and are not exploitable in that sink.
-- **Shell 45/45.** Quote-breakouts that close a quoted `ls` argument (`'; id; '`, `"; id; "`) are detected. Payloads `";id;"`, `';id;'`, `"|id|"`, `'|id|'` were moved to the benign set: `;` / `|` stay inside one quoted word.
+- SQL quote-breakouts inside `'…'` (`' OR 1=1 --`, `'; DROP TABLE x; --`) are detected. Payloads `"-"`, `" "`, `"&"`, `"^"` stay inside one single-quoted string token and are not treated as exploitable in that sink.
+- Shell quote-breakouts that close a quoted `ls` argument (`'; id; '`, `"; id; "`) are detected. Payloads `";id;"`, `';id;'`, `"|id|"`, `'|id|'` keep `;` / `|` inside one quoted word.
 
-Path 51/51 and SSRF 39/39 on the same corpus. Benign corpus stays 0 blocked. Prefer `mode: 'monitor'`.
+Prefer `mode: 'monitor'`.
 
 These fixtures are self-authored. Numeric SQL (`WHERE id = ` + input), ORM raw-query APIs (Prisma/Sequelize/Knex/TypeORM/Drizzle/`$where`), and template-literal shell (`exec(\`…${x}\`)`, `spawn('sh', ['-c', …])`, execa `shell: true`, zx `$.raw`) are covered in the attack corpus. Those ORM and shell sinks are part of the default scan. `FULLSHIELD_EXPERIMENTAL_SAST_GAPS` and `scan --experimental-sast-gaps` stay accepted and do not turn them off. Mongo `$where` strings are **stable** SAST (Juice Shop track-order / reviews).
 
 In-scope public-bench patterns we still do not claim (one line each):
 
-- Swig `{{ name }}` is `SAST-XSS-001` only when the view engine is Swig and that name is tainted from `req` or a database read. `{{csrftoken}}` and unrendered templates are not findings. Handlebars `{{ }}` stays unflagged. `autoescape: false` is still a finding.
-- Juice Shop track-order XSS — server returns `res.json`; we do not treat JSON fields as HTML sinks.
-- Juice Shop `url.includes(allowedUrl)` — weak allowlist helper is not a redirect sink; we flag `res.redirect(tainted)`.
+- Swig `{{ name }}` is `SAST-XSS-001` only when the view engine is Swig and that name is tainted from `req` or a database read. A child `{% extends %}` parent receives those locals. `{{csrftoken}}` and unrendered templates are not findings. Handlebars `{{ }}` stays unflagged. `autoescape: false` is still a finding.
+- Juice Shop track-order XSS (`routes/trackOrder.ts`) — server returns `res.json`; we do not treat JSON fields as HTML sinks.
+- Juice Shop `url.includes(allowedUrl)` (`lib/insecurity.ts`) — `SAST-REDIRECT-002`. `startsWith` and a parsed URL compare are not findings. `res.redirect(tainted)` stays `SAST-REDIRECT-001`.
 - Juice Shop `{ _id: req.body.id }` — flagged as `SAST-NOSQLI-001` (medium) unless coerced (`String()`/`Number()`/`Boolean()`), schema-validated, or mongo-sanitize is applied. Same for goof `User.find({ password: req.body.password })`.
 - Juice Shop `data/static/codefixes/*` — six `SAST-NOSQLI-001` hits are copies of the challenge fixes. They stay. There is no special-case exclusion for that directory.
 - `DEPS-VULN-001` — when an OSV hit exists, the finding is attributed to the `package.json` name line; `--offline-safe` on a cache-less clone still emits no OSV hits (`package.json:N` will not match).
 - `SUPPLY-PROV-001` (`FULLSHIELD_EXPERIMENTAL_PROVENANCE=1`) — registry provenance, publisher, and release-age signals from `registry.npmjs.org` only. Offline with an empty cache stays unknown. These signals are not a malicious-package claim.
 - DVNA calculator “stack leak” — that line is `mathjs.eval` (`SAST-EVAL-001`), not `err.stack`.
-- PERF2 cold timings from `bench/perf-v2.json` (`measured: true`, `label: unreviewed`): next.js cold p50 107.95s (target 60s — still unmet), nest 12.23s, undici 15.26s. Older worker-pool samples remain in `bench/perf-baseline.json` (2026-10-16). These are local timings, not a recall claim.
-- Real-world precision is not sampled. Nine of the ten pins in `bench/realworld.json` have finding counts in `BENCHMARK.md`. next.js produced no JSON. No false-positive rate is claimed.
-
-Public-app in-scope detection on **unreviewed** ground truth (`"reviewed": false` in `bench/*/ground-truth.json`). These are not product recall claims. Matching is class + file + line ±3. Helmet comment-only line attribution is not counted.
-
-- Seen holdout `snyk-labs/nodejs-goof` @ `add14ba59e98240d9e00a235dd7d42cd61ae9912`: 10/11 in-scope (unreviewed). Not a recall gain; this app was used to find engine gaps.
-- Seen holdout `cr0hn/vulnerable-node` @ `d68f2a3c9277ece2c2feb9976052033bdecd7fbe`: 9/12 in-scope (unreviewed). Re-scored after the authorized NoSQL filter-value rule; not a recall gain.
-- NodeGoat 5/7, Juice Shop 10/12, DVNA 9/10 (same unreviewed files; deps TPs need an OSV cache hit under `--offline-safe`).
-
-Precision in [`BENCHMARK.md`](BENCHMARK.md) is self-triaged, unverified. Unsure counts on that run: NodeGoat 4, Juice Shop 39, DVNA 5, goof 4, vulnerable-node 29.
+Finding counts for the practice apps are in [`BENCHMARK.md`](BENCHMARK.md). They are not accuracy scores.
 
 ## Quick start
 
@@ -232,7 +243,7 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 
 **Experimental RASP** (Frontier, off by default): structure-change sink hooks via `node --import fullshield/runtime/register app.js` or `import 'fullshield/runtime/auto'` as the first import. Enable only with `FULLSHIELD_EXPERIMENTAL_RASP=1`. Default mode is `monitor` (events only). `FULLSHIELD_RASP_MODE=block` throws on structure-changing SQL/shell/path/NoSQL/SSRF/prototype input. With `FULLSHIELD_EXPERIMENTAL_RUNTIME_GUARD=1`, block mode throws only for SQL and shell; path, NoSQL, SSRF, prototype, and SSTI stay monitor. A matching event may include `webhookJson` (`schema`, `kind`, `action`, `ruleId`) at most 5 times per 60 seconds. That JSON is not posted and has no request sample. A SQL event may also store `fingerprint`, a hash of the collapsed statement, and a sample over 4096 bytes sets `overCap` (not a DLP product). While the guard flag is on, `FULLSHIELD_RASP_MODE=block-experimental` is the block mode and `block` stays monitor, and `confirm` exits 1 when any row is `unconfirmed`. Hooks **fail open**: a hook error logs `RASP-FAIL-OPEN-001` and the original call proceeds. Do not use block mode in production until you have measured the benign corpus on your app.
 
-`npm run bench` reports `inspect()` p50/p95 (must stay under 1ms) and full Express request overhead p50/p95 with the middleware on the stack.
+`npm run bench` runs the runtime middleware on a local Express app. It does not publish a speed number.
 
 **Experimental response DLP** (off by default): `FULLSHIELD_EXPERIMENTAL_DLP=1` plus `shieldGuard({ dlp: { mode: 'monitor' | 'mask' | 'block' } })`. Without the flag, `shieldGuard` is inspect-only on the incoming request (unchanged). `mask` replaces matches; `block` returns HTTP 500 with `{ error: 'internal error' }`. Events go to `onEvent`. Bodies over 64 KB are skipped and counted. Prefer `monitor` until you have measured the benign corpus on your app.
 
@@ -269,7 +280,7 @@ app.use(shieldGuard({ mode: 'monitor', authRoutes: ['/login'] }));
 | Private registry | **Experimental** (`FULLSHIELD_EXPERIMENTAL_PRIVATE_REG=1`). `deps.registry` must be https with no userinfo. The host is not contacted and is not added to the allowlist. Org advisories are read from `<cacheDir>/org-advisories.json` (`DEPS-ORG-ADV-001`), at most 1000000 bytes. |
 | Local EPSS / KEV | **Experimental** (`FULLSHIELD_EXPERIMENTAL_EPSS_LOCAL=1`). `deps.epssFile` is local JSON. `epss` is from 0 to 1. Sets `epss`, `kev`, and `epssPriority` = `(kev ? 1000 : 0) + round(epss * 100) + (reachable ? 10 : 0) + severity points` (critical 4, high 3, medium 2, low 1, info 0). No download. EPSS and CISA hosts stay blocked. |
 | Exceptions file | **Experimental** (`FULLSHIELD_EXPERIMENTAL_EXCEPTIONS=1`). `fullshield.exceptions.json` rows need `owner`, `reason`, and ISO `expires` within 365 days. Expired rows fail CI and do not suppress. There is no forever exception. |
-| `scan --experimental-flow2` | **Stable.** One object field (`obj.a`) and one nested function are part of the default scan. `FULLSHIELD_EXPERIMENTAL_FLOW2` and this flag stay accepted and do not turn that off. `obj.b` stays clean. `JSON.parse` does not clear taint. Handlebars `{{ }}`, `res.json`, and a `url.includes` allowlist helper stay unflagged. |
+| `scan --experimental-flow2` | **Stable.** One object field (`obj.a`) and one nested function are part of the default scan. `FULLSHIELD_EXPERIMENTAL_FLOW2` and this flag stay accepted and do not turn that off. `obj.b` stays clean. `JSON.parse` does not clear taint. Handlebars `{{ }}` and `res.json` stay unflagged. `url.includes(allowedUrl)` is `SAST-REDIRECT-002`, not `SAST-REDIRECT-001`. |
 | `dev` | **Experimental** save loop (`FULLSHIELD_EXPERIMENTAL_DEV=1`). Watches the project and prints only new and resolved findings. |
 | `scan --experimental-sast-gaps` | **Stable.** ORM raw SQL, `spawn('sh', ['-c'])`, execa `shell: true`, and zx `$.raw` are part of the default scan. `FULLSHIELD_EXPERIMENTAL_SAST_GAPS` and this flag stay accepted and do not turn that off. |
 | `scan --experimental-ldap` | **Experimental** (`FULLSHIELD_EXPERIMENTAL_LDAP=1`). `SAST-LDAP-001`: `search`, `compare`, `modify`, or `bind` on an LDAP client when the filter or DN is request data. A string-literal filter does not fire. Off by default. |
@@ -331,7 +342,7 @@ See [`rules/README.md`](rules/README.md).
 
 ## Benchmarks
 
-Public-app detection results (OWASP NodeGoat, Juice Shop, DVNA, seen holdouts `snyk-labs/nodejs-goof` and `cr0hn/vulnerable-node`) live in [`BENCHMARK.md`](BENCHMARK.md). Those ground-truth files are still `"reviewed": false`. Holdout numbers are listed under Known limitations and are on unreviewed ground truth. Precision in `BENCHMARK.md` is self-triaged, unverified. Self-authored fixture notes live in [`benchmarks/REPORT.md`](benchmarks/REPORT.md). Live Ollama smoke results (not CI) live in [`benchmarks/AI-REPORT.md`](benchmarks/AI-REPORT.md).
+Practice-app finding counts live in [`BENCHMARK.md`](BENCHMARK.md). They are not accuracy scores. Ground-truth files are still `"reviewed": false`. Self-authored fixture notes live in [`benchmarks/REPORT.md`](benchmarks/REPORT.md). Live Ollama smoke results (not CI) live in [`benchmarks/AI-REPORT.md`](benchmarks/AI-REPORT.md).
 
 ### Cursor MCP (`mcp.json`)
 
@@ -359,11 +370,11 @@ npx fullshield scan --debug
 
 `doctor` prints the Node version, lockfile, cache directory, experimental flags that are set to `1`, whether `fullshield.config.json` parses, and whether OSV is allowed to use the network. `--offline` skips that network. CLI failures use `FS-E###` codes. The message stays the same. A stack is printed only with `--debug`.
 
-Default console prints shown rows only, capped at 20. A dependency advisory is shown when it is `DEPS-MALICIOUS-001`, or when it is `DEPS-VULN-001`, not dev-only, and reachability is reachable, symbol-reachable, via a dependency, or unknown. Severity and confidence do not show a dependency row. SAST, secrets, and config are shown when severity is high or critical, or confidence is high. Shown dependency findings are one row per package. `--all` prints every finding. JSON, SARIF, Markdown, HTML, the baseline, and `--fail-on` stay the full list. On the 2026-10-18 offline-safe recount, grouped rows were NodeGoat 36, goof 63, juice-shop 49, dvna 14, and vulnerable-node 41. Ground truth is still `"reviewed": false`.
+Default console prints shown rows only, capped at 20. A dependency advisory is shown when it is `DEPS-MALICIOUS-001`, or when it is `DEPS-VULN-001`, not dev-only, and reachability is reachable, symbol-reachable, via a dependency, or unknown. Severity and confidence do not show a dependency row. SAST, secrets, and config are shown when severity is high or critical, or confidence is high. Shown dependency findings are one row per package. `--all` prints every finding. JSON, SARIF, Markdown, HTML, the baseline, and `--fail-on` stay the full list. Ground truth is still `"reviewed": false`.
 
 Experimental taint propagation (`FULLSHIELD_EXPERIMENTAL_TAINT_V2=1`) and the parse pool (`FULLSHIELD_PARSE_POOL=1`) are off by default. Symbol reachability runs only when an OSV advisory lists `affected_functions`. Advisories without that list keep the import-level class.
 
-`COMPARISON.md` is not linked here. The mapping has not been reviewed. A local semgrep / osv-scanner / npm audit run is in that file, and it is not a recall claim. Benchmark numbers stay in [`BENCHMARK.md`](BENCHMARK.md) with the unreviewed label.
+`COMPARISON.md` is not linked here. The mapping has not been reviewed. A local semgrep / osv-scanner / npm audit run is in that file. Finding counts stay in [`BENCHMARK.md`](BENCHMARK.md). They are not accuracy scores.
 
 See [`SECURITY.md`](SECURITY.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), and [`RELEASING.md`](RELEASING.md).
 

@@ -7,14 +7,14 @@ const root = process.cwd();
 const cli = join(root, 'dist', 'cli', 'index.js');
 
 describe('Phase 20 CLI confirm (built)', () => {
-  it('refuses confirm without FULLSHIELD_EXPERIMENTAL_CONFIRM', () => {
+  it('confirm on 127.0.0.1 works without FULLSHIELD_EXPERIMENTAL_CONFIRM', () => {
     const result = spawnSync(process.execPath, [cli, 'confirm', 'http://127.0.0.1:1/'], {
       cwd: root,
       encoding: 'utf8',
       env: { ...process.env, FULLSHIELD_EXPERIMENTAL_CONFIRM: '' },
     });
-    expect(result.status).toBe(2);
-    expect(result.stderr).toMatch(/FULLSHIELD_EXPERIMENTAL_CONFIRM/);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toMatch(/"ok":true/);
   });
 
   it('refuses a public hostname even with experimental set', () => {

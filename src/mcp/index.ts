@@ -31,10 +31,12 @@ export function createMcpSession(opts: { experimental?: boolean } = {}): McpSess
 export function listMcpTools(): McpTool[] {
   return [
     { name: 'scan', description: 'Run a FullShield scan (read-only)' },
+    { name: 'check_diff', description: 'Scan only the git-changed frontier (read-only)' },
     { name: 'get_findings', description: 'Return findings from the last scan in this session' },
     { name: 'explain_finding', description: 'Explain a finding by ruleId (text only)' },
     { name: 'propose_fix', description: 'Return a unified diff; never writes files' },
     { name: 'verify_fix', description: 'Apply the diff in a temp copy and rescan; original tree untouched' },
+    { name: 'verified_fix', description: 'Same as verify_fix. Writes a temp copy only.' },
   ];
 }
 
@@ -51,10 +53,15 @@ export async function callMcpTool(
   args: ToolArgs = {},
 ): Promise<unknown> {
   if (!session.experimental) {return { skipped: true };}
-  if (name === 'scan') {
+  if (name === 'scan' || name === 'check_diff') {
     const cwd = resolve(args.path ?? session.cwd ?? process.cwd());
     session.cwd = cwd;
-    const result = await scan({ cwd, offline: args.offline === true, modules: args.modules });
+    const result = await scan({
+      cwd,
+      offline: args.offline === true,
+      modules: args.modules,
+      diff: name === 'check_diff',
+    });
     const llm = scanLlmApp(cwd, { experimental: true });
     session.findings = [...result.findings, ...llm];
     return { findings: session.findings, summary: result.summary };
@@ -70,7 +77,7 @@ export async function callMcpTool(
   if (name === 'propose_fix') {
     return proposeOnly(session, args.ruleId);
   }
-  if (name === 'verify_fix') {
+  if (name === 'verify_fix' || name === 'verified_fix') {
     return verifyInTemp(session, args.ruleId);
   }
   return { error: `unknown tool ${name}` };
@@ -192,6 +199,14 @@ export async function createOfficialMcpServer(
     async (args) => textResult(await callMcpTool(session, 'scan', args)),
   );
   server.registerTool(
+    'check_diff',
+    {
+      description: 'Scan only the git-changed frontier (read-only)',
+      inputSchema: { path: z.string().optional(), offline: z.boolean().optional(), modules: modulesSchema },
+    },
+    async (args) => textResult(await callMcpTool(session, 'check_diff', args)),
+  );
+  server.registerTool(
     'get_findings',
     { description: 'Return findings from the last scan in this session', inputSchema: {} },
     async () => textResult(await callMcpTool(session, 'get_findings', {})),
@@ -219,6 +234,14 @@ export async function createOfficialMcpServer(
       inputSchema: { ruleId: z.string() },
     },
     async (args) => textResult(await callMcpTool(session, 'verify_fix', args)),
+  );
+  server.registerTool(
+    'verified_fix',
+    {
+      description: 'Same as verify_fix. Writes a temp copy only.',
+      inputSchema: { ruleId: z.string() },
+    },
+    async (args) => textResult(await callMcpTool(session, 'verified_fix', args)),
   );
   return server;
 }
