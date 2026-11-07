@@ -37,6 +37,9 @@ models/vendored.json
 models/vuln-functions.json
 models/webhooks.json
 package.json
+rules/AGENTS-SINK-001.md
+rules/AGENTS-SYSTEM-001.md
+rules/AGENTS-TOOL-001.md
 rules/CONFIG-BODYLIMIT-001.md
 rules/CONFIG-CORS-001.md
 rules/CONFIG-DIRLIST-001.md

@@ -935,7 +935,7 @@ s.listen(0, '127.0.0.1', () => {
     }
     const bad = llm.scanLlmApp(join(root, 'test', 'fixtures', 'llm-app'), { experimental: true });
     for (const id of ['LLM-001', 'LLM-002', 'LLM-003', 'LLM-004', 'LLM-005']) {
-      if (!bad.some((f) => f.ruleId === id)) fail(`phase 21 acceptance: missing ${id} on llm-app`);
+      if (bad.some((f) => f.ruleId === id)) fail(`phase 21 acceptance: ${id} is still reported`);
     }
     const good = llm.scanLlmApp(join(root, 'test', 'fixtures', 'llm-clean'), { experimental: true });
     if (good.length !== 0) fail(`phase 21 acceptance: llm-clean produced ${good.map((f) => f.ruleId).join(',')}`);
@@ -945,7 +945,7 @@ s.listen(0, '127.0.0.1', () => {
     const session = mcp.createMcpSession();
     const skipped = await mcp.callMcpTool(session, 'scan', { path: join(root, 'test', 'fixtures', 'clean-app') });
     if (!skipped.skipped) fail('phase 21 acceptance: MCP scan ran without experimental flag');
-    console.log('  ✔ MCP tools listed; LLM-001..005 positive/negative; off without experimental');
+    console.log('  ✔ MCP tools listed; LLM-001..005 are not reported');
   },
   // Phase 22 (spec §20.3–20.5 / §22): threat model + incremental + dashboard host lock.
   22: async () => {

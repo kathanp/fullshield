@@ -143,3 +143,11 @@ Requires `FULLSHIELD_EXPERIMENTAL_DLP=1` and `shieldGuard({ dlp: { mode } })`. N
 | [SAST-POSTMSG-001](SAST-POSTMSG-001.md) | postMessage without an origin check |
 | [SAST-TOKENSTORE-001](SAST-TOKENSTORE-001.md) | Token written to localStorage |
 | [SAST-IDOR-001](SAST-IDOR-001.md) | Load-by-id hint that never fails CI (`FULLSHIELD_EXPERIMENTAL_IDOR`) |
+
+## Agents (experimental, `FULLSHIELD_EXPERIMENTAL_AGENTS=1` and `--modules agents`)
+
+| ID | What |
+|---|---|
+| [AGENTS-SYSTEM-001](AGENTS-SYSTEM-001.md) | Request data in a system message |
+| [AGENTS-TOOL-001](AGENTS-TOOL-001.md) | Request data in a tool argument |
+| [AGENTS-SINK-001](AGENTS-SINK-001.md) | Tool handler forwards its argument to a shell, a file write, or SQL |

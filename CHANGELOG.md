@@ -4,6 +4,17 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+## 3.8.0 — 2026-11-07
+
+### Release
+
+- 14-day wait waived by maintainer.
+
+### Experimental
+
+- `scan --modules agents` with `FULLSHIELD_EXPERIMENTAL_AGENTS=1` reports `AGENTS-SYSTEM-001` when request body, query, params, headers, or cookies become a system message, `AGENTS-TOOL-001` when that data is a tool argument, and `AGENTS-SINK-001` when a registered tool handler passes that argument to a shell, a file write, or SQL. The trace follows a helper in another file for 5 calls. A literal system prompt, user text in the user role, and an allowlist that rejects the argument stay quiet. The default scan does not request this module.
+- `LLM-001` through `LLM-005` are not reported. `FULLSHIELD_EXPERIMENTAL_LLM` is removed. `FULLSHIELD_EXPERIMENTAL_AGENTS` is set in the environment. It is not a new `--help` line.
+
 ## 3.7.0 — 2026-11-05
 
 ### Release

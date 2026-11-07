@@ -16,7 +16,8 @@ describe('experimental flag groups', () => {
     expect(env.FULLSHIELD_EXPERIMENTAL_LDAP).toBe('1');
     expect(env.FULLSHIELD_EXPERIMENTAL_RASP).toBe('1');
     expect(env.FULLSHIELD_EXPERIMENTAL_SARIF_V2).toBe('1');
-    expect(env.FULLSHIELD_EXPERIMENTAL_LLM).toBe('1');
+    expect(env.FULLSHIELD_EXPERIMENTAL_LLM).toBeUndefined();
+    expect(env.FULLSHIELD_EXPERIMENTAL_AGENTS).toBe('1');
     expect(env.FULLSHIELD_EXPERIMENTAL_AGENTRULES).toBe('1');
     expect(env.FULLSHIELD_EXPERIMENTAL_MCPPOISON).toBe('1');
     expect(env.FULLSHIELD_EXPERIMENTAL_PROVENANCE).toBeUndefined();

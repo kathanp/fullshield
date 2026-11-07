@@ -1,4 +1,8 @@
-# FullShield features (3.7.0)
+# FullShield features (3.8.0)
+
+## 3.8.0
+
+Minor on 3.7.0. The package number is 3.8.0. It is not tagged. `scan --modules agents` with `FULLSHIELD_EXPERIMENTAL_AGENTS=1` reads the app's own model calls. Request body, query, params, headers, and cookies that become a system message are `AGENTS-SYSTEM-001`. The same data in a tool argument is `AGENTS-TOOL-001`. A registered tool handler that passes that argument to a shell, a file write, or SQL is `AGENTS-SINK-001`. The trace follows a helper in another file for 5 calls. A literal system prompt, user text kept in the user role, and a shell tool whose allowlist rejects the argument stay quiet. A file that only contains the words prompt or system stays quiet. Skill files, `.cursor`, and paths outside the project are not read. The default scan does not run this module. `LLM-001` through `LLM-005` are not reported. `FULLSHIELD_EXPERIMENTAL_LLM` is gone. 3.9.0 and 3.10.0 are not in this tree.
 
 ## 3.7.0
 

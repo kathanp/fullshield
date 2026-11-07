@@ -103,7 +103,7 @@ function isProfileName(value: string): value is ProfileName {
 }
 
 export const DEFAULT_CONFIG: ResolvedConfig = {
-  modules: [...MODULE_NAMES],
+  modules: ['deps', 'secrets', 'sast', 'config'],
   failOn: 'high',
   ignore: ['dist/**', '**/*.test.ts'],
   defaultExcludes: true,

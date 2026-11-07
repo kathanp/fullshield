@@ -241,11 +241,11 @@ const EXTRA_TARGETS = [
     },
   },
   {
-    name: 'LLM-001',
-    file: join(root, 'src', 'llm', 'index.ts'),
+    name: 'AGENTS-SYSTEM-001',
+    file: join(root, 'src', 'modules', 'agents', 'index.ts'),
     apply: (src) => {
-      if (!src.includes("'LLM-001'")) throw new Error('LLM-001 site missing');
-      return src.replaceAll("'LLM-001'", "'LLM-DISABLED'");
+      if (!src.includes("'AGENTS-SYSTEM-001'")) throw new Error('AGENTS-SYSTEM-001 site missing');
+      return src.replaceAll("'AGENTS-SYSTEM-001'", "'AGENTS-DISABLED'");
     },
   },
   {

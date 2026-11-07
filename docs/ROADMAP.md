@@ -1,4 +1,4 @@
-# FullShield roadmap: 3.7.0
+# FullShield roadmap: 3.8.0
 
 Rules for every version:
 - One headline capability a user notices on first run.
@@ -14,7 +14,7 @@ Rules for every version:
 - Node/TS only. Offline-first. No telemetry, no hosted service, no PR-comment bot,
   no new language, no new string-match H/G-style checks.
 
-3.6.1 is published. It holds the unfinished trust baseline and everything that used to be 4.0.0–4.7.0 and 5.0.0. Those old numbers were never tagged. D-77 moved that scope into 3.6.1. This tree is 3.7.0. After 3.7.0, the next plan is three minors, 3.8.0, 3.9.0, and 3.10.0. Each one adds a module. None of them is a 4.0.0 major. A major has to remove or change something already listed as Stable in `docs/stability.md`. A new module does not.
+3.6.1 is published. It holds the unfinished trust baseline and everything that used to be 4.0.0–4.7.0 and 5.0.0. Those old numbers were never tagged. D-77 moved that scope into 3.6.1. This tree is 3.8.0. After 3.7.0, the next plan is three minors, 3.8.0, 3.9.0, and 3.10.0. Each one adds a module. None of them is a 4.0.0 major. A major has to remove or change something already listed as Stable in `docs/stability.md`. A new module does not.
 
 `v3.6.0` is already on `main` (2026-11-02) for the four group flags only. The rest of this section is still open. On 2026-11-03 the maintainer chose one release, numbered 3.6.1, for this whole section (D-77). The version check accepts that patch. The release after 3.6.1 follows R16a again.
 
@@ -170,11 +170,11 @@ Code and tests only. No live demo. No numeric benchmark target. 14-day wait waiv
 
 ## Three modules: 3.8.0, 3.9.0, 3.10.0
 
-Not part of 3.6.1 or 3.7.0. Nothing here is started, measured, or marked done. Naming one version in a later message is the go for that version's tests. It is not a go for the next version, for a tag, or for npm publish.
+Not part of 3.6.1 or 3.7.0. 3.8.0 is in this tree and is not tagged. 3.9.0 and 3.10.0 are not started. Naming one version is the go for that version's tests. It is not a go for the next version, for a tag, or for npm publish.
 
 The default modules today are `deps`, `secrets`, `sast`, and `config` (`src/core/finding.ts`). These three versions each add one module beside those four. They do not retune baselines, reprints, chains, lockfile install, extra canaries, agent citation, fix statuses, Hono and Koa promotion, or script reachability.
 
-A regex pass already exists and is not these modules. `src/llm/index.ts` flags `LLM-001` through `LLM-005` only when `FULLSHIELD_EXPERIMENTAL_LLM=1`, by matching text in one file. `src/exp/sectiong.ts` flags a file that contains both `bull` and `exec`. `src/exp/sectiong.ts` also flags an OpenAPI file that contains the literal path `/admin`. Those checks stay out of the verdict.
+`LLM-001` through `LLM-005` are not reported. `src/exp/sectiong.ts` flags a file that contains both `bull` and `exec`. `src/exp/sectiong.ts` also flags an OpenAPI file that contains the literal path `/admin`. Those checks stay out of the verdict.
 
 Same rules as every other version. One headline. The release gate is a test for each code change, six green CI jobs, clean-app at 0 findings, and no in-scope ground-truth match lost on the five bench apps. There is no numeric benchmark target. At least 14 days between minor versions, unless the maintainer says "waive the 14-day wait" and that version's CHANGELOG records "14-day wait waived by maintainer." Patch versions have no wait. The new module stays behind one flag until the human promotes it. The tag adds that one flag and removes one existing `FULLSHIELD_EXPERIMENTAL_*` flag, so `--help` does not grow. No new string-match H/G-style check. Node.js and TypeScript only. Offline. No telemetry, no hosted service, no pull-request comment bot, no new language. The five agent skills stay out. Business-logic and IDOR findings, container scanning, and the "Not planned" list stay out.
 
@@ -183,10 +183,10 @@ Same rules as every other version. One headline. The release gate is a test for 
 Goal: `scan --modules agents` reads the Node app's own model calls. Untrusted input that becomes a system message or a tool argument is a finding. A tool the app registers, whose handler passes that argument to a shell, a file write, or SQL, is a finding.
 
 Ships:
-- [ ] New module `agents`. Sources are request body, query, params, headers, and cookies. Sinks are a system-role message, a tool or function argument, and a tool handler that forwards that argument to `child_process`, `fs`, or a SQL call.
-- [ ] The trace crosses a helper in another file, same depth as SAST (5).
-- [ ] One positive fixture and one negative fixture for each sink. The negative cases are a literal system prompt, user text kept in the user role, and a shell tool whose allowlist rejects the argument.
-- [ ] The tag removes `FULLSHIELD_EXPERIMENTAL_LLM`. `LLM-001` through `LLM-005` are not reported.
+- [X] New module `agents`. Sources are request body, query, params, headers, and cookies. Sinks are a system-role message, a tool or function argument, and a tool handler that forwards that argument to `child_process`, `fs`, or a SQL call.
+- [X] The trace crosses a helper in another file, same depth as SAST (5).
+- [X] One positive fixture and one negative fixture for each sink. The negative cases are a literal system prompt, user text kept in the user role, and a shell tool whose allowlist rejects the argument.
+- [X] `FULLSHIELD_EXPERIMENTAL_LLM` is removed. `LLM-001` through `LLM-005` are not reported.
 Exit criteria:
 - Each positive fixture reports. Each negative fixture does not.
 - clean-app stays 0 with the flag on and with it off.
