@@ -32,7 +32,7 @@ describe('3.9.0 workers module', () => {
       });
     `);
     expect(positive.map((item) => item.ruleId)).toContain('WORKERS-SQL-001');
-    expect(positive.some((item) => item.message.includes('BullMQ') && item.message.includes('SQL'))).toBe(true);
+    expect(positive.map((item) => item.message)).toContain('BullMQ job payload reaches a SQL call.');
     expect(negative).toEqual([]);
   });
 
@@ -48,7 +48,7 @@ describe('3.9.0 workers module', () => {
       queue.process(async (job) => { exec('echo ok'); });
     `);
     expect(positive.map((item) => item.ruleId)).toContain('WORKERS-CMD-001');
-    expect(positive.some((item) => item.message.includes('bee-queue') && item.message.includes('shell'))).toBe(true);
+    expect(positive.map((item) => item.message)).toContain('bee-queue job payload reaches a shell call.');
     expect(negative).toEqual([]);
   });
 
@@ -69,7 +69,7 @@ describe('3.9.0 workers module', () => {
       };
     `);
     expect(positive.map((item) => item.ruleId)).toContain('WORKERS-PATH-001');
-    expect(positive.some((item) => item.message.includes('SQS') && item.message.includes('path'))).toBe(true);
+    expect(positive.map((item) => item.message)).toContain('SQS record body reaches a path call.');
     expect(negative).toEqual([]);
   });
 
@@ -81,7 +81,7 @@ describe('3.9.0 workers module', () => {
       socket.on('message', (msg) => { fetch('https://example.com'); });
     `);
     expect(positive.map((item) => item.ruleId)).toContain('WORKERS-SSRF-001');
-    expect(positive.some((item) => item.message.includes('Socket.IO') && item.message.includes('URL'))).toBe(true);
+    expect(positive.map((item) => item.message)).toContain('WebSocket or Socket.IO message reaches a URL call.');
     expect(negative).toEqual([]);
   });
 
