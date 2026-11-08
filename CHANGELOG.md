@@ -4,6 +4,16 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+## 3.9.0 — 2026-11-08
+
+### Release
+
+- 14-day wait waived by maintainer.
+
+### Experimental
+
+- `scan --modules workers` with `FULLSHIELD_EXPERIMENTAL_WORKERS=1` reports `WORKERS-SQL-001` when a BullMQ job payload reaches SQL, `WORKERS-CMD-001` when a bee-queue job payload reaches a shell, `WORKERS-PATH-001` when an SQS record body reaches a path, and `WORKERS-SSRF-001` when a WebSocket or Socket.IO message reaches a URL. A checked field, a constant, and a file that only contains the words `bull` and `exec` stay quiet. The default scan does not request this module. No package is installed and no worker is started. The flag is set in the environment. It is not a new `--help` line.
+
 ## 3.8.0 — 2026-11-07
 
 ### Release

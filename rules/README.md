@@ -151,3 +151,12 @@ Requires `FULLSHIELD_EXPERIMENTAL_DLP=1` and `shieldGuard({ dlp: { mode } })`. N
 | [AGENTS-SYSTEM-001](AGENTS-SYSTEM-001.md) | Request data in a system message |
 | [AGENTS-TOOL-001](AGENTS-TOOL-001.md) | Request data in a tool argument |
 | [AGENTS-SINK-001](AGENTS-SINK-001.md) | Tool handler forwards its argument to a shell, a file write, or SQL |
+
+## Workers (experimental, `FULLSHIELD_EXPERIMENTAL_WORKERS=1` and `--modules workers`)
+
+| ID | What |
+|---|---|
+| [WORKERS-SQL-001](WORKERS-SQL-001.md) | BullMQ job payload reaches SQL |
+| [WORKERS-CMD-001](WORKERS-CMD-001.md) | bee-queue job payload reaches a shell |
+| [WORKERS-PATH-001](WORKERS-PATH-001.md) | SQS record body reaches a path |
+| [WORKERS-SSRF-001](WORKERS-SSRF-001.md) | WebSocket or Socket.IO message reaches a URL |

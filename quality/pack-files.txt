@@ -273,6 +273,10 @@ rules/SUPPLY-SECHOLDER-001.md
 rules/SUPPLY-STEALER-001.md
 rules/SUPPLY-WORKFLOW-001.md
 rules/SUPPLY-WORM-001.md
+rules/WORKERS-CMD-001.md
+rules/WORKERS-PATH-001.md
+rules/WORKERS-SQL-001.md
+rules/WORKERS-SSRF-001.md
 templates/action/action.yml
 templates/fullshield-bumps.yml
 templates/fullshield.config.json

@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 export const SEVERITIES = ['info', 'low', 'medium', 'high', 'critical'] as const;
 export type Severity = (typeof SEVERITIES)[number];
 
-export const MODULE_NAMES = ['deps', 'secrets', 'sast', 'config', 'agents'] as const;
+export const MODULE_NAMES = ['deps', 'secrets', 'sast', 'config', 'agents', 'workers'] as const;
 export type ModuleName = (typeof MODULE_NAMES)[number];
 
 export type Confidence = 'low' | 'medium' | 'high';

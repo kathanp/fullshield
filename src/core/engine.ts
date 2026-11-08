@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 
 import { agentsModule } from '../modules/agents/index.js';
+import { workersModule } from '../modules/workers/index.js';
 import { configModule } from '../modules/config/index.js';
 import { depsModule } from '../modules/deps/index.js';
 import { scanMcpConfig } from '../modules/mcp/index.js';
@@ -203,7 +204,7 @@ export interface ScanResult {
  * Scanner modules register here as their phases are built.
  * Phase 5: deps + secrets + sast + config.
  */
-export const builtinModules: readonly ScanModule[] = [depsModule, secretsModule, sastModule, configModule, agentsModule];
+export const builtinModules: readonly ScanModule[] = [depsModule, secretsModule, sastModule, configModule, agentsModule, workersModule];
 
 export const IMPLEMENTED_MODULES: readonly ModuleName[] = builtinModules.map((m) => m.name);
 
