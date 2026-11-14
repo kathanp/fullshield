@@ -145,6 +145,8 @@ export const RULE_MAP: readonly RuleMapping[] = [
   ROW('WORKERS-CMD-001', 'A03:2021 Injection', 'CWE-78', 'V5.3.3', 'PCI DSS 6.2.4'),
   ROW('WORKERS-PATH-001', 'A01:2021 Broken Access Control', 'CWE-22', 'V12.3.1', 'PCI DSS 6.2.4'),
   ROW('WORKERS-SSRF-001', 'A10:2021 SSRF', 'CWE-918', 'V12.6.1', 'PCI DSS 6.2.4'),
+  ROW('CONTRACT-SPEC-001', 'API9:2023 Improper Inventory Management', 'CWE-1059', 'V13.1.1', 'PCI DSS 6.2.4'),
+  ROW('CONTRACT-ROUTE-001', 'API9:2023 Improper Inventory Management', 'CWE-1059', 'V13.1.1', 'PCI DSS 6.2.4'),
   ROW('LLM-001', 'A03:2021 Injection', 'CWE-1426', 'V5.3.3', 'PCI DSS 6.2.4'),
   ROW('LLM-002', 'A03:2021 Injection', 'CWE-94', 'V5.3.3', 'PCI DSS 6.2.4'),
   ROW('LLM-003', 'A01:2021 Broken Access Control', 'CWE-250', 'V4.1.1', 'PCI DSS 7.2'),
@@ -341,7 +343,7 @@ export function renderCompliance(
 
 export function collectRuleIdsFromSources(texts: readonly string[]): string[] {
   const ids = new Set<string>();
-  const re = /\b((?:SAST|SECRET|DEPS|CONFIG|EDGE|AI|LLM|SUPPLY|IAC|RASP|RUNTIME|DLP|MCP|HOST|AGENT)(?:-[A-Z0-9]+)*-\d{3})\b/g;
+  const re = /\b((?:SAST|SECRET|DEPS|CONFIG|EDGE|AI|LLM|SUPPLY|IAC|RASP|RUNTIME|DLP|MCP|HOST|AGENT|CONTRACT)(?:-[A-Z0-9]+)*-\d{3})\b/g;
   for (const text of texts) {
     let m: RegExpExecArray | null;
     while ((m = re.exec(text)) !== null) {ids.add(m[1] ?? '');}

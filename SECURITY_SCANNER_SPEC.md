@@ -7260,3 +7260,17 @@ No existing test, fixture, or `expected-findings.json` is edited.
 No new host. Scanned code is not executed. No letter grade. No recall number. No company quote. No prevention claim.
 
 Acceptance: `scan --json` findings are unchanged. The new HTML tests pass. `clean-app` stays at 0 high/critical. Default scan finding keys are unchanged.
+
+## 73. Version 3.10.0
+
+These phases are the approved `docs/FEATURES.md` for 3.10.0. A behavior that is not in that list is not in this section. This is a minor on 3.9.0. It adds module `contract`, rule ids `CONTRACT-SPEC-001` and `CONTRACT-ROUTE-001`, and env flag `FULLSHIELD_EXPERIMENTAL_CONTRACT`. It adds no `.command()` and no `.option()`. Default `scan --json` findings stay byte-identical to 3.9.0. `stableChange: false`.
+
+### [X] Phase 576 — OpenAPI route contract [`FULLSHIELD_EXPERIMENTAL_CONTRACT`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_CONTRACT`. Off unless the value is `1`. Also requires `scan --modules contract`. The flag is not a new `--help` line. `stableChange: false`.
+
+`scan --modules contract` reads `openapi.yaml` or `openapi.json` in the project and compares path and method with Express, Fastify, Nest, and Next routes. `CONTRACT-SPEC-001` is an OpenAPI path and method with no registered route. `CONTRACT-ROUTE-001` is a registered route with no OpenAPI path and method. A matched method and path stays quiet. A project with no OpenAPI file stays quiet. A file that does not parse stays quiet. Query parameters and response bodies are not compared. Hono and Koa are not compared. The check does not look for the literal path `/admin`. Severity is `medium`. CWE-1059.
+
+No new host. The check does not fetch a URL. It does not install a package. Scanned code is not executed. No new dependency.
+
+Acceptance: flag off leaves default `scan --json` unchanged. Each positive fixture reports the missing side, and each negative fixture does not. `clean-app` stays at 0 with the flag on. Default scan findings unchanged.

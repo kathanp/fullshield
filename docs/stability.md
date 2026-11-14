@@ -73,6 +73,10 @@ It is not a promise that each flag stays.
 
 Stable rule ids are the rules whose front matter says `stability: stable`. Experimental keys may disappear in a minor. This section does not say the product is complete.
 
+## 3.10.0
+
+3.10.0 does not change default `scan --json`. `scan --modules contract` with `FULLSHIELD_EXPERIMENTAL_CONTRACT=1` compares a local OpenAPI file with Express, Fastify, Nest, and Next routes. The flag is off by default. The finding fields in this file are unchanged. No stable rule id is removed.
+
 ## 3.0.0
 
 3.0.0 adds `schedule install`, `schedule run`, `schedule status`, and `schedule uninstall`. `install` registers a user timer every 2 hours, creates `fullShieldReport/`, and adds that folder to `.gitignore` once. `run` writes `fullShieldReport/fullShieldReport_YYYYMMDD_HHMM.md` and keeps the newest 60 reports. `scan` does not create that folder or edit `.gitignore`. Default `scan --json` finding keys are unchanged. No stable rule id is removed.

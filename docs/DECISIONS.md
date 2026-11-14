@@ -137,3 +137,5 @@ D-75 | phase-574 | The terminal and Markdown report share one opening | Counts m
 D-76 | phase-575 | The HTML report uses the same opening | Counts, the fail line, and Do this first match the terminal. A repeated rule is one heading inside its severity. JSON, SARIF, the terminal, Markdown, and the exit code stay. No new flag, command, or workflow. | APPROVED
 
 D-77 | 3.6.1 | One patch holds the former 4.0.0–5.0.0 scope | The maintainer asked on 2026-11-03 to ship the merged roadmap as 3.6.1 instead of a major and six minors. `allowsMergedPatch` accepts 3.6.0 → 3.6.1 when the signals require a minor or a major. 3.6.2 and 4.0.0 are not this exception. | APPROVED
+
+D-78 | phase-576 | Contract compare is path and method only, severity medium | The approved 3.10.0 features file names `CONTRACT-SPEC-001` and `CONTRACT-ROUTE-001` behind `FULLSHIELD_EXPERIMENTAL_CONTRACT`. Hono and Koa stay out. A missing or unreadable OpenAPI file stays quiet. No fetch, no new dependency, no default-scan change. CWE-1059. | APPROVED

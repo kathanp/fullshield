@@ -10,4 +10,4 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - run: npx fullshield@3.9.0 scan --diff
+      - run: npx fullshield@3.10.0 scan --diff

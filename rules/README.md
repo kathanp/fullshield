@@ -152,6 +152,13 @@ Requires `FULLSHIELD_EXPERIMENTAL_DLP=1` and `shieldGuard({ dlp: { mode } })`. N
 | [AGENTS-TOOL-001](AGENTS-TOOL-001.md) | Request data in a tool argument |
 | [AGENTS-SINK-001](AGENTS-SINK-001.md) | Tool handler forwards its argument to a shell, a file write, or SQL |
 
+## Contract (experimental, `FULLSHIELD_EXPERIMENTAL_CONTRACT=1` and `--modules contract`)
+
+| ID | What |
+|---|---|
+| [CONTRACT-SPEC-001](CONTRACT-SPEC-001.md) | OpenAPI path and method with no registered route |
+| [CONTRACT-ROUTE-001](CONTRACT-ROUTE-001.md) | Registered route with no OpenAPI path and method |
+
 ## Workers (experimental, `FULLSHIELD_EXPERIMENTAL_WORKERS=1` and `--modules workers`)
 
 | ID | What |

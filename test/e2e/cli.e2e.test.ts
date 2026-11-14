@@ -1,7 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 
 import { beforeAll, describe, expect, it } from 'vitest';
 
@@ -37,7 +36,8 @@ beforeAll(async () => {
   if (!existsSync(cliPath)) {
     throw new Error(`built CLI not found at ${cliPath} — run \`npm run build\` before e2e tests`);
   }
-  const dist = (await import(pathToFileURL(distIndex).href)) as {
+  // A file URL encodes spaces. This runner then looks up that encoded path and misses dist/.
+  const dist = (await import(distIndex)) as {
     IMPLEMENTED_MODULES: readonly string[];
   };
   implementedModules = [...dist.IMPLEMENTED_MODULES];
