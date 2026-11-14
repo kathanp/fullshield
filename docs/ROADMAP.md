@@ -1,4 +1,4 @@
-# FullShield roadmap: 3.9.0
+# FullShield roadmap: 3.10.0
 
 Rules for every version:
 - One headline capability a user notices on first run.
@@ -14,7 +14,7 @@ Rules for every version:
 - Node/TS only. Offline-first. No telemetry, no hosted service, no PR-comment bot,
   no new language, no new string-match H/G-style checks.
 
-3.6.1 is published. It holds the unfinished trust baseline and everything that used to be 4.0.0–4.7.0 and 5.0.0. Those old numbers were never tagged. D-77 moved that scope into 3.6.1. This tree is 3.9.0. After 3.7.0, the next plan is three minors, 3.8.0, 3.9.0, and 3.10.0. Each one adds a module. None of them is a 4.0.0 major. A major has to remove or change something already listed as Stable in `docs/stability.md`. A new module does not.
+3.6.1 is published. It holds the unfinished trust baseline and everything that used to be 4.0.0–4.7.0 and 5.0.0. Those old numbers were never tagged. D-77 moved that scope into 3.6.1. This tree is 3.10.0. After 3.7.0, the next plan is three minors, 3.8.0, 3.9.0, and 3.10.0. Each one adds a module. None of them is a 4.0.0 major. A major has to remove or change something already listed as Stable in `docs/stability.md`. A new module does not.
 
 `v3.6.0` is already on `main` (2026-11-02) for the four group flags only. The rest of this section is still open. On 2026-11-03 the maintainer chose one release, numbered 3.6.1, for this whole section (D-77). The version check accepts that patch. The release after 3.6.1 follows R16a again.
 
@@ -170,7 +170,7 @@ Code and tests only. No live demo. No numeric benchmark target. 14-day wait waiv
 
 ## Three modules: 3.8.0, 3.9.0, 3.10.0
 
-Not part of 3.6.1 or 3.7.0. 3.8.0 is tagged. 3.9.0 is in this tree and is not tagged. 3.10.0 is not started. Naming one version is the go for that version's tests. It is not a go for the next version, for a tag, or for npm publish.
+Not part of 3.6.1 or 3.7.0. 3.8.0 is tagged. 3.9.0 is tagged. 3.10.0 is tagged. 14-day wait waived by maintainer on 2026-11-13. Naming one version is the go for that version's tests. It is not a go for the next version, for a tag, or for npm publish.
 
 The default modules today are `deps`, `secrets`, `sast`, and `config` (`src/core/finding.ts`). These three versions each add one module beside those four. They do not retune baselines, reprints, chains, lockfile install, extra canaries, agent citation, fix statuses, Hono and Koa promotion, or script reachability.
 
@@ -215,9 +215,9 @@ Exit criteria:
 Goal: `scan --modules contract` compares a local OpenAPI file with the routes the app actually registers. A path that exists on only one side is a finding.
 
 Ships:
-- [ ] New module `contract`. Reads `openapi.yaml` or `openapi.json` in the project. Parses paths and methods.
-- [ ] Compares that set with the route inventory for Express, Fastify, Nest, and Next. Two rule ids: a spec path with no route, and a route with no spec path.
-- [ ] Matched method and path produce no finding. A project with no OpenAPI file produces no finding.
+- [X] New module `contract`. Reads `openapi.yaml` or `openapi.json` in the project. Parses paths and methods.
+- [X] Compares that set with the route inventory for Express, Fastify, Nest, and Next. Two rule ids: a spec path with no route, and a route with no spec path.
+- [X] Matched method and path produce no finding. A project with no OpenAPI file produces no finding.
 Exit criteria:
 - A fixture with one extra spec path and one extra route reports those two and stays silent on the paths that match.
 - A fixture with no OpenAPI file reports nothing.

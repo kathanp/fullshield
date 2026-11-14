@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 
 import { agentsModule } from '../modules/agents/index.js';
+import { contractModule } from '../modules/contract/index.js';
 import { workersModule } from '../modules/workers/index.js';
 import { configModule } from '../modules/config/index.js';
 import { depsModule } from '../modules/deps/index.js';
@@ -204,7 +205,7 @@ export interface ScanResult {
  * Scanner modules register here as their phases are built.
  * Phase 5: deps + secrets + sast + config.
  */
-export const builtinModules: readonly ScanModule[] = [depsModule, secretsModule, sastModule, configModule, agentsModule, workersModule];
+export const builtinModules: readonly ScanModule[] = [depsModule, secretsModule, sastModule, configModule, agentsModule, workersModule, contractModule];
 
 export const IMPLEMENTED_MODULES: readonly ModuleName[] = builtinModules.map((m) => m.name);
 
@@ -539,41 +540,43 @@ async function applyAiMode(findings: Finding[], input: DecorateInput): Promise<F
   return findings;
 }
 
-async function decorateFindings(findingsIn: Finding[], input: DecorateInput): Promise<ScanTail> {
-  let findings = findingsIn;
-  let policyResult: PolicyScanResult | undefined;
-  if (input.loaded.loadedPolicy !== undefined) {
-    const applied = applyPolicy(findings, input.loaded.loadedPolicy, {
-      branch: input.options.policyBranch ?? resolvePolicyBranch(input.cwd),
-      modulesRun: input.modulesRun,
-    });
-    findings = applied.findings;
-    policyResult = {
+function applyPolicyResult(
+  findingsIn: Finding[],
+  input: DecorateInput,
+): { findings: Finding[]; policyResult?: PolicyScanResult } {
+  if (input.loaded.loadedPolicy === undefined) {return { findings: findingsIn };}
+  const applied = applyPolicy(findingsIn, input.loaded.loadedPolicy, {
+    branch: input.options.policyBranch ?? resolvePolicyBranch(input.cwd),
+    modulesRun: input.modulesRun,
+  });
+  return {
+    findings: applied.findings,
+    policyResult: {
       enabled: true,
       file: join(input.cwd, POLICY_FILE_NAME),
       failOn: applied.failOn,
       errors: applied.errors,
       policy: input.loaded.loadedPolicy,
-    };
-  }
-  let modelSuppressed: Finding[] | undefined;
-  let modelInfo: string[] | undefined;
-  if (modelsEnabled()) {
-    const applied = await applyModelSuppressions(input.cwd, findings);
-    findings = sortFindings(applied.findings);
-    if (applied.suppressed.length > 0) {modelSuppressed = applied.suppressed;}
-    if (applied.info.length > 0) {modelInfo = applied.info;}
-  }
-  findings = applyPriority(await applyAiMode(findings, input));
-  let typeSuppressed: Finding[] | undefined;
-  let typesNotice: string | undefined;
-  if (typesEnabled()) {
-    const { applyTypeSuppression } = await import('../modules/sast/type-receivers.js');
-    const applied = await applyTypeSuppression(findings, input.cwd, input.loaded.config.types);
-    findings = applied.findings;
-    typeSuppressed = applied.suppressed;
-    typesNotice = applied.notice;
-  }
+    },
+  };
+}
+
+async function applyModelLayer(
+  findingsIn: Finding[],
+  cwd: string,
+): Promise<{ findings: Finding[]; modelSuppressed?: Finding[]; modelInfo?: string[] }> {
+  if (!modelsEnabled()) {return { findings: findingsIn };}
+  const applied = await applyModelSuppressions(cwd, findingsIn);
+  const modelSuppressed = applied.suppressed.length > 0 ? applied.suppressed : undefined;
+  const modelInfo = applied.info.length > 0 ? applied.info : undefined;
+  return { findings: sortFindings(applied.findings), modelSuppressed, modelInfo };
+}
+
+async function applyLateDecorations(
+  findingsIn: Finding[],
+  input: DecorateInput,
+): Promise<{ findings: Finding[]; exceptionErrors?: string[]; attackPaths?: AttackPath[] }> {
+  let findings = findingsIn;
   let exceptionErrors: string[] | undefined;
   if (process.env.FULLSHIELD_EXPERIMENTAL_EXCEPTIONS === '1') {
     const { applyExceptions, loadExceptions } = await import('../policy/exceptions.js');
@@ -606,15 +609,32 @@ async function decorateFindings(findingsIn: Finding[], input: DecorateInput): Pr
   const { applyReviewedPrecision, readReviewedPrecision } = await import('./reviewed-gate.js');
   const reviewed = await readReviewedPrecision(input.cwd);
   if (reviewed.length > 0) {findings = applyReviewedPrecision(findings, reviewed);}
+  return { findings, exceptionErrors, attackPaths };
+}
+
+async function decorateFindings(findingsIn: Finding[], input: DecorateInput): Promise<ScanTail> {
+  const policy = applyPolicyResult(findingsIn, input);
+  const model = await applyModelLayer(policy.findings, input.cwd);
+  let findings = applyPriority(await applyAiMode(model.findings, input));
+  let typeSuppressed: Finding[] | undefined;
+  let typesNotice: string | undefined;
+  if (typesEnabled()) {
+    const { applyTypeSuppression } = await import('../modules/sast/type-receivers.js');
+    const applied = await applyTypeSuppression(findings, input.cwd, input.loaded.config.types);
+    findings = applied.findings;
+    typeSuppressed = applied.suppressed;
+    typesNotice = applied.notice;
+  }
+  const late = await applyLateDecorations(findings, input);
   return {
-    findings,
-    policyResult,
-    modelSuppressed,
-    modelInfo,
+    findings: late.findings,
+    policyResult: policy.policyResult,
+    modelSuppressed: model.modelSuppressed,
+    modelInfo: model.modelInfo,
     typeSuppressed,
     typesNotice,
-    attackPaths,
-    ...(exceptionErrors !== undefined ? { exceptionErrors } : {}),
+    attackPaths: late.attackPaths,
+    ...(late.exceptionErrors !== undefined ? { exceptionErrors: late.exceptionErrors } : {}),
   };
 }
 

@@ -4,6 +4,17 @@ All notable changes to FullShield are documented here.
 
 ## Unreleased
 
+## 3.10.0 — 2026-11-13
+
+### Release
+
+- 14-day wait waived by maintainer.
+- The unpacked npm pack ceiling moves from 3,145,728 bytes to 3,180,000 bytes. `v3.9.0` used 3,143,213. The contract check is copied into each minified entry. A pack of 3,200,000 bytes still fails.
+
+### Experimental
+
+- `scan --modules contract` with `FULLSHIELD_EXPERIMENTAL_CONTRACT=1` compares a local `openapi.yaml` or `openapi.json` with Express, Fastify, Nest, and Next routes. Path and method only. An OpenAPI path and method with no registered route is `CONTRACT-SPEC-001`. A registered route with no OpenAPI path and method is `CONTRACT-ROUTE-001`. A matched method and path stays quiet. A project with no OpenAPI file stays quiet. Hono and Koa are not compared. Query parameters and response bodies are not compared. The check does not look for the literal path `/admin`. It does not fetch a URL. It does not install a package. The default scan does not request this module. The flag is set in the environment. It is not a new `--help` line.
+
 ## 3.9.0 — 2026-11-08
 
 ### Release

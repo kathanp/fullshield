@@ -21,7 +21,7 @@ describe('public API surface', () => {
 
   it('exports severity/module constants and a consistent module registry', () => {
     expect(fullshield.SEVERITIES).toEqual(['info', 'low', 'medium', 'high', 'critical']);
-    expect(fullshield.MODULE_NAMES).toEqual(['deps', 'secrets', 'sast', 'config', 'agents', 'workers']);
+    expect(fullshield.MODULE_NAMES).toEqual(['deps', 'secrets', 'sast', 'config', 'agents', 'workers', 'contract']);
     // Phase-proof: the registry grows per phase but must always be consistent
     // and a subset of the known module names (was a phase-1 [] snapshot).
     expect(fullshield.IMPLEMENTED_MODULES).toEqual(fullshield.builtinModules.map((m) => m.name));

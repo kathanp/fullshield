@@ -1,8 +1,14 @@
-# FullShield features (3.9.0)
+# FullShield features (3.10.0)
+
+## 3.10.0
+
+### Experimental (`FULLSHIELD_EXPERIMENTAL_CONTRACT`)
+
+Minor on 3.9.0. The package number is 3.10.0. It is tagged. 14-day wait waived by maintainer on 2026-11-13. `scan --modules contract` with `FULLSHIELD_EXPERIMENTAL_CONTRACT=1` compares a local `openapi.yaml` or `openapi.json` with the routes the app registers. Express, Fastify, Nest, and Next are in. Hono and Koa are not. Path and method only. An OpenAPI path and method with no registered route is `CONTRACT-SPEC-001`. A registered route with no OpenAPI path and method is `CONTRACT-ROUTE-001`. A matched method and path stays quiet. A project with no OpenAPI file stays quiet. Query parameters and response bodies are not compared. The check does not look for the literal path `/admin`. It does not fetch a URL. It does not install a package. The default scan does not request this module. Flag off, default `scan --json` is unchanged. A `--repo` run does not park. The flag is set in the environment. It is not a new `--help` line.
 
 ## 3.9.0
 
-Minor on 3.8.0. The package number is 3.9.0. It is not tagged. `scan --modules workers` with `FULLSHIELD_EXPERIMENTAL_WORKERS=1` treats a background message as a source. A BullMQ `Worker` job payload that reaches SQL is `WORKERS-SQL-001`. A bee-queue job payload that reaches a shell is `WORKERS-CMD-001`. An SQS record body that reaches a path is `WORKERS-PATH-001`. A WebSocket or Socket.IO `message` that reaches a URL is `WORKERS-SSRF-001`. A checked field, a constant, and a file that only contains the words `bull` and `exec` stay quiet. The default scan does not request this module. No package is installed and no worker is started. 3.10.0 is not in this tree.
+Minor on 3.8.0. The package number is 3.9.0. It is tagged. `scan --modules workers` with `FULLSHIELD_EXPERIMENTAL_WORKERS=1` treats a background message as a source. A BullMQ `Worker` job payload that reaches SQL is `WORKERS-SQL-001`. A bee-queue job payload that reaches a shell is `WORKERS-CMD-001`. An SQS record body that reaches a path is `WORKERS-PATH-001`. A WebSocket or Socket.IO `message` that reaches a URL is `WORKERS-SSRF-001`. A checked field, a constant, and a file that only contains the words `bull` and `exec` stay quiet. The default scan does not request this module. No package is installed and no worker is started.
 
 ## 3.8.0
 
