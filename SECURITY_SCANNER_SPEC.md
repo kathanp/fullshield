@@ -407,7 +407,7 @@ Taint: sources `req.body/query/params/headers/cookies`, destructured request par
 - [ X ] No install/postinstall scripts.
 - [ X ] Hard runtime deps ≤ 6 (currently: commander, ignore, picocolors, @typescript-eslint/typescript-estree). Optional peers: express, fastify, koa, hono, zod, @modelcontextprotocol/sdk. Lockfile committed.
 - [ X ] Publish only from CI via trusted publishing with `--provenance`; post-publish attestation gate (S6). No long-lived npm tokens. 2FA on npm and GitHub. Staged approval on.
-- [ X ] Tarball: `dist/` (no `.map`), README, LICENSE, CHANGELOG, templates, rules. Budget: unpacked ≤ 3.0 MB, ≤ 320 files (Phase 36, raised for 1.2.0).
+- [ X ] Tarball: `dist/` (no `.map`), README, LICENSE, CHANGELOG, templates, rules. Budget: unpacked ≤ 3,180,000 bytes, ≤ 320 files (Phase 36, raised for 1.2.0, raised again for 3.10.0).
 - [ X ] Scanned code is never executed. Parse only.
 - [ X ] Network: OSV, registry.npmjs.org (supply-chain features), user-configured webhooks/AI providers, localhost (confirm/agent/dashboard). `--offline` available.
 - [ X ] Dogfood: FullShield scans its own repo in CI.
@@ -812,7 +812,7 @@ Build:
 1. Provenance gate in `publish.yml` (1.4). Root-cause 0.1.3's missing attestation; document in RELEASING.md.
 2. `scripts/default-scan-diff.mjs`: snapshots default-scan findings per target into `bench/snapshots/<version>.json`; diff mode prints added/removed/changed `(ruleId, file, line, severity)`; exit 1 on any diff unless `--approved <file>` matches exactly. Create snapshots for 0.1.1 and 0.1.3 from their published tarballs (`npm pack fullshield@X` into temp, run that CLI).
 3. `scripts/semver-check.mjs`: HEAD vs last tag — new rule IDs, commands, flags, exports, or stable-output diff → minor required; else patch. Fails if the `package.json` bump is smaller than required.
-4. `scripts/pack-budget.mjs`: fails if unpacked > 3.0 MB, files > 320, or hard `dependencies` added vs last tag; prints what grew.
+4. `scripts/pack-budget.mjs`: fails if unpacked > 3,180,000 bytes, files > 320, or hard `dependencies` added vs last tag; prints what grew.
 5. Section 27 items.
 6. CHANGELOG `0.2.0` draft: every stable-output change since 0.1.1 (from default-scan-diff 0.1.1 → HEAD) under the R10 heading, plus every experimental feature with its flag.
 
@@ -7271,6 +7271,6 @@ Flag: `FULLSHIELD_EXPERIMENTAL_CONTRACT`. Off unless the value is `1`. Also requ
 
 `scan --modules contract` reads `openapi.yaml` or `openapi.json` in the project and compares path and method with Express, Fastify, Nest, and Next routes. `CONTRACT-SPEC-001` is an OpenAPI path and method with no registered route. `CONTRACT-ROUTE-001` is a registered route with no OpenAPI path and method. A matched method and path stays quiet. A project with no OpenAPI file stays quiet. A file that does not parse stays quiet. Query parameters and response bodies are not compared. Hono and Koa are not compared. The check does not look for the literal path `/admin`. Severity is `medium`. CWE-1059.
 
-No new host. The check does not fetch a URL. It does not install a package. Scanned code is not executed. No new dependency.
+No new host. The check does not fetch a URL. It does not install a package. Scanned code is not executed. No new dependency. The unpacked pack ceiling moves from 3,145,728 bytes to 3,180,000 bytes. `v3.9.0` already used 3,143,213, and this module is copied into each minified entry.
 
 Acceptance: flag off leaves default `scan --json` unchanged. Each positive fixture reports the missing side, and each negative fixture does not. `clean-app` stays at 0 with the flag on. Default scan findings unchanged.

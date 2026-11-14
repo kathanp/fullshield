@@ -117,7 +117,7 @@ export function baselineTag(tags, headSha, tagSha) {
   throw new Error('no previous v* tag. The newest tag points at HEAD.');
 }
 
-export const PACK_UNPACKED_MAX = 3 * 1024 * 1024;
+export const PACK_UNPACKED_MAX = 3_180_000;
 export const PACK_FILES_MAX = 320;
 
 /**
