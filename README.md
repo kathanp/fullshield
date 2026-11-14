@@ -39,7 +39,7 @@ npx fullshield scan --sarif fullshield.sarif
 npx fullshield@3.10.0 --version
 ```
 
-Package page: [npmjs.com/package/fullshield](https://www.npmjs.com/package/fullshield). Release tag: [v3.9.0](https://github.com/kathanp/fullshield/releases/tag/v3.9.0). 3.10.0 is this tree and is not tagged. Publish stages with npm provenance (OIDC). After install, the stranger checks in the build spec (scan / json / sarif / fail-on / fix / init / sbom) are the post-publish gate — no Rekor/sigstore SaaS dependency in the CLI.
+Package page: [npmjs.com/package/fullshield](https://www.npmjs.com/package/fullshield). Release tag: [v3.10.0](https://github.com/kathanp/fullshield/releases/tag/v3.10.0). Publish stages with npm provenance (OIDC). After install, the stranger checks in the build spec (scan / json / sarif / fail-on / fix / init / sbom) are the post-publish gate — no Rekor/sigstore SaaS dependency in the CLI.
 
 ## GitHub Action
 

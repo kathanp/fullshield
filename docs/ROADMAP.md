@@ -170,7 +170,7 @@ Code and tests only. No live demo. No numeric benchmark target. 14-day wait waiv
 
 ## Three modules: 3.8.0, 3.9.0, 3.10.0
 
-Not part of 3.6.1 or 3.7.0. 3.8.0 is tagged. 3.9.0 is tagged. 3.10.0 is in this tree and is not tagged. Naming one version is the go for that version's tests. It is not a go for the next version, for a tag, or for npm publish.
+Not part of 3.6.1 or 3.7.0. 3.8.0 is tagged. 3.9.0 is tagged. 3.10.0 is tagged. 14-day wait waived by maintainer on 2026-11-13. Naming one version is the go for that version's tests. It is not a go for the next version, for a tag, or for npm publish.
 
 The default modules today are `deps`, `secrets`, `sast`, and `config` (`src/core/finding.ts`). These three versions each add one module beside those four. They do not retune baselines, reprints, chains, lockfile install, extra canaries, agent citation, fix statuses, Hono and Koa promotion, or script reachability.
 

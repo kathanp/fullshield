@@ -66,7 +66,7 @@ That retry is gone. A provenance failure now fails the publish job. After a succ
 
 ## Today (3.10.0)
 
-`package.json` is `3.10.0`. That number is not tagged. `v3.9.0` stays the published release until this tag is staged. Pushing `v3.10.0` is a separate step. The tag workflow stages the package. The maintainer clicks the staged version on npmjs.com. Do not run `npm publish` or `npm login`. A minor waits 14 days after `v3.9.0` (2026-11-08) unless the maintainer says "waive the 14-day wait".
+`v3.10.0` is tagged. The 14-day wait was waived by the maintainer on 2026-11-13. The tag workflow stages the package. The maintainer clicks the staged version on npmjs.com. Do not run `npm publish` or `npm login`.
 
 ## Today (3.9.0)
 

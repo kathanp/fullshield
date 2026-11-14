@@ -8,7 +8,7 @@ All notable changes to FullShield are documented here.
 
 ### Release
 
-- The 14-day wait after `v3.9.0` (2026-11-08) is still in force. This file does not waive it.
+- 14-day wait waived by maintainer.
 - The unpacked npm pack ceiling moves from 3,145,728 bytes to 3,180,000 bytes. `v3.9.0` used 3,143,213. The contract check is copied into each minified entry. A pack of 3,200,000 bytes still fails.
 
 ### Experimental
