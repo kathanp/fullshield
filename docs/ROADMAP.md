@@ -1,4 +1,4 @@
-# FullShield roadmap: 3.10.0
+# FullShield roadmap: 3.11.0
 
 Rules for every version:
 - One headline capability a user notices on first run.
@@ -14,7 +14,7 @@ Rules for every version:
 - Node/TS only. Offline-first. No telemetry, no hosted service, no PR-comment bot,
   no new language, no new string-match H/G-style checks.
 
-3.6.1 is published. It holds the unfinished trust baseline and everything that used to be 4.0.0–4.7.0 and 5.0.0. Those old numbers were never tagged. D-77 moved that scope into 3.6.1. This tree is 3.10.0. After 3.7.0, the next plan is three minors, 3.8.0, 3.9.0, and 3.10.0. Each one adds a module. None of them is a 4.0.0 major. A major has to remove or change something already listed as Stable in `docs/stability.md`. A new module does not.
+3.6.1 is published. It holds the unfinished trust baseline and everything that used to be 4.0.0–4.7.0 and 5.0.0. Those old numbers were never tagged. D-77 moved that scope into 3.6.1. This tree is 3.11.0. After 3.7.0, the next plan is three minors, 3.8.0, 3.9.0, and 3.10.0. Each one adds a module. None of them is a 4.0.0 major. A major has to remove or change something already listed as Stable in `docs/stability.md`. A new module does not.
 
 `v3.6.0` is already on `main` (2026-11-02) for the four group flags only. The rest of this section is still open. On 2026-11-03 the maintainer chose one release, numbered 3.6.1, for this whole section (D-77). The version check accepts that patch. The release after 3.6.1 follows R16a again.
 
@@ -225,6 +225,24 @@ Exit criteria:
 - Flag off: default `scan --json` is unchanged.
 - The check does not look for the literal string `/admin`. It does not fetch a URL.
 - Query parameters and response bodies are out of this version. Path and method only.
+
+## 3.11.0: `trpc` module
+
+Not part of 3.10.0. Naming 3.11.0 is the go for this module's tests. 14-day wait waived by maintainer.
+
+Goal: `scan --modules trpc` treats a tRPC procedure input as a source. HTTP `req.body` rules do not see that argument today. The section G text check that looks for `publicProcedure` and `update` in the same file is not the verdict.
+
+Ships:
+- [X] New module `trpc`. Sources are the `input` of a `publicProcedure` or `procedure` `.query` or `.mutation`.
+- [X] Those values use the existing SQL, command, path, and URL sinks. This version adds no new sink kind.
+- [X] One positive fixture and one negative fixture per sink. The negative case passes a checked field or a constant.
+Exit criteria:
+- Each positive fixture reports the sink and names the procedure input.
+- Each negative fixture reports nothing.
+- clean-app stays 0 with the flag on and with it off.
+- Flag off: default `scan --json` is unchanged.
+- No package is installed and no server is started.
+- A missing `protectedProcedure` is not a finding.
 
 ## Not planned
 

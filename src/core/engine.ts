@@ -4,6 +4,7 @@ import { performance } from 'node:perf_hooks';
 
 import { agentsModule } from '../modules/agents/index.js';
 import { contractModule } from '../modules/contract/index.js';
+import { trpcModule } from '../modules/trpc/index.js';
 import { workersModule } from '../modules/workers/index.js';
 import { configModule } from '../modules/config/index.js';
 import { depsModule } from '../modules/deps/index.js';
@@ -205,7 +206,7 @@ export interface ScanResult {
  * Scanner modules register here as their phases are built.
  * Phase 5: deps + secrets + sast + config.
  */
-export const builtinModules: readonly ScanModule[] = [depsModule, secretsModule, sastModule, configModule, agentsModule, workersModule, contractModule];
+export const builtinModules: readonly ScanModule[] = [depsModule, secretsModule, sastModule, configModule, agentsModule, workersModule, contractModule, trpcModule];
 
 export const IMPLEMENTED_MODULES: readonly ModuleName[] = builtinModules.map((m) => m.name);
 

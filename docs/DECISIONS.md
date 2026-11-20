@@ -139,3 +139,5 @@ D-76 | phase-575 | The HTML report uses the same opening | Counts, the fail line
 D-77 | 3.6.1 | One patch holds the former 4.0.0–5.0.0 scope | The maintainer asked on 2026-11-03 to ship the merged roadmap as 3.6.1 instead of a major and six minors. `allowsMergedPatch` accepts 3.6.0 → 3.6.1 when the signals require a minor or a major. 3.6.2 and 4.0.0 are not this exception. | APPROVED
 
 D-78 | phase-576 | Contract compare is path and method only, severity medium | The approved 3.10.0 features file names `CONTRACT-SPEC-001` and `CONTRACT-ROUTE-001` behind `FULLSHIELD_EXPERIMENTAL_CONTRACT`. Hono and Koa stay out. A missing or unreadable OpenAPI file stays quiet. No fetch, no new dependency, no default-scan change. CWE-1059. | APPROVED
+
+D-79 | phase-577 | tRPC procedure input stays behind its flag, severity high | The 3.11.0 features file names `TRPC-SQL-001`, `TRPC-CMD-001`, `TRPC-PATH-001`, and `TRPC-SSRF-001` behind `FULLSHIELD_EXPERIMENTAL_TRPC` and `scan --modules trpc`. A checked field and a constant stay quiet. No new command, help line, dependency, or default-scan change. This is not an ownership check. | APPROVED

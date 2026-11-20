@@ -2,7 +2,17 @@
 
 All notable changes to FullShield are documented here.
 
-## Unreleased
+## 3.11.0 — 2026-11-19
+
+### Release
+
+- 14-day wait waived by maintainer.
+- The pinned real-world snapshot matches this default scan. 73 new keys are in that baseline. 1,112 keys this scan does not report left that baseline.
+- The unpacked npm pack ceiling moves from 3,180,000 bytes to 3,199,000 bytes. The tRPC check is copied into each minified entry. A pack of 3,200,000 bytes still fails.
+
+### Experimental
+
+- `scan --modules trpc` with `FULLSHIELD_EXPERIMENTAL_TRPC=1` reports `TRPC-SQL-001` when a tRPC procedure input reaches SQL, `TRPC-CMD-001` when it reaches a shell, `TRPC-PATH-001` when it reaches a path, and `TRPC-SSRF-001` when it reaches a URL. A checked field, a constant, and a file that only contains the words `publicProcedure` and `query` stay quiet. The default scan does not request this module. No package is installed and no server is started. The flag is set in the environment. It is not a new `--help` line. This is not an ownership check.
 
 ## 3.10.0 — 2026-11-13
 

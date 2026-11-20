@@ -64,6 +64,10 @@ That retry is gone. A provenance failure now fails the publish job. After a succ
 
 **Staged approval and README:** Approving a staged package can leave the registry packument `readme` empty even when the tarball contains `package/README.md` (`npm view fullshield@<version> readme` is blank; npmjs.com may keep showing the previous version). This is an npm registry/website issue, not a missing file in the pack. See [npm/cli#9405](https://github.com/npm/cli/issues/9405). Keep 2FA approval on. Do not inject README text into the staged manifest (Cloudflare WAF blocked that). Do not change the publish command to work around it.
 
+## Today (3.11.0)
+
+`v3.11.0` is tagged. The 14-day wait was waived by the maintainer. The tag workflow stages the package. The maintainer clicks the staged version on npmjs.com. Do not run `npm publish` or `npm login`.
+
 ## Today (3.10.0)
 
 `v3.10.0` is tagged. The 14-day wait was waived by the maintainer on 2026-11-13. The tag workflow stages the package. The maintainer clicks the staged version on npmjs.com. Do not run `npm publish` or `npm login`.
