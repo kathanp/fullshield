@@ -1,4 +1,10 @@
-# FullShield features (3.10.0)
+# FullShield features (3.11.0)
+
+## 3.11.0
+
+### Experimental (`FULLSHIELD_EXPERIMENTAL_TRPC`)
+
+Minor on 3.10.0. The package number is 3.11.0. It is tagged. 14-day wait waived by maintainer. `scan --modules trpc` with `FULLSHIELD_EXPERIMENTAL_TRPC=1` treats a tRPC procedure input as a source. A `publicProcedure` or `procedure` `.query` or `.mutation` input that reaches SQL is `TRPC-SQL-001`. The same input that reaches a shell is `TRPC-CMD-001`. The same input that reaches a path is `TRPC-PATH-001`. The same input that reaches a URL is `TRPC-SSRF-001`. A checked field, a constant, and a file that only contains the words `publicProcedure` and `query` stay quiet. The default scan does not request this module. No package is installed and no server is started. Flag off, default `scan --json` is unchanged. A `--repo` run does not park. The flag is set in the environment. It is not a new `--help` line. This is not an ownership check and it does not report a missing `protectedProcedure`. The section G text check that looks for `publicProcedure` and `update` in the same file is not this module and is not the verdict.
 
 ## 3.10.0
 

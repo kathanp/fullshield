@@ -18,6 +18,7 @@ Out of scope: findings in `test/fixtures/**` (intentionally vulnerable), third-p
 
 | Version | Status |
 |---|---|
+| 3.11.0 | Tagged. |
 | 3.10.0 | Tagged. |
 | 3.9.0 | Tagged. |
 | 3.8.0 | Tagged. |

@@ -407,7 +407,7 @@ Taint: sources `req.body/query/params/headers/cookies`, destructured request par
 - [ X ] No install/postinstall scripts.
 - [ X ] Hard runtime deps ≤ 6 (currently: commander, ignore, picocolors, @typescript-eslint/typescript-estree). Optional peers: express, fastify, koa, hono, zod, @modelcontextprotocol/sdk. Lockfile committed.
 - [ X ] Publish only from CI via trusted publishing with `--provenance`; post-publish attestation gate (S6). No long-lived npm tokens. 2FA on npm and GitHub. Staged approval on.
-- [ X ] Tarball: `dist/` (no `.map`), README, LICENSE, CHANGELOG, templates, rules. Budget: unpacked ≤ 3,180,000 bytes, ≤ 320 files (Phase 36, raised for 1.2.0, raised again for 3.10.0).
+- [ X ] Tarball: `dist/` (no `.map`), README, LICENSE, CHANGELOG, templates, rules. Budget: unpacked ≤ 3,199,000 bytes, ≤ 320 files (Phase 36, raised for 1.2.0, raised again for 3.10.0, raised again for 3.11.0).
 - [ X ] Scanned code is never executed. Parse only.
 - [ X ] Network: OSV, registry.npmjs.org (supply-chain features), user-configured webhooks/AI providers, localhost (confirm/agent/dashboard). `--offline` available.
 - [ X ] Dogfood: FullShield scans its own repo in CI.
@@ -7274,3 +7274,17 @@ Flag: `FULLSHIELD_EXPERIMENTAL_CONTRACT`. Off unless the value is `1`. Also requ
 No new host. The check does not fetch a URL. It does not install a package. Scanned code is not executed. No new dependency. The unpacked pack ceiling moves from 3,145,728 bytes to 3,180,000 bytes. `v3.9.0` already used 3,143,213, and this module is copied into each minified entry.
 
 Acceptance: flag off leaves default `scan --json` unchanged. Each positive fixture reports the missing side, and each negative fixture does not. `clean-app` stays at 0 with the flag on. Default scan findings unchanged.
+
+## 74. Version 3.11.0
+
+These phases are the approved `docs/FEATURES.md` for 3.11.0. A behavior that is not in that list is not in this section. This is a minor on 3.10.0. It adds module `trpc`, rule ids `TRPC-SQL-001`, `TRPC-CMD-001`, `TRPC-PATH-001`, and `TRPC-SSRF-001`, and uses env flag `FULLSHIELD_EXPERIMENTAL_TRPC`. It adds no `.command()` and no `.option()`. Default `scan --json` findings stay byte-identical to 3.10.0. `stableChange: false`.
+
+### Phase 577 — tRPC procedure input [`FULLSHIELD_EXPERIMENTAL_TRPC`]
+
+Flag: `FULLSHIELD_EXPERIMENTAL_TRPC`. Off unless the value is `1`. Also requires `scan --modules trpc`. The flag is not a new `--help` line. `stableChange: false`.
+
+`scan --modules trpc` treats the `input` of a `publicProcedure` or `procedure` `.query` or `.mutation` as a source. `TRPC-SQL-001` is that input reaching `query` or `execute`. `TRPC-CMD-001` is that input reaching a shell call. `TRPC-PATH-001` is that input reaching a file path call. `TRPC-SSRF-001` is that input reaching `fetch` or an HTTP client call. A checked field stays quiet. A constant stays quiet. A file that only contains the words `publicProcedure` and `query` stays quiet. Severity is `high`. CWE-89, CWE-78, CWE-22, and CWE-918, one per rule. This is not an ownership check. A missing `protectedProcedure` is not a finding. The section G text check is not this module.
+
+No new host. The check does not fetch a URL. It does not install a package. It does not start a server. Scanned code is not executed. No new dependency. The unpacked pack ceiling moves from 3,180,000 bytes to 3,199,000 bytes.
+
+Acceptance: flag off leaves default `scan --json` unchanged. Each positive fixture reports the sink, and each negative fixture does not. `clean-app` stays at 0 with the flag on. Default scan findings unchanged.

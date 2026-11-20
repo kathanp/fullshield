@@ -159,6 +159,15 @@ Requires `FULLSHIELD_EXPERIMENTAL_DLP=1` and `shieldGuard({ dlp: { mode } })`. N
 | [CONTRACT-SPEC-001](CONTRACT-SPEC-001.md) | OpenAPI path and method with no registered route |
 | [CONTRACT-ROUTE-001](CONTRACT-ROUTE-001.md) | Registered route with no OpenAPI path and method |
 
+## tRPC (experimental, `FULLSHIELD_EXPERIMENTAL_TRPC=1` and `--modules trpc`)
+
+| ID | What |
+|---|---|
+| [TRPC-SQL-001](TRPC-SQL-001.md) | Procedure input reaches SQL |
+| [TRPC-CMD-001](TRPC-CMD-001.md) | Procedure input reaches a shell |
+| [TRPC-PATH-001](TRPC-PATH-001.md) | Procedure input reaches a path |
+| [TRPC-SSRF-001](TRPC-SSRF-001.md) | Procedure input reaches a URL |
+
 ## Workers (experimental, `FULLSHIELD_EXPERIMENTAL_WORKERS=1` and `--modules workers`)
 
 | ID | What |

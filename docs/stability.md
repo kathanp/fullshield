@@ -73,6 +73,10 @@ It is not a promise that each flag stays.
 
 Stable rule ids are the rules whose front matter says `stability: stable`. Experimental keys may disappear in a minor. This section does not say the product is complete.
 
+## 3.11.0
+
+3.11.0 does not change default `scan --json`. `scan --modules trpc` with `FULLSHIELD_EXPERIMENTAL_TRPC=1` reports a tRPC procedure input that reaches SQL, a shell, a path, or a URL. The flag is off by default. The finding fields in this file are unchanged. No stable rule id is removed.
+
 ## 3.10.0
 
 3.10.0 does not change default `scan --json`. `scan --modules contract` with `FULLSHIELD_EXPERIMENTAL_CONTRACT=1` compares a local OpenAPI file with Express, Fastify, Nest, and Next routes. The flag is off by default. The finding fields in this file are unchanged. No stable rule id is removed.
