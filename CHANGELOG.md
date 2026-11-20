@@ -7,6 +7,7 @@ All notable changes to FullShield are documented here.
 ### Release
 
 - 14-day wait waived by maintainer.
+- The pinned real-world snapshot matches this default scan. 73 new keys are in that baseline. 1,112 keys this scan does not report left that baseline.
 - The unpacked npm pack ceiling moves from 3,180,000 bytes to 3,199,000 bytes. The tRPC check is copied into each minified entry. A pack of 3,200,000 bytes still fails.
 
 ### Experimental
